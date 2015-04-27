@@ -1,25 +1,4 @@
----
-title: "hpgltools examples"
-author: "atb abelew@gmail.com"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_document
-vignette: >
-  %\VignetteIndexEntry{hpgltools examples}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
----
-
-
-# Example hpgltool usage with a real data set (fission)
-
-This document aims to provide further examples in how to use the hpgltools.
-
-## Setting up
-
-Here are the commands I invoke to get ready to play with new data, including everything
-required to install hpgltools, the software it uses, and the fission data.
-
-```{r setup}
+## ----setup---------------------------------------------------------------
 
 ## These first 4 lines are not needed once hpgltools is installed.
 ##source("http://bioconductor.org/biocLite.R")
@@ -34,16 +13,8 @@ data(fission)
 opts_knit$set(progress=TRUE, verbose=TRUE, error=TRUE,  fig.width=7, fig.height=7)
 
 
-```
 
-## Data import
-
-All the work I do in Dr. El-Sayed's lab makes some pretty hard assumptions about how data is stored.
-As a result, to use the fission data set I will do a little bit of shenanigans to match it to the
-expected format.  Now that I have played a little with fission, I think its format is quite nice
-and am likely to have my experiment class instead be a SummarizedExperiment.
-
-```{r data_import}
+## ----data_import---------------------------------------------------------
 
 ## Extract the meta data from the fission dataset
 meta = as.data.frame(fission@colData)
@@ -60,16 +31,8 @@ fission_data = fission@assays$data$counts
 ## Along the way it writes a Rdata file which is by default called 'expt.Rdata'
 fission_expt = create_expt("fission.csv", count_dataframe=fission_data)
 
-```
 
-## Normalizing and exploring data
-
-There are lots of toys we have learned to use to play with with raw data and explore stuff like
-batch effects or non-canonical distributions or skewed counts.  hpgltools provides some functionality
-to make this process easier.  The graphs shown below and many more are generated with the wrapper
-'graph_metrics()' but that takes away the chance to explain the graphs as I generate them.
-
-```{r norm_explore}
+## ----norm_explore--------------------------------------------------------
 
 ## First make a bar plot of the library sizes in the experiment.
 ## Notice that the colors were auto-chosen by create_expt() and they should
@@ -81,14 +44,8 @@ fis_libsize
 fis_nonzero = hpgl_nonzero(expt=fission_expt, labels="boring", title="nonzero vs. cpm")
 fis_nonzero
 
-```
 
-### An initial pca plot
-
-In most cases, raw data does not cluster very well, lets see if that is also true for the fission experiment.
-Assuming it doesn't, lets normalize the data using the defaults (cpm, quantile, log2) and try again.
-
-```{r pca}
+## ----pca-----------------------------------------------------------------
 
 ## Unsurprisingly, the raw data doesn't cluster well at all...
 fis_rawpca = hpgl_pca(expt=fission_expt, labels=fission_expt$condition)
@@ -113,4 +70,4 @@ fis_info$pca_cor
 ## And p-values to lend some credence(or not to those assertions)
 fis_info$anova_p
 
-```
+
