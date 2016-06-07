@@ -1,5 +1,3 @@
-## Time-stamp: <Tue May  3 15:32:43 2016 Ashton Trey Belew (abelew@gmail.com)>
-
 ## Everything in this was written by Keith, I stole it with his permission and incorporated it here.
 ## I might change a few function declarations in this: tbl_df
 ## for example is not included in any import declarations and so I will likely
@@ -21,10 +19,38 @@
 #' one_gene <- load_parasite_annotations(org, c("LmJF.01.0010"))
 #' }
 #' @export
-load_parasite_annotations <- function(orgdb, gene_ids, keytype='ENSEMBL',
-                            fields=c('CHR', 'GENENAME', 'TXSTRAND',
-                                     'TXSTART', 'TXEND', 'TYPE')) {
+load_parasite_annotations <- function(orgdb, gene_ids=NULL, keytype="ENSEMBL",
+                                      ##fields=c("CHR", "GENENAME", "TXSTRAND",
+                                      fields=NULL, sum_exons=FALSE) {
+                                      ##         "TXSTART", "TXEND", "TYPE")) {
+
+    keytype <- toupper(keytype)
+    all_fields <- AnnotationDbi::columns(orgdb)
+    if (is.null(fields)) {
+        fields <- c("CHR", "GENENAME", "TXSTRAND", "TXSTART", "TXEND", "TYPE")
+    } else if (fields == "all") {
+        fields <- all_fields
+    }
+
+    if (sum(fields %in% all_fields) != length(fields)) {
+        stop(paste0("Some of the fields requested are not in the available: ", toString(all_fields)))
+    }
+    ## fields <- c("CHR", "GENENAME", "TXSTRAND", "TXSTART", "TXEND", "TYPE")
+
     ## Gene info
+    if (is.null(gene_ids)) {
+        gene_ids <- try(AnnotationDbi::keys(orgdb, keytype=keytype))
+        if (class(gene_ids) == "try-error") {
+            if (grepl(x=gene_ids[[1]], pattern="Invalid keytype")) {
+                valid_keytypes <- AnnotationDbi::keytypes(orgdb)
+                stop(paste0("Try using valid keytypes: ", toString(valid_keytypes)))
+            } else {
+                stop("There was an error getting the gene ids.")
+            }
+        } else {
+            message("Extracted all gene ids.")
+        }
+    }
     ## Note querying by "GENEID" will exclude noncoding RNAs
     transcript_length <- NULL
     gene_info <- AnnotationDbi::select(orgdb,
@@ -34,25 +60,32 @@ load_parasite_annotations <- function(orgdb, gene_ids, keytype='ENSEMBL',
 
     ## Compute total transcript lengths (for all exons)
     ## https://www.biostars.org/p/83901/
-    gene_exons <- GenomicFeatures::exonsBy(orgdb, by='gene')
+    gene_exons <- GenomicFeatures::exonsBy(orgdb, by="gene")
+    transcripts <- GenomicFeatures::transcripts(orgdb)
+    message("Summing exon lengths, this takes a while.")
     lengths <- lapply(gene_exons, function(x) {
         sum(BiocGenerics::width(GenomicRanges::reduce(x)))
     })
+    message("Adding exon lengths to the gene_exons.")
     lengths <- as.data.frame(unlist(lengths))
-    colnames(lengths) <- 'transcript_length'
+    colnames(lengths) <- "transcript_length"
 
-    gene_info <- merge(gene_info, lengths, by.x=keytype, by.y='row.names')
+    gene_info <- merge(gene_info, lengths, by.x=keytype, by.y="row.names")
+    colnames(gene_info) <- tolower(colnames(gene_info))
 
     ## Convert to tbl_df and reorganize
     ret <- dplyr::tbl_df(gene_info) %>%
-        AnnotationDbi::select_(
-            gene_id=get(keytype),
-            chromosome="CHR",
-            description="GENENAME",
-            strand="TXSTRAND",
-            type="TYPE",
-            transcript_length=transcript_length)
-    return(ret)
+        dplyr::select_(
+            gene_id=tolower(keytype),
+            chromosome="chr",
+            description="genename",
+            strand="txstrand",
+            type="type",
+            transcript_length="transcript_length")
+    retlist <- list(
+        "genes" = ret,
+        "transcripts" = transcripts)
+    return(retlist)
 }
 
 #' Load organism annotation data (mouse/human).
@@ -72,11 +105,24 @@ load_parasite_annotations <- function(orgdb, gene_ids, keytype='ENSEMBL',
 #' host <- load_host_annotations(org, c("a","b"))
 #' }
 #' @export
-load_host_annotations <- function(orgdb, gene_ids, keytype='ENSEMBL',
-                                 fields=c('TXCHROM', 'GENENAME', 'TXSTRAND',
-                                          'TXSTART', 'TXEND'),
-                                 biomart_dataset='hsapiens_gene_ensembl') {
+load_host_annotations <- function(orgdb, gene_ids=NULL, keytype="ENSEMBL",
+                                 fields=c("TXCHROM", "GENENAME", "TXSTRAND",
+                                          "TXSTART", "TXEND"),
+                                 biomart_dataset="hsapiens_gene_ensembl") {
     ## Gene info
+    if (is.null(gene_ids)) {
+        gene_ids <- try(AnnotationDbi::keys(orgdb, keytype=keytype))
+        if (class(gene_ids) == "try-error") {
+            if (grepl(x=gene_ids[[1]], pattern="Invalid keytype")) {
+                valid_keytypes <- AnnotationDbi::keytypes(orgdb)
+                stop(paste0("Try using valid keytypes: ", toString(valid_keytypes)))
+            } else {
+                stop("There was an error getting the gene ids.")
+            }
+        } else {
+            message("Extracted all gene ids.")
+        }
+    }
     ## Note querying by "GENEID" will exclude noncoding RNAs
     gene_info <- AnnotationDbi::select_(orgdb,
                         keys=gene_ids,
@@ -312,6 +358,159 @@ generate_kegg_pathway_mapping <- function(pathways, verbose=FALSE) {
         }
     }
     return(kegg_pathways)
+}
+
+#' Load the appropriate orgDb environment for a given species.
+#'
+#' Ok, so these are a bit more complex than I realized.  The heirarchy as I now understand it
+#' (probably wrong) is that orgdb objects provide ID mappings among the various DBs.  txdb objects
+#' provide the actual annotation information, and organismdbs acquire both (but only exist for a few
+#' species). Let's face it, I will never remember that the yeast orgdb is 'org.Sc.sgd.something'.  This
+#' function is intended to make that process easier.  Feed it a species name which makes sense:
+#' 'homo_sapiens' and it will assume you mean orgdb.whatever and load that into your
+#' environment. This should also make a reasonable attempt at installing the appropriate orgdb if it
+#' is not already in your R library tree.
+#'
+#' @param species Human readable species name
+#' @return orgdb object for the relevant species, or an error if I don't have a mapping for it.
+#' @examples
+#'  object <- choose_orgdb("homo_sapiens")
+#' @export
+choose_orgdb <- function(species="saccharomyces_cerevisiae") {
+    used_species <- list(
+        "homo_sapiens" = c("org.Hs.eg.db", "bioconductor"),
+        "mus_musculus" = c("org.Mm.eg.db", "bioconductor"),
+        "leishmania_major" = c("org.LmjF.tritryp.db", "elsayed-lab"),
+        "trypanosoma_cruzi_clb" = c("org.TcCLB.clb.tritryp.db", "elsayed-lab"),
+        "trypanosoma_cruzi_esmer" = c("org.TcCLB.esmer.tritryp.db", "elsayed-lab"),
+        "trypanosoma_cruzi_nonesmer" = c("org.TcCLB.nonesmer.tritryp.db", "elsayed-lab"),
+        "drosophila_melanogaster" = c("org.Dm.eg.db", "bioconductor"),
+        "saccharomyces_cerevisiae" = c("org.Sc.sgd.db", "bioconductor")
+    )
+    found <- 0
+    org <- NULL
+    avail_keys <- NULL
+    if (species %in% names(used_species)) {
+        message("I have a species name mapped to orgdb for ", species, ".")
+    } else {
+        stop("I have not yet assigned an orgdb to this species.")
+    }
+    try_list <- used_species[[species]]
+    try_orgdb <- try_list[[1]]
+    try_source <- try_list[[2]]
+    org <- try(loadNamespace(try_orgdb))  ## try loading it into the environment named 'org'
+    if (class(org) == "try-error") {  ## if that was not found, install it.
+        if (try_source == "bioconductor") {
+            installedp <- require.auto(try_orgdb)  ## install from bioconductor
+        } else {
+            installedp <- require.auto(paste0(try_source, "/", try_orgdb))  ## install from github
+        }
+        org <- loadNamespace(try_orgdb)
+
+    }
+    org <- org[[try_orgdb]]
+    if (is.null(org)) {
+        stop("Did not extract the relevant orgDb.")
+    } else {
+        avail_keys <- AnnotationDbi::keytypes(org)
+        message("Attached the orgDb for ", species, " with keys: ", toString(avail_keys), ".")
+    }
+    return(org)
+}
+
+#' Load the appropriate TxDb environment for a given species.
+#'
+#' Ok, so these are a bit more complex than I realized.  The heirarchy as I now understand it
+#' (probably wrong) is that orgdb objects provide ID mappings among the various DBs.  txdb objects
+#' provide the actual annotation information, and organismdbs acquire both (but only exist for a few
+#' species). Let's face it, I will never remember that the yeast orgdb is 'org.Sc.sgd.something'.  This
+#' function is intended to make that process easier.  Feed it a species name which makes sense:
+#' 'homo_sapiens' and it will assume you mean orgdb.whatever and load that into your
+#' environment. This should also make a reasonable attempt at installing the appropriate orgdb if it
+#' is not already in your R library tree.
+#'
+#' @param species Human readable species name
+#' @return orgdb object for the relevant species, or an error if I don't have a mapping for it.
+#' @examples
+#'  object <- choose_txdb("homo_sapiens")
+#' @export
+choose_txdb <- function(species="saccharomyces_cerevisiae") {
+    used_species <- list(
+        "homo_sapiens" = c("TxDb.Hsapiens.UCSC.hg38.knownGene", "bioconductor"),
+        "mus_musculus" = c("TxDb.Mmusculus.UCSC.mm10.knownGene", "bioconductor"),
+        "leishmania_major" = c("TxDb.LmajorFriedlin.tritryp27.genes", "elsayed-lab"),
+        "trypanosoma_cruzi_clb" = c(" TxDb.TcruziCLBrener.tritryp27.genes", "elsayed-lab"),
+        "trypanosoma_cruzi_esmer" = c(" TxDb.TcruziCLBrenerEsmer.tritryp27.genes", "elsayed-lab"),
+        "trypanosoma_cruzi_nonesmer" = c(" TxDb.TcruziCLBrenerNonEsmer.tritryp27.genes", "elsayed-lab"),
+        "drosophila_melanogaster" = c("TxDb.Dmelanogaster.UCSC.dm6.ensGene", "bioconductor"),
+        "saccharomyces_cerevisiae" = c("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene", "bioconductor")
+    )
+    found <- 0
+    tx <- NULL
+    avail_keys <- NULL
+    if (species %in% names(used_species)) {
+        message("I have a species name mapped to txdb for ", species, ".")
+    } else {
+        stop("I have not yet assigned an txdb to this species.")
+    }
+    try_list <- used_species[[species]]
+    try_txdb <- try_list[[1]]
+    try_source <- try_list[[2]]
+    tx <- try(loadNamespace(try_txdb))  ## try loading it into the environment named 'tx'
+    if (class(tx) == "try-error") {  ## if that was not found, install it.
+        if (try_source == "bioconductor") {
+            installedp <- require.auto(try_txdb)  ## install from bioconductor
+        } else {
+            installedp <- require.auto(paste0(try_source, "/", try_txdb))  ## install from github
+        }
+        tx <- loadNamespace(try_txdb)
+
+    }
+    tx <- tx[[try_txdb]]
+    avail_namespaces <- ls(paste0("package:", try_txdb))
+    if (is.null(tx)) {
+        stop("Did not extract the relevant txDb.")
+    } else {
+        avail_keys <- AnnotationDbi::keytypes(tx)
+        message("Attached the txDb for ", species, " with keys: ", toString(avail_keys), ".")
+    }
+    return(tx)
+}
+
+#' Load organism annotation data (mouse/human).
+#'
+#' Creates a dataframe gene and transcript information for a given set of gene
+#' ids using the OrganismDbi interface.
+#'
+#' @param orgdb OrganismDb instance.
+#' @param gene_ids Gene identifiers for retrieving annotations.
+#' @param keytype a, umm keytype? I need to properly read this code.
+#' @param fields Columns to include in the output.
+#' @param biomart_dataset Name of the biomaRt dataset to query for gene type.
+#' @return a table of gene information
+#' @seealso \link[AnnotationDbi]{select}
+#' @examples
+#' \dontrun{
+#' host <- load_host_annotations(org, c("a","b"))
+#' }
+#' @export
+orgdb_idmap <- function(orgdb, gene_ids=NULL, mapto=c('ensembl')) {
+    avail_keytypes <- AnnotationDbi::keytypes(orgdb)
+    if (!mapto %in% avail_keytypes) {
+        warning(paste0("The chosen keytype ", mapto, " is not in this orgdb."))
+        message("Try some of the following instead: ", toString(avail_keytypes), ".")
+        return(NULL)
+    }
+    ## If no gene ids were chosen, grab them all.
+    if (is.null(gene_ids)) {
+        gene_ids <- AnnotationDbi::keys(orgdb)
+    }
+    ## Gene info
+    ## Note querying by "GENEID" will exclude noncoding RNAs
+    mapto <- toupper(mapto)
+    gene_info <- AnnotationDbi::select(orgdb, keys=gene_ids, columns=mapto)
+    colnames(gene_info) <- tolower(colnames(gene_info))
+    return(gene_info)
 }
 
 ## EOF
