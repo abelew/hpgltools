@@ -365,12 +365,12 @@ plot_rmats <- function(se=NULL, a5ss=NULL, a3ss=NULL, mxe=NULL, ri=NULL,
   plotting_data <- all_data %>%
     tidyr::separate("level1", c("l1a", "l1b"), "\\,") %>%
     tidyr::separate("level2", c("l2a", "l2b"), "\\,")
-  plotting_data[["l1a"]] <- as.numeric(plotting_data[["l1a"]])
-  plotting_data[["l1b"]] <- as.numeric(plotting_data[["l1b"]])
-  plotting_data[["l2a"]] <- as.numeric(plotting_data[["l2a"]])
-  plotting_data[["l2b"]] <- as.numeric(plotting_data[["l2b"]])
+  plotting_data[["l1a"]] <- suppressWarnings(as.numeric(plotting_data[["l1a"]]))
+  plotting_data[["l1b"]] <- suppressWarnings(as.numeric(plotting_data[["l1b"]]))
+  plotting_data[["l2a"]] <- suppressWarnings(as.numeric(plotting_data[["l2a"]]))
+  plotting_data[["l2b"]] <- suppressWarnings(as.numeric(plotting_data[["l2b"]]))
   plotting_data[["id"]] <- rownames(plotting_data)
-  plotting_data[, `:=` (l1mean = mean(c(l1a, l1b), na.rm=TRUE)), by=id]
+  suppressWarnings(plotting_data[, `:=` (l1mean = mean(c(l1a, l1b), na.rm=TRUE)), by=id])
   plotting_data[, `:=` (l2mean = mean(c(l2a, l2b), na.rm=TRUE)), by=id]
   plotting_data[, `:=` (all_mean = mean(c(l1mean, l2mean), na.rm=TRUE)), by=id]
   plotting_data[["check"]] <- plotting_data[["l1mean"]] - plotting_data[["l2mean"]]

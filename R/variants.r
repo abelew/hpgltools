@@ -532,10 +532,10 @@ snps_intersections <- function(expt, snp_result, chr_column="seqnames") {
     inter_df[["end"]] <- inter_df[["start"]] + 1
     inter_df[["strand"]] <- "+"
     inter_granges <- GenomicRanges::makeGRangesFromDataFrame(inter_df)
-    inter_by_gene <- IRanges::subsetByOverlaps(inter_granges,
-                                               expt_granges,
-                                               type="within",
-                                               ignore.strand=TRUE)
+    inter_by_gene <- suppressWarnings(IRanges::subsetByOverlaps(inter_granges,
+                                                                expt_granges,
+                                                                type="within",
+                                                                ignore.strand=TRUE))
     inters[[inter_name]] <- inter_by_gene
     summarized_by_chr <- data.table::as.data.table(inter_by_gene)
     ## Faking out r cmd check with a couple empty variables which will be used by data.table
@@ -545,8 +545,9 @@ snps_intersections <- function(expt, snp_result, chr_column="seqnames") {
     summarized_by_chr <- unique(summarized_by_chr[, c("seqnames", "count"), with=FALSE])
     chr_summaries[[inter_name]] <- summarized_by_chr
 
-    summarized_by_gene <- IRanges::countOverlaps(query=expt_granges, subject=inter_granges,
-                                                 type="any", ignore.strand=TRUE)
+    summarized_by_gene <- suppressWarnings(IRanges::countOverlaps(query=expt_granges,
+                                                                  subject=inter_granges,
+                                                                  type="any", ignore.strand=TRUE))
     summarized_idx <- order(summarized_by_gene, decreasing=TRUE)
     summarized_by_gene <- summarized_by_gene[summarized_idx]
     gene_summaries[[inter_name]] <- summarized_by_gene
