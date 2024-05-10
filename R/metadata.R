@@ -2023,7 +2023,11 @@ make_assembly_spec <- function() {
     "hisat_genome_multi_all" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat2_*.stderr"),
     "hisat_count_table" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
+      ## So, for the moment I will make this less stringent to pick up both file names.
+      ## Ergo the extra glob.
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
     "jellyfish_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*jellyfish_*/*_matrix.csv.xz"),
     "jellyfish_observed" = list(
@@ -2182,7 +2186,11 @@ make_rnaseq_spec <- function() {
     "input_r2" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
     "hisat_count_table" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
+      ## So, for the moment I will make this less stringent to pick up both file names.
+      ## Ergo the extra glob.
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
     "bbmap_coverage_stats" = list(
@@ -2274,7 +2282,11 @@ make_dnaseq_spec <- function() {
     "freebayes_observed_file" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/all_tags*"),
     "hisat_count_table" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
+      ## So, for the moment I will make this less stringent to pick up both file names.
+      ## Ergo the extra glob.
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
     "deduplication_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),
     "freebayes_variants_by_gene" = list(

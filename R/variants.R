@@ -1669,6 +1669,7 @@ snps_vs_genes_padded <- function(expt, snp_result, start_col = "start", end_col 
 #'
 #' @param expt variant expressionset.
 #' @param output_file File to write, presumably to be passed to something like phyML.
+#' @export
 write_snps <- function(expt, output_file = "funky.aln") {
   start_mtrx <- exprs(expt)
   samples <- colnames(start_mtrx)
