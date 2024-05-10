@@ -3225,17 +3225,28 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
   ## Violin plots
   if (isTRUE(violin)) {
     filt <- sm(normalize_expt(expt, filter = "simple"))
-
+    do_varpart <- TRUE
     full_model <- as.formula("~ condition + batch")
     reduced_model <- as.formula("~ condition")
-    data_full_model <- stats::model.matrix.default(full_model, data = pData(filt))
-    data_reduced_model <-  stats::model.matrix.default(reduced_model, data = pData(expt))
-    full_model_columns <- ncol(data_full_model)
-    reduced_model_columns <- ncol(data_reduced_model)
-    full_model_rank <- qr(data_full_model)[["rank"]]
-    reduced_model_rank <- qr(data_reduced_model)[["rank"]]
-    varpart_factors <- c("condition", "batch")
-    do_varpart <- TRUE
+    data_full_model <- try(stats::model.matrix.default(full_model, data = pData(filt)), silent = TRUE)
+    data_reduced_model <- NULL
+    full_model_columns <- 0
+    reduced_model_columns <- 0
+    full_model_rank <- 0
+    reduced_model_rank <- 0
+    varpart_factors <- c("condition")
+    if ("try-error" %in% class(data_full_model)) {
+      do_varpart <- FALSE
+      message("The expressionset has a minimal or missing set of conditions/batches.")
+    } else {
+      data_reduced_model <-  stats::model.matrix.default(reduced_model, data = pData(expt))
+      full_model_columns <- ncol(data_full_model)
+      reduced_model_columns <- ncol(data_reduced_model)
+      full_model_rank <- qr(data_full_model)[["rank"]]
+      reduced_model_rank <- qr(data_reduced_model)[["rank"]]
+      varpart_factors <- c("condition", "batch")
+    }
+
     varpart_raw <- NULL
     if (full_model_rank < full_model_columns) {
       message("This expressionset does not support lmer with condition+batch")

@@ -1,3 +1,63 @@
+#' Create a plot showing relative expression with respect to each chromosome/contig.
+#'
+#' @param expt Input expressionset.
+#' @param chromosome_column Annotation column containing the chromosome ID.
+#' @param scaffolds Include scaffolds in addition to the actual chromosomes.
+#' @param min_genes The minimum number of genes which should be on the 'chromosome' before it
+#'  is considered worth considering.
+#' @export
+plot_exprs_by_chromosome <- function(expt, chromosome_column = "chromosome", scaffolds = TRUE,
+                                     min_genes = 10) {
+  start <- data.frame(row.names = unique(fData(expt)[["chromosome"]]))
+  start[["genes"]] <- 0
+  start[["exprs_mean"]] <- 0
+  start[["exprs_stdev"]] <- 0
+  start[["exprs_var"]] <- 0
+  start[["exprs_min"]] <- 0
+  start[["exprs_qt1"]] <- 0
+  start[["exprs_qt3"]] <- 0
+  start[["exprs_median"]] <- 0
+  start[["exprs_max"]] <- 0
+  for (ch in rownames(start)) {
+    gene_id_idx <- fData(expt)[["chromosome"]] == ch
+    gene_ids <- rownames(fData(expt))[gene_id_idx]
+    start[ch, "genes"] <- length(gene_ids)
+    subset_exprs <- exprs(expt)[gene_ids, ]
+    if (length(gene_ids) == 1) {
+      start[ch, "exprs_mean"] <- mean(subset_exprs)
+      start[ch, "exprs_stdev"] <- stats::sd(subset_exprs)
+      start[ch, "exprs_min"] <- min(subset_exprs)
+      start[ch, "exprs_max"] <- max(subset_exprs)
+      start[ch, "exprs_median"] <- median(subset_exprs)
+      start[ch, "exprs_var"] <- stats::var(subset_exprs)
+      start[ch, "exprs_qt1"] <- as.numeric(summary(subset_exprs))[2]
+      start[ch, "exprs_qt3"] <- as.numeric(summary(subset_exprs))[5]
+    } else {
+      start[ch, "exprs_mean"] <- mean(rowMeans(subset_exprs))
+      start[ch, "exprs_stdev"] <- stats::sd(rowMeans(subset_exprs))
+      start[ch, "exprs_min"] <- min(rowMeans(subset_exprs))
+      start[ch, "exprs_max"] <- max(rowMeans(subset_exprs))
+      start[ch, "exprs_median"] <- median(rowMeans(subset_exprs))
+      start[ch, "exprs_var"] <- stats::var(rowMeans(subset_exprs))
+      start[ch, "exprs_qt1"] <- as.numeric(summary(rowMeans(subset_exprs)))[2]
+      start[ch, "exprs_qt3"] <- as.numeric(summary(rowMeans(subset_exprs)))[5]
+    }
+
+    min_idx <- start[["genes"]] >= min_genes
+    start <- start[min_idx, ]
+
+    plt <- ggplot(start, aes(y = exprs_mean, x = genes)) +
+      geom_point() +
+      scale_y_log10()
+    plt <- ggplot(start, aes(y = exprs_var, x = genes)) +
+      geom_point()
+  }
+  retlist <- list(
+    "plot" = plt,
+    "info" = start)
+  return(retlist)
+}
+
 #' Make a ggplot graph of library sizes.
 #'
 #' It is often useful to have a quick view of which samples have more/fewer
