@@ -32,7 +32,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
                          pvals = NULL, limitby = "fisher", limit = 0.1, signodes = 100,
                          sigforall = TRUE, numchar = 300, selector = "topDiffGenes",
                          pval_column = "deseq_adjp", overwrite = FALSE, densities = FALSE,
-                         pval_plots = TRUE, excel = NULL, ...) {
+                         pval_plots = TRUE, parallel = TRUE, excel = NULL, ...) {
   ## Some neat ideas from the topGO documentation:
   ## geneList <- getPvalues(exprs(eset), classlabel = y, alternative = "greater")
   ## A variant of these operations make it possible to give topGO scores so that
@@ -90,35 +90,48 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
       "CC" = list())
   returns <- list()
   methods <- c("fisher", "KS", "EL", "weight")
-  cl <- parallel::makeCluster(4)
-  doParallel::registerDoParallel(cl)
-  tt <- sm(requireNamespace("parallel"))
-  tt <- sm(requireNamespace("doParallel"))
-  tt <- sm(requireNamespace("iterators"))
-  tt <- sm(requireNamespace("foreach"))
-  res <- foreach(c = seq_along(methods),
+  if (isTRUE(parallel)) {
+    cl <- parallel::makeCluster(4)
+    doParallel::registerDoParallel(cl)
+    tt <- sm(requireNamespace("parallel"))
+    tt <- sm(requireNamespace("doParallel"))
+    tt <- sm(requireNamespace("iterators"))
+    tt <- sm(requireNamespace("foreach"))
+    res <- foreach(c = seq_along(methods),
                  ## .combine = "c", .multicombine = TRUE,
                  .packages = c("hpgltools", "Hmisc", "topGO")) %dopar% {
                    type <- methods[c]
                    returns[[type]] <- do_topgo(type, go_map = geneID2GO,
                                                fisher_genes = fisher_interesting_genes,
                                                ks_genes = ks_interesting_genes)
-  }
-  stopped <- parallel::stopCluster(cl)
-  if (class(stopped)[1] == "try-error") {
-    warning("There was a problem stopping the parallel cluster.")
-  }
-  for (r in seq_along(methods)) {
-    a_result <- res[[r]]
-    type <- a_result[["MF"]][["type"]]
-    ontology_result[["MF"]][[type]] <- a_result[["MF"]]
-    ontology_result[["BP"]][[type]] <- a_result[["BP"]]
-    ontology_result[["CC"]][[type]] <- a_result[["CC"]]
+    }
+    stopped <- parallel::stopCluster(cl)
+    if (class(stopped)[1] == "try-error") {
+      warning("There was a problem stopping the parallel cluster.")
+    }
+    for (r in seq_along(methods)) {
+      a_result <- res[[r]]
+      type <- a_result[["MF"]][["type"]]
+      ontology_result[["MF"]][[type]] <- a_result[["MF"]]
+      ontology_result[["BP"]][[type]] <- a_result[["BP"]]
+      ontology_result[["CC"]][[type]] <- a_result[["CC"]]
+    }
+  } else {
+    for (r in seq_along(methods)) {
+      type <- methods[r]
+      a_result <- do_topgo(type, go_map = geneID2GO,
+                           fisher_genes = fisher_interesting_genes,
+                           ks_genes = ks_interesting_genes)
+      ontology_result[["MF"]][[type]] <- a_result[["MF"]]
+      ontology_result[["BP"]][[type]] <- a_result[["BP"]]
+      ontology_result[["CC"]][[type]] <- a_result[["CC"]]
+    }
   }
 
+  included_methods <- names(ontology_result[["MF"]])
   p_dists <- list()
   for (o in c("BP", "MF", "CC")) {
-    for (m in methods) {
+    for (m in included_methods) {
       name <- glue::glue("{tolower(o)}_{limitby}")
       p_dists[[name]] <- try(plot_histogram(
           ontology_result[[o]][[m]][["test_result"]]@score,
@@ -126,37 +139,47 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
     }
   }
 
-  godata = list(
-      ## The full godata structures
-      "fisher_bp" = ontology_result[["BP"]][["fisher"]][["godata"]],
-      "fisher_mf" = ontology_result[["MF"]][["fisher"]][["godata"]],
-      "fisher_cc" = ontology_result[["CC"]][["fisher"]][["godata"]],
-      "ks_bp" = ontology_result[["BP"]][["KS"]][["godata"]],
-      "ks_mf" = ontology_result[["MF"]][["KS"]][["godata"]],
-      "ks_cc" = ontology_result[["CC"]][["KS"]][["godata"]],
-      "el_bp" = ontology_result[["BP"]][["EL"]][["godata"]],
-      "el_mf" = ontology_result[["MF"]][["EL"]][["godata"]],
-      "el_cc" = ontology_result[["CC"]][["EL"]][["godata"]],
-      "weight_bp" = ontology_result[["BP"]][["weight"]][["godata"]],
-      "weight_mf" = ontology_result[["MF"]][["weight"]][["godata"]],
-      "weight_cc" = ontology_result[["CC"]][["weight"]][["godata"]])
+  godata <- list()
+  results <- list()
+  if (!is.null(ontology_result[["MF"]][["fisher"]])) {
+    godata[["fisher_bp"]] = ontology_result[["BP"]][["fisher"]][["godata"]]
+    godata[["fisher_mf"]] = ontology_result[["MF"]][["fisher"]][["godata"]]
+    godata[["fisher_cc"]] = ontology_result[["CC"]][["fisher"]][["godata"]]
+    results[["fisher_bp"]] = ontology_result[["BP"]][["fisher"]][["test_result"]]
+    results[["fisher_mf"]] = ontology_result[["MF"]][["fisher"]][["test_result"]]
+    results[["fisher_cc"]] = ontology_result[["CC"]][["fisher"]][["test_result"]]
+  }
 
-  results <- list(
-      ## The test results
-      "fisher_bp" = ontology_result[["BP"]][["fisher"]][["test_result"]],
-      "fisher_mf" = ontology_result[["MF"]][["fisher"]][["test_result"]],
-      "fisher_cc" = ontology_result[["CC"]][["fisher"]][["test_result"]],
-      "ks_bp" = ontology_result[["BP"]][["KS"]][["test_result"]],
-      "ks_mf" = ontology_result[["MF"]][["KS"]][["test_result"]],
-      "ks_cc" = ontology_result[["CC"]][["KS"]][["test_result"]],
-      "el_bp" = ontology_result[["BP"]][["EL"]][["test_result"]],
-      "el_mf" = ontology_result[["MF"]][["EL"]][["test_result"]],
-      "el_cc" = ontology_result[["CC"]][["EL"]][["test_result"]],
-      "weight_bp" = ontology_result[["BP"]][["weight"]][["test_result"]],
-      "weight_mf" = ontology_result[["MF"]][["weight"]][["test_result"]],
-      "weight_cc" = ontology_result[["CC"]][["weight"]][["test_result"]])
+  if (!is.null(ontology_result[["MF"]][["KS"]])) {
+    godata[["ks_bp"]] = ontology_result[["BP"]][["KS"]][["godata"]]
+    godata[["ks_mf"]] = ontology_result[["MF"]][["KS"]][["godata"]]
+    godata[["ks_cc"]] = ontology_result[["CC"]][["KS"]][["godata"]]
+    results[["ks_bp"]] = ontology_result[["BP"]][["KS"]][["test_result"]]
+    results[["ks_mf"]] = ontology_result[["MF"]][["KS"]][["test_result"]]
+    results[["ks_cc"]] = ontology_result[["CC"]][["KS"]][["test_result"]]
+    results[["el_bp"]] = ontology_result[["BP"]][["EL"]][["test_result"]]
+  }
 
-  tables <- try(topgo_tables(results, godata, limitby = limitby, limit = limit))
+  if (!is.null(ontology_result[["MF"]][["EL"]])) {
+    godata[["el_bp"]] = ontology_result[["BP"]][["EL"]][["godata"]]
+    godata[["el_mf"]] = ontology_result[["MF"]][["EL"]][["godata"]]
+    godata[["el_cc"]] = ontology_result[["CC"]][["EL"]][["godata"]]
+    results[["el_mf"]] = ontology_result[["MF"]][["EL"]][["test_result"]]
+    results[["el_bp"]] = ontology_result[["BP"]][["EL"]][["test_result"]]
+    results[["el_cc"]] = ontology_result[["CC"]][["EL"]][["test_result"]]
+  }
+
+  if (!is.null(ontology_result[["MF"]][["weight"]])) {
+    godata[["weight_bp"]] = ontology_result[["BP"]][["weight"]][["godata"]]
+    godata[["weight_mf"]] = ontology_result[["MF"]][["weight"]][["godata"]]
+    godata[["weight_cc"]] = ontology_result[["CC"]][["weight"]][["godata"]]
+    results[["weight_bp"]] = ontology_result[["BP"]][["weight"]][["test_result"]]
+    results[["weight_mf"]] = ontology_result[["MF"]][["weight"]][["test_result"]]
+    results[["weight_cc"]] = ontology_result[["CC"]][["weight"]][["test_result"]]
+  }
+
+  tables <- try(topgo_tables(results, godata, limitby = limitby, limit = limit,
+                             orderby = limitby, ranksof = limitby))
   if (class(tables)[1] == "try-error") {
     tables <- NULL
   }
@@ -164,7 +187,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   mf_densities <- bp_densities <- cc_densities <- list()
   if (isTRUE(densities)) {
     bp_densities <- sm(
-        plot_topgo_densities(results[["fisher_bp"]], tables[["bp_interesting"]]))
+        plot_topgo_densities(godata[["fisher_bp"]], tables[["bp_interesting"]])
     mf_densities <- sm(
         plot_topgo_densities(results[["fmf_godata"]], tables[["mf_interesting"]]))
     cc_densities <- sm(
@@ -394,58 +417,85 @@ topgo_tables <- function(result, godata, limit = 0.1, limitby = "fisher",
       "bp" = length(siglist[["bp"]]),
       "cc" = length(siglist[["cc"]]))
   interest_lst <- list()
-  allres_lst <- list()
+  all_lst <- list()
   for (ont in c("mf", "bp", "cc")) {
     fisher_name <- glue::glue("fisher_{ont}")
     ks_name <- glue::glue("ks_{ont}")
     el_name <- glue::glue("el_{ont}")
     weight_name <- glue::glue("weight_{ont}")
     if (topnode_list[[ont]] > 0) {
-      allres <- try(topGO::GenTable(
-                               godata[[fisher_name]], fisher = result[[fisher_name]],
-                               KS = result[[ks_name]], EL = result[[el_name]],
-                               weight = result[[weight_name]], orderBy = orderby,
-                               ranksOf = ranksof, topNodes = topnode_list[[ont]], numChar = numchar))
-      allres[["GO.ID"]] <- gsub(
-          pattern = "GO\\.", replacement = "GO:", x = allres[["GO.ID"]])
-      rownames(allres) <- allres[["GO.ID"]]
-      allres[["fisher"]] <- gsub(x = allres[["fisher"]], pattern = "^< ", replacement = "")
-      allres[["fisher"]] <- as.numeric(allres[["fisher"]])
-      allres[["KS"]] <- gsub(x = allres[["KS"]], pattern = "^< ", replacement = "")
-      allres[["KS"]] <- as.numeric(allres[["KS"]])
-      allres[["EL"]] <- gsub(x = allres[["EL"]], pattern = "^< ", replacement = "")
-      allres[["EL"]] <- as.numeric(allres[["EL"]])
-      allres[["weight"]] <- gsub(x = allres[["weight"]], pattern = "^< ", replacement = "")
-      allres[["weight"]] <- as.numeric(allres[["weight"]])
-      allres_lst[[ont]] <- allres
+      fisher <- try(topGO::GenTable(godata[[fisher_name]], result[[fisher_name]],
+                                    topNodes = topnode_list[[ont]], numChar = numchar),
+                    silent = TRUE)
+      if ("try-error" %in% class(fisher)) {
+        interest_lst[[ont]] <- data.frame()
+        all_lst[[ont]] <- data.frame()
+        next
+      }
+      colnames(fisher) <- paste0(colnames(fisher), "_fisher")
+      ks <- try(topGO::GenTable(godata[[ks_name]], result[[ks_name]],
+                                topNodes = topnode_list[[ont]], numChar = numchar),
+                silent = TRUE)
+      if ("try-error" %in% class(ks)) {
+        interest_lst[[ont]] <- data.frame()
+        all_lst[[ont]] <- data.frame()
+        next
+      }
+      colnames(ks) <- paste0(colnames(ks), "_ks")
+      el <- try(topGO::GenTable(godata[[el_name]], result[[el_name]],
+                                topNodes = topnode_list[[ont]], numChar = numchar),
+                silent = TRUE)
+      if ("try-error" %in% class(el)) {
+        interest_lst[[ont]] <- data.frame()
+        all_lst[[ont]] <- data.frame()
+        next
+      }
+      colnames(el) <- paste0(colnames(el), "_el")
+      weight <- try(topGO::GenTable(godata[[weight_name]], result[[weight_name]],
+                                    topNodes = topnode_list[[ont]], numChar = numchar),
+                    silent = TRUE)
+      if ("try-error" %in% class(weight)) {
+        interest_lst[[ont]] <- data.frame()
+        all_lst[[ont]] <- data.frame()
+        next
+      }
+      colnames(weight) <- paste0(colnames(weight), "_weight")
+      all <- merge(fisher, ks, by.x = "GO.ID_fisher", by.y = "GO.ID_ks")
+      all <- merge(all, el, by.x = "GO.ID_fisher", by.y = "GO.ID_el")
+      all <- merge(all, weight, by.x = "GO.ID_fisher", by.y = "GO.ID_weight")
+      colnames(all)[1] <- "GO.ID"
+      all[["GO.ID"]] <- gsub(
+          pattern = "GO\\.", replacement = "GO:", x = all[["GO.ID"]])
+      rownames(all) <- all[["GO.ID"]]
+      all[["GO.ID"]] <- NULL
+      colnames(all) <- gsub(x = colnames(all), pattern = "^result1_", replacement = "")
+      all[["fisher"]] <- gsub(x = all[["fisher"]], pattern = "^< ", replacement = "")
+      all[["fisher"]] <- as.numeric(all[["fisher"]])
+      all[["ks"]] <- gsub(x = all[["ks"]], pattern = "^< ", replacement = "")
+      all[["ks"]] <- as.numeric(all[["ks"]])
+      all[["el"]] <- gsub(x = all[["el"]], pattern = "^< ", replacement = "")
+      all[["el"]] <- as.numeric(all[["el"]])
+      all[["weight"]] <- gsub(x = all[["weight"]], pattern = "^< ", replacement = "")
+      all[["weight"]] <- as.numeric(all[["weight"]])
+      all_lst[[ont]] <- all
 
-      if (class(allres) != "try-error") {
-        qvalues <- as.data.frame(
-            qvalue::qvalue(topGO::score(result[[fisher_name]]))[["qvalues"]])
-        ## qvalue::qvalue returns the adjusted pvalues out of order.
-        ## Perhaps I should stop with stupid qvalue::qvalue() and just use p.adjust!!
-        allres <- merge(allres, qvalues, by.x = "GO.ID", by.y = "row.names")
-        colnames(allres)[length(colnames(allres))] <- "qvalue"
-        order_idx <- order(allres[["fisher"]])
-        allres <- allres[order_idx, ]
-        interest_idx <- allres[[limitby]] <= limit
-        interesting <- allres[interest_idx, ]
+      if (class(all) != "try-error") {
+        all[["padj_fisher"]] <- p.adjust(all[["fisher"]])
+        all[["padj_ks"]] <- p.adjust(all[["ks"]])
+        all[["padj_el"]] <- p.adjust(all[["el"]])
+        all[["padj_weight"]] <- p.adjust(all[["weight"]])
+        interest_idx <- all[[limitby]] <= limit
+        interesting <- all[interest_idx, ]
         interesting[["ont"]] <- "MF"
-        interesting <- interesting[, c("GO.ID", "ont", "Annotated", "Significant",
-                                       "Expected", "fisher", "qvalue", "KS", "EL",
-                                       "weight", "Term")]
-        interesting[["GO.ID"]] <- gsub(
-            pattern = "GO\\.", replacement = "GO:", x = interesting[["GO.ID"]])
-        rownames(interesting) <- interesting[["GO.ID"]]
         interest_lst[[ont]] <- interesting
       }
     }
   } ## End for mf/bp/cc
 
   tables <- list(
-      "mf_subset" = allres_lst[["mf"]],
-      "bp_subset" = allres_lst[["bp"]],
-      "cc_subset" = allres_lst[["cc"]],
+      "mf_subset" = all_lst[["mf"]],
+      "bp_subset" = all_lst[["bp"]],
+      "cc_subset" = all_lst[["cc"]],
       "mf_interesting" = interest_lst[["mf"]],
       "bp_interesting" = interest_lst[["bp"]],
       "cc_interesting" = interest_lst[["cc"]])
@@ -714,7 +764,8 @@ hpgl_GOplot <- function(dag, sigNodes, dag.name = "GO terms", edgeTypes = TRUE,
 #' @param rm.one Remove pvalue = 1 groups?
 #' @return plot of group densities.
 hpgl_GroupDensity <- function(object, whichGO, ranks = TRUE, rm.one = FALSE) {
-  groupMembers <- try(topGO::genesInTerm(object, whichGO)[[1]])
+  ##   groupMembers <- try(topGO::genesInTerm(object, whichGO)[[1]])
+  groupMembers <- try(topGO::genesInTerm(object, "MF"))
   if (class(groupMembers)[1] == "try-error") {
     return(NULL)
   }
