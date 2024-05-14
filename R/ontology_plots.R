@@ -42,20 +42,19 @@ plot_enrichresult <- function(enrichresult) {
 #' @return density plot as per topgo
 #' @seealso [topGO]
 #' @export
-plot_topgo_densities <- function(godata, table) {
+plot_topgo_densities <- function(godatum, table) {
   ret <- list()
-  for (id in table[["GO.ID"]]) {
+  for (id in rownames(table)) {
     message(id)
-
     tmp_file <- tmpmd5file(pattern = "topgodensity", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
-    print(hpgl_GroupDensity(godata, id, ranks = TRUE))
+    plt <- hpgl_GroupDensity(godatum, id, ranks = TRUE)
+    plot(plt)
     added_plot <- recordPlot()
     dev.off()
     removed <- suppressWarnings(file.remove(tmp_file))
     removed <- unlink(dirname(tmp_file))
-
     ret[[id]] <- added_plot
   }
   return(ret)
