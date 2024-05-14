@@ -396,8 +396,11 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
     ## I still do not fully understand the various implications of
     ## using . vs .data vs .env and when they are relevant for
     ## dplyr/magrittr.  As a result, this might be horribly wrong.
-    predict_df <- predict_df %>%
-      dplyr::mutate("class" = names(.data)[apply(.data, 1, which.max)])
+    possibilities <- colnames(predict_df)
+    max_call <- apply(predict_df, 1, which.max)
+    predict_df[["class"]] <- possibilities[max_call]
+    ##predict_df <- predict_df %>%
+    ##  dplyr::mutate("class" = names(.data)[apply(.data, 1, which.max)])
     predict_class <- as.factor(predict_df[["class"]])
     names(predict_class) <- rownames(predict_df)
     predict_numeric <- predict_df[[1]]
