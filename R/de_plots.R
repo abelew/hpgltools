@@ -2086,6 +2086,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     }
     wanted_tables <- wanted_tables[wanted_idx]
   }
+  names_passed <- c()
   for (t in wanted_tables) {
     t_data <- combined[["data"]][[t]]
     fc_col <- paste0(according_to, "_logfc")
@@ -2093,17 +2094,29 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     up_name <- glue("{t}_up")
     up_idx <- t_data[[fc_col]] >= lfc &
       t_data[[p_col]] <= adjp
+    if (sum(up_idx) > 0) {
+      names_passed <- c(names_passed, up_name)
+    }
     up_ids <- rownames(t_data)[up_idx]
     ud_list[[up_name]] <- up_ids
     down_name <- glue("{t}_down")
     down_idx <- t_data[[fc_col]] <= (-1.0 * lfc) &
       t_data[[p_col]] <= adjp
+    if (sum(down_idx) > 0) {
+      names_passed <- c(names_passed, down_name)
+    }
     down_ids <- rownames(t_data)[down_idx]
     ud_list[[down_name]] <- down_ids
   }
 
-  upset_combined <- UpSetR::upset(data = UpSetR::fromList(ud_list),
-                                  text.scale = text_scale, nsets = length(ud_list))
+  upset_combined <- NULL
+  if (length(names_passed) > 1) {
+    upset_combined <- UpSetR::upset(data = UpSetR::fromList(ud_list),
+                                    text.scale = text_scale, nsets = length(ud_list))
+  } else {
+    message("Only ", names_passed, " has information, cannot create an UpSet.")
+  }
+
   return(upset_combined)
 }
 

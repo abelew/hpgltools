@@ -193,7 +193,7 @@ plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE, ...) {
   end_tab[["subtraction"]] <- subtract_count_sums
   ## Get the number of genes after filtering.
   end_tab[["low"]] <- lt_min_end
-  end_tab[["sub_low"]] <- 0
+  ## end_tab[["sub_low"]] <- 0
   end_tab[["subtraction_string"]] <- ""
 
   ## Get the number of genes lost from filtering.
@@ -201,7 +201,8 @@ plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE, ...) {
   undef <- is.na(subtract_gene_sums)
   ## When this comes up NA, just use the original number.
   subtract_gene_sums[undef] <- start_tab[undef, "low"]
-  start_tab[["sub_low"]] <- subtract_gene_sums
+  ## start_tab[["sub_low"]] <- subtract_gene_sums
+  start_tab[["subtraction"]] <- subtract_gene_sums
   start_tab[["subtraction_string"]] <- paste0(subtract_count_sums, " counts from ",
                                               subtract_gene_sums, " genes.")
   all_tab <- rbind(start_tab, end_tab)
@@ -214,7 +215,8 @@ labeled by counts/genes removed.")
     ggplot2::geom_col(position = "identity", color = "black",
                       aes(fill = .data[["colors"]])) +
     ggplot2::scale_fill_manual(values = c(levels(as.factor(all_tab[["colors"]])))) +
-    ggplot2::geom_text(parse = FALSE, angle = 90, size = 4, color = "white", hjust = 1.2,
+    ggplot2::geom_text(parse = FALSE, angle = 90, size = base_size - 2,
+                       color = "white", hjust = 1.2,
                        aes(x = .data[["id"]],
                            ## label='as.character(all_tab$subtraction)')) +
                            label = .data[["subtraction_string"]])) +
@@ -228,8 +230,9 @@ labeled by counts/genes removed.")
     ggplot2::geom_col(position = "identity", color = "black",
                       aes(alpha = .data[["alpha"]], fill = .data[["colors"]])) +
     ggplot2::scale_fill_manual(values = c(levels(as.factor(all_tab[["colors"]])))) +
-    ggplot2::geom_text(parse = FALSE, angle = 90, size = 4, color = "black", hjust = 1.2,
-                       aes(x = .data[["id"]], label = .data[["sub_low"]])) +
+    ggplot2::geom_text(parse = FALSE, angle = 90, size = base_size - 2,
+                       color = "black", hjust = 0,
+                       aes(x = .data[["id"]], label = .data[["low"]])) +
     ggplot2::theme(axis.text = ggplot2::element_text(size = 10, colour = "black"),
                    axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5),
                    legend.position = "none") +
