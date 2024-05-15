@@ -187,11 +187,11 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   mf_densities <- bp_densities <- cc_densities <- list()
   if (isTRUE(densities)) {
     bp_densities <- sm(
-        plot_topgo_densities(godata[["fisher_bp"]], tables[["bp_interesting"]])
+      plot_topgo_densities(godata[["fisher_bp"]], tables[["bp_interesting"]]))
     mf_densities <- sm(
-        plot_topgo_densities(results[["fmf_godata"]], tables[["mf_interesting"]]))
+      plot_topgo_densities(results[["fmf_godata"]], tables[["mf_interesting"]]))
     cc_densities <- sm(
-        plot_topgo_densities(results[["fcc_godata"]], tables[["cc_interesting"]]))
+      plot_topgo_densities(results[["fcc_godata"]], tables[["cc_interesting"]]))
   } else {
     message("simple_topgo(): Set densities = TRUE for ontology density plots.")
   }
