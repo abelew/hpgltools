@@ -4,12 +4,12 @@
 \alias{plot_topgo_densities}
 \title{Plot the density of categories vs. the possibilities of all categories.}
 \usage{
-plot_topgo_densities(godata, table)
+plot_topgo_densities(godatum, table)
 }
 \arguments{
-\item{godata}{Result from topgo.}
-
 \item{table}{Table of genes.}
+
+\item{godata}{Result from topgo.}
 }
 \value{
 density plot as per topgo

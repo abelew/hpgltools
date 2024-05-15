@@ -19,6 +19,7 @@ simple_topgo(
   overwrite = FALSE,
   densities = FALSE,
   pval_plots = TRUE,
+  parallel = TRUE,
   excel = NULL,
   ...
 )
