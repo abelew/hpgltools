@@ -3258,7 +3258,8 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
       }
     }
     if (isTRUE(do_varpart)) {
-      varpart_raw <- sm(suppressWarnings(try(simple_varpart(filt, factors = varpart_factors), silent = TRUE)))
+      varpart_raw <- sm(suppressWarnings(try(simple_varpart(filt, factors = varpart_factors),
+                                             silent = TRUE)))
     }
     if (! "try-error" %in% class(varpart_raw)) {
       varpart_raw <- NULL
@@ -3529,7 +3530,8 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
   nvarpart_plot <- NULL
   npct_plot <- NULL
   if (isTRUE(violin) && isTRUE(do_varpart)) {
-    varpart_norm <- suppressWarnings(try(simple_varpart(norm_data, factors = varpart_factors)))
+    varpart_norm <- suppressWarnings(try(simple_varpart(norm_data, factors = varpart_factors),
+                                         silent = TRUE))
     if (! "try-error" %in% class(varpart_norm)) {
       nvarpart_plot <- varpart_norm[["partition_plot"]]
       new_row <- new_row + plot_rows + 2
