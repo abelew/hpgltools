@@ -4,7 +4,14 @@
 \alias{plot_libsize_prepost}
 \title{Visualize genes observed before/after filtering.}
 \usage{
-plot_libsize_prepost(expt, low_limit = 2, filter = TRUE, ...)
+plot_libsize_prepost(
+  expt,
+  low_limit = 2,
+  filter = TRUE,
+  num_color = "black",
+  anum_size = 4,
+  ...
+)
 }
 \arguments{
 \item{expt}{Input expressionset.}

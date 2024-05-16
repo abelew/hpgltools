@@ -249,13 +249,8 @@ gprofiler2enrich <- function(retlist, ontology = "MF", cutoff = 1,
 topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
                          column = "fisher", padjust_method = "BH") {
   result_name <- paste0(column, "_", tolower(ontology))
-  if (column == "el") {
-    column <- "EL"
-  }
-  if (column == "ks") {
-    column <- "KS"
-  }
 
+  term_column <- paste0("Term_", column)
   interesting_name <- paste0(tolower(ontology), "_interesting")
   godata <- retlist[["godata"]][[result_name]]
   result_data <- retlist[["results"]][[result_name]]
@@ -264,12 +259,12 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   scores <- interesting[[column]]
   adjusted <- p.adjust(scores)
   sig_genes <- rownames(retlist[["input"]])
-
+  mesg("Gather genes per category, this is slow.")
   genes_per_category <- gather_ontology_genes(retlist, ontology = ontology, pval = pval,
-                                              column = column)
+                                              column = column, include_all = FALSE)
   ## One of the biggest oddities of enrichResult objects: the scores
-  ## are explicitly ratio _string_, thus 0.05 is '5/100'.
-  category_genes <- gsub(pattern=", ", replacement="/", x=genes_per_category[["sig"]])
+  ## are explicitly ratio _strings_, thus 0.05 is bizarrely '5/100' and fails otherwise.
+  category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
   names(category_genes) <- rownames(genes_per_category)
   keepers <- names(category_genes) %in% rownames(interesting)
   category_genes_kept <- category_genes[keepers]
@@ -278,7 +273,7 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   ## FIXME: This is _definitely_ wrong for BgRatio
   representation_df <- data.frame(
       "ID" = rownames(interesting),
-      "Description" = interesting[["Term"]],
+      "Description" = interesting[[term_column]],
       ## The following two lines are ridiculous, but required for the enrichplots to work.
       "GeneRatio" = paste0(interesting[["Significant"]], "/", interesting[["Annotated"]]),
       "BgRatio" = paste0(interesting[["Significant"]], "/", interesting[["tmp"]]),

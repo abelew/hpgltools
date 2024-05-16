@@ -234,7 +234,7 @@ simple_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 20
       }
     }
 
-    message("Working on contrast ", count, ": ", con, ".")
+    message("Working on contrast ", count, "/", clen, ": ", con, ".")
     simulation_options <- list(
       "ngenes" = genes,
       "p.DE" = p,
