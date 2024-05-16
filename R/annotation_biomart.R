@@ -244,6 +244,8 @@ load_biomart_annotations <- function(
   ## As per: https://github.com/grimbough/biomaRt/issues/39
   new_config <- httr::config(ssl_verifypeer = FALSE)
   httr::set_config(new_config, override = FALSE)
+  ## Bizarrely, this function just started failing because the month is a character 04!?
+  month <- as.numeric(month)
 
   if (is.null(savefile)) {
     savefile <- glue("{species}_biomart_annotations.rda")
