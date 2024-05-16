@@ -93,8 +93,11 @@ gather_ontology_genes <- function(result, ontology = NULL,
     return(retlist)
   }
   input <- result[["input"]]
-  filtered_categories <- categories[categories[[column]] <= pval, ]
-  rownames(filtered_categories) <- filtered_categories[[1]]
+  sig_idx <- categories[[column]] <= pval
+  filtered_categories <- categories[sig_idx, ]
+  if (!grepl(x = rownames(filtered_categories)[1], pattern = "^GO")) {
+    rownames(filtered_categories) <- filtered_categories[[1]]
+  }
   cats <- rownames(filtered_categories)
   go_db <- result[["go_db"]]
   genes_per_ont <- function(cat) {

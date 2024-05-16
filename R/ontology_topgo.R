@@ -119,6 +119,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   } else {
     for (r in seq_along(methods)) {
       type <- methods[r]
+      message("Starting ", type, ".")
       a_result <- do_topgo(type, go_map = geneID2GO,
                            fisher_genes = fisher_interesting_genes,
                            ks_genes = ks_interesting_genes)

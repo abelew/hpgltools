@@ -163,7 +163,8 @@ setGeneric("plot_libsize")
 #'  after filtering the data.
 #' @seealso [plot_libsize()] [filter_counts()]
 #' @export
-plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE, ...) {
+plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE,
+                                 num_color = "black", anum_size = 4, ...) {
   start <- plot_libsize(expt, text = FALSE)
   norm <- sm(normalize_expt(expt, filter = filter,
                             ...))
@@ -180,7 +181,7 @@ plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE, ...) {
   start_tab[["alpha"]] <- ggplot2::alpha(start_tab[["colors"]], 0.75)
   ## Get the number of low genes in each sample.
   start_tab[["low"]] <- lt_min_start
-  start_tab[["sub_low"]] <- 0
+  ##start_tab[["sub_low"]] <- 0
   start_tab[["subtraction"]] <- 0
   start_tab[["subtraction_string"]] <- ""
 
@@ -215,8 +216,8 @@ labeled by counts/genes removed.")
     ggplot2::geom_col(position = "identity", color = "black",
                       aes(fill = .data[["colors"]])) +
     ggplot2::scale_fill_manual(values = c(levels(as.factor(all_tab[["colors"]])))) +
-    ggplot2::geom_text(parse = FALSE, angle = 90, size = base_size - 2,
-                       color = "white", hjust = 1.2,
+    ggplot2::geom_text(parse = FALSE, angle = 90, size = num_size,
+                       color = num_color, hjust = 1.2,
                        aes(x = .data[["id"]],
                            ## label='as.character(all_tab$subtraction)')) +
                            label = .data[["subtraction_string"]])) +
@@ -230,8 +231,8 @@ labeled by counts/genes removed.")
     ggplot2::geom_col(position = "identity", color = "black",
                       aes(alpha = .data[["alpha"]], fill = .data[["colors"]])) +
     ggplot2::scale_fill_manual(values = c(levels(as.factor(all_tab[["colors"]])))) +
-    ggplot2::geom_text(parse = FALSE, angle = 90, size = base_size - 2,
-                       color = "black", hjust = 0,
+    ggplot2::geom_text(parse = FALSE, angle = 90, size = num_size,
+                       color = num_color, hjust = 0,
                        aes(x = .data[["id"]], label = .data[["low"]])) +
     ggplot2::theme(axis.text = ggplot2::element_text(size = 10, colour = "black"),
                    axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5),

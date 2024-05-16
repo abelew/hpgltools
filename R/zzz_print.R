@@ -597,7 +597,7 @@ Shapes are defined by ", batch_levels, ".")
 #' @export
 print.proper_estimate <- function(x, ...) {
   message(x[[1]][["interpolated_text"]])
-  plot(x[[1]][["power_plot"]])
+  print(x[[1]][["power_plot"]])
   return(invisible(x))
 }
 

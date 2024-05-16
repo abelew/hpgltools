@@ -113,7 +113,7 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
                                 chr_column = "chromosome", start_column = "start",
                                 end_column = "end", strand_column = "strand",
                                 type_column = "annot_gene_type",
-                                gene_type = "protein coding", padding = 120, ...) {
+                                gene_type = "protein coding", padding = c(80, 160), ...) {
   arglist <- list(...)
   retlist <- list()
   if (!is.null(type_column)) {
@@ -124,9 +124,14 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   if (!is.null(gid)) {
     annot_df <- annot_df[gid, ]
   }
-  one_idx <- annot_df[[strand_column]] == 1
+  na_idx <- is.na(annot_df[[strand_column]])
+  if (sum(na_idx) > 0) {
+    warning("Dropping ", sum(na_idx), " rows.")
+    annot_df <- annot_df[!na_idx, ]
+  }
+  plusone_idx <- annot_df[[strand_column]] == 1
   if (sum(one_idx) > 0) {
-    annot_df[one_idx, strand_column] <- "+"
+    annot_df[plusone_idx, strand_column] <- "+"
   }
   minusone_idx <- annot_df[[strand_column]] == -1
   if (sum(minusone_idx) > 0) {
@@ -135,10 +140,36 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   annot_df[[start_column]] <- as.numeric(annot_df[[start_column]])
   annot_df[[end_column]] <- as.numeric(annot_df[[end_column]])
 
-  ## Here is the thing I absolutely cannot remember:
-  ## start is _always_ a lower number than end.
-  annot_df[["low_boundary"]] <- annot_df[[start_column]] - padding
-  annot_df[["high_boundary"]] <- annot_df[[end_column]] + padding
+  if (length(padding) == 2) {
+    fivep_padding <- padding[1]
+    threep_padding <- padding[2]
+    padding <- max(fivep_padding, threep_padding)
+    ### (low is start - fivep) 5'--->3'
+    annot_df[plusone_idx, "low_boundary"] <- annot_df[plusone_idx, start_column] - fivep_padding
+    ## 3'<---5' (high is end + fivep)
+    annot_df[minusone_idx, "high_boundary"] <- annot_df[minusone_idx, end_column] + fivep_padding
+    ## 5'--->3' (high is end + threep)
+    annot_df[plusone_idx, "high_boundary"] <- annot_df[plusone_idx, end_column] + threep_padding
+    ## (low is start - threep) 3'<---5'
+    annot_df[minusone_idx, "low_boundary"] <- annot_df[minusone_idx, start_column] - threep_padding
+  } else if (length(padding) == 1) {
+    fivep_paddig <- padding
+    threep_padding <- padding
+    ## Here is the thing I absolutely cannot remember:
+    ## start is _always_ a lower number than end.
+    annot_df[["low_boundary"]] <- annot_df[[start_column]] - padding
+    annot_df[["high_boundary"]] <- annot_df[[end_column]] + padding
+  } else {
+    stop("I only understand padding with 1 or 2 elements.")
+  }
+
+  ## Check for NAs again
+  na_idx <- is.na(annot_df[["low_boundary"]])
+  if (sum(na_idx) > 0) {
+    warning("Dropping ", sum(na_idx), " rows.")
+    annot_df <- annot_df[!na_idx, ]
+  }
+
   ## Add some logic to make sure we do not have sequences which
   ## expand beyond the chromosome boundaries.
   sub_zero_idx <- annot_df[["low_boundary"]] < 1
