@@ -48,3 +48,4 @@ test_that("Do we get some sequences from the minus strand genes?", {
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = as.numeric(end - start))
 message("\nFinished 185sequence_queries.R in ", elapsed,  " seconds.")
+n
