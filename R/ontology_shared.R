@@ -251,6 +251,9 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   result_name <- paste0(column, "_", tolower(ontology))
 
   term_column <- paste0("Term_", column)
+  sig_column <- paste0("Significant_", column)
+  annot_column <- paste0("Annotated_", column)
+  q_column <- paste0("padj_", column)
   interesting_name <- paste0(tolower(ontology), "_interesting")
   godata <- retlist[["godata"]][[result_name]]
   result_data <- retlist[["results"]][[result_name]]
@@ -275,13 +278,13 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
       "ID" = rownames(interesting),
       "Description" = interesting[[term_column]],
       ## The following two lines are ridiculous, but required for the enrichplots to work.
-      "GeneRatio" = paste0(interesting[["Significant"]], "/", interesting[["Annotated"]]),
-      "BgRatio" = paste0(interesting[["Significant"]], "/", interesting[["tmp"]]),
+      "GeneRatio" = paste0(interesting[[sig_column]], "/", interesting[[annot_column]]),
+      "BgRatio" = paste0(interesting[[sig_column]], "/", interesting[["tmp"]]),
       "pvalue" = interesting[[column]],
       "p.adjust" = adjusted,
-      "qvalue" = interesting[["qvalue"]],
+      "qvalue" = interesting[[q_column]],
       "geneID" = interesting[["gene_ids"]],
-      "Count" = interesting[["Significant"]],
+      "Count" = interesting[[sig_column]],
       stringsAsFactors = FALSE)
   rownames(representation_df) <- representation_df[["ID"]]
   if (is.null(organism)) {
