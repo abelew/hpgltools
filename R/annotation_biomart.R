@@ -60,6 +60,7 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.en
                                                 "www.ensembl.org", "asia.ensembl.org"),
                               trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                               year = NULL, month = NULL) {
+  month <- as.numeric(month)
   if (isTRUE(archive)) {
     month_strings <- c("jan", "feb", "mar", "apr", "may", "jun", "jul",
                        "aug", "sep", "oct", "nov", "dec")
@@ -245,7 +246,6 @@ load_biomart_annotations <- function(
   new_config <- httr::config(ssl_verifypeer = FALSE)
   httr::set_config(new_config, override = FALSE)
   ## Bizarrely, this function just started failing because the month is a character 04!?
-  month <- as.numeric(month)
 
   if (is.null(savefile)) {
     savefile <- glue("{species}_biomart_annotations.rda")

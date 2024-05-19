@@ -164,7 +164,7 @@ setGeneric("plot_libsize")
 #' @seealso [plot_libsize()] [filter_counts()]
 #' @export
 plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE,
-                                 num_color = "black", anum_size = 4, ...) {
+                                 num_color = "black", num_size = 4, ...) {
   start <- plot_libsize(expt, text = FALSE)
   norm <- sm(normalize_expt(expt, filter = filter,
                             ...))
