@@ -60,7 +60,6 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.en
                                                 "www.ensembl.org", "asia.ensembl.org"),
                               trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                               year = NULL, month = NULL) {
-  month <- as.numeric(month)
   if (isTRUE(archive)) {
     month_strings <- c("jan", "feb", "mar", "apr", "may", "jun", "jul",
                        "aug", "sep", "oct", "nov", "dec")
@@ -80,7 +79,7 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.en
       ## Then it is pretty much guaranteed to be 'jan'
       month_strings <- month
     } else if (!is.na(suppressWarnings(as.numeric(month)))) {
-      month_strings <- month_strings[month]
+      month_strings <- month_strings[as.numeric(month)]
     } else {
       stop("I do not know how to interpret this month.")
     }
@@ -514,7 +513,7 @@ load_biomart_annotations <- function(
 #'  dim(hs_biomart_ontology$go)
 #' @export
 load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE,
-                            host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
+                            host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                             default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                               "www.ensembl.org", "asia.ensembl.org"),
                             year = NULL, month = NULL, trydataset = NULL,
