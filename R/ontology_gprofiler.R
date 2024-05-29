@@ -27,7 +27,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 
   sig_names <- names(input_up)
   for (i in seq_along(sig_names)) {
-    slept <- Sys.sleep(10)
+    slept <- Sys.sleep(3)
     name <- sig_names[i]
     mesg("Starting ", name, ".")
     retname_up <- paste0(name, "_up")
@@ -59,16 +59,18 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       }
     }
     if (up_elements > 0) {
-      ret[[retname_up]] <- sm(simple_gprofiler2(up, first_col = fc_col,
-                                                plot_type = plot_type, ...))
+      ret[[retname_up]] <- simple_gprofiler2(up, first_col = fc_col,
+                                             plot_type = plot_type,
+                                             ...)
       #ret[[retname_up]] <- sm(simple_gprofiler(up, first_col = fc_col))
     } else {
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
       slept <- Sys.sleep(10)
-      ret[[retname_down]] <- sm(simple_gprofiler2(down, first_col = fc_col,
-                                                  plot_type = plot_type, ...))
+      ret[[retname_down]] <- simple_gprofiler2(down, first_col = fc_col,
+                                               plot_type = plot_type,
+                                               ...)
       #ret[[retname_down]] <- sm(simple_gprofiler(down, first_col = fc_col))
     } else {
       ret[[retname_down]] <- NULL
@@ -114,6 +116,8 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 #'  entrez or whatever, translate it!
 #' @param plot_type Use this plot type for images.
 #' @param excel Print the results to an excel file?
+#' @param enrich_id_column Column from which to extract more readable gene IDs when
+#'  creating a clusterProfiler-compatible enrich object.
 #' @return a list of results for go, kegg, reactome, and a few more.
 #' @seealso [gProfiler]
 #' @examples
@@ -129,14 +133,25 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               evcodes = TRUE, threshold = 0.05, adjp = "g_SCS",
                               domain_scope = "annotated", bg = NULL,
                               pseudo_gsea = TRUE, id_col = "row.names", plot_type = "dotplot",
-                              excel = NULL) {
+                              excel = NULL, enrich_id_column = NULL) {
+  if (!is.null(enrich_id_column)) {
+    message("Going to attempt to extract enrichplot IDs via the significant gene column: ",
+            enrich_id_column, ".")
+  }
+
   gene_list <- NULL
   num_genes <- 0
+  enrich_ids <- NULL
   if ("character" %in% class(sig_genes)) {
     gene_ids <- sig_genes
     num_genes <- length(gene_ids)
   } else {
     num_genes <- nrow(sig_genes)
+    if (!is.null(enrich_id_column) && enrich_id_column %in% colnames(sig_genes)) {
+      enrich_ids <- data.frame("id" = rownames(sig_genes), "enrich" = sig_genes[[enrich_id_column]])
+    } else {
+      message("Did not find the column: ", enrich_id_column, " in the significant genes.")
+    }
     if (!is.null(sig_genes[[first_col]])) {
       gene_list <- sig_genes[order(-sig_genes[[first_col]]), ]
       pseudo_gsea <- TRUE
@@ -252,7 +267,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     type_name <- paste0(type, "_enrich")
     ## Note to self, now that I think about it I think gprofiler2 provides its own p-adjustment.
     retlst[[type_name]] <- gprofiler2enrich(retlst, ontology = type,
-                                            cutoff = threshold)
+                                            cutoff = threshold, enrich_ids = enrich_ids)
   }
 
   if (plot_type == "barplot") {
@@ -399,10 +414,13 @@ simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE
 #' @return The same 'enrich' datastructure produced by clusterProfiler.
 #' @export
 gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
-                              organism = NULL, padjust_method = "BH") {
+                             organism = NULL, padjust_method = "BH", enrich_ids = NULL) {
   interesting <- retlst[[ontology]]
   sig_genes <- c()
   sig_genes_input <- retlst[["input"]]
+  if (!is.null(enrich_ids)) {
+    rownames(sig_genes_input) <- make.names(enrich_ids[["enrich"]], unique = TRUE)
+  }
   if (class(sig_genes_input)[1] == "character") {
     sig_genes <- sig_genes_input
   } else if ("data.frame" %in% class(sig_genes_input)) {
@@ -420,9 +438,17 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   bg_genes <- sum(!duplicated(sort(interesting[["term_id"]])))
   interesting[["tmp"]] <- bg_genes
   interesting[["adjusted"]] <- p.adjust(interesting[["p_value"]], method = padjust_method)
+  if (!is.null(enrich_ids)) {
+    for (row in seq_len(nrow(enrich_ids))) {
+      from_id <- enrich_ids[row, "id"]
+      to_id <- enrich_ids[row, "enrich"]
+      interesting[["intersection"]] <- gsub(x = interesting[["intersection"]], pattern = from_id,
+                                            replacement = to_id)
+    }
+  }
 
   genes_per_category <- interesting[, c("term_id", "intersection")]
-  category_genes <- gsub(pattern=",\\s*", replacement="/", x = genes_per_category[["intersection"]])
+  category_genes <- gsub(pattern = ",\\s*", replacement = "/", x = genes_per_category[["intersection"]])
 
   ## Right now the cutoff is 1.0, which is not particularly interesting/useful.
   interesting_cutoff_idx <- interesting[["p_value"]] <= cutoff
@@ -453,7 +479,7 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
              qvalueCutoff = cutoff,
              gene = sig_genes,
              ## universe = extID,
-             geneSets = list(up=sig_genes),
+             geneSets = list(up = sig_genes),
              ## geneSets = geneSets,
              organism = organism,
              keytype = "UNKNOWN",

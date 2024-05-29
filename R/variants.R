@@ -14,6 +14,7 @@
 #'  from one or more samples when looking for large-scale deletions
 #' using coverage information.
 #' @return List containing some fun stuff.
+#' @export
 classify_variants <- function(metadata, coverage_column = "bedtoolscoveragefile",
                               variants_column = "freebayesvariantsbygene", min_missing = 100) {
   missing_coverage <- list()
@@ -32,16 +33,26 @@ classify_variants <- function(metadata, coverage_column = "bedtoolscoveragefile"
     sample <- rownames(metadata)[s]
     mutations_by_sample[[sample]] <- 0
     ## Get the coverage/nt, use it to make a catalog of regions missing from each sample.
-    coverage_file <- metadata[s, coverage_column]
-    missing_df <- readr::read_tsv(coverage_file, col_names = FALSE, show_col_types = FALSE)
-    colnames(missing_df) <- c("contig", "start", "end")
-    missing_df[["delta"]] <- missing_df[["end"]] - missing_df[["start"]]
-    wanted <- missing_df[["delta"]] >= min_missing
-    missing_regions[[sample]] <- missing_df[wanted, ]
-    missing_by_sample[sample] <- nrow(missing_df)
+    if (!is.null(coverage_column)) {
+      coverage_file <- metadata[s, coverage_column]
+      if (!file.exists(coverage_file)) {
+        message("Unable to find the coverage file: ", coverage_file, ", skipping this sample.")
+        next
+      }
+      missing_df <- readr::read_tsv(coverage_file, col_names = FALSE, show_col_types = FALSE)
+      colnames(missing_df) <- c("contig", "start", "end")
+      missing_df[["delta"]] <- missing_df[["end"]] - missing_df[["start"]]
+      wanted <- missing_df[["delta"]] >= min_missing
+      missing_regions[[sample]] <- missing_df[wanted, ]
+      missing_by_sample[sample] <- nrow(missing_df)
+    }
 
     ## and catalog of mutations in exons, extract the encoded amino acid strings
     variant_file <- metadata[s, variants_column]
+    if (!file.exists(variant_file)) {
+      message("Unable to find the file: ", variant_file, ", skipping this sample.")
+      next
+    }
     mutation_df <- readr::read_tsv(variant_file, show_col_types = FALSE)
     mutation_df[["aa_from"]] <- gsub(x = mutation_df[["aa_subst"]],
                                      pattern = "^([[:alpha:]]|\\*){1}\\d+[[:alpha:]]|\\*$",
@@ -49,12 +60,21 @@ classify_variants <- function(metadata, coverage_column = "bedtoolscoveragefile"
     mutation_df[["aa_to"]] <- gsub(x = mutation_df[["aa_subst"]],
                                    pattern = "^.*?([[:alpha:]]|\\*){1}$",
                                    replacement = "\\1")
-    mutation_df[["nt_from"]] <- gsub(x = mutation_df[["from_to"]],
-                                     pattern = "^([[:alpha:]]|\\*){1}\\d+[[:alpha:]]|\\*$",
+    test_nt_format <- grepl(x = mutation_df[["from_to"]], pattern = "^\\w_\\w$")
+    if (sum(test_nt_format) == nrow(mutation_df)) {
+      message("This was performed using an older version of my freebayes script.")
+      mutation_df[["nt_from"]] <- gsub(x = mutation_df[["from_to"]],
+                                       pattern = "^(\\w)_\\w$", replacement = "\\1")
+      mutation_df[["nt_to"]] <- gsub(x = mutation_df[["from_to"]],
+                                     pattern = "^\\w_(\\w)$", replacement = "\\1")
+    } else {
+      mutation_df[["nt_from"]] <- gsub(x = mutation_df[["from_to"]],
+                                       pattern = "^([[:alpha:]]|\\*){1}\\d+[[:alpha:]]|\\*$",
+                                       replacement = "\\1")
+      mutation_df[["nt_to"]] <- gsub(x = mutation_df[["from_to"]],
+                                     pattern = "^.*?([[:alpha:]]|\\*){1}$",
                                      replacement = "\\1")
-    mutation_df[["nt_to"]] <- gsub(x = mutation_df[["from_to"]],
-                                   pattern = "^.*?([[:alpha:]]|\\*){1}$",
-                                   replacement = "\\1")
+    }
 
     mutation_df <- mutation_df %>%
       dplyr::mutate(

@@ -317,10 +317,15 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     include_idx <- sort(basename(dirname(script_test[script_idx])))
     meta <- meta[include_idx, ]
     starting_metadata <- "sample_sheets/autodetected_samples.xlsx"
+  } else if (class(starting_metadata)[1] == "data.frame") {
+    meta <- starting_metadata
   } else {
     meta <- extract_metadata(starting_metadata)
   }
-  if (is.null(new_metadata)) {
+
+  if (class(starting_metadata)[1] == "data.frame" && is.null(new_metadata)) {
+    new_metadata <- NULL
+  } else if (is.null(new_metadata)) {
     new_metadata <- gsub(x = starting_metadata, pattern = "\\.xlsx$",
                          replacement = "_modified.xlsx")
   }
@@ -383,8 +388,13 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     }
   }
 
-  message("Writing new metadata to: ", new_metadata)
-  written <- write_xlsx(data = meta, excel = new_metadata)
+  written <- NULL
+  if (is.null(new_metadata)) {
+    message("Not writing new metadata.")
+  } else {
+    message("Writing new metadata to: ", new_metadata)
+    written <- write_xlsx(data = meta, excel = new_metadata)
+  }
   ret <- list(
     "xlsx_result" = written,
     "new_file" = new_metadata,
@@ -2015,19 +2025,19 @@ make_assembly_spec <- function() {
       "file" = "{basedir}/{meta[['sampleid']]}/host_species.txt"),
     ## After those, things can get pretty arbitrary...
     "hisat_genome_single_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat2_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat*_*.stderr"),
     "hisat_genome_multi_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat2_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat*_*.stderr"),
     "hisat_genome_single_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat2_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat*_*.stderr"),
     "hisat_genome_multi_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat2_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*/hisat*_*.stderr"),
     "hisat_count_table" = list(
       ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
-      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.count.xz"),
     "jellyfish_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*jellyfish_*/*_matrix.csv.xz"),
     "jellyfish_observed" = list(
@@ -2149,29 +2159,29 @@ make_rnaseq_spec <- function() {
     "kraken_matrix" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_*/kraken_report_matrix.tsv"),
     "hisat_rrna_single_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*rRNA*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_multi_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*rRNA*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_percent" = list(
       "column" = "hisat_rrna_percent"),
     "hisat_genome_single_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*{type}*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_multi_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*{type}*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_single_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*{type}*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_multi_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*{type}*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_unmapped" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*{type}*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_percent" = list(
       "column" = "hisat_genome_percent"),
     "hisat_observed_genes" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_observed_mean_exprs" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_observed_median_exprs" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "salmon_stranded" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
     "salmon_mapped" = list(
@@ -2189,8 +2199,8 @@ make_rnaseq_spec <- function() {
       ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
-      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.count.xz"),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
     "bbmap_coverage_stats" = list(
@@ -2245,13 +2255,13 @@ make_dnaseq_spec <- function() {
     "fastqc_most_overrepresented" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
     "hisat_genome_single_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*genome*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
     "hisat_genome_multi_concordant" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*genome*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
     "hisat_genome_single_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*genome*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
     "hisat_genome_multi_all" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/hisat2_*genome*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
     "hisat_genome_percent" = list(
       "column" = "hisat_genome_percent"),
     "gatk_unpaired" = list(
@@ -2285,8 +2295,8 @@ make_dnaseq_spec <- function() {
       ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
-      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_{type}*.count.xz"),
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat2_{species}/{species}_*{type}*.count.xz"),
+      ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.count.xz"),
     "deduplication_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),
     "freebayes_variants_by_gene" = list(

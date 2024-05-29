@@ -2561,6 +2561,7 @@ subset_expt <- function(expt, subset = NULL, ids = NULL,
     }
   }
   pData(subset_expressionset) <- subset_design
+  ## Ensure that the tximport information is maintained!
 
   new_expt <- list(
     "title" = expt[["title"]],
@@ -2574,6 +2575,34 @@ subset_expt <- function(expt, subset = NULL, ids = NULL,
     "colors" = subset_colors,
     "state" = expt[["state"]],
     "libsize" = subset_current_libsize)
+
+  if (!is.null(expt[["tximport"]])) {
+    raw_counts <- expt[["tximport"]][["raw"]][["counts"]]
+    raw_abundance <- expt[["tximport"]][["raw"]][["abundance"]]
+    raw_length <- expt[["tximport"]][["raw"]][["length"]]
+    raw_subset_counts <- raw_counts[, subset_positions]
+    raw_subset_abundance <- raw_abundance[, subset_positions]
+    raw_subset_length <- raw_length[, subset_positions]
+    scaled_counts <- expt[["tximport"]][["scaled"]][["counts"]]
+    scaled_abundance <- expt[["tximport"]][["scaled"]][["abundance"]]
+    scaled_length <- expt[["tximport"]][["scaled"]][["length"]]
+    scaled_subset_counts <- scaled_counts[, subset_positions]
+    scaled_subset_abundance <- scaled_abundance[, subset_positions]
+    scaled_subset_length <- scaled_length[, subset_positions]
+    new_tximport <- list(
+      "raw" = list(
+        "counts" = raw_subset_counts,
+        "abundance" = raw_subset_abundance,
+        "length" = raw_subset_length,
+        "countsFromAbundance" = expt[["tximport"]][["raw"]][["countsFromAbundance"]]),
+      "scaled" = list(
+        "counts" = scaled_subset_counts,
+        "abundance" = scaled_subset_abundance,
+        "length" = scaled_subset_length,
+        "countsFromAbundance" = expt[["tximport"]][["scaled"]][["countsFromAbundance"]]))
+    new_expt[["tximport"]] <- new_tximport
+  }
+
   class(new_expt) <- "expt"
   final_samples <- sampleNames(new_expt)
   message("subset_expt(): There were ", length(starting_samples), ", now there are ",

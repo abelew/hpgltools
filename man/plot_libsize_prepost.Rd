@@ -9,7 +9,7 @@ plot_libsize_prepost(
   low_limit = 2,
   filter = TRUE,
   num_color = "black",
-  anum_size = 4,
+  num_size = 4,
   ...
 )
 }
