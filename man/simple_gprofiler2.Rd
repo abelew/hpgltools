@@ -30,7 +30,8 @@ simple_gprofiler2(
   pseudo_gsea = TRUE,
   id_col = "row.names",
   plot_type = "dotplot",
-  excel = NULL
+  excel = NULL,
+  enrich_id_column = NULL
 )
 }
 \arguments{
@@ -89,6 +90,9 @@ entrez or whatever, translate it!}
 \item{plot_type}{Use this plot type for images.}
 
 \item{excel}{Print the results to an excel file?}
+
+\item{enrich_id_column}{Column from which to extract more readable gene IDs when
+creating a clusterProfiler-compatible enrich object.}
 }
 \value{
 a list of results for go, kegg, reactome, and a few more.
