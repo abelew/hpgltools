@@ -9,7 +9,8 @@ gprofiler2enrich(
   ontology = "MF",
   cutoff = 1,
   organism = NULL,
-  padjust_method = "BH"
+  padjust_method = "BH",
+  enrich_ids = NULL
 )
 
 gprofiler2enrich(
@@ -17,7 +18,8 @@ gprofiler2enrich(
   ontology = "MF",
   cutoff = 1,
   organism = NULL,
-  padjust_method = "BH"
+  padjust_method = "BH",
+  enrich_ids = NULL
 )
 }
 \arguments{

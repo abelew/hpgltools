@@ -173,6 +173,18 @@ print.combined_de <- function(x, ...) {
   return(invisible(x))
 }
 
+#' Print a summary from combine_de_upset
+#'
+#' @param x List produced by combined_de_upset
+#' @param ... Other args for the generic.
+#' @export
+print.combined_de_upset <- function(x, ...) {
+  summary_string <- glue("Plot describing unique/shared genes in a differential expression table.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
+}
+
 #' Print a single combined DE result.
 #'
 #' @param x Data table of combined differential expression results.

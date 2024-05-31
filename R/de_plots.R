@@ -2116,8 +2116,16 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
   } else {
     message("Only ", names_passed, " has information, cannot create an UpSet.")
   }
-
-  return(upset_combined)
+  group_information <- overlap_groups(ud_list)
+  retlist <- list(
+    "possible_names" = wanted_tables,
+    "possible_colors" = possible_colors,
+    "contrast_df" = upset_contrasts,
+    "upset_list" = ud_list,
+    "groups" = group_information,
+    "plot" = upset_combined)
+  class(retlist) <- "combined_de_upset"
+  return(retlist)
 }
 
 #' Use UpSetR to compare significant gene lists.
@@ -2186,7 +2194,7 @@ upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
                                        text.scale = scale, ...)
     retlist[["both_groups"]] <- overlap_groups(upsetr_both_list)
   }
-
+  class(retlist) <- "sig_de_upset"
   return(retlist)
 }
 
