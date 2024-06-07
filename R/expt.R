@@ -2504,6 +2504,7 @@ subset_expt <- function(expt, subset = NULL, ids = NULL,
     print(colSums(exprs(expt))[!subset_idx])
   } else if (is.null(coverage)) {
     ## Remove samples with less than this number of non-zero genes.
+    mesg("Subsetting given a minimal number genes observed/sample.")
     nonzero_idx <- exprs(expt) != 0
     num_nonzero <- colSums(nonzero_idx)
     if (is.null(pData(expt)[["num_nonzero"]])) {
@@ -2520,20 +2521,14 @@ subset_expt <- function(expt, subset = NULL, ids = NULL,
     message("The samples (and read coverage) removed when filtering ",
             nonzero, " non-zero genes are: ")
     dropped <- exprs(expt)[, remove_idx]
+    dropped_names <- names(num_nonzero[remove_idx])
+    num_genes <- num_nonzero[!remove_idx]
     if (class(dropped)[1] == "numeric") {
-      print(sum(dropped))
+      print(num_nonzero[remove_idx])
     } else if (class(dropped)[1] == "matrix") {
       print(colSums(dropped))
     }
-    dropped_names <- colnames(dropped)
-    colnames(dropped) <- dropped_names
-    num_genes <- rep(0, length(dropped_names))
-    names(num_genes) <- dropped_names
-    for (sample in colnames(dropped)) {
-      num_genes[sample] <- sum(dropped[, sample] > 0)
-    }
-    message("by number of genes:")
-    print(num_genes)
+    message("by number of genes.")
   } else {
     stop("Unable to determine what is being subset.")
   }
