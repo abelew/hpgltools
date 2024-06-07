@@ -637,41 +637,6 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
                                           species = species, type = type, basedir = basedir)
     },
-    "hisat_rrna_single_concordant" = {
-      search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
-      replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
-      mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       species = species, ...)
-    },
-    "hisat_rrna_multi_concordant" = {
-      search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
-      replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
-      mesg("Searching for number of concordant multi-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       type = type, species = species, ...)
-    },
-    "hisat_rrna_percent" = {
-      numerator_column <- specification[["hisat_rrna_multi_concordant"]][["column"]]
-      if (is.null(numerator_column)) {
-        numerator_column <- "hisat_rrna_multi_concordant"
-      }
-      numerator_add <- specification[["hisat_rrna_single_concordant"]][["column"]]
-      if (is.null(numerator_add)) {
-        numerator_add <- "hisat_rrna_single_concordant"
-      }
-      denominator_column <- specification[["trimomatic_output"]][["column"]]
-      if (is.null(denominator_column)) {
-        denominator_column <- "trimomatic_output"
-      }
-      mesg("Searching for percent rRNA mapped by hisat.")
-      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column,
-                                         numerator_add = numerator_add)
-    },
     "hisat_genome_single_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
@@ -708,16 +673,16 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                        as = "numeric", basedir = basedir,
                                        type = type, species = species, ...)
     },
-    "hisat_unmapped" = {
-      search <- "^\\s+\\d+ \\(.+\\) aligned 0 times"
-      replace <- "^\\s+(\\d+) \\(.+\\) aligned 0 times"
-      mesg("Searching for number of all reads that did not map to CDS by hisat.")
+    "hisat_genome_percent_log" = {
+      search <- "^.+% overall alignment rate"
+      replace <- "^(.+)% overall alignment rate"
+      mesg("Searching for the percent mapped in the hisat log.")
       entries <- dispatch_regex_search(meta, search, replace,
                                        input_file_spec, verbose = verbose,
-                                       as = "numeric", basedir = basedir,
+                                       basedir = basedir,
                                        type = type, species = species, ...)
     },
-    "hisat_genome_percent" = {
+    "hisat_genome_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_genome_single_concordant"]][["column"]]
       if (is.null(numerator_column)) {
         numerator_column <- "hisat_genome_single_concordant"
@@ -728,6 +693,15 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       }
       mesg("Searching for percent reads mapped by hisat.")
       entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column)
+    },
+    "hisat_genome_input_reads" = {
+      search <- "^\\d+ reads; of these"
+      replace <- "^(\\d+) reads; of these"
+      mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, basedir = basedir,
+                                       as = "numeric", verbose = verbose,
+                                       species = species, ...)
     },
     "hisat_observed_genes" = {
       search <- "^.*\t0$"
@@ -749,6 +723,68 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                      which = "function", chosen_func = "median",
                                      verbose = verbose, basedir = basedir,
                                      type = type, species = species, as = "numeric")
+    },
+    "hisat_rrna_input_reads" = {
+      search <- "^\\d+ reads; of these"
+      replace <- "^(\\d+) reads; of these"
+      mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, basedir = basedir,
+                                       as = "numeric", verbose = verbose,
+                                       species = species, ...)
+    },
+    "hisat_rrna_single_concordant" = {
+      search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
+      replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
+      mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, basedir = basedir,
+                                       as = "numeric", verbose = verbose,
+                                       species = species, ...)
+    },
+    "hisat_rrna_multi_concordant" = {
+      search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
+      replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
+      mesg("Searching for number of concordant multi-mapped reads to rRNA by hisat.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, basedir = basedir,
+                                       as = "numeric", verbose = verbose,
+                                       type = type, species = species, ...)
+    },
+    "hisat_rrna_pct_vs_trimmed" = {
+      numerator_column <- specification[["hisat_rrna_multi_concordant"]][["column"]]
+      if (is.null(numerator_column)) {
+        numerator_column <- "hisat_rrna_multi_concordant"
+      }
+      numerator_add <- specification[["hisat_rrna_single_concordant"]][["column"]]
+      if (is.null(numerator_add)) {
+        numerator_add <- "hisat_rrna_single_concordant"
+      }
+      denominator_column <- specification[["trimomatic_output"]][["column"]]
+      if (is.null(denominator_column)) {
+        denominator_column <- "trimomatic_output"
+      }
+      mesg("Searching for percent rRNA mapped by hisat.")
+      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column,
+                                         numerator_add = numerator_add)
+    },
+    "hisat_rrna_percent_log" = {
+      search <- "^.+% overall alignment rate"
+      replace <- "^(.+)% overall alignment rate"
+      mesg("Searching for the percent mapped in the hisat log.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose,
+                                       basedir = basedir,
+                                       type = type, species = species, ...)
+    },
+    "hisat_unmapped" = {
+      search <- "^\\s+\\d+ \\(.+\\) aligned 0 times"
+      replace <- "^\\s+(\\d+) \\(.+\\) aligned 0 times"
+      mesg("Searching for number of all reads that did not map to CDS by hisat.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose,
+                                       as = "numeric", basedir = basedir,
+                                       type = type, species = species, ...)
     },
     "host_filter_species" = {
       search <- "^.*$"
@@ -2158,12 +2194,18 @@ make_rnaseq_spec <- function() {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
     "kraken_matrix" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_*/kraken_report_matrix.tsv"),
+    "hisat_rrna_input_reads" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_single_concordant" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_multi_concordant" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
-    "hisat_rrna_percent" = list(
-      "column" = "hisat_rrna_percent"),
+    "hisat_rrna_pct_vs_trimmed" = list(
+      "column" = "hisat_rrna_pct_vs_trimmed"),
+    "hisat_rrna_percent_log" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
+    "hisat_genome_input_reads" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_single_concordant" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_multi_concordant" = list(
@@ -2174,8 +2216,10 @@ make_rnaseq_spec <- function() {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_unmapped" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
-    "hisat_genome_percent" = list(
-      "column" = "hisat_genome_percent"),
+    "hisat_genome_percent_log" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
+    "hisat_genome_pct_vs_trimmed" = list(
+      "column" = "hisat_genome_pct_vs_trimmed"),
     "hisat_observed_genes" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_observed_mean_exprs" = list(

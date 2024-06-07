@@ -587,16 +587,9 @@ The number of genes with low coverage changes by {min_range}-{max_range} genes."
 #' @param ... Other args to match the generic.
 #' @export
 print.preprocessing_metadata <- function(x, ...) {
-  cond_column <- x[["cond_column"]]
-  batch_column <- x[["batch_column"]]
-
-  color_levels <- toString(levels(as.factor(pData(x)[[cond_column]])))
-  batch_levels <- toString(levels(as.factor(pData(x)[[batch_column]])))
-  message("The result of performing a ", x[["pc_method"]], " dimension reduction.
-The x-axis is PC", x[["x_pc"]], " and the y-axis is PC", x[["y_pc"]], "
-Colors are defined by ", color_levels, "
-Shapes are defined by ", batch_levels, ".")
-  plot(x[["plot"]])
+  message("The result of performing extract_preprocessing_metadata().")
+  columns <- toString(colnames(x[["new_meta"]]))
+  message("The columns now are: ", columns, ".")
   return(invisible(x))
 }
 
