@@ -1173,6 +1173,113 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_regex_search(meta, search, replace,
                                        input_file_spec, verbose = verbose, basedir = basedir)
     },
+    "umi_dedup_output_bam" = {
+      mesg("Searching for umi-filtered alignments.")
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_dedup_output_count" = {
+      mesg("Searching for umi-filtered counts.")
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_dedup_chimeric" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,771 INFO Reads: Input Reads: 18614709, Chimeric read pair: 1452937, Single end unmapped: 834185
+      search <- "^.* Chimeric read pair: \\d+\\,.*$"
+      replace <- "^.* Chimeric read pair: (\\d+)\\,.*$"
+      mesg("Searching for the umi_tools chimeric reads.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_num_reads_in" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,771 INFO Reads: Input Reads: 18614709, Chimeric read pair: 1452937, Single end unmapped: 834185
+      search <- "^.* INFO Reads: Input Reads: \\d+\\,.*$"
+      replace <- "^.* INFO Reads: Input Reads: (\\d+)\\,.*$"
+      mesg("Searching for the umi_tools number of input reads.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_num_reads_out" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,771 INFO Number of reads out: 8648625
+      search <- "^.* Number of reads out: \\d+$"
+      replace <- "^.* Number of reads out: (\\d+)$"
+      mesg("Searching for the umi_tools number of output reads.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_pct_reads" = {
+      mesg("Getting the percent of deduplication reads output/input.")
+      numerator_column <- "umi_dedup_num_reads_out"
+      denominator_column <- "umi_dedup_num_reads_in"
+      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column)
+    },
+    "umi_dedup_deduplicated_positions" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,771 INFO Total number of positions deduplicated: 1753865
+      search <- "^.* number of positions deduplicated: \\d+$"
+      replace <- "^.* number of positions deduplicated: (\\d+)$"
+      mesg("Searching for the umi_tools number of deduplicated positions.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_mean_umi_per_pos" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,772 INFO Mean number of unique UMIs per position: 8.60
+      search <- "^.* Mean number of unique UMIs per position: \\d+\\.*\\d*$"
+      replace <- "^.* Mean number of unique UMIs per position: (\\d+\\.*\\d*)$"
+      mesg("Searching for the umi_tools mean number of umis per position.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_max_umi_per_pos" = {
+      ## Example line:
+      ## 2024-06-07 20:26:12,772 INFO Max. number of unique UMIs per position: 38924
+      search <- "^.* Max\\. number of unique UMIs per position: \\d+$"
+      replace <- "^.* Max\\. number of unique UMIs per position: (\\d+)$"
+      mesg("Searching for the umi_tools maximum number of umis per position.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_dedup_edit_distance" = {
+      mesg("Searching for umi-dedup distance statistics.")
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_dedup_umi_positions" = {
+      mesg("Searching for umi-dedup position statistics.")
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_dedup_umi_stats" = {
+      mesg("Searching for umi-dedup statistics.")
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_extract_r1_output" = {
+      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
+                                          species = species, type = "genome", basedir = basedir)
+    },
+    "umi_extract_r2_output" = {
+      ## Example line:
+      ## # read2_out                               : outputs/01umi_tools/r2_extracted.fastq.gz
+      search <- "^# read2_out\\s+:.*$"
+      replace <- "^# read2_out\\s+: (.+)$"
+      mesg("Searching for the umi_tools R2 extract output.")
+      entries <- dispatch_filename_search(meta, search, replace,
+                                          input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "umi_extract_matches" = {
+      ## Example line:
+      ## 2024-06-06 11:27:37,727 INFO regex matches read2: 21454044
+      search <- "^.+ regex matches read2: \\d+$"
+      replace <- "^.+ regex matches read2: (\\d+)$"
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir,
+                                       as = "numeric", ...)
+    },
     "unicycler_lengths" = {
       ## >1 length=40747 depth=1.00x circular=true
       search <- "^>\\d+ length=\\d+ depth.*$"
@@ -2178,8 +2285,10 @@ make_assembly_spec <- function() {
 #'
 #' This currently assumes the set of tools used by one doing RNASeq to be trimomatic,
 #' fastqc, hisat2, and htseq.
+#'
+#' @param umi Include entries for umi-barcoded samples?
 #' @export
-make_rnaseq_spec <- function() {
+make_rnaseq_spec <- function(umi = FALSE) {
   specification <- list(
     ## First task performed is pretty much always trimming
     "trimomatic_input" = list(
@@ -2252,6 +2361,33 @@ make_rnaseq_spec <- function() {
     "bbmap_coverage_per_nt" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*bam2coverage*/base_coverage.tsv.xz")
   )
+
+  if (isTRUE(umi)) {
+    specification[["umi_extract_r1_output"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_tools/r1_extracted.fastq.gz")
+    specification[["umi_extract_r2_output"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_tools/r2_extracted.fastq.gz")
+    specification[["umi_extract_matches"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_tools/extract.log")
+    specification[["umi_dedup_output_bam"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_tools_deduplicated.bam")
+    specification[["umi_dedup_output_count"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_tools_deduplicated*.count.xz")
+    specification[["umi_dedup_chimeric"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+    specification[["umi_dedup_num_reads_in"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+    specification[["umi_dedup_num_reads_out"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+    specification[["umi_dedup_pct_reads"]] = list(
+      "column" = "umi_dedup_pct_reads")
+    specification[["umi_dedup_deduplicated_positions"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+    specification[["umi_dedup_mean_umi_per_pos"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+    specification[["umi_dedup_max_umi_per_pos"]] = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
+  }
 
   return(specification)
 }

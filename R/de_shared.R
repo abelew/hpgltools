@@ -872,7 +872,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
                          model_cond = TRUE, model_intercept = FALSE,
                          alt_model = NULL, alt_string = NULL,
                          intercept = 0, reverse = FALSE, contr = NULL,
-                         surrogates = "be", verbose = TRUE, ...) {
+                         surrogates = "be", verbose = TRUE, keep_underscore = FALSE, ...) {
   arglist <- list(...)
   design <- NULL
   if (class(input)[1] != "matrix" && class(input)[1] != "data.frame") {
@@ -1082,7 +1082,11 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
 
   tmpnames <- colnames(int_model)
   tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
-  tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  if (isTRUE(keep_underscore)) {
+    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
+  } else {
+    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  }
   tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
   tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
   ## The next lines ensure that conditions/batches which are all numeric will
@@ -1096,7 +1100,11 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
 
   tmpnames <- colnames(noint_model)
   tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
-  tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  if (isTRUE(keep_underscore)) {
+    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
+  } else {
+    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  }
   tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
   tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
   ## The next lines ensure that conditions/batches which are all numeric will
@@ -2232,10 +2240,14 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #' @export
 make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
                                     do_extras = TRUE, do_pairwise = TRUE,
-                                    keepers = NULL, extra_contrasts = NULL, ...) {
+                                    keepers = NULL, extra_contrasts = NULL, keep_underscore = FALSE, ...) {
   arglist <- list(...)
   tmpnames <- colnames(model)
-  tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  if (isTRUE(keep_underscore)) {
+    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames)
+  } else {
+    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
+  }
   tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
   tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
   tmpnames <- gsub(pattern = "conditions^(\\d+)$", replacement = "c\\1", x = tmpnames)
@@ -2444,7 +2456,7 @@ mymakeContrasts <- function(..., contrasts = NULL, levels) {
 #' playing with an expt.
 #'
 #' @param expt An expt object to clean.
-sanitize_expt <- function(expt) {
+sanitize_expt <- function(expt, keep_underscore = FALSE) {
   design <- pData(expt)
   conditions <- gsub(
     pattern = "^(\\d+)$", replacement = "c\\1", x = as.character(design[["condition"]]))
@@ -2458,8 +2470,13 @@ sanitize_expt <- function(expt) {
   batches <- gsub(pattern = "[^\\PP_]", replacement = "", x = batches, perl = TRUE)
   conditions <- gsub(pattern = "[[:blank:]]", replacement = "", x = conditions)
   batches <- gsub(pattern = "[[:blank:]]", replacement = "", x = batches)
-  conditions <- gsub(pattern="[[:punct:]]", replacement = "", x = conditions)
-  batches <- gsub(pattern="[[:punct:]]", replacement = "", x = batches)
+  if (isTRUE(keep_underscore)) {
+    conditions <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = conditions)
+    batches <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = batches)
+  } else {
+    conditions <- gsub(pattern="[[:punct:]]", replacement = "", x = conditions)
+    batches <- gsub(pattern="[[:punct:]]", replacement = "", x = batches)
+  }
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
   expressionset <- expt[["expressionset"]]

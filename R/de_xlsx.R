@@ -556,7 +556,8 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 #' @param sheet_count Start with these sheet number and increment for excel.
 combine_mapped_table <- function(entry, includes, adjp = TRUE, padj_type = "fdr",
                                  annot_df = NULL, excludes = NULL, lfc_cutoff = 1,
-                                 p_cutoff = 0.05, format_sig = 4, sheet_count = 0) {
+                                 p_cutoff = 0.05, format_sig = 4, sheet_count = 0,
+                                 keep_underscore = FALSE) {
   if (padj_type[1] != "ihw" && !(padj_type %in% p.adjust.methods)) {
     warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
 Defaulting to fdr.")
@@ -889,8 +890,13 @@ Defaulting to fdr.")
     }
   }
   if (!is.null(annot_df)) {
-    colnames(annot_df) <- gsub(pattern = "[[:punct:]]",
-                               replacement = "", x = colnames(annot_df))
+    if (isTRUE(keep_underscore)) {
+      colnames(annot_df) <- gsub(pattern = "[^_[:^punct:]]",
+                                 replacement = "", x = colnames(annot_df), perl = TRUE)
+    } else {
+      colnames(annot_df) <- gsub(pattern = "[[:punct:]]",
+                                 replacement = "", x = colnames(annot_df), perl = TRUE)
+    }
     comb <- merge(annot_df, comb, by = "row.names", all.y = TRUE)
     rownames(comb) <- comb[["Row.names"]]
     comb[["Row.names"]] <- NULL
@@ -1282,8 +1288,14 @@ Defaulting to fdr.")
     }
   }
   if (!is.null(annot_df)) {
-    colnames(annot_df) <- gsub(pattern = "[[:punct:]]",
-                               replacement = "", x = colnames(annot_df))
+    if (isTRUE(keep_underscore)) {
+      colnames(annot_df) <- gsub(pattern = "[^_[:^punct:]]",
+                                 replacement = "", x = colnames(annot_df), perl = TRUE)
+
+    } else {
+      colnames(annot_df) <- gsub(pattern = "[[:punct:]]",
+                                 replacement = "", x = colnames(annot_df), perl = TRUE)
+    }
     comb <- merge(annot_df, comb, by = "row.names", all.y = TRUE)
     rownames(comb) <- comb[["Row.names"]]
     comb[["Row.names"]] <- NULL

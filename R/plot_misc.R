@@ -264,7 +264,7 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
   ggplt <- ggplt +
     ggsankey::geom_sankey(flow.alpha = 0.6,
                           node.color = "gray30") +
-    ggsankey::geom_sankey_label()
+    ggsankey::geom_sankey_label(color = 1, fill = "white", size = 3.5)
 
   ## I want to figure out how to set up my own colors...
   if (is.null(color_choices)) {
