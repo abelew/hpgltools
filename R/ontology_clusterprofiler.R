@@ -3,6 +3,87 @@
 ## toolkit.  It is not necessarily as easy to use as I might prefer.  This seeks
 ## to fill in some corner case.
 
+#' Run simple_clusterprofiler on every table from extract_significant_genes()
+#'
+#' @param sig Result from extract_significant_genes
+#' @param tables Result from combine_de_tables
+#' @param according_to Use this result type for the clusterprofiler searches.
+#' @param together Concatenate the up/down genes into one set?
+#' @param plot_type Choose a plot method as the default.
+#' @param ... Arguments to pass to simple_clusterprofiler().
+#' @export
+all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
+                          plot_type = "dotplot", ...) {
+  ret <- list()
+  input_up <- list()
+  input_down <- list()
+  source <- "significant"
+  ## Check if this came from extract_significant_genes or extract_abundant_genes.
+  fc_col <- paste0(according_to, "_logfc")
+  if (!is.null(sig[[according_to]][["ups"]])) {
+    input_up <- sig[[according_to]][["ups"]]
+    input_down <- sig[[according_to]][["downs"]]
+  } else if (!is.null(sig[["abundances"]])) {
+    source <- "abundance"
+    input_up <- sig[["abundances"]][[according_to]][["high"]]
+    input_down <- sig[["abundances"]][[according_to]][["low"]]
+  } else {
+    stop("I do not understand this input.")
+  }
+
+  sig_names <- names(input_up)
+  for (i in seq_along(sig_names)) {
+    slept <- Sys.sleep(3)
+    name <- sig_names[i]
+    table <- tables[["data"]][[name]]
+    mesg("Starting ", name, ".")
+    retname_up <- paste0(name, "_up")
+    retname_down <- paste0(name, "_down")
+    up <- input_up[[name]]
+    down <- input_down[[name]]
+    up_elements <- 0
+    down_elements <- 0
+    if (source == "abundance") {
+      up <- names(up)
+      down <- names(down)
+      up_elements <- length(up)
+      down_elements <- length(down)
+    } else {
+      up_elements <- nrow(up)
+      down_elements <- nrow(down)
+    }
+    if (isTRUE(together)) {
+      if (source == "abundance") {
+        up <- c(up, down)
+        up_elements <- up_elements + down_elements
+        down <- c()
+        down_elements <- 0
+      } else {
+        up <- rbind(up, down)
+        up_elements <- nrow(up)
+        down <- data.frame()
+        down_elements <- 0
+      }
+    }
+    if (up_elements > 0) {
+      ret[[retname_up]] <- simple_clusterprofiler(up, table,
+                                                  ...)
+    } else {
+      ret[[retname_up]] <- NULL
+    }
+    if (down_elements > 0) {
+      slept <- Sys.sleep(10)
+      ret[[retname_down]] <- simple_clusterprofiler(down, table,
+                                                    ...)
+      #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
+    } else {
+      ret[[retname_down]] <- NULL
+    }
+  }
+  class(ret) <- "all_cprofiler"
+  return(ret)
+}
+
 #' Perform the array of analyses in the 2016-04 version of clusterProfiler
 #'
 #' The new version of clusterProfiler has a bunch of new toys.  However, it is
@@ -13,8 +94,7 @@
 #' previous 'simple_clusterprofiler()' but using these new toys.
 #'
 #' @param sig_genes Dataframe of genes deemed 'significant.'
-#' @param de_table Dataframe of all genes in the analysis, primarily for gse
-#'  analyses.
+#' @param de_table Dataframe of all genes in the analysis, primarily for GSEA.
 #' @param orgdb Name of the orgDb used for gathering annotation data.
 #' @param orgdb_from Name of a key in the orgdb used to cross reference to entrez IDs.
 #' @param orgdb_to List of keys to grab from the orgdb for cross referencing
@@ -45,7 +125,7 @@
 #'  holyasscrackers <- simple_clusterprofiler(gene_list, all_genes, "org.Dm.eg.db")
 #' }
 #' @export
-simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.eg.db",
+simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.eg.db",
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",
                                    go_level = 3, pcutoff = 0.05,
                                    qcutoff = 0.1, fc_column = "logFC",
@@ -119,9 +199,9 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
       }
     }
     mesg("Chose keytype: ", orgdb_from, " for all genes because it had ", num_hits,
-            " out of ", length(all_genenames), " genes.")
+         " out of ", length(all_genenames), " genes.")
     mesg("Chose keytype: ", orgdb_sig_from, " for sig genes because it had ", num_sig,
-            " out of ", length(sig_genenames), " genes.")
+         " out of ", length(sig_genenames), " genes.")
   } else { ## If we do have a column for the OrgDB
     de_table_namedf <- sm(try(clusterProfiler::bitr(all_genenames, fromType = orgdb_from,
                                                     toType = orgdb_to, OrgDb = org), silent = TRUE))
@@ -171,12 +251,12 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
                                         ont = "CC", level = go_level))
 
   group_go <- list(
-      "MF" = as.data.frame(ggo_mf, stringsAsFactors = FALSE),
-      "BP" = as.data.frame(ggo_bp, stringsAsFactors = FALSE),
-      "CC" = as.data.frame(ggo_cc, stringsAsFactors = FALSE))
+    "MF" = as.data.frame(ggo_mf, stringsAsFactors = FALSE),
+    "BP" = as.data.frame(ggo_bp, stringsAsFactors = FALSE),
+    "CC" = as.data.frame(ggo_cc, stringsAsFactors = FALSE))
   mesg("Found ", nrow(group_go[["MF"]]),
-          " MF, ", nrow(group_go[["BP"]]),
-          " BP, and ", nrow(group_go[["CC"]]), " CC hits.")
+       " MF, ", nrow(group_go[["BP"]]),
+       " BP, and ", nrow(group_go[["CC"]]), " CC hits.")
 
   mesg("Calculating enriched GO groups.")
   ego_all_mf <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
@@ -204,12 +284,12 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
                                           minGSSize = min_groupsize, pAdjustMethod = "BH",
                                           pvalueCutoff = pcutoff)
   enrich_go <- list(
-      "MF_all" = as.data.frame(ego_all_mf, stringsAsFactors = FALSE),
-      "MF_sig" = as.data.frame(ego_sig_mf, stringsAsFactors = FALSE),
-      "BP_all" = as.data.frame(ego_all_bp, stringsAsFactors = FALSE),
-      "BP_sig" = as.data.frame(ego_sig_bp, stringsAsFactors = FALSE),
-      "CC_all" = as.data.frame(ego_all_cc, stringsAsFactors = FALSE),
-      "CC_sig" = as.data.frame(ego_sig_cc, stringsAsFactors = FALSE))
+    "MF_all" = as.data.frame(ego_all_mf, stringsAsFactors = FALSE),
+    "MF_sig" = as.data.frame(ego_sig_mf, stringsAsFactors = FALSE),
+    "BP_all" = as.data.frame(ego_all_bp, stringsAsFactors = FALSE),
+    "BP_sig" = as.data.frame(ego_sig_bp, stringsAsFactors = FALSE),
+    "CC_all" = as.data.frame(ego_all_cc, stringsAsFactors = FALSE),
+    "CC_sig" = as.data.frame(ego_sig_cc, stringsAsFactors = FALSE))
   mesg("Found ", nrow(enrich_go[["MF_sig"]]),
        " MF, ", nrow(enrich_go[["BP_sig"]]),
        " BP, and ", nrow(enrich_go[["CC_sig"]]), " CC enriched hits.")
@@ -237,8 +317,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
     ## Arguments used by gseGO of interest: exponent, minGSSize/maxGSSize, eps, by(fgsea)
     ## Also, apparently the nperm argument is deprecated.
     gse <- suppressWarnings(clusterProfiler::gseGO(geneList = genelist, OrgDb = org,
-                                  keyType = orgdb_to, ont = "ALL",
-                                  minGSSize = min_groupsize))
+                                                   keyType = orgdb_to, ont = "ALL",
+                                                   minGSSize = min_groupsize))
     gse_go <- as.data.frame(gse)
     mesg("Found ", nrow(gse_go), " enriched hits.")
   } else {
@@ -269,7 +349,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
     kegg_sig_names <- glue("ncbi-geneid:{sig_gene_list}")
     kegg_sig_intersect <- kegg_sig_names %in% names(kegg_universe)
     mesg("Found ", sum(kegg_sig_intersect),
-            " matches between the significant gene list and kegg universe.")
+         " matches between the significant gene list and kegg universe.")
 
     if (sum(kegg_sig_intersect) > 0) {
       all_names <- names(kegg_universe)
@@ -303,7 +383,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
     kegg_all_names <- glue("ncbi-geneid:{names(kegg_genelist)}")
     kegg_all_intersect <- kegg_all_names %in% names(kegg_universe)
     mesg("Found ", sum(kegg_all_intersect),
-            " matches between the gene list and kegg universe.")
+         " matches between the gene list and kegg universe.")
     all_names <- names(kegg_universe)
     large_universe <- kegg_universe[intersect(kegg_all_names, names(kegg_universe))]
     kegg_all_ids <- unique(as.character(large_universe))
@@ -323,10 +403,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
   }
 
   kegg_data <- list(
-      "kegg_all" = as.data.frame(all_kegg, stringsAsFactors = FALSE),
-      "kegg_sig" = as.data.frame(enrich_kegg, stringsAsFactors = FALSE),
-      "kegg_gse_all" = as.data.frame(gse_all_kegg, stringsAsFactors = FALSE),
-      "kegg_gse_sig" = as.data.frame(gse_sig_kegg, stringsAsFactors = FALSE))
+    "kegg_all" = as.data.frame(all_kegg, stringsAsFactors = FALSE),
+    "kegg_sig" = as.data.frame(enrich_kegg, stringsAsFactors = FALSE),
+    "kegg_gse_all" = as.data.frame(gse_all_kegg, stringsAsFactors = FALSE),
+    "kegg_gse_sig" = as.data.frame(gse_sig_kegg, stringsAsFactors = FALSE))
   mesg("Found ", nrow(kegg_data[["kegg_sig"]]), " KEGG enriched hits.")
 
   david_data <- NULL
@@ -448,41 +528,54 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
   }
 
   plotlist <- list(
-      "ggo_mf_bar" = ggo_mf_bar,
-      "ggo_bp_bar" = ggo_bp_bar,
-      "ggo_cc_bar" = ggo_cc_bar,
-      "ego_all_mf" = ego_all_mf_bar,
-      "ego_all_bp" = ego_all_bp_bar,
-      "ego_all_cc" = ego_all_cc_bar,
-      "ego_sig_mf" = ego_sig_mf_bar,
-      "ego_sig_bp" = ego_sig_bp_bar,
-      "ego_sig_cc" = ego_sig_cc_bar,
-      "dot_all_mf" = dot_all_mf,
-      "dot_all_bp" = dot_all_bp,
-      "dot_all_cc" = dot_all_cc,
-      "dot_sig_mf" = dot_sig_mf,
-      "dot_sig_bp" = dot_sig_bp,
-      "dot_sig_cc" = dot_sig_cc,
-      "map_sig_mf" = map_sig_mf,
-      "map_sig_bp" = map_sig_bp,
-      "map_sig_cc" = map_sig_cc,
-      "net_sig_mf" = net_sig_mf,
-      "net_sig_bp" = net_sig_bp,
-      "net_sig_cc" = net_sig_cc,
-      "tree_sig_mf" = tree_sig_mf,
-      "tree_sig_bp" = tree_sig_bp,
-      "tree_sig_cc" = tree_sig_cc)
+    "ggo_mf_bar" = ggo_mf_bar,
+    "ggo_bp_bar" = ggo_bp_bar,
+    "ggo_cc_bar" = ggo_cc_bar,
+    "ego_all_mf" = ego_all_mf_bar,
+    "ego_all_bp" = ego_all_bp_bar,
+    "ego_all_cc" = ego_all_cc_bar,
+    "ego_sig_mf" = ego_sig_mf_bar,
+    "ego_sig_bp" = ego_sig_bp_bar,
+    "ego_sig_cc" = ego_sig_cc_bar,
+    "dot_all_mf" = dot_all_mf,
+    "dot_all_bp" = dot_all_bp,
+    "dot_all_cc" = dot_all_cc,
+    "dot_sig_mf" = dot_sig_mf,
+    "dot_sig_bp" = dot_sig_bp,
+    "dot_sig_cc" = dot_sig_cc,
+    "map_sig_mf" = map_sig_mf,
+    "map_sig_bp" = map_sig_bp,
+    "map_sig_cc" = map_sig_cc,
+    "net_sig_mf" = net_sig_mf,
+    "net_sig_bp" = net_sig_bp,
+    "net_sig_cc" = net_sig_cc,
+    "tree_sig_mf" = tree_sig_mf,
+    "tree_sig_bp" = tree_sig_bp,
+    "tree_sig_cc" = tree_sig_cc)
+  enrich_objects <- list(
+    "MF_all" = ego_all_mf,
+    "MF_sig" = ego_sig_mf,
+    "BP_all" = ego_all_bp,
+    "BP_sig" = ego_sig_bp,
+    "CC_all" = ego_all_cc,
+    "CC_sig" = ego_sig_cc,
+    "gse" = gse,
+    "all_kegg" = all_kegg,
+    "enrich_kegg" = enrich_kegg,
+    "gse_all_kegg" = gse_all_kegg,
+    "gse_enrich_kegg" = gse_sig_kegg)
 
   retlist <- list(
-      "all_mappings" = de_table_namedf,
-      "sig_mappings" = sig_genes_namedf,
-      "group_go" = group_go,
-      "enrich_go" = enrich_go,
-      "gse_go" = gse_go,
-      "kegg_data" = kegg_data,
-      "david_data" = david_data,
-      "plots" = plotlist,
-      "pvalue_plots" = plotlist)
+    "all_mappings" = de_table_namedf,
+    "sig_mappings" = sig_genes_namedf,
+    "group_go" = group_go,
+    "enrich_go" = enrich_go,
+    "enrich_objects" = enrich_objects,
+    "gse_go" = gse_go,
+    "kegg_data" = kegg_data,
+    "david_data" = david_data,
+    "plots" = plotlist,
+    "pvalue_plots" = plotlist)
   class(retlist) <- c("clusterprofiler_result", "list")
   if (!is.null(excel)) {
     mesg("Writing data to: ", excel, ".")
@@ -503,20 +596,20 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Dm.e
 cp_options <- function(species) {
   if (species == "dmelanogaster") {
     options <- list(
-        orgdb = "org.Dm.eg.db",
-        orgdb_from = "FLYBASE",
-        orgdb_to = c("ENSEMBL", "SYMBOL", "ENTREZID"),
-        kegg_prefix = "Dmel_",
-        kegg_organism = "dme",
-        kegg_id_column = "FLYBASECG")
+      orgdb = "org.Dm.eg.db",
+      orgdb_from = "FLYBASE",
+      orgdb_to = c("ENSEMBL", "SYMBOL", "ENTREZID"),
+      kegg_prefix = "Dmel_",
+      kegg_organism = "dme",
+      kegg_id_column = "FLYBASECG")
   } else if (species == "hsapiens") {
     options <- list(
-        orgdb = "org.Hs.eg.db",
-        orgdb_from = "ENSEMBL",
-        orgdb_to = c("ENSEMBL", "SYMBOL", "ENTREZID"),
-        kegg_prefix = "Hsa_",
-        kegg_organism = "hsa",
-        kegg_id_column = "")
+      orgdb = "org.Hs.eg.db",
+      orgdb_from = "ENSEMBL",
+      orgdb_to = c("ENSEMBL", "SYMBOL", "ENTREZID"),
+      kegg_prefix = "Hsa_",
+      kegg_organism = "hsa",
+      kegg_id_column = "")
   }
   return(options)
 }
@@ -537,7 +630,7 @@ simple_cp_enricher <- function(sig_genes, de_table, go_db = NULL) {
   sig_genenames <- rownames(sig_genes)
   enriched <- clusterProfiler::enricher(sig_genenames, TERM2GENE = go_db)
   retlist <- list(
-      "enriched" = as.data.frame(enriched, stringsAsFactors = FALSE))
+    "enriched" = as.data.frame(enriched, stringsAsFactors = FALSE))
   return(retlist)
 }
 

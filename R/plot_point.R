@@ -650,9 +650,15 @@ plot_pairwise_ma <- function(data, log = NULL, ...) {
 #'  plot_scatter(lotsofnumbers_intwo_columns)
 #' }
 #' @export
-plot_scatter <- function(df, color = "black", xlab = NULL,
+plot_scatter <- function(df, color = "black", xlab = NULL, xcol = NULL, ycol = NULL,
                          ylab = NULL, alpha = 0.6, size = 2) {
-  df <- data.frame(df[, c(1, 2)])
+  if (is.null(xcol)) {
+    xcol <- 1
+  }
+  if (is.null(ycol)) {
+    ycol <- 2
+  }
+  df <- data.frame(df[, c(xcol, ycol)])
   df <- df[complete.cases(df), ]
   df_columns <- colnames(df)
   df_x_axis <- df_columns[1]
