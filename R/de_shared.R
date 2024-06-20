@@ -2291,13 +2291,13 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
     }
   } else {
     for (keeper in keepers) {
-      c_name <- keeper[1]
+      n_name <- keeper[1]
       d_name <- keeper[2]
-      minus_string <- paste0(d_name, "_vs_", c_name)
-      exprs_string <- paste0(minus_string, "=", d_name, "-", c_name, ",")
+      minus_string <- paste0(n_name, "_vs_", d_name)
+      exprs_string <- paste0(minus_string, "=", n_name, "-", d_name, ",")
       all_pairwise[minus_string] <- exprs_string
-      numerators <- c(numerators, d_name)
-      denominators <- c(denominators, c_name)
+      numerators <- c(numerators, n_name)
+      denominators <- c(denominators, d_name)
     }
   }
 
