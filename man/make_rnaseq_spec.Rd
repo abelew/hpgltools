@@ -4,7 +4,10 @@
 \alias{make_rnaseq_spec}
 \title{Generate a RNASeq specification for use by gather_preprocessing_metadata()}
 \usage{
-make_rnaseq_spec()
+make_rnaseq_spec(umi = FALSE)
+}
+\arguments{
+\item{umi}{Include entries for umi-barcoded samples?}
 }
 \description{
 This currently assumes the set of tools used by one doing RNASeq to be trimomatic,

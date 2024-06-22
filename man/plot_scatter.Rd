@@ -8,6 +8,8 @@ plot_scatter(
   df,
   color = "black",
   xlab = NULL,
+  xcol = NULL,
+  ycol = NULL,
   ylab = NULL,
   alpha = 0.6,
   size = 2

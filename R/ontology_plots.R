@@ -150,6 +150,42 @@ plot_ontpval <- function(df, ontology = "MF", fontsize = 14, plot_title = NULL,
   return(pvalue_plot)
 }
 
+#' Iterate gseaplot2 over an arbitrary number of enrichments.
+#'
+#' @param gse clusterProfiler GSEA result.
+#' @param topn Number of enrichments to plot.
+#' @return List of plots.
+#' @export
+plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
+  retlist <- list()
+  if (nrow(gse) < topn) {
+    topn <- nrow(gse)
+  }
+  if (!is.null(id)) {
+    topn <- id
+  }
+
+  for (it in seq_len(topn)) {
+    ont_name <- gse[it, "ID"]
+    ont_desc <- gse[it, "Description"]
+    ont_size <- gse[it, "setSize"]
+    ont_enrich <- formatC(gse[it, "enrichmentScore"], digits = 2)
+    ont_p <- formatC(gse[it, "p.adjust"], format = "e", digits = 2)
+    string <- glue("Plotting {ont_name}: {ont_desc}.")
+    score_string <- glue("Set size: {ont_size}, score: {ont_enrich}, adjp: {ont_p}")
+    mesg(string)
+    gsea_plot <- enrichplot::gseaplot2(gse, geneSetID = it)
+    gsea_plot[[1]] <- gsea_plot[[1]] +
+      ggplot2::ggtitle(string)
+    gsea_plot[[3]] <- gsea_plot[[3]] +
+      ggplot2::ggtitle(score_string) +
+      ggplot2::theme(plot.title = element_text(hjust = 1.0))
+    retlist[[ont_name]] <- gsea_plot
+    ## enrichplot::gseaplot2(t_cf_clinical_cp[[1]][["enrich_objects"]][["gse"]], geneSetID = 1)
+  }
+  return(retlist)
+}
+
 #' Make a pvalue plot from goseq data.
 #'
 #' With minor changes, it is possible to push the goseq results into a

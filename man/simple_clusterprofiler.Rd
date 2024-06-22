@@ -7,7 +7,7 @@
 simple_clusterprofiler(
   sig_genes,
   de_table = NULL,
-  orgdb = "org.Dm.eg.db",
+  orgdb = "org.Hs.eg.db",
   orgdb_from = NULL,
   orgdb_to = "ENTREZID",
   go_level = 3,
@@ -32,8 +32,7 @@ simple_clusterprofiler(
 \arguments{
 \item{sig_genes}{Dataframe of genes deemed 'significant.'}
 
-\item{de_table}{Dataframe of all genes in the analysis, primarily for gse
-analyses.}
+\item{de_table}{Dataframe of all genes in the analysis, primarily for GSEA.}
 
 \item{orgdb}{Name of the orgDb used for gathering annotation data.}
 

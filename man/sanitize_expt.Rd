@@ -5,7 +5,7 @@
 \title{Get rid of characters which will mess up contrast making and such before
 playing with an expt.}
 \usage{
-sanitize_expt(expt)
+sanitize_expt(expt, keep_underscore = FALSE)
 }
 \arguments{
 \item{expt}{An expt object to clean.}
