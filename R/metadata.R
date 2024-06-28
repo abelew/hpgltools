@@ -41,6 +41,25 @@ check_metadata_year <- function(metadata = NULL, column = NULL) {
   return(retlist)
 }
 
+#' A silly function to guesstimate factor columns in metadata.
+#'
+#' Use the heuristic that any column with a number of different
+#' elements which is <= (samples / ratio) has a reasonable chance of
+#' being usable as a categorical.
+guess_factors <- function(meta_df, ratio = 3) {
+  guesses <- c()
+  num_samples <- nrow(meta_df)
+  max_levels <- num_samples / ratio
+  for (f in seq_len(ncol(meta_df))) {
+    name <- colnames(meta_df)[f]
+    num_levels <- length(levels(as.factor(meta_df[[f]])))
+    if (num_levels <= max_levels) {
+      guesses <- c(guesses, name)
+    }
+  }
+  return(guesses)
+}
+
 #' Pull metadata from a table (xlsx/xls/csv/whatever)
 #'
 #' I find that when I acquire metadata from a paper or collaborator, annoyingly
@@ -2442,8 +2461,10 @@ make_dnaseq_spec <- function() {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
     "hisat_genome_multi_all" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*genome*.stderr"),
-    "hisat_genome_percent" = list(
-      "column" = "hisat_genome_percent"),
+    "hisat_genome_percent_log" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
+    "hisat_genome_pct_vs_trimmed" = list(
+      "column" = "hisat_genome_percent_log"),
     "gatk_unpaired" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),
     "gatk_paired" = list(

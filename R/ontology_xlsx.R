@@ -15,13 +15,17 @@ gather_cp_genes <- function(table, mappings, new = "ORF", primary_key = 1) {
   rownames(mappings) <- gsub(x = rownames(mappings), pattern = "^X", replacement = "")
 
   ## Taken from https://stackoverflow.com/questions/23420331
-  a <- as.relistable(separate)
-  u <- glue("{unlist(a)}")
   if (! new %in% colnames(mappings)) {
     new <- colnames(mappings)[2]
   }
-  u <- mappings[u, new]
-  mapped <- relist(u, a)
+
+  mapped <- c()
+  for (s in seq_along(strings)) {
+    from_strings <- separate[[s]]
+    to_string_idx <- mappings[[new]] %in% from_strings
+    to_strings <- toString(mappings[to_string_idx, primary_key])
+    mapped <- c(mapped, to_strings)
+  }
   return(mapped)
 }
 
@@ -179,14 +183,15 @@ gather_ontology_genes <- function(result, ontology = NULL,
 #' @export
 write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                           add_trees = TRUE, order_by = "qvalue", pval = 0.1, add_plots = TRUE,
-                          height = 15, width = 10, decreasing = FALSE, primary_key = 1,
+                          height = 15, width = 10, decreasing = FALSE, primary_key = 1, new = "ORF",
+                          add_gsea = TRUE, pval_column = "deseq_adjp",
                           ...) {
   arglist <- list(...)
   image_list <- c()
   if (!is.null(arglist[["table_style"]])) {
     table_style <- arglist[["table_style"]]
   }
-  excel_basename <- "."
+  excel_basename <- NULL
   wb <- NULL
   if ("character" %in% class(excel)) {
     ## This this is a filename
@@ -197,12 +202,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     wb <- excel
   }
 
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
-                               border = "Bottom", fontSize = "30")
-  pval_column <- "limma_adjp"
-  if (!is.null(arglist[["pval_column"]])) {
-    pval_column <- arglist[["pval_column"]]
-  }
+  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                               textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
     message("Writing a sheet containing the legend.")
@@ -215,7 +216,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
       c("DE genes in cat", "What genes provided are in this specific category?"),
       c("All genes in cat", "The full set of annotations included in this category."),
       c("Num. de", "The number of genes in column 'F'."),
-      c("Num. in cat", "The number of genes in column 'G'.")
+      c("Num. in cat", "The number of genes in column 'G'."),
+      c("Look right", " for more plots!")
     ))
     colnames(legend) <- c("column name", "column definition")
     xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
@@ -235,22 +237,23 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   ## Pull out the relevant portions of the cp data
   ## For this I am using the same (arbitrary) rules as in gather_ontology_genes()
-  skip_mf <- 0
+  skip_mf <- FALSE
   cp_mf <- cp_result[["enrich_go"]][["MF_sig"]]
   if (nrow(cp_mf) > 0) {
-    cp_mf <- cp_mf[cp_mf[["pvalue"]] <= pval, ]
+    pval_idx <- cp_mf[["pvalue"]] <= pval
+    cp_mf <- cp_mf[pval_idx, ]
     cp_mf_genes <- gather_cp_genes(cp_result[["enrich_go"]][["MF_sig"]],
-                                   cp_result[["all_mappings"]],
+                                   cp_result[["all_mappings"]], new = new,
                                    primary_key = primary_key)
     cp_mf[["named_genes"]] <- cp_mf_genes
     mf_idx <- order(cp_mf[[order_by]], decreasing = decreasing)
     cp_mf <- cp_mf[mf_idx, ]
     cp_mf[["Ontology"]] <- "MF"
   } else {
-    skip_mf <- 1
+    skip_mf <- TRUE
   }
 
-  skip_bp <- 0
+  skip_bp <- FALSE
   cp_bp <- cp_result[["enrich_go"]][["BP_sig"]]
   if (nrow(cp_bp) > 0) {
     cp_bp <- cp_bp[cp_bp[["pvalue"]] <= pval, ]
@@ -262,10 +265,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_bp <- cp_bp[bp_idx, ]
     cp_bp[["Ontology"]] <- "BP"
   } else {
-    skip_bp <- 1
+    skip_bp <- TRUE
   }
 
-  skip_cc <- 1
+  skip_cc <- FALSE
   cp_cc <- cp_result[["enrich_go"]][["CC_sig"]]
   if (nrow(cp_cc) > 0) {
     cp_cc <- cp_cc[cp_cc[["pvalue"]] <= pval, ]
@@ -277,14 +280,14 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_cc <- cp_cc[cc_idx, ]
     cp_cc[["Ontology"]] <- "CC"
   } else {
-    skip_cc <- 1
+    skip_cc <- TRUE
   }
 
   kept_columns <- c("ID", "Ontology", "Description", "GeneRatio", "BgRatio", "pvalue",
                     "p.adjust", "qvalue", "Count", "geneID", "named_genes")
   new_columns <- c("ID", "Ontology", "Description", "Ratio", "BgRatio", "P value",
                    "Adjusted P", "Q value", "Count", "gene ID", "Named ID")
-  if (!skip_mf) {
+  if (isFALSE(skip_mf)) {
     cp_mf <- cp_mf[, kept_columns]
     colnames(cp_mf) <- new_columns
   }
@@ -330,6 +333,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                           title = "BP REsults from cp.", start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+
       a_plot <- cp_result[["plots"]][["ego_sig_bp"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
                                   start_col = ncol(cp_bp) + 2, start_row = new_row,
@@ -337,16 +341,17 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
       if (! "try-error" %in% class(plot_try)) {
         image_list <- c(image_list, plot_try[["filename"]])
       }
-      b_plot <- cp_result[["plots"]][["tree_sig_bp"]]
-      if (!is.null(b_plot)) {
-        plot_try <- xlsx_insert_png(b_plot, wb = wb, sheet = sheet, width = 12, height = 12,
-                                    start_col = ncol(cp_bp) + 2, start_row = 80, res = 210,
-                                    plotname = "bp_trees", savedir = excel_basename)
-        if (! "try-error" %in% class(plot_try)) {
-          image_list <- c(image_list, plot_try[["filename"]])
-        }
+
+      upset <- enrichplot::upsetplot(cp_result[["enrich_objects"]][["BP_all"]])
+      plot_try <- xlsx_insert_png(
+        upset, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = ncol(cp_bp) + 12, start_row = 80,
+        plotname = "BP_upset", savedir = excel_basename)
+      if (! "try-error" %in% class(plot_try)) {
+        image_list <- c(image_list, plot_try[["filename"]])
       }
     }
+
     new_row <- new_row + nrow(cp_bp) + 2
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
@@ -908,26 +913,30 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
 
       ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
       if (isTRUE(add_plots)) {
+        new_plot_col <- ncol(bp_data) + 2
+        new_plot_row <- 70  ## In case I make a second row of plots.
         a_plot <- gprofiler_result[["pvalue_plots"]][["BP"]]
         plot_try <- xlsx_insert_png(
           a_plot, wb = wb, sheet = sheet, width = width, height = height,
-          start_col = ncol(bp_data) + 2, start_row = new_row,
+          start_col = new_plot_col, start_row = new_row,
           plotname = "bp_plot", savedir = excel_basename, doWeights = FALSE)
         if (! "try-error" %in% class(plot_try)) {
           image_files <- c(image_files, plot_try[["filename"]])
+          new_plot_col <- new_plot_col + 14
         }
         upset <- enrichplot::upsetplot(gprofiler_result[["GO_enrich"]])
         plot_try <- xlsx_insert_png(
           upset, wb = wb, sheet = sheet, width = 12, height = 12,
-          start_col = ncol(bp_data) + 10, start_row = new_row,
+          start_col = new_plot_col, start_row = new_row,
           plotname = "go_upset", savedir = excel_basename)
         if (! "try-error" %in% class(plot_try)) {
           image_files <- c(image_files, plot_try[["filename"]])
+          new_plot_col <- new_plot_col + 16
         }
         dotplot <- enrichplot::dotplot(gprofiler_result[["GO_enrich"]])
         plot_try <- xlsx_insert_png(
-          upset, wb = wb, sheet = sheet, width = 12, height = 12,
-          start_col = ncol(bp_data) + 16, start_row = new_row,
+          dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+          start_col = new_plot_col, start_row = new_row,
           plotname = "go_dot", savedir = excel_basename)
         if (! "try-error" %in% class(plot_try)) {
           image_files <- c(image_files, plot_try[["filename"]])
@@ -943,14 +952,17 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
       dfwrite <- write_xlsx(data = mf_data, wb = wb, sheet = sheet,
                             title = glue("MF Results from {sheet}."), start_row = new_row)
       ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
+      new_plot_col <- ncol(mf_data) + 2
+      new_plot_row <- 70
       if (isTRUE(add_plots)) {
         a_plot <- gprofiler_result[["pvalue_plots"]][["MF"]]
         plot_try <- xlsx_insert_png(
           a_plot, wb = wb, sheet = sheet, width = width, height = height,
-          start_col = ncol(mf_data) + 2, start_row = new_row,
+          start_col = new_plot_col, start_row = new_row,
           plotname = "mf_plot", savedir = excel_basename, doWeights = FALSE)
         if (! "try-error" %in% class(plot_try)) {
           image_files <- c(image_files, plot_try[["filename"]])
+          new_plot_col <- new_plot_col + 14
         }
       }
       openxlsx::setColWidths(wb, sheet = sheet, cols = 2:7, widths = "auto")
@@ -997,30 +1009,36 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           title = glue("Results from {sheet}."),
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
+
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(kegg_data)
+      new_plot_row <- 70
       a_plot <- gprofiler_result[["pvalue_plots"]][["KEGG"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(kegg_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "kegg_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["KEGG_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 12, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "kegg_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["KEGG_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 16, start_row = new_row,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "kegg_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       new_row <- new_row + nrow(kegg_data) + 2
     }
@@ -1046,26 +1064,29 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(tf_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["TF"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(tf_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "tf_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["TF_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 12, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "tf_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["TF_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 16, start_row = new_row,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "tf_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
@@ -1094,26 +1115,29 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(react_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["REAC"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(react_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "react_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["REAC_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 12, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "react_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["REAC_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 16, start_row = new_row,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "react_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
@@ -1142,25 +1166,28 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(mi_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["MIRNA"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(mi_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "mi_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["MIRNA_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 20,
+        start_col = new_plot_col, start_row = new_row + 20,
         plotname = "mirna_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["MIRNA_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 40,
         plotname = "mirna_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
@@ -1190,26 +1217,29 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(hp_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["HP"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(hp_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "hp_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["HP_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 20,
+        start_col = new_plot_col, start_row = new_row + 20,
         plotname = "hp_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["HP_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 40,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row + 40,
         plotname = "HP_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
@@ -1238,13 +1268,15 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(hpa_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["HPA"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(hp_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "hpa_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["HPA_enrich"]])
       plot_try <- xlsx_insert_png(
@@ -1253,11 +1285,12 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         plotname = "hpa_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["HPA_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 40,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row + 40,
         plotname = "hpa_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
@@ -1286,13 +1319,15 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(corum_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["CORUM"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(corum_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "corum_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["CORUM_enrich"]])
       plot_try <- xlsx_insert_png(
@@ -1301,11 +1336,12 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         plotname = "corum_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["CORUM_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 40,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = new_plot_col, start_row = new_row + 40,
         plotname = "corum_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
@@ -1314,9 +1350,6 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
     new_row <- new_row + nrow(corum_data) + 2
     openxlsx::setColWidths(wb, sheet = sheet, cols = 2:7, widths = "auto")
   } ## End checking corum data
-
-
-
 
   do_wp <- TRUE
   if (is.null(gprofiler_result[["WP"]])) {
@@ -1337,25 +1370,28 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
+      new_plot_col <- ncol(wp_data) + 2
       a_plot <- gprofiler_result[["pvalue_plots"]][["WP"]]
       plot_try <- xlsx_insert_png(
         a_plot, wb = wb, sheet = sheet, width = width, height = height,
-        start_col = ncol(corum_data) + 2, start_row = new_row,
+        start_col = new_plot_col, start_row = new_row,
         plotname = "wp_plot", savedir = excel_basename, doWeights = FALSE)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 14
       }
       upset <- enrichplot::upsetplot(gprofiler_result[["WP_enrich"]])
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(bp_data) + 2, start_row = new_row + 20,
+        start_col = new_plot_col, start_row = new_row + 20,
         plotname = "wp_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])
+        new_plot_col <- new_plot_col + 16
       }
       dotplot <- enrichplot::dotplot(gprofiler_result[["WP_enrich"]])
       plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
+        dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 40,
         plotname = "wp_dot", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {

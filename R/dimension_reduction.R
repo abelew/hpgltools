@@ -120,6 +120,80 @@ get_res <- function(svd_result, design, factors = c("condition", "batch"),
   return(res_df)
 }
 
+#' A sister function to sv_fstatistics()
+#'
+#' TODO: Use this to yank a bunch of code out of pca_information and simplify.
+#'
+#' Calculate f-statistics between metadata factors and principal components.
+#'
+#' Random note to self: principle or principal?  I can _NEVER_
+#' remember; also I am just pasting my docstring from the
+#' sv_fstatistics for the moment.  I think the key observation: this
+#' might actually be Hector's idea to both Theresa and I in different
+#' contexts.
+#'
+#' This is taken directly from Theresa's TMRC work and is her idea.  I
+#' mainly want to be able to use it on a few datasets without risking
+#' typeographical or logical errors.  In addition, I would like to be
+#' able to play with things like the number of surrogates and/or other
+#' methods of estimating them.  In addition, I have some f-statistics
+#' of PCs vs metadata in the function 'pca_information().' which I
+#' think is likely complementary to her work (which makes sense,
+#' Hector was her professor before she joined us, and Hector suggested
+#' the PC idea to me).
+#'
+#' @param expt Input expressionset, redo everything to use SE, stupid.
+#' @param queries List of metadata factors to query.
+#' @param ... Parameters to plot_pca.
+#' @export
+pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
+                           queries = c("typeofcells", "visitnumber", "donor"),
+                           ...) {
+  if (is.null(pc_df)) {
+    mesg("No pc_df provided, running plot_pca.")
+    input <- plot_pca(expt,
+                      ...)
+    pc_df <- input[["table"]]
+  }
+  if (ncol(pc_df) < num_pcs) {
+    num_pcs <- ncol(pc_df)
+  }
+  meta <- pData(expt)
+  if (is.null(queries)) {
+    queries <- guess_factors(meta, ratio = 3)
+  }
+  pc_meta <- merge(meta, pc_df, by = "row.names")
+  rownames(pc_meta) <- pc_meta[["Row.names"]]
+  pc_meta[["Row.names"]] <- NULL
+  retlist <- list(
+    "pc_meta"= pc_meta)
+
+  pc_vector <- seq_len(num_pcs)
+  fvalues_by_fact <- data.frame(row.names = paste0("PC", pc_vector))
+  pvalues_by_fact <- data.frame(row.names = paste0("PC", pc_vector))
+  for (fact in queries) {
+    fvals <- c()
+    pvals <- c()
+    message("PC vector: ", pc_vector)
+    for (pc in pc_vector) {
+      pc_name <- paste0("pc_", pc)
+      pc_lm <- lm(as.numeric(pc_meta[[pc_name]]) ~ as.factor(pc_meta[[fact]]))
+      pc_anova <- anova(pc_lm)
+      pc_f <- pc_anova[["F value"]][1]
+      pc_p <- pc_anova[["Pr(>F)"]][1]
+      fvals[pc] <- pc_f
+      pvals[pc] <- pc_p
+    }
+    fvalues_by_fact[[fact]] <- fvals
+    pvalues_by_fact[[fact]] <- pvals
+  }
+
+  retlist[["fvalues"]] <- fvalues_by_fact
+  retlist[["pvalues"]] <- pvalues_by_fact
+  return(retlist)
+}
+
+
 #' Gather information about principle components.
 #'
 #' Calculate some information useful for generating PCA plots.
@@ -242,8 +316,8 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
 
   ## Now start filling in data which may be used for correlations/fstats/etc.
   factor_df <- data.frame(
-    "sampleid" = tolower(rownames(expt_design)))
-  rownames(factor_df) <- tolower(rownames(expt_design))
+    "sampleid" = rownames(expt_design))
+  rownames(factor_df) <- rownames(expt_design)
   for (fact in expt_factors) {
     if (!is.null(expt_design[[fact]])) {
       factor_df[[fact]] <- as.numeric(as.factor(as.character(expt_design[, fact])))
@@ -288,7 +362,7 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
       ## 3.  The Fstat is then defined as (sum(residuals(fit1)^2) / sum(residuals(fit2)^2))
       ## 4.  The resulting p-value is 1 - pf(Fstat, (n-(#levels in the factor)), (n-1))
       ##     n is the number of samples in the fit
-      ## 5.  Look at anova.test() to see if this provides similar/identical information
+      ## 5.  Look at anova.test(), this provides similar/identical information
       another_fstat <- try(stats::anova(lmwithfactor_test, lmwithoutfactor_test), silent = TRUE)
       if (class(another_fstat)[1] == "try-error") {
         anova_sums[fact, pc] <- 0
@@ -313,9 +387,8 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
       warning = function(cond) {
         message("The standard deviation was 0 for ", fact, " and ", pc_name, ".")
       },
-      finally={
-      }
-      ) ## End of the tryCatch
+      finally = {
+      }) ## End of the tryCatch
       if (class(cor_test) == "try-error" || is.null(cor_test)) {
         cor_df[fact, pc] <- 0
       } else {
@@ -648,10 +721,9 @@ plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
   ## Check that the given design works with the data
   ## Prune the design if necessary
   ## Also take into account the fact that sometimes I change the case of hpgl<->HPGL
-  given_samples <- tolower(colnames(mtrx))
+  given_samples <- colnames(mtrx)
   colnames(mtrx) <- given_samples
-  ## I hate uppercase characters, I ADMIT IT.
-  avail_samples <- tolower(rownames(design))
+  avail_samples <- rownames(design)
   rownames(design) <- avail_samples
   if (sum(given_samples %in% avail_samples) == length(given_samples)) {
     design <- design[given_samples, ]
@@ -1160,10 +1232,10 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   ## Check that the given design works with the data
   ## Prune the design if necessary
   ## Also take into account the fact that sometimes I change the case of hpgl<->HPGL
-  given_samples <- tolower(colnames(mtrx))
+  given_samples <- colnames(mtrx)
   colnames(mtrx) <- given_samples
   ## I hate uppercase characters, I ADMIT IT.
-  avail_samples <- tolower(rownames(design))
+  avail_samples <- rownames(design)
   rownames(design) <- avail_samples
   if (sum(given_samples %in% avail_samples) == length(given_samples)) {
     design <- design[given_samples, ]
