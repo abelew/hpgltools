@@ -1549,4 +1549,162 @@ Rerun ISVA with cf.m = NULL option")
   ##              pvCF = pv.m, selisv = selisv.idx))
 }
 
+plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0.75) {
+  sv_column <- paste0("SV", sv)
+  sv_meta <- ggplot(sv_meta,
+                    aes(y = !!sym(sv_column), x = !!sym(meta_column),
+                        fill = !!sym(meta_column))) +
+    ggplot2::geom_violin() +
+    ggplot2::geom_point(alpha = alpha) +
+    theme(legend.position = "none")
+  return(sv_meta)
+}
+
+#' Calculate f-statistics between metadata factors and surrogate estimates.
+#'
+#' This is taken directly from Theresa's TMRC work and is her idea.  I
+#' mainly want to be able to use it on a few datasets without risking
+#' typeographical or logical errors.  In addition, I would like to be
+#' able to play with things like the number of surrogates and/or other
+#' methods of estimating them.  In addition, I have some f-statistics
+#' of PCs vs metadata in the function 'pca_information().' which I
+#' think is likely complementary to her work (which makes sense,
+#' Hector was her professor before she joined us, and Hector suggested
+#' the PC idea to me).
+#'
+#' @param expt Input expressionset, redo everything to use SE, stupid.
+#' @param num_surrogates Specificy the number of surrogates or let it choose.
+#' @param filter Pre-filter the data?
+#' @param norm Pre-normalize?
+#' @param convert Pre-convert?
+#' @param transform Pre-transform?
+#' @param batch Use this method
+#' @param sv_df Or provide your own set of SVs
+#' @param queries List of metadata factors to query.
+#' @param ... Used to make compatible with pc_fstatistics and to pass stuff to normalize_expt().
+#' @export
+sv_fstatistics <- function(expt, num_surrogates = NULL, filter = TRUE, norm = "raw",
+                           convert = "cpm", transform = "log2", batch = "svaseq",
+                           sv_df = NULL, queries = c("typeofcells", "visitnumber", "donor"),
+                           ...) {
+  svs_expt <- normalize_expt(expt, filter = filter, norm = norm, convert = convert,
+                             transform = transform, batch = batch,
+                             ...)
+  if (is.null(sv_df)) {
+    sv_df <- svs_expt[["sv_df"]]
+  }
+  pre_exprs <- exprs(expt)
+  meta <- pData(expt)
+  sv_meta <- merge(meta, sv_df, by = "row.names")
+  rownames(sv_meta) <- sv_meta[["Row.names"]]
+  sv_meta[["Row.names"]] <- NULL
+  retlist <- list(
+    "sv_expt" = svs_expt,
+    "sv_meta"= sv_meta)
+
+  sv_vector <- seq_len(ncol(sv_df))
+  fvalues_by_fact <- data.frame(row.names = paste0("SV", sv_vector))
+  pvalues_by_fact <- data.frame(row.names = paste0("SV", sv_vector))
+  for (fact in queries) {
+    fvals <- c()
+    pvals <- c()
+    for (sv in sv_vector) {
+      sv_name <- paste0("SV", sv)
+      sv_lm <- lm(as.numeric(sv_meta[[sv_name]]) ~ as.factor(sv_meta[[fact]]))
+      sv_anova <- anova(sv_lm)
+      sv_f <- sv_anova[["F value"]][1]
+      sv_p <- sv_anova[["Pr(>F)"]][1]
+      fvals[sv] <- sv_f
+      pvals[sv] <- sv_p
+    }
+    fvalues_by_fact[[fact]] <- fvals
+    pvalues_by_fact[[fact]] <- pvals
+  }
+
+  retlist[["fvalues"]] <- fvalues_by_fact
+  retlist[["pvalues"]] <- pvalues_by_fact
+  return(retlist)
+}
+
+#' Get the f-stats before/after messing with sva.
+#'
+#' @param expt input
+#' @param ... Args passed to everything else.
+#' @export
+svpc_fstats <- function(expt, ...) {
+  if (expt[["state"]][["transform"]] == "raw") {
+    message("The input appears raw, performing default normalization.")
+    pre_norm <- normalize_expt(expt, transform = "log2", convert = "cpm",
+                               norm = "quant", filter = TRUE)
+  } else {
+    pre_norm <- expt
+  }
+  pre_pcf <- pc_fstatistics(pre_norm, ...)
+  svf <- sv_fstatistics(expt, ...)
+  post_pcf <- pc_fstatistics(svf[["sv_expt"]], ...)
+  retlist <- list(
+    "pre_f" = pre_pcf[["fvalues"]],
+    "pre_p" = pre_pcf[["pvalues"]],
+    "sv_f" = svf[["fvalues"]],
+    "sv_p" = svf[["pvalues"]],
+    "post_f" = post_pcf[["fvalues"]],
+    "post_p" = post_pcf[["pvalues"]])
+  class(retlist) <- "svpc_fstats"
+  return(retlist)
+}
+
+#' Write an xlsx file of SV/PC f-statistics
+#'
+#' @param input Result from svpc_fstats()
+#' @param excel Output excel file.
+#' @export
+write_svpc_fstats <- function(input, excel = "excel/svpc_fstats.xlsx") {
+  xlsx <- init_xlsx(excel)
+  wb <- xlsx[["wb"]]
+  excel_basename <- xlsx[["basename"]]
+  do_excel <- TRUE
+  if (is.null(wb)) {
+    do_excel <- FALSE
+  }
+
+  pref <- input[["pre_f"]]
+  svf <- input[["sv_f"]]
+  postf <- input[["post_f"]]
+  ## Changing the rownames due to rbind rownames shenanigans.
+  rownames(pref) <- paste0("PrePC", seq_len(nrow(pref)))
+  rownames(postf) <- paste0("PostPC", seq_len(nrow(postf)))
+  allf <- rbind(pref, svf, postf)
+
+  prep <- input[["pre_p"]]
+  svp <- input[["sv_p"]]
+  postp <- input[["post_p"]]
+  rownames(prep) <- paste0("PrePC", seq_len(nrow(prep)))
+  rownames(postp) <- paste0("PostPC", seq_len(nrow(postp)))
+  allp <- rbind(prep, svp, postp)
+
+  fun_plot <- heatmap.3(as.matrix(allp), dendrogram = "none",
+                        scale = "none", trace = "none",
+                        Colv = FALSE, Rowv = FALSE)
+  image <- grDevices::recordPlot()
+
+  xlsx_result <- write_xlsx(data = allf, sheet = "Fvalues",
+                            title = "SVA and PC analysis, F-values")
+  xlsx_result <- write_xlsx(data = allp, sheet = "Pvalues",
+                            title = "SVA and PC analysis, P-values")
+  try_result <- xlsx_insert_png(
+    a_plot = image, wb = wb, sheet = "Pvalues", start_col = ncol(allp) + 2)
+  image_files = c()
+  if (! "try-error" %in% class(try_result)) {
+    image_files = try_result[["filename"]]
+  }
+
+  excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  removed <- try(suppressWarnings(file.remove(image_files)), silent = TRUE)
+  retlist <- list(
+    "allf" = allf,
+    "allp" = allp)
+  class(retlist) <- "written_fpstats"
+  return(retlist)
+}
+
 ## EOF

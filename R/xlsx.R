@@ -594,7 +594,8 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
     "filename" = png_name,
     "png_fh" = png_ret,
     "png_print" = print_ret,
-    "openxlsx" = insert_ret)
+    "openxlsx" = insert_ret,
+    "workbook" = wb)
   if (isTRUE(fancy)) {
     ret[["fancy_print"]] <- fancy_ret
   }

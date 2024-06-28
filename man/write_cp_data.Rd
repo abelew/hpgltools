@@ -15,6 +15,9 @@ write_cp_data(
   width = 10,
   decreasing = FALSE,
   primary_key = 1,
+  new = "ORF",
+  add_gsea = TRUE,
+  pval_column = "deseq_adjp",
   ...
 )
 }
