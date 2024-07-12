@@ -278,7 +278,7 @@ including batch factors from sva/ruv/etc.  By default it will attempt to include
 experimental design named 'batch'.
 
 ```{r de_test}
-spyogenes_de <- sm(all_pairwise(expt))
+spyogenes_de <- all_pairwise(expt, parallel = FALSE)
 ## Even the lowest correlations are quite high.
 ```
 

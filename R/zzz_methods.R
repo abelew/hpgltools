@@ -158,6 +158,56 @@ setMethod(
     return(expt)
   })
 
+#' Choose experimental models given various inputs, dataframes, vectors, etc.
+#'
+#' @param input dataframe/matrix/expt/etc from which an experimental design may be extracted.
+#' @param conditions optional vector of conditions
+#' @param batches optional vector of batches
+#' @param model_cond Add condition to the model?
+#' @param model_batch Add batch to the model?
+#' @param alt_model Use an arbitrary model, if so provide the string describing it?
+#' @param null_model String describing a null model
+#' @param intercept Choose an intercept for the model as opposed to 0.
+#' @param contr Set the contrasts.arg manually.
+#' @param keep_underscores Keep underscores in factor names?
+setMethod(
+  "choose_model", signature = signature(input = "expt"),
+  definition = function(input, conditions, batches, model_batch, model_cond, model_intercept,
+                        alt_model, null_model, intercept, contr, surrogates, keep_underscore) {
+    choose_model(input, conditions, batches, model_batch, model_cond, model_intercept,
+                 alt_model, null_model, intercept, contr, surrogates, keep_underscore)
+  })
+
+setMethod(
+  "choose_model", signature = signature(conditions = "character", batches = "character"),
+  definition = function(input, conditions, batches, model_batch, model_cond, model_intercept,
+                        alt_model, null_model, intercept, contr, surrogates, keep_underscore, ...) {
+    design <- data.frame("condition" = conditions,
+                         "batch" = batches,
+                         stringsAsFactors = TRUE)
+    choose_model(design, conditions, batches, model_batch, model_cond, model_intercept,
+                 alt_model, null_model, intercept, contr, surrogates, keep_underscore, ...)
+  })
+
+setMethod(
+  "choose_model", signature = signature(conditions = "factor", batches = "factor"),
+  definition = function(input, conditions, batches, model_batch, model_cond, model_intercept,
+                        alt_model, null_model, intercept, contr, surrogates, keep_underscore, ...) {
+    design <- data.frame("condition" = conditions,
+                         "batch" = batches,
+                         stringsAsFactors = TRUE)
+    choose_model(design, conditions, batches, model_batch, model_cond, model_intercept,
+                 alt_model, null_model, intercept, contr, surrogates, keep_underscore)
+  })
+
+setMethod(
+  "choose_model", signature = signature(alt_model = "character"),
+  definition = function(input, conditions, batches, model_batch, model_cond, model_intercept,
+                        alt_model, null_model, intercept, contr, surrogates, keep_underscore, ...) {
+    choose_alt_model(input, alt_model, model_intercept, null_model, intercept, contr,
+                     surrogates, keep_underscore, ...)
+  })
+
 #' A getter to pull the sample data from an expt.
 #'
 #' @param x One of my various expressionset analogs, expt,
@@ -273,6 +323,25 @@ setMethod(
   definition = function(genome, pattern = "ATG", mismatch = 0) {
     new_genome <- Rsamtools::FaFile(genome)
     count_nmer(new_genome, pattern = pattern, mismatch = mismatch)
+  })
+
+#' Extract factors in a formula from the fstring.
+#'
+#' @param formula_string You guessed it!
+#' @export
+setMethod(
+  "get_formula_factors", signature = signature(formula_string = "formula"),
+  definition = function(formula_string) {
+    new_string <- as.character(formula_string)[2]
+    get_formula_factors(new_string)
+  })
+
+setMethod(
+  "get_formula_factors", signature = signature(formula_string = "NULL"),
+  definition = function(formula_string) {
+    new_string <- "~ 0 + condition + batch"
+    warning("No formula string was provided to get_formula_factors, this is an error.")
+    get_formula_factors(new_string)
   })
 
 #' A getter to pull the expression data from an expt.

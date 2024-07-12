@@ -182,14 +182,10 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   lrt_list <- list()
   sc <- vector("list", length(apc[["names"]]))
   end <- length(apc[["names"]])
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
     if (isTRUE(verbose)) {
       pct_done <- con / length(apc[["names"]])
-      utils::setTxtProgressBar(bar, pct_done)
     }
     sc[[name]] <- gsub(pattern = ",", replacement = "", apc[["all_pairwise"]][[con]])
     tt <- parse(text = sc[[name]])
@@ -218,9 +214,6 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     res[["FDR"]] <- signif(x = as.numeric(res[["FDR"]]), digits = 4)
     result_list[[name]] <- res
   } ## End for loop
-  if (isTRUE(verbose)) {
-    close(bar)
-  }
 
   dispersions <- sm(try(edgeR::plotBCV(y = final_norm), silent = TRUE))
   dispersion_plot <- NULL

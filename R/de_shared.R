@@ -12,50 +12,54 @@
 #' basic_pairwise() each in turn. It collects the results and does some simple
 #' comparisons among them.
 #'
-#' @param input Dataframe/vector or expt class containing count tables,
-#'  normalization state, etc.
+#' @param input Dataframe/vector or expt class containing count
+#'   tables, normalization state, etc.
 #' @param conditions Factor of conditions in the experiment.
 #' @param batches Factor of batches in the experiment.
-#' @param model_cond Include condition in the model?  This is likely always true.
-#' @param modify_p Depending on how it is used, sva may require a modification
-#'  of the p-values.
-#' @param model_batch Include batch in the model?  This may be true/false/"sva"
-#'  or other methods supported by all_adjusters().
-#' @param filter Added because I am tired of needing to filter the data before
-#'  invoking all_pairwise().
-#' @param model_intercept Use an intercept model instead of cell means?
+#' @param model_cond Include condition in the model?  This is likely
+#'   always true.
+#' @param modify_p Depending on how it is used, sva may require a
+#'   modification of the p-values.
+#' @param model_batch Include batch in the model?  This may be
+#'   true/false/"sva" or other methods supported by all_adjusters().
+#' @param filter Added because I am tired of needing to filter the
+#'   data before invoking all_pairwise().
+#' @param model_intercept Use an intercept model instead of cell
+#'   means?
 #' @param extra_contrasts Optional extra contrasts beyone the pairwise
-#'  comparisons.  This can be pretty neat, lets say one has conditions
-#'  A,B,C,D,E and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
-#'  with a string like:
+#'   comparisons.  This can be pretty neat, lets say one has
+#'   conditions A,B,C,D,E and wants to do (C/B)/A and (E/D)/A or
+#'   (E/D)/(C/B) then use this with a string like:
 #'   "c_vs_b_ctrla = (C-B)-A, e_vs_d_ctrla = (E-D)-A, de_vs_cb = (E-D)-(C-B)".
-#' @param alt_model Alternate model to use rather than just condition/batch.
+#' @param alt_model Alternate model to use rather than just
+#'   condition/batch.
 #' @param libsize Library size of the original data to help voom().
-#' @param test_pca Perform some tests of the data before/after applying a given
-#'  batch effect.
+#' @param test_pca Perform some tests of the data before/after
+#'   applying a given batch effect.
 #' @param annot_df Annotations to add to the result tables.
-#' @param parallel Use dopar to run limma, deseq, edger, and basic simultaneously.
+#' @param parallel Use dopar to run limma, deseq, edger, and basic
+#'   simultaneously.
 #' @param do_basic Perform a basic analysis?
 #' @param do_deseq Perform DESeq2 pairwise?
-#' @param do_ebseq Perform EBSeq (caveat, this is NULL as opposed to TRUE/FALSE
-#'  so it can choose).
+#' @param do_ebseq Perform EBSeq (caveat, this is NULL as opposed to
+#'   TRUE/FALSE so it can choose).
 #' @param do_edger Perform EdgeR?
 #' @param do_limma Perform limma?
 #' @param do_noiseq Perform noiseq?
 #' @param do_dream Perform dream?
-#' @param keepers Limit the pairwise search to a set of specific contrasts.
+#' @param keepers Limit the pairwise search to a set of specific
+#'   contrasts.
 #' @param convert Modify the data with a 'conversion' method for PCA?
 #' @param norm Modify the data with a 'normalization' method for PCA?
 #' @param verbose Print extra information while running?
-#' @param surrogates Either a number of surrogates or method to estimate it.
+#' @param surrogates Either a number of surrogates or method to
+#'   estimate it.
 #' @param ...  Picks up extra arguments into arglist.
 #' @return A list of limma, deseq, edger results.
-#' @seealso [limma_pairwise()] [edger_pairwise()] [deseq_pairwise()] [ebseq_pairwise()]
-#'  [basic_pairwise()]
-#' @examples
-#' \dontrun{
-#'  lotsodata <- all_pairwise(input = expt, model_batch = "svaseq")
-#'  summary(lotsodata)
+#' @seealso [limma_pairwise()] [edger_pairwise()] [deseq_pairwise()]
+#'   [ebseq_pairwise()] [basic_pairwise()]
+#' @examples \dontrun{ lotsodata <- all_pairwise(input = expt,
+#'   model_batch = "svaseq") summary(lotsodata)
 #'  ## limma, edger, deseq, basic results; plots; and summaries.
 #' }
 #' @export
@@ -67,9 +71,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          annot_df = NULL, parallel = TRUE,
                          do_basic = TRUE, do_deseq = TRUE, do_ebseq = NULL,
                          do_edger = TRUE, do_limma = TRUE, do_noiseq = TRUE,
-                         do_dream = FALSE, keepers = NULL,
+                         do_dream = FALSE, keepers = NULL, estimate_type = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
-                         surrogates = "be", ...) {
+                         surrogates = "be", null_model = NULL, ...) {
   arglist <- list(...)
   if (is.null(model_cond)) {
     model_cond <- TRUE
@@ -89,41 +93,53 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     do_ebseq <- FALSE
   }
 
+  if (is.null(keepers)) {
+    mesg("This DE analysis will perform all pairwise comparisons among:")
+  } else {
+    mesg("This DE analysis will perform the subset of comparisons provided.")
+  }
+
+  full_fstring <- "~"
   if (isTRUE(model_cond)) {
-    if (is.null(keepers)) {
-      mesg("This DE analysis will perform all pairwise comparisons among:")
-    } else {
-      mesg("This DE analysis will perform the subset of comparisons provided.")
-    }
     print(table(pData(input)[["condition"]]))
+    if (isFALSE(model_intercept)) {
+      ## Use a cell means model.
+      full_fstring <- glue("{full_fstring} 0 +")
+    }
+    full_fstring <- glue("{full_fstring} condition +")
     if (isTRUE(model_batch)) {
       mesg("This analysis will include a batch factor in the model comprised of:")
       print(table(pData(input)[["batch"]]))
-    } else if ("character" %in% class(model_batch)) {
-      mesg("This analysis will include surrogate estimates from: ", model_batch, ".")
-    } else if ("matrix" %in% class(model_batch)) {
-      mesg("This analysis will include a matrix of surrogate estimates.")
+      full_fstring <- glue("{full_fstring} batch +")
     }
-    if (!is.null(filter)) {
-      mesg("This will pre-filter the input data using normalize_expt's: ",
-           filter, " argument.")
-    }
-  } else {
-    mesg("This analysis is not using the condition factor from the data.")
   }
 
   if (!is.null(filter)) {
+    mesg("This will pre-filter the input data using normalize_expt's: ",
+         filter, " argument.")
     input <- sm(normalize_expt(input, filter = filter))
   }
+
   null_model <- NULL
   sv_model <- NULL
   model_type <- model_batch
-  if (class(model_batch)[1] == "character") {
-    model_params <- all_adjusters(input, estimate_type = model_batch,
-                                  surrogates = surrogates)
+
+  if (!is.null(alt_model)) {
+    full_fstring <- alt_model
+  }
+  full_fstring <- gsub(x = full_fstring, pattern = "\\s+\\+$", replacement = "")
+
+  if (!is.null(estimate_type) && "character" %in% class(estimate_type)) {
+    mesg("This analysis will include surrogate estimates from: ", estimate_type, ".")
+    model_params <- all_adjusters(input, estimate_type = estimate_type,
+                                  surrogates = surrogates,
+                                  full_model = full_fstring,
+                                  null_model = null_model)
     model_batch <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     sv_model <- model_batch
+  } else if ("matrix" %in% class(surrogates)) {
+    mesg("This analysis will include a matrix of surrogate estimates.")
   }
 
   ## Add a little logic to do a before/after batch PCA plot.
@@ -833,316 +849,6 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ver
   return(retlist)
 }
 
-#' Try out a few experimental models and return a likely working option.
-#'
-#' The _pairwise family of functions all demand an experimental model.  This
-#' tries to choose a consistent and useful model for all for them.  This does
-#' not try to do multi-factor, interacting, nor dependent variable models, if
-#' you want those do them yourself and pass them off as alt_model.
-#'
-#' Invoked by the _pairwise() functions.
-#'
-#' @param input Input data used to make the model.
-#' @param conditions Factor of conditions in the putative model.
-#' @param batches Factor of batches in the putative model.
-#' @param model_batch Try to include batch in the model?
-#' @param model_cond Try to include condition in the model? (Yes!)
-#' @param model_intercept Use an intercept model instead of cell-means?
-#' @param alt_model Use your own model.
-#' @param alt_string String describing an alternate model.
-#' @param intercept Choose an intercept for the model as opposed to 0.
-#' @param reverse Reverse condition/batch in the model?  This shouldn't/doesn't
-#'  matter but I wanted to test.
-#' @param contr List of contrasts.arg possibilities.
-#' @param surrogates Number of or method used to choose the number of surrogate
-#'  variables.
-#' @param verbose Print some information about what is happening?
-#' @param ... Further options are passed to arglist.
-#' @return List including a model matrix and strings describing cell-means and
-#'  intercept models.
-#' @seealso [stats::model.matrix()]
-#' @examples
-#' \dontrun{
-#'  a_model <- choose_model(expt, model_batch = TRUE, model_intercept = FALSE)
-#'  a_model$chosen_model
-#'  ## ~ 0 + condition + batch
-#' }
-#' @export
-choose_model <- function(input, conditions = NULL, batches = NULL, model_batch = TRUE,
-                         model_cond = TRUE, model_intercept = FALSE,
-                         alt_model = NULL, alt_string = NULL,
-                         intercept = 0, reverse = FALSE, contr = NULL,
-                         surrogates = "be", verbose = TRUE, keep_underscore = FALSE, ...) {
-  arglist <- list(...)
-  design <- NULL
-  if (class(input)[1] != "matrix" && class(input)[1] != "data.frame") {
-    design <- pData(input)
-  }
-  if (is.null(design)) {
-    conditions <- as.factor(conditions)
-    batches <- as.factor(batches)
-    design <- data.frame("condition" = conditions,
-                         "batch" = batches,
-                         stringsAsFactors = TRUE)
-  }
-  ## Make a model matrix which will have one entry for
-  ## each of the condition/batches
-  ## It would be much smarter to generate the models in the following if() {} blocks
-  ## But I have it in my head to eventually compare results using different models.
-
-  ## The previous iteration of this had an explicit contrasts.arg set, like this:
-  ## contrasts.arg = list(condition = "contr.treatment"))
-  ## Which looked like this for a full invocation:
-  ## condbatch_int_model <- try(stats::model.matrix(~ 0 + conditions + batches,
-  ##                                   contrasts.arg = list(condition = "contr.treatment",
-  ##                                                      batch = "contr.treatment")),
-  ## The contrasts.arg has been removed because it seems to result in the same model.
-
-  clist <- list("condition" = "contr.treatment")
-  blist <- list("batch" = "contr.treatment")
-  cblist <- list("condition" = "contr.treatment", "batch" = "contr.treatment")
-  if (!is.null(contr)) {
-    if (!is.null(contr[["condition"]]) && !is.null(contr[["batch"]])) {
-      cblist <- list("condition" = contr[["condition"]], "batch" = contr[["batch"]])
-    } else if (!is.null(contr[["condition"]])) {
-      clist <- list("condition" = contr[["condition"]])
-      cblist[["condition"]] <- contr[["condition"]]
-    } else if (!is.null(contr[["batch"]])) {
-      blist <- list("batch" = contr[["batch"]])
-      cblist[["batch"]] <- contr[["batch"]]
-    }
-  }
-
-  cond_noint_string <- "~ 0 + condition"
-  cond_noint_model <- try(stats::model.matrix(
-    object = as.formula(cond_noint_string),
-    contrasts.arg = clist,
-    data = design), silent = TRUE)
-
-  batch_noint_string <- "~ 0 + batch"
-  batch_noint_model <- try(stats::model.matrix(
-    object = as.formula(batch_noint_string),
-    contrasts.arg = blist,
-    data = design), silent = TRUE)
-
-  condbatch_noint_string <- "~ 0 + condition + batch"
-  condbatch_noint_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_noint_string),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  batchcond_noint_string <- "~ 0 + batch + condition"
-  batchcond_noint_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_noint_string),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  cond_int_string <- "~ condition"
-  cond_int_model <- try(stats::model.matrix(
-    object = as.formula(cond_int_string),
-    contrasts.arg = clist,
-    data = design), silent = TRUE)
-
-  batch_int_string <- "~ batch"
-  batch_int_model <- try(stats::model.matrix(
-    object = as.formula(batch_int_string),
-    contrasts.arg = blist,
-    data = design), silent = TRUE)
-
-  condbatch_int_string <- "~ condition + batch"
-  condbatch_int_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_int_string),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  batchcond_int_string <- "~ batch + condition"
-  batchcond_int_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_int_string),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  noint_model <- NULL
-  int_model <- NULL
-  noint_string <- NULL
-  int_string <- NULL
-  including <- NULL
-  if (!is.null(alt_model)) {
-    chosen_model <- stats::model.matrix(object = as.formula(alt_model),
-                                        data = design)
-    if (!is.null(contr)) {
-      chosen_model <- stats::model.matrix(object = as.formula(alt_model),
-                                          contrasts.arg = contr,
-                                          data = design)
-    }
-    int_model <- chosen_model
-    noint_model <- chosen_model
-    int_string <- alt_model
-    notint_string <- alt_model
-    including <- "alt"
-  } else if (is.null(model_batch)) {
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
-    including <- "condition"
-  } else if (isTRUE(model_cond) && isTRUE(model_batch)) {
-    if (class(condbatch_int_model)[1] == "try-error") {
-      if (isTRUE(verbose)) {
-        message("The condition+batch model failed. ",
-                "Does your experimental design support both condition and batch? ",
-                "Using only a conditional model.")
-      }
-      int_model <- cond_int_model
-      noint_model <- cond_noint_model
-      int_string <- cond_int_string
-      noint_string <- cond_noint_string
-      including <- "condition"
-    } else if (isTRUE(reverse)) {
-      int_model <- batchcond_int_model
-      noint_model <- batchcond_noint_model
-      int_string <- batchcond_int_string
-      noint_string <- batchcond_noint_string
-      including <- "batch+condition"
-    } else {
-      int_model <- condbatch_int_model
-      noint_model <- condbatch_noint_model
-      int_string <- condbatch_int_string
-      noint_string <- condbatch_noint_string
-      including <- "condition+batch"
-    }
-  } else if (class(model_batch)[1] == "character") {
-    ## Then calculate the estimates using all_adjusters
-    if (isTRUE(verbose)) {
-      mesg("Extracting surrogate estimates from ", model_batch,
-              " and adding them to the model.")
-    }
-    model_batch_info <- all_adjusters(input, estimate_type = model_batch,
-                                      surrogates = surrogates)
-    ## Changing model_batch from 'sva' to the resulting matrix.
-    ## Hopefully this will simplify things later for me.
-    model_batch <- model_batch_info[["model_adjust"]]
-    int_model <- stats::model.matrix(~ condition + model_batch,
-                                     contrasts.arg = clist,
-                                     data = design)
-    noint_model <- stats::model.matrix(~ 0 + condition + model_batch,
-                                       contrasts.arg = clist,
-                                       data = design)
-    sv_names <- glue("SV{1:ncol(model_batch)}")
-    noint_string <- cond_noint_string
-    int_string <- cond_int_string
-    sv_string <- ""
-    for (sv in sv_names) {
-      sv_string <- glue("{sv_string} + {sv}")
-    }
-    noint_string <- glue("{noint_string}{sv_string}")
-    int_string <- glue("{int_string}{sv_string}")
-    rownames(model_batch) <- rownames(int_model)
-    including <- glue("condition{sv_string}")
-  } else if (class(model_batch)[1] == "numeric" || class(model_batch)[1] == "matrix") {
-    if (isTRUE(verbose)) {
-      mesg("Including batch estimates from sva/ruv/pca in the model.")
-    }
-    int_model <- stats::model.matrix(~ condition + model_batch,
-                                     contrasts.arg = clist,
-                                     data = design)
-    noint_model <- stats::model.matrix(~ 0 + condition + model_batch,
-                                       contrasts.arg = clist,
-                                       data = design)
-    sv_names <- glue("SV{1:ncol(model_batch)}")
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
-    sv_string <- ""
-    for (sv in sv_names) {
-      sv_string <- glue("{sv_string} + {sv}")
-    }
-    int_string <- glue("{int_string}{sv_string}")
-    noint_string <- glue("{noint_string}{sv_string}")
-    rownames(model_batch) <- rownames(int_model)
-    including <- glue("condition{sv_string}")
-  } else if (isTRUE(model_cond)) {
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
-    including <- "condition"
-  } else if (isTRUE(model_batch)) {
-    int_model <- batch_int_model
-    noint_model <- batch_noint_model
-    int_string <- batch_int_string
-    noint_string <- batch_noint_string
-    including <- "batch"
-  } else {
-    ## Default to the conditional model
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
-    including <- "condition"
-  }
-
-  tmpnames <- colnames(int_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
-  if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
-  } else {
-    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
-  }
-  tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  ## The next lines ensure that conditions/batches which are all numeric will
-  ## not cause weird errors for contrasts. Ergo, if a condition is something
-  ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  tmpnames <- gsub(pattern = "^condition(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "^batch(\\d+)$", replacement = "b\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "condition", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch", replacement = "", x = tmpnames)
-  colnames(int_model) <- tmpnames
-
-  tmpnames <- colnames(noint_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
-  if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
-  } else {
-    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
-  }
-  tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  ## The next lines ensure that conditions/batches which are all numeric will
-  ## not cause weird errors for contrasts. Ergo, if a condition is something
-  ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  tmpnames <- gsub(pattern = "condition^(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch^(\\d+)$", replacement = "b\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "condition", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch", replacement = "", x = tmpnames)
-  colnames(noint_model) <- tmpnames
-
-  chosen_model <- NULL
-  chosen_string <- NULL
-  if (isTRUE(model_intercept)) {
-    if (isTRUE(verbose)) {
-      mesg("Choosing the intercept containing model.")
-    }
-    chosen_model <- int_model
-    chosen_string <- int_string
-  } else {
-    if (isTRUE(verbose)) {
-      mesg("Choosing the non-intercept containing model.")
-    }
-    chosen_model <- noint_model
-    chosen_string <- noint_string
-  }
-
-  retlist <- list(
-    "int_model" = int_model,
-    "noint_model" = noint_model,
-    "int_string" = int_string,
-    "noint_string" = noint_string,
-    "chosen_model" = chosen_model,
-    "chosen_string" = chosen_string,
-    "model_batch" = model_batch,
-    "including" = including)
-  return(retlist)
-}
 
 #' Compare the results of separate all_pairwise() invocations.
 #'
@@ -2240,22 +1946,11 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #' @export
 make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
                                     do_extras = TRUE, do_pairwise = TRUE,
-                                    keepers = NULL, extra_contrasts = NULL, keep_underscore = FALSE, ...) {
+                                    keepers = NULL, extra_contrasts = NULL,
+                                    keep_underscore = FALSE, ...) {
   arglist <- list(...)
-  tmpnames <- colnames(model)
-  if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames)
-  } else {
-    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
-  }
-  tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "conditions^(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "conditions", replacement = "", x = tmpnames)
-  colnames(model) <- tmpnames
-  conditions <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = conditions)
-  condition_table <- table(conditions)
   identities <- list()
+  condition_table <- table(conditions)
   contrast_string <- ""
   eval_strings <- list()
   for (c in seq_along(condition_table)) {
@@ -2270,23 +1965,23 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
   ## finally doing some match, and also they remind me that we can do much more
   ## complex things like:
   ## ((bob-alice)-(jane-alice)) or whatever....
-  all_pairwise <- list()
+  aps <- list()  ## aps == all_pairwise_strings
   identity_names <- names(identities)
   lenminus <- length(identities) - 1
   numerators <- c()
   denominators <- c()
 
   if (is.null(keepers)) {
-    for (c in seq_len(lenminus)) {
-      c_name <- names(identities[c])
-      nextc <- c + 1
-      for (d in seq(from = nextc, to = length(identities))) {
-        d_name <- names(identities[d])
-        minus_string <- paste0(d_name, "_vs_", c_name)
-        exprs_string <- paste0(minus_string, "=", d_name, "-", c_name, ",")
-        all_pairwise[minus_string] <- exprs_string
-        numerators <- c(numerators, d_name)
-        denominators <- c(denominators, c_name)
+    for (d in seq_len(lenminus)) {
+      d_name <- names(identities[d])
+      nextd <- d + 1
+      for (n in seq(from = nextd, to = length(identities))) {
+        n_name <- names(identities[n])
+        minus_string <- paste0(n_name, "_vs_", d_name)
+        minus_expression <- paste0(minus_string, "=", n_name, "-", d_name, ",")
+        aps[minus_string] <- minus_expression
+        numerators <- c(numerators, n_name)
+        denominators <- c(denominators, d_name)
       }
     }
   } else {
@@ -2294,8 +1989,8 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
       n_name <- keeper[1]
       d_name <- keeper[2]
       minus_string <- paste0(n_name, "_vs_", d_name)
-      exprs_string <- paste0(minus_string, "=", n_name, "-", d_name, ",")
-      all_pairwise[minus_string] <- exprs_string
+      minus_expression <- paste0(minus_string, "=", n_name, "-", d_name, ",")
+      aps[minus_string] <- minus_expression
       numerators <- c(numerators, n_name)
       denominators <- c(denominators, d_name)
     }
@@ -2311,7 +2006,7 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
     eval_strings <- append(eval_strings, identities)
   }
   if (isTRUE(do_pairwise)) {
-    eval_strings <- append(eval_strings, all_pairwise)
+    eval_strings <- append(eval_strings, aps)
   }
   eval_names <- names(eval_strings)
 
@@ -2330,7 +2025,7 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
       extra_contrast <- glue("{extra_eval_string}, ")
       eval_strings <- append(eval_strings, extra_contrast)
       eval_names <- append(eval_names, new_name)
-      all_pairwise[new_name] <- extra_contrast
+      aps[new_name] <- extra_contrast
       extra_numerator <- gsub(x = new_name, pattern = "(.*)_vs_.*", replacement = "\\1")
       extra_denominator <- gsub(x = new_name, pattern = ".*_vs_(.*)", replacement = "\\1")
       numerators <- c(numerators, extra_numerator)
@@ -2366,7 +2061,7 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
     "all_pairwise_contrasts" = all_pairwise_contrasts,
     "identities" = identities,
     "identity_names" = identity_names,
-    "all_pairwise" = all_pairwise,
+    "all_pairwise" = aps,
     "contrast_string" = contrast_string,
     "names" = eval_names,
     "numerators" = numerators,

@@ -498,6 +498,21 @@ local_get_value <- function(x, delimiter = ": ") {
               x = tail(unlist(strsplit(x, delimiter)), n = 1), fixed = TRUE))
 }
 
+#' Make a quartile factor out of a numeric vector
+#'
+#' @param numeric_vector Vector of numbers!
+#' @return Factor with levels from q1 to q4.
+#' @export
+make_quartile_factor <- function(numeric_vector) {
+  new_factor <- as.factor(paste0("q", ntile(numeric_vector), 4))
+  return(new_factor)
+}
+
+make_ntile_factor <- function(numeric_vector, n) {
+  new_factor <- as.factor(paste0("n", ntile(numeric_vector), n))
+  return(new_factor)
+}
+
 #' copy/paste the function from SeqTools and figure out where it falls on its ass.
 #'
 #' Yeah, I do not remember what I changed in this function.

@@ -129,7 +129,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",
                                    go_level = 3, pcutoff = 0.05,
                                    qcutoff = 0.1, fc_column = "logFC",
-                                   second_fc_column = "deseq_logfc",
+                                   second_fc_column = "deseq_logfc", format = "png",
                                    updown = "up", permutations = 1000, min_groupsize = 5,
                                    kegg_prefix = NULL, kegg_organism = NULL, do_gsea = TRUE,
                                    categories = 12, excel = NULL, do_david = FALSE, do_kegg = FALSE,
@@ -438,18 +438,31 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                               color.params = list(foldChange = genelist)), silent = TRUE)
 
   tree_sig_mf <- tree_sig_bp <- tree_sig_cc <- NULL
+
+  tmp_file <- tmpmd5file(pattern = "mftree", fileext = paste0(".", format))
+  this_plot <- pp(file = tmp_file)
+  controlled <- dev.control("enable")
   tree_mf <- sm(try(clusterProfiler::plotGOgraph(ego_sig_mf), silent = TRUE))
   if (class(tree_mf)[[1]] != "try-error") {
     tree_sig_mf <- recordPlot()
   }
+  dev.off()
+  tmp_file <- tmpmd5file(pattern = "bptree", fileext = paste0(".", format))
+  this_plot <- pp(file = tmp_file)
+  controlled <- dev.control("enable")
   tree_bp <- sm(try(clusterProfiler::plotGOgraph(ego_sig_bp), silent = TRUE))
   if (class(tree_bp)[[1]] != "try-error") {
     tree_sig_bp <- recordPlot()
   }
+  dev.off()
+  tmp_file <- tmpmd5file(pattern = "bptree", fileext = paste0(".", format))
+  this_plot <- pp(file = tmp_file)
+  controlled <- dev.control("enable")
   tree_cc <- sm(try(clusterProfiler::plotGOgraph(ego_sig_cc), silent = TRUE))
   if (class(tree_cc)[[1]] != "try-error") {
     tree_sig_cc <- recordPlot()
   }
+  dev.off()
 
   ggo_mf_bar <- try(barplot(ggo_mf, drop = TRUE,
                             showCategory = categories), silent = TRUE)

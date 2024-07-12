@@ -87,7 +87,7 @@ plot_disheat <- function(expt_data, expt_colors = NULL, expt_design = NULL,
 #' @seealso [gplots::heatmap.2()]
 #' @export
 plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
-                         method = "pearson", expt_names = NULL,
+                         method = "pearson", expt_names = NULL, format = "png",
                          type = "correlation", batch_row = "batch", plot_title = NULL,
                          label_chars = 10, ...) {
   arglist <- list(...)
@@ -179,8 +179,8 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
   map <- NULL
   na_idx <- is.na(heatmap_data)
   heatmap_data[na_idx] <- 0
-  tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
+  tmp_file <- tmpmd5file(pattern = "heat", fileext = paste0(".", format))
+  this_plot <- pp(file = tmp_file)
   controlled <- dev.control("enable")
   if (type == "correlation") {
     map <- heatmap.3(heatmap_data, keysize = keysize, labRow = expt_names,

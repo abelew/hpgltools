@@ -72,21 +72,19 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   lrt_list <- list()
   sc <- vector("list", length(apc[["names"]]))
   end <- length(apc[["names"]])
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
     numerator <- apc[["numerators"]][[name]]
     denominator <- apc[["denominators"]][[name]]
     if (isTRUE(verbose)) {
       pct_done <- con / length(apc[["names"]])
-      utils::setTxtProgressBar(bar, pct_done)
     }
+    ## Strangely, if I put conditions as c(numerator, denominator)
+    ## I seem to consistently get the opposite result than I intend...
     noiseq_table <- sm(NOISeq::noiseqbio(
-      norm, k = 0.5, norm = "rpkm", factor = "condition", lc = 1,
-      r = 20, adj = 1.5, plot = TRUE, a0per = 0.9, filter = 1,
-      conditions = c(numerator, denominator)))
+      norm, k = 0.5, norm = "rpkm", factor = "condition", lc = lc,
+      r = r, adj = adj, plot = TRUE, a0per = a0per, filter = filter,
+      conditions = c(denominator, numerator)))
     noiseq_result <- noiseq_table@results[[1]]
     rename_col <- colnames(noiseq_result) == "log2FC"
     colnames(noiseq_result)[rename_col] <- "logFC"
@@ -94,9 +92,6 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
     noiseq_result[["p"]] <- 1.0 - noiseq_result[["prob"]]
     noiseq_result[["adjp"]] <- p.adjust(noiseq_result[["p"]])
     result_list[[name]] <- noiseq_result
-  }
-  if (isTRUE(verbose)) {
-    close(bar)
   }
 
   retlist <- list(

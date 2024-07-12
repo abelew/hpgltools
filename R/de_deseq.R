@@ -196,7 +196,8 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
                             model_batch = TRUE, model_intercept = FALSE,
                             alt_model = NULL, extra_contrasts = NULL,
                             annot_df = NULL, force = FALSE, keepers = NULL,
-                            deseq_method = "long", fittype = "parametric", ...) {
+                            deseq_method = "long", fittype = "parametric",
+                            surrogate_estimate = NULL, ...) {
   arglist <- list(...)
 
   mesg("Starting DESeq2 pairwise comparisons.")
@@ -225,14 +226,15 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## it will gather surrogate estimates from sva and friends and return those estimates.
   model_choice <- choose_model(input, conditions, batches, model_batch = model_batch,
                                model_cond = model_cond, model_intercept = model_intercept,
-                               alt_model = alt_model,
+                               alt_model = alt_model, surrogate_estimate = surrogate_estimate,
                                ...)
   model_data <- model_choice[["chosen_model"]]
   model_including <- model_choice[["including"]]
   model_string <- model_choice[["chosen_string"]]
   ## This is redundant with the definition of design above.
   column_data <- pData(input)
-  if (class(model_choice[["model_batch"]])[1] == "matrix") {
+
+  if (class(model_choice[["model_surrogates"]])[1] == "matrix") {
     ## The SV matrix from sva/ruv/etc are put into the model batch slot of the return from choose_model.
     ## Use them here if appropriate
     model_batch <- model_choice[["model_batch"]]
@@ -384,15 +386,11 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ##total_contrasts <- length(condition_levels)
   ##total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
   total_contrasts <- length(contrast_order)
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (i in seq_along(contrast_order)) {
     contrast_name <- contrast_order[[i]]
     contrast_string <- contrast_strings[[i]]
     if (isTRUE(verbose)) {
       pct_done <- i / length(contrast_order)
-      utils::setTxtProgressBar(bar, pct_done)
     }
     num_den_string <- strsplit(x = contrast_name, split = "_vs_")[[1]]
     if (length(num_den_string) == 0) {
@@ -432,9 +430,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
       result <- merge(result, annot_df, by.x = "row.names", by.y = "row.names")
     }
     result_list[[contrast_name]] <- result
-  }
-  if (isTRUE(verbose)) {
-    close(bar)
   }
   ## The logic here is a little tortuous.
   ## Here are some sample column names from an arbitrary coef() call:
