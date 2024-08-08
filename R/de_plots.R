@@ -850,6 +850,7 @@ plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qv
     "avg" = c(0, 0, 0),
     "logfc" = c(0, 0, 0),
     "pval" = c(0, 0, 0),
+    "label" = c("", "", ""),
     "pcut" = c(FALSE, FALSE, FALSE),
     "state" = c("a_upsig", "b_downsig", "c_insig"), stringsAsFactors = TRUE)
 
@@ -867,7 +868,9 @@ plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qv
   newdf <- data.frame("avg" = table[[expr_col]],
                       "logfc" = table[[fc_col]],
                       "pval" = table[[p_col]])
-  if (!is.null(table[[label_column]])) {
+  if (is.null(label_column)) {
+    newdf[["label"]] <- rownames(table)
+  } else if (!is.null(table[[label_column]])) {
     newdf[["label"]] <- table[[label_column]]
     rownames(newdf) <- make.names(rownames(table), unique = TRUE)
   } else {
@@ -901,12 +904,11 @@ plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qv
   num_upsig <- sum(df[["state"]] == "a_upsig") - 1
 
   ## Make double-certain that my states are only factors or numbers where necessary.
-  df[["avg"]] <- as.numeric(df[[1]])
-  df[["logfc"]] <- as.numeric(df[[2]])
-  df[["pval"]] <- as.numeric(df[[3]])
-  df[["pcut"]] <- as.factor(df[[4]])
-  df[["state"]] <- as.factor(df[[5]])
-  df[["label"]] <- rownames(df)
+  df[["avg"]] <- as.numeric(df[["avg"]])
+  df[["logfc"]] <- as.numeric(df[["logfc"]])
+  df[["pval"]] <- as.numeric(df[["pval"]])
+  df[["pcut"]] <- as.factor(df[["pcut"]])
+  df[["state"]] <- as.factor(df[["state"]])
 
   ## Set up the labels for the legend by significance.
   ## 4 states, 4 shapes -- these happen to be the 4 best shapes in R because they may be filled.
@@ -923,12 +925,12 @@ plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qv
   ## make the plot!
   plt <- ggplot(data = df,
                 ## I am setting x, y, fill color, outline color, and the shape.
-                aes(x = .data[["avg"]],
-                    y = .data[["logfc"]],
-                    label = .data[["label"]],
-                    fill = as.factor(.data[["pcut"]]),
-                    colour = as.factor(.data[["pcut"]]),
-                    shape = as.factor(.data[["state"]]))) +
+                aes(x = avg,
+                    y = logfc,
+                    label = label,
+                    fill = pcut,
+                    colour = pcut,
+                    shape = state)) +
     ggplot2::geom_hline(yintercept = c((logfc * -1.0), logfc),
                         color = "red", size=(size / 3)) +
     ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
@@ -1575,7 +1577,9 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
     if (is.numeric(label)) {
       reordered_idx <- order(df[["xaxis"]])
       reordered <- df[reordered_idx, ]
-      sig_idx <- reordered[["logyaxis"]] > horiz_line
+      sig_idx <- reordered[["logyaxis"]] >= horiz_line &
+        ((reordered[["xaxis"]] < 0 & reordered[["xaxis"]] <= low_vert_line) |
+           (reordered[["xaxis"]] > 0 & reordered[["xaxis"]] >= logfc))
       reordered <- reordered[sig_idx, ]
       top <- head(reordered, n = label)
       bottom <- tail(reordered, n = label)
@@ -1593,7 +1597,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                    x = .data[["xaxis"]]),
                                colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
                                point.padding = ggplot2::unit(1.6, "lines"),
-                               size = label_size,
+                               size = label_size, max.overlaps = label * 2,
                                arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
   }
 

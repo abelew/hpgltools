@@ -393,6 +393,23 @@ guess_orgdb_keytype <- function(ids, orgdb = NULL, verbose = FALSE) {
   return(current_type)
 }
 
+#' Guess the orgdb from a genusspecies.
+map_species_orgdb <- function(species, genus = NULL) {
+  if (is.null(genus)) {
+    ## Then assume things like 'hsapiens'.
+    chars <- strsplit(species, "")[[1]]
+    first <- toupper(chars[1])
+    second <- tolower(chars[2])
+  } else {
+    first_chars <- strsplit(genus, "")[[1]]
+    second_chars <- strsplit(species, "")[[1]]
+    first <- toupper(first_chars[1])
+    second <- tolower(second_chars[1])
+  }
+  guess <- glue("org.{first}{second}.eg.db")
+  return(guess)
+}
+
 #' Get an orgdb from an AnnotationHub taxonID.
 #'
 #' Ideally, annotationhub will one day provide a one-stop shopping source for a

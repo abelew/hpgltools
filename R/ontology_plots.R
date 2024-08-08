@@ -171,9 +171,9 @@ plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
     ont_size <- gse[it, "setSize"]
     ont_enrich <- formatC(gse[it, "enrichmentScore"], digits = 2)
     ont_p <- formatC(gse[it, "p.adjust"], format = "e", digits = 2)
-    string <- glue("Plotting {ont_name}: {ont_desc}.")
+    string <- glue("{ont_name}: {ont_desc}.")
     score_string <- glue("Set size: {ont_size}, score: {ont_enrich}, adjp: {ont_p}")
-    mesg(string)
+    mesg("Plotting ", string)
     gsea_plot <- enrichplot::gseaplot2(gse, geneSetID = it)
     gsea_plot[[1]] <- gsea_plot[[1]] +
       ggplot2::ggtitle(string)
