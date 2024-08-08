@@ -2,6 +2,43 @@
 ## DE/test/etc methods.  These functions seek to catch some corner cases when
 ## playing with the various model types when using DESeq/etc.
 
+extract_stepwise_regression <- function(mtrx, query = "condition",
+                                        factors = NULL,
+                                        excel = "excel/tc_regression_table.xlsx") {
+  initial_fstring <- glue("{query} ~ .")
+  if (!is.null(factors)) {
+    initial_fstring <- glue("{query} ~ ")
+    for (fct in factors) {
+      message("Adding: ", fct)
+      initial_fstring <- glue("{initial_fstring} {fct} +")
+    }
+    initial_fstring <- gsub(x = initial_fstring, pattern = " \\+$", replacement = "")
+  }
+  mesg("Testing regression coefficients with model string: ", initial_fstring, ".")
+  initial_lm <- lm(as.formula(initial_fstring), data = mtrx)
+  initial_summary <- summary(initial_lm) %>% tidy(conf.int = TRUE)
+  stepwise_result <- step(initial_lm)
+  written <- write_xlsx(data = initial_summary, excel = excel)
+  forest_df <- initial_summary[2:nrow(initial_summary), ]
+  forest <- ggplot(forest_df, aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high)) +
+    geom_pointrange(color = "black", size = 0.5) +
+    geom_hline(yintercept = 0, color = "steelblue") +
+    coord_flip() +
+    xlab("") +
+    ylab("Coefficient (95% confidence interval)") +
+    labs(title = glue("Stepwise Linear Regression Models Estimating \n Effects on {query}")) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12))
+  retlist <- list(
+    "initial_lm" = initial_lm,
+    "initial_summary" = initial_summary,
+    "stepwise_result" = stepwise_result,
+    "forest" = forest)
+  return(retlist)
+}
+
 #' Make sure a given experimental factor and design will play together.
 #'
 #' Have you ever wanted to set up a differential expression analysis and after

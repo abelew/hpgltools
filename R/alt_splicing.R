@@ -26,6 +26,9 @@ gather_suppa_files <- function(file_prefix, numerator = "d15", denominator = "d1
   tx_events_file <- file.path(event_prefix, "transcript_events.ioi")
   tx_psi_file <- file.path(dpsi_prefix, glue("{comparison_prefix}_ioi_classical.psivec"))
   tx_tpm_file <- file.path(dpsi_prefix, glue("{comparison_prefix}_ioi_empirical_avglogtpm.tab"))
+  psi_numerator_matrices <- Sys.glob(file.path(psi_prefix, paste0(numerator, "*")))
+  psi_denominator_matrices <- Sys.glob(file.path(psi_prefix, paste0(denominator, "*")))
+  psi_matrix_files <- c(psi_numerator_matrices, psi_denominator_matrices)
 
   retlist <- list(
     "tx_dpsi" = tx_dpsi_file,
@@ -35,7 +38,8 @@ gather_suppa_files <- function(file_prefix, numerator = "d15", denominator = "d1
     "type_dpsi" = type_dpsi_files,
     "type_events" = type_events_files,
     "type_psi" = type_psi_files,
-    "type_tpm" = type_tpm_files)
+    "type_tpm" = type_tpm_files,
+    "psi_matrices" = psi_matrix_files)
   return(retlist)
 }
 
@@ -77,7 +81,9 @@ plot_suppa <- function(file_prefix, file_list = NULL, type = "type", annot = NUL
     }
   }
   if (is.null(file_list)) {
-    file_list <- gather_suppa_files(file_prefix = file_prefix, numerator = numerator, denominator = denominator)
+    file_list <- gather_suppa_files(file_prefix = file_prefix,
+                                    numerator = numerator,
+                                    denominator = denominator)
   }
   dpsi <- NULL
   if (type == "type") {
@@ -174,9 +180,9 @@ plot_suppa <- function(file_prefix, file_list = NULL, type = "type", annot = NUL
   numerator_samples <- grepl(pattern = numerator_regex, x = colnames(psi_data))
   denominator_regex <- paste0("^", denominator)
   denominator_samples <- grepl(pattern = denominator_regex, x = colnames(psi_data))
-  numerator_names <- paste0("numerator", seq_len(sum(numerator_samples)))
+  numerator_names <- c("event", paste0("numerator", seq_len(sum(numerator_samples))))
   colnames(psi_data)[numerator_samples] <- numerator_names
-  denominator_names <- paste0("denominator", seq_len(sum(denominator_samples)))
+  denominator_names <- c("event", paste0("denominator", seq_len(sum(denominator_samples))))
   colnames(psi_data)[denominator_samples] <- denominator_names
 
   plotting_data <- merge(dpsi_data, tpm_data, by.x = "row.names", by.y = "event")

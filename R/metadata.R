@@ -1831,7 +1831,8 @@ plot_metadata_factors <- function(expt, column = "hisatsinglemapped", second_col
       ggplot2::geom_boxplot(aes(fill = factor(.data[["condition"]])), width = 0.2, size = 0.2, outlier.size = 1.5) +
       geom_jitter(height = 0, width = 0.1) +
       ggplot2::scale_fill_manual(values = as.character(color_choices), guide = "none") +
-      ggplot2::theme_bw(base_size = base_size)
+      ggplot2::theme_bw(base_size = base_size) +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1.0))
     if (scale == "log2") {
       meta_plot <- meta_plot +
         ggplot2::coord_trans(y = "log2")

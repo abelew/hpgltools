@@ -119,7 +119,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               increment_start = "SXXX", start_worksheet_num = 2,
                               rda = NULL, rda_input = FALSE, label = 10, label_column = "hgncsymbol",
                               format_sig = 4, excel = NULL, plot_columns = 10,
-                              alpha = 0.4, z = 1.5, z_lines = FALSE) {
+                              alpha = 0.4, z = 1.5, z_lines = FALSE, wanted_genes = NULL) {
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
   excel_basename <- xlsx[["basename"]]
@@ -200,7 +200,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
     format_sig = format_sig,
     plot_colors = plot_colors, z = z, alpha = alpha, z_lines = z_lines,
-    label = label, label_column = label_column)
+    label = label, label_column = label_column, wanted_genes = wanted_genes)
   numerators <- extracted[["numerators"]]
   denominators <- extracted[["denominators"]]
 
@@ -547,7 +547,7 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 #' @param adjp Used adjusted pvalues when defining 'significant.?
 #' @param padj_type Perform this type of pvalue adjustment.
 #' @param annot_df Include these annotations in the result tables.
-#' @param excludes When provided, exclude these genes.
+#' @param excludes When provided as a list, remove any rows with values in the column defined by the list names, otherwise exclude rownames.
 #' @param lfc_cutoff Use this value for a log2FC significance cutoff.
 #' @param p_cutoff Use this value for a(n adjusted) pvalue
 #'  significance cutoff.
@@ -557,7 +557,7 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 combine_mapped_table <- function(entry, includes, adjp = TRUE, padj_type = "fdr",
                                  annot_df = NULL, excludes = NULL, lfc_cutoff = 1,
                                  p_cutoff = 0.05, format_sig = 4, sheet_count = 0,
-                                 keep_underscore = FALSE) {
+                                 keep_underscore = FALSE, wanted_genes = NULL) {
   if (padj_type[1] != "ihw" && !(padj_type %in% p.adjust.methods)) {
     warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
 Defaulting to fdr.")
@@ -790,7 +790,7 @@ Defaulting to fdr.")
   for (query in names(inverts)) {
     fc_column <- paste0(query, "_logfc")
     if (isTRUE(inverts[[query]])) {
-      message("Inverting column: ", fc_column, ".")
+      mesg("Inverting column: ", fc_column, " for ", query, ".")
       comb[[fc_column]] <- comb[[fc_column]] * -1.0
       if (query == "deseq") {
         comb[["deseq_stat"]] <- comb[["deseq_stat"]] * -1.0
@@ -904,19 +904,19 @@ Defaulting to fdr.")
   }
 
   ## Exclude rows based on a list of unwanted columns/strings
-  if (!is.null(excludes)) {
-    for (colnum in seq_along(excludes)) {
-      col <- names(excludes)[colnum]
-      for (exclude_num in seq_along(excludes[[col]])) {
-        exclude <- excludes[[col]][exclude_num]
-        remove_column <- comb[[col]]
-        remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE, invert = TRUE)
-        removed_num <- sum(as.numeric(remove_idx))
-        mesg("Removed ", removed_num, " genes using ",
-                exclude, " as a string against column ", col, ".")
-        comb <- comb[remove_idx, ]
-      }  ## End iterating through every string to exclude
-    }  ## End iterating through every element of the exclude list
+  if ("list" %in% class(excludes)) {
+    comb <- exclude_genes_from_combined_list(comb, excludes)
+  } else if ("character" %in% class(excludes)) {
+    keepers <- ! rownames(comb) %in% excludes
+    mesg("Keeping ", sum(keepers), " genes out of ", length(rownames(comb)), ".")
+    comb <- comb[keepers, ]
+  }
+
+  if (!is.null(wanted_genes)) {
+    wanted_idx <- rownames(comb) %in% wanted_genes
+    mesg("Keeping ", sum(wanted_idx), " rows found in the set of ",
+         length(wanted_genes), " wanted genes.")
+    comb <- comb[wanted_idx, ]
   }
 
   up_fc <- lfc_cutoff
@@ -942,6 +942,22 @@ Defaulting to fdr.")
     "summary" = summary_lst)
   class(ret) <- c("combined_table", "list")
   return(ret)
+}
+
+exclude_genes_from_combined_list <- function(comb, excludes) {
+  for (colnum in seq_along(excludes)) {
+    col <- names(excludes)[colnum]
+    for (exclude_num in seq_along(excludes[[col]])) {
+      exclude <- excludes[[col]][exclude_num]
+      remove_column <- comb[[col]]
+      remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE, invert = TRUE)
+      removed_num <- sum(as.numeric(remove_idx))
+      mesg("Removed ", removed_num, " genes using ",
+           exclude, " as a string against column ", col, ".")
+      comb <- comb[remove_idx, ]
+    }  ## End iterating through every string to exclude
+  }  ## End iterating through every element of the exclude list
+  return(comb)
 }
 
 #' Given a limma, edger, and deseq table, combine them into one.
@@ -989,9 +1005,9 @@ combine_single_de_table <- function(li = NULL, ed = NULL, eb = NULL, de = NULL, 
                                     annot_df = NULL, adjp = TRUE, padj_type = "fdr",
                                     include_deseq = TRUE, include_edger = TRUE,
                                     include_ebseq = TRUE, include_limma = TRUE,
-                                    include_basic = TRUE, lfc_cutoff = 1,
+                                    include_basic = TRUE, lfc_cutoff = 1.0,
                                     p_cutoff = 0.05, format_sig = 4, do_inverse = FALSE,
-                                    excludes = NULL, sheet_count = 0) {
+                                    excludes = NULL, sheet_count = 0, invert_exclude = TRUE, wanted_genes = NULL) {
   if (padj_type[1] != "ihw" && (!padj_type %in% p.adjust.methods)) {
     warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
 Defaulting to fdr.")
@@ -1309,13 +1325,22 @@ Defaulting to fdr.")
       for (exclude_num in seq_along(excludes[[col]])) {
         exclude <- excludes[[col]][exclude_num]
         remove_column <- comb[[col]]
-        remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE, invert = TRUE)
+        remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE,
+                           invert = invert_exclude)
         removed_num <- sum(as.numeric(remove_idx))
         mesg("Removed ", removed_num, " genes using ",
                 exclude, " as a string against column ", col, ".")
         comb <- comb[remove_idx, ]
       }  ## End iterating through every string to exclude
     }  ## End iterating through every element of the exclude list
+  }
+
+  ## Exclude rows based on a set of IDs
+  if (!is.null(wanted_genes)) {
+    wanted_idx <- rownames(comb) %in% wanted_genes
+    mesg("Found ", sum(wanted_idx), " genes in the set of ",
+         length(wanted_genes), " wanted genes.")
+    comb <- comb[wanted_idx, ]
   }
 
   up_fc <- lfc_cutoff
@@ -1522,7 +1547,8 @@ extract_keepers <- function(extracted, keepers, table_names,
                             lfc_cutoff = 1.0, p_cutoff = 0.05,
                             format_sig = 4, plot_colors = plot_colors,
                             z = 1.5, alpha = 0.4, z_lines = FALSE,
-                            label = 10, label_column = "hgncsymbol") {
+                            label = 10, label_column = "hgncsymbol",
+                            wanted_genes = NULL) {
   ## First check that your set of keepers is in the data
   ## all_keepers is therefore the set of all coefficients in numerators/denominators
   all_keepers <- as.character(unlist(keepers))
@@ -1652,7 +1678,8 @@ extract_keepers <- function(extracted, keepers, table_names,
     combined <- combine_mapped_table(
       entry, includes, adjp = adjp, padj_type = padj_type,
       annot_df = annot_df, excludes = excludes,
-      lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff, format_sig = format_sig)
+      lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff, format_sig = format_sig,
+      wanted_genes = wanted_genes)
 
     ## I am not sure if this should be the set of inverted tables yet.
     invert_colors <- FALSE

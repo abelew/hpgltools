@@ -924,7 +924,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
           image_files <- c(image_files, plot_try[["filename"]])
           new_plot_col <- new_plot_col + 14
         }
-        upset <- enrichplot::upsetplot(gprofiler_result[["GO_enrich"]])
+        upset <- try(enrichplot::upsetplot(gprofiler_result[["GO_enrich"]]), silent = TRUE)
         plot_try <- xlsx_insert_png(
           upset, wb = wb, sheet = sheet, width = 12, height = 12,
           start_col = new_plot_col, start_row = new_row,
@@ -933,7 +933,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
           image_files <- c(image_files, plot_try[["filename"]])
           new_plot_col <- new_plot_col + 16
         }
-        dotplot <- enrichplot::dotplot(gprofiler_result[["GO_enrich"]])
+        dotplot <- try(enrichplot::dotplot(gprofiler_result[["GO_enrich"]]), silent = TRUE)
         plot_try <- xlsx_insert_png(
           dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
           start_col = new_plot_col, start_row = new_row,
@@ -1022,7 +1022,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["KEGG_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["KEGG_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1031,7 +1031,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["KEGG_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["KEGG_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1074,7 +1074,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["TF_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["TF_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1083,7 +1083,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["TF_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["TF_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1125,7 +1125,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["REAC_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["REAC_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1134,7 +1134,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["REAC_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["REAC_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row,
@@ -1176,7 +1176,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["MIRNA_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["MIRNA_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 20,
@@ -1185,7 +1185,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["MIRNA_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["MIRNA_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 40,
@@ -1227,7 +1227,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["HP_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["HP_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 20,
@@ -1236,7 +1236,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["HP_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["HP_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 40,
@@ -1278,7 +1278,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["HPA_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["HPA_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 20,
@@ -1287,7 +1287,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["HPA_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["HPA_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 40,
@@ -1329,7 +1329,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["CORUM_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["CORUM_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 20,
@@ -1338,7 +1338,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["CORUM_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["CORUM_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 40,
@@ -1380,7 +1380,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }
-      upset <- enrichplot::upsetplot(gprofiler_result[["WP_enrich"]])
+      upset <- try(enrichplot::upsetplot(gprofiler_result[["WP_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = new_plot_col, start_row = new_row + 20,
@@ -1389,7 +1389,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
       }
-      dotplot <- enrichplot::dotplot(gprofiler_result[["WP_enrich"]])
+      dotplot <- try(enrichplot::dotplot(gprofiler_result[["WP_enrich"]]), silent = TRUE)
       plot_try <- xlsx_insert_png(
         dotplot, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(bp_data) + 2, start_row = new_row + 40,
