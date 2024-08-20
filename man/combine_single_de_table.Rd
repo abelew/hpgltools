@@ -29,7 +29,9 @@ combine_single_de_table(
   format_sig = 4,
   do_inverse = FALSE,
   excludes = NULL,
-  sheet_count = 0
+  sheet_count = 0,
+  invert_exclude = TRUE,
+  wanted_genes = NULL
 )
 }
 \arguments{

@@ -15,7 +15,8 @@ combine_mapped_table(
   p_cutoff = 0.05,
   format_sig = 4,
   sheet_count = 0,
-  keep_underscore = FALSE
+  keep_underscore = FALSE,
+  wanted_genes = NULL
 )
 }
 \arguments{
@@ -31,7 +32,7 @@ with the actual data.}
 
 \item{annot_df}{Include these annotations in the result tables.}
 
-\item{excludes}{When provided, exclude these genes.}
+\item{excludes}{When provided as a list, remove any rows with values in the column defined by the list names, otherwise exclude rownames.}
 
 \item{lfc_cutoff}{Use this value for a log2FC significance cutoff.}
 

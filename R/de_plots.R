@@ -2092,6 +2092,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
   }
   names_passed <- c()
   for (t in wanted_tables) {
+    mesg("Extracting data for ", t, ".")
     t_data <- combined[["data"]][[t]]
     fc_col <- paste0(according_to, "_logfc")
     p_col <- paste0(according_to, "_adjp")

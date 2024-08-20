@@ -39,7 +39,8 @@ combine_de_tables(
   plot_columns = 10,
   alpha = 0.4,
   z = 1.5,
-  z_lines = FALSE
+  z_lines = FALSE,
+  wanted_genes = NULL
 )
 }
 \arguments{

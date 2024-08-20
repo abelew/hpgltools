@@ -29,7 +29,6 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
   for (i in seq_along(sig_names)) {
     slept <- Sys.sleep(3)
     name <- sig_names[i]
-    mesg("Starting ", name, ".")
     retname_up <- paste0(name, "_up")
     retname_down <- paste0(name, "_down")
     up <- input_up[[name]]
@@ -45,6 +44,8 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       up_elements <- nrow(up)
       down_elements <- nrow(down)
     }
+    mesg("Starting ", name, ".")
+
     if (isTRUE(together)) {
       if (source == "abundance") {
         up <- c(up, down)
