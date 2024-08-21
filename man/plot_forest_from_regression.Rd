@@ -8,6 +8,7 @@ plot_forest_from_regression(
   df,
   percent = 95,
   type = "logistic",
+  iterative = TRUE,
   family = "binomial"
 )
 }
@@ -17,6 +18,8 @@ plot_forest_from_regression(
 \item{percent}{Confidence interval chosen.}
 
 \item{type}{Either linear or logistic.}
+
+\item{iterative}{Was this a series of single-variable regressions, or all in one?}
 
 \item{family}{Only currently used for logistic.}
 }

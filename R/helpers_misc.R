@@ -260,61 +260,6 @@ get_yyyymm_commit <- function(gitdir = "~/hpgltools", version = NULL,
   return(pulled)
 }
 
-#' Reset the chosen git repository to a chosen commit.
-#'
-#' @param gitdir Desired repository, defaulting to my hpgltools copy.
-#' @param commit commit ID to which to reset.
-#' @export
-pull_git_commit <- function(gitdir = "~/hpgltools", commit = NULL) {
-  if (is.null(commit)) {
-    cmdline <- glue("cd {gitdir} && git log | head -n 3 | grep commit | awk '{{print $2}}'")
-    commit <- system(cmdline, intern = TRUE)
-  }
-  cmdline <- glue("cd {gitdir} && git pull && git reset {commit_result}")
-  result <- system(cmdline, intern = TRUE)
-  return(result)
-}
-
-#' Create a contrast matrix suitable for MSstats and similar tools.
-#'
-#' I rather like makeContrasts() from limma.  I troubled me to have to manually
-#' create a contrast matrix when using MSstats.  It turns out it troubled me for
-#' good reason because I managed to reverse the terms and end up with the
-#' opposite contrasts of what I intended.  Ergo this function.
-#'
-#' Feed make_simplified_contrast_matrix() a series of numerators and denominators names
-#' after the conditions of interest in an experiment and it returns a contrast
-#' matrix in a format acceptable to MSstats.
-#'
-#' @param numerators Character list of conditions which are the numerators of a
-#'  series of a/b comparisons.
-#' @param denominators Character list of conditions which are the denominators of a
-#'  series of a/b comparisons.
-#' @return Contrast matrix suitable for use in tools like MSstats.
-#' @seealso [MSstats]
-#' @export
-make_simplified_contrast_matrix <- function(numerators, denominators) {
-  if (length(numerators) != length(denominators)) {
-    stop("Need a constant number of numerators and denominators.")
-  }
-  conditions <- unique(c(numerators, denominators))
-  contrasts <- matrix(nrow = length(numerators), ncol = length(conditions))
-  colnames(contrasts) <- conditions
-  rownames(contrasts) <- numerators
-  for (col in (colnames(contrasts))) {
-    contrasts[, col] <- 0
-  }
-  for (n in seq_along(numerators)) {
-    num <- numerators[[n]]
-    den <- denominators[[n]]
-    cont <- glue("{num}_vs_{den}")
-    contrasts[n, num] <- 1
-    contrasts[n, den] <- -1
-    rownames(contrasts)[n] <- cont
-  }
-  return(contrasts)
-}
-
 #' Implement the arescan function in R
 #'
 #' This function was taken almost verbatim from AREScore() in SeqTools
@@ -498,6 +443,67 @@ local_get_value <- function(x, delimiter = ": ") {
               x = tail(unlist(strsplit(x, delimiter)), n = 1), fixed = TRUE))
 }
 
+#' Make a quartile factor out of a numeric vector
+#'
+#' @param numeric_vector Vector of numbers!
+#' @return Factor with levels from q1 to q4.
+#' @export
+make_quartile_factor <- function(numeric_vector) {
+  new_factor <- as.factor(paste0("q", ntile(numeric_vector), 4))
+  return(new_factor)
+}
+
+#' Make an arbitrary factor out of a numeric vector
+#'
+#' @param numeric_vector Vector of numbers!
+#' @param n numer of levels for the resulting factor.
+#' @return Factor with levels from q1 to q4.
+#' @export
+make_ntile_factor <- function(numeric_vector, n) {
+  new_factor <- as.factor(paste0("n", ntile(numeric_vector), n))
+  return(new_factor)
+}
+
+#' Create a contrast matrix suitable for MSstats and similar tools.
+#'
+#' I rather like makeContrasts() from limma.  I troubled me to have to manually
+#' create a contrast matrix when using MSstats.  It turns out it troubled me for
+#' good reason because I managed to reverse the terms and end up with the
+#' opposite contrasts of what I intended.  Ergo this function.
+#'
+#' Feed make_simplified_contrast_matrix() a series of numerators and denominators names
+#' after the conditions of interest in an experiment and it returns a contrast
+#' matrix in a format acceptable to MSstats.
+#'
+#' @param numerators Character list of conditions which are the numerators of a
+#'  series of a/b comparisons.
+#' @param denominators Character list of conditions which are the denominators of a
+#'  series of a/b comparisons.
+#' @return Contrast matrix suitable for use in tools like MSstats.
+#' @seealso [MSstats]
+#' @export
+make_simplified_contrast_matrix <- function(numerators, denominators) {
+  if (length(numerators) != length(denominators)) {
+    stop("Need a constant number of numerators and denominators.")
+  }
+  conditions <- unique(c(numerators, denominators))
+  contrasts <- matrix(nrow = length(numerators), ncol = length(conditions))
+  colnames(contrasts) <- conditions
+  rownames(contrasts) <- numerators
+  for (col in (colnames(contrasts))) {
+    contrasts[, col] <- 0
+  }
+  for (n in seq_along(numerators)) {
+    num <- numerators[[n]]
+    den <- denominators[[n]]
+    cont <- glue("{num}_vs_{den}")
+    contrasts[n, num] <- 1
+    contrasts[n, den] <- -1
+    rownames(contrasts)[n] <- cont
+  }
+  return(contrasts)
+}
+
 #' copy/paste the function from SeqTools and figure out where it falls on its ass.
 #'
 #' Yeah, I do not remember what I changed in this function.
@@ -551,53 +557,19 @@ my_identifyAUBlocks <- function (x, min.length = 20, p.to.start = 0.8, p.to.end 
   return(ret)
 }
 
-#' Automatic loading and/or installing of packages.
+#' Reset the chosen git repository to a chosen commit.
 #'
-#' Load a library, install it first if necessary.
-#'
-#' This was taken from:
-#' http://sbamin.com/2012/11/05/tips-for-working-in-r-automatically-install-missing-package/
-#' and initially provided by Ramzi Temanni.
-#'
-#' @param lib String name of a library to check/install.
-#' @param update Update packages?
-#' @return 0 or 1, whether a package was installed or not.
-#' @seealso [BiocManager] [install.packages()]
-#' @examples
-#' \dontrun{
-#'  require.auto("ggplot2")
-#' }
+#' @param gitdir Desired repository, defaulting to my hpgltools copy.
+#' @param commit commit ID to which to reset.
 #' @export
-please_install <- function(lib, update = FALSE) {
-  count <- 0
-  local({
-    r <- getOption("repos")
-    r["CRAN"] <- "http://cran.r-project.org"
-    options(repos = r)
-  })
-  if (isTRUE(update)) {
-    utils::update.packages(ask = FALSE)
+pull_git_commit <- function(gitdir = "~/hpgltools", commit = NULL) {
+  if (is.null(commit)) {
+    cmdline <- glue("cd {gitdir} && git log | head -n 3 | grep commit | awk '{{print $2}}'")
+    commit <- system(cmdline, intern = TRUE)
   }
-  github_path <- NULL
-  ## If there is a / in the library's name, assume it is a github path
-  split_lib <- strsplit(x = lib, split = "/")[[1]]
-  if (length(split_lib) == 2) {
-    github_path <- lib
-    lib <- split_lib[[2]]
-  }
-  if (!isTRUE(lib %in% .packages(all.available = TRUE))) {
-    if (is.null(github_path)) {
-      ##eval(parse(text = paste("BiocManager::install('", lib, "', update = FALSE)", sep = "")))
-      installed <- BiocManager::install(lib, update = FALSE)
-      count <- 1
-    } else {
-      ret <- try(devtools::install_github(github_path, upgrade = "never"))
-      if (class(ret) != "try-error") {
-        count <- 1
-      }
-    }
-  }
-  return(count)
+  cmdline <- glue("cd {gitdir} && git pull && git reset {commit_result}")
+  result <- system(cmdline, intern = TRUE)
+  return(result)
 }
 
 #' Append rows containing summary() information.
@@ -623,32 +595,6 @@ rbind_summary_rows <- function(df) {
   colnames(new_stuff) <- new_rows
   new_df <- rbind(df, t(new_stuff))
   return(new_df)
-}
-
-#' Send the R plotter to the computer of your choice!
-#'
-#' Resets the display and xauthority variables to the new computer I am using so
-#' that plot() works.
-#'
-#' @param display DISPLAY variable to use, if NULL it looks in ~/.displays/$(host).last
-#' @return Fresh plotting window to the display of your choice!
-#' @export
-rex <- function(display = ":0") {
-  if (!is.null(dev.list())) {
-    for (i in seq_along(dev.list())) {
-      dev.off()
-    }
-  }
-  home <- Sys.getenv("HOME")
-  host <- Sys.info()[["nodename"]]
-  if (is.null(display)) {
-    display <- read.table(file.path(home, ".displays", glue("{host}.last")))[1, 1]
-  }
-  auth <- file.path(home, ".Xauthority")
-  message("Setting display to: ", display)
-  result <- Sys.setenv("DISPLAY" = display, "XAUTHORITY" = auth)
-  X11(display = display)
-  return(NULL)
 }
 
 #' Add a little logic to rmarkdown::render to date the final outputs as per a
@@ -686,6 +632,32 @@ renderme <- function(file, format = "html_document", overwrite = TRUE) {
   message("Moving ", from, " to\n", basename(to), ".")
   final <- file.rename(from, to)
   return(ret)
+}
+
+#' Send the R plotter to the computer of your choice!
+#'
+#' Resets the display and xauthority variables to the new computer I am using so
+#' that plot() works.
+#'
+#' @param display DISPLAY variable to use, if NULL it looks in ~/.displays/$(host).last
+#' @return Fresh plotting window to the display of your choice!
+#' @export
+rex <- function(display = ":0") {
+  if (!is.null(dev.list())) {
+    for (i in seq_along(dev.list())) {
+      dev.off()
+    }
+  }
+  home <- Sys.getenv("HOME")
+  host <- Sys.info()[["nodename"]]
+  if (is.null(display)) {
+    display <- read.table(file.path(home, ".displays", glue("{host}.last")))[1, 1]
+  }
+  auth <- file.path(home, ".Xauthority")
+  message("Setting display to: ", display)
+  result <- Sys.setenv("DISPLAY" = display, "XAUTHORITY" = auth)
+  X11(display = display)
+  return(NULL)
 }
 
 #' Make a backup rdata file for future reference

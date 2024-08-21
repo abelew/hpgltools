@@ -45,7 +45,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   stepwise_result <- try(step(initial_lm), silent = TRUE)
   forest_df <- initial_summary[2:nrow(initial_summary), ]
   colnames(forest_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
-  forest <- plot_forest_from_regression(plot_df)
+  forest <- plot_forest_from_regression(plot_df, iterate = FALSE, type = "linear")
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -130,7 +130,8 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
     plot_df <- full_summary
   }
   colnames(plot_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
-  forest <- plot_forest_from_regression(plot_df, percent = percent, family = family)
+  forest <- plot_forest_from_regression(plot_df, percent = percent,
+                                        family = family, iterate = FALSE)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -226,10 +227,9 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   } else {
     plot_df <- summary_df
   }
-
   percent <- conf * 100
-  forest <- plot_forest_from_regression(plot_df, percent = percent)
-
+  forest <- plot_forest_from_regression(plot_df, percent = percent,
+                                        type = "linear", iterate = TRUE)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -327,10 +327,8 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   } else {
     plot_df <- summary_df
   }
-
   percent <- conf * 100
-  forest <- plot_forest_from_regression(plot_df, percent = percent)
-
+  forest <- plot_forest_from_regression(plot_df, percent = percent, iterate = TRUE)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -435,12 +433,17 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
 #' @param df The primary dataframe from one of the sister regression functions above.
 #' @param percent Confidence interval chosen.
 #' @param type Either linear or logistic.
+#' @param iterative Was this a series of single-variable regressions, or all in one?
 #' @param family Only currently used for logistic.
-plot_forest_from_regression <- function(df, percent = 95,
-                                        type = "logistic", family = "binomial") {
-  title <- glue("Logistic ({family}) Regression Models Estimating \n Effects on {query}")
+plot_forest_from_regression <- function(df, percent = 95, type = "logistic",
+                                        iterative = TRUE, family = "binomial") {
+  iterate_string <- "Iterative Regression Models"
+  if (!isTRUE(iterative)) {
+    iterate_string <- "Combined Regression Model"
+  }
+  title <- glue("Logistic ({family}) {iterate_string}\n Estimating Effects on {query}")
   if (type != "logistic") {
-    title <- glue("Linear Regression Models Estimating \n Effects on {query}")
+    title <- glue("Linear {iterate_string}\n Estimating Effects on {query}")
   }
   ylabel <- glue("Coefficient {percent}% confidence interval")
   forest <- ggplot(plot_df, aes(x = term, y = estimate, ymin = conf_low, ymax = conf_high)) +
