@@ -12,7 +12,7 @@
 #' @param excel output xlsx file.
 #' @export
 extract_linear_regression <- function(meta, query = "condition", multivariable = TRUE,
-                                      intercept = TRUE, factors = NULL, excel = NULL) {
+                                      intercept = FALSE, factors = NULL, excel = NULL) {
   if (isFALSE(multivariable)) {
     serial <- iterate_linear_regression(design, query = query, factors = factors, family = family,
                                         conf = conf, excel = excel)
@@ -45,7 +45,8 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   stepwise_result <- try(step(initial_lm), silent = TRUE)
   forest_df <- initial_summary[2:nrow(initial_summary), ]
   colnames(forest_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
-  forest <- plot_forest_from_regression(plot_df, iterate = FALSE, type = "linear")
+  forest <- plot_forest_from_regression(plot_df, iterate = FALSE,
+                                        type = "linear", intercept = intercept)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -60,7 +61,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   }
   retlist <- list(
     "initial_lm" = initial_lm,
-    "initial_summary" = initial_summary,
+    "summary" = initial_summary,
     "stepwise_result" = stepwise_result,
     "forest" = forest,
     "excel" = written)
@@ -94,12 +95,15 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
 #' @export
 extract_logistic_regression <- function(design, query = "condition", multivariable = TRUE,
                                         factors = NULL, family = "binomial", conf = 0.95,
-                                        excel = NULL) {
+                                        excel = NULL, intercept = FALSE) {
   if (isFALSE(multivariable)) {
     serial <- iterate_logistic_regression(design, query = query, factors = factors, family = family,
                                           conf = conf, excel = excel)
     return(serial)
   }
+
+  ## TODO: Make this smart enough to accept a formula string in addition to a
+  ## vector of factors of interest.
   initial_fstring <- glue("{query} ~ .")
   if (!is.null(factors)) {
     initial_fstring <- glue("{query} ~ ")
@@ -130,7 +134,7 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
     plot_df <- full_summary
   }
   colnames(plot_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
-  forest <- plot_forest_from_regression(plot_df, percent = percent,
+  forest <- plot_forest_from_regression(plot_df, percent = percent, intercept = intercept,
                                         family = family, iterate = FALSE)
   written <- NULL
   if (!is.null(excel)) {
@@ -334,7 +338,7 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
     excel_basename <- xlsx[["basename"]]
-    written <- write_xlsx(data = full_summary, wb = wb, sheet = "logistic_summary")
+    written <- write_xlsx(data = summary_df, wb = wb, sheet = "logistic_summary")
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "logistic_summary")
@@ -343,7 +347,7 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   }
   retlist <- list(
     "initial_glm" = initial_glm,
-    "summary" = full_summary,
+    "summary" = summary_df,
     "stepwise_result" = stepwise_result,
     "forest" = forest,
     "excel" = written)
@@ -433,12 +437,22 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
 #' @param df The primary dataframe from one of the sister regression functions above.
 #' @param percent Confidence interval chosen.
 #' @param type Either linear or logistic.
-#' @param iterative Was this a series of single-variable regressions, or all in one?
+#' @param iterate Was this a series of single-variable regressions, or all in one?
 #' @param family Only currently used for logistic.
-plot_forest_from_regression <- function(df, percent = 95, type = "logistic",
-                                        iterative = TRUE, family = "binomial") {
+#' @param intercept Include the intercept in the plot?
+#' @export
+plot_forest_from_regression <- function(plot_df, percent = 95, type = "logistic",
+                                        iterate = TRUE, family = "binomial",
+                                        intercept = FALSE, base_size = 18, title_size = 22,
+                                        axis_size = 20) {
+  ## On may not wish to see the intercept in the plot, if not, remove it here...
+  if (!isTRUE(intercept)) {
+    mesg("Removing intercept row(s).")
+    intercept_idx <- grepl(x = rownames(plot_df), pattern = "ntercept")
+    plot_df <- plot_df[!intercept_idx, ]
+  }
   iterate_string <- "Iterative Regression Models"
-  if (!isTRUE(iterative)) {
+  if (!isTRUE(iterate)) {
     iterate_string <- "Combined Regression Model"
   }
   title <- glue("Logistic ({family}) {iterate_string}\n Estimating Effects on {query}")
@@ -454,10 +468,11 @@ plot_forest_from_regression <- function(df, percent = 95, type = "logistic",
     xlab("") +
     ylab(ylabel) +
     labs(title = title) +
+    theme_bw(base_size = base_size) +
     theme(
-      plot.title = element_text(size = 14, face = "bold"),
-      axis.text.x = element_text(size = 12),
-      axis.text.y = element_text(size = 12))
+      plot.title = element_text(size = title_size, face = "bold"),
+      axis.text.x = element_text(size = axis_size),
+      axis.text.y = element_text(size = axis_size))
   return(forest)
 }
 ## EOF

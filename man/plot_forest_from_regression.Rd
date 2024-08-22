@@ -5,23 +5,29 @@
 \title{Given the result from one of the regression testers, plot it!}
 \usage{
 plot_forest_from_regression(
-  df,
+  plot_df,
   percent = 95,
   type = "logistic",
-  iterative = TRUE,
-  family = "binomial"
+  iterate = TRUE,
+  family = "binomial",
+  intercept = FALSE,
+  base_size = 18,
+  title_size = 22,
+  axis_size = 20
 )
 }
 \arguments{
-\item{df}{The primary dataframe from one of the sister regression functions above.}
-
 \item{percent}{Confidence interval chosen.}
 
 \item{type}{Either linear or logistic.}
 
-\item{iterative}{Was this a series of single-variable regressions, or all in one?}
+\item{iterate}{Was this a series of single-variable regressions, or all in one?}
 
 \item{family}{Only currently used for logistic.}
+
+\item{intercept}{Include the intercept in the plot?}
+
+\item{df}{The primary dataframe from one of the sister regression functions above.}
 }
 \description{
 Given the result from one of the regression testers, plot it!

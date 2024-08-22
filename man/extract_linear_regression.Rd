@@ -8,7 +8,7 @@ extract_linear_regression(
   meta,
   query = "condition",
   multivariable = TRUE,
-  intercept = TRUE,
+  intercept = FALSE,
   factors = NULL,
   excel = NULL
 )

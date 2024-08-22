@@ -11,7 +11,8 @@ extract_logistic_regression(
   factors = NULL,
   family = "binomial",
   conf = 0.95,
-  excel = NULL
+  excel = NULL,
+  intercept = FALSE
 )
 }
 \arguments{
