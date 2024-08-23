@@ -37,16 +37,16 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, ...) {
                     ...)
     },
     "bmp" = {
-      result <- bmp(filename = file, ...)
+      result <- bmp(filename = file, width = width, height = height, ...)
     },
     "jpg" = {
-      result <- jpeg(filename = file, ...)
+      result <- jpeg(filename = file, width = width, height = height, ...)
     },
     "webp" = {
       result <- webp::write_webp(target = file, ...)
     },
     "svg" = {
-      result <- svg(filename = file, ...)
+      result <- svg(filename = file, width = width, height = height,  ...)
     },
     "ps" = {
       result <- postscript(file = file, width = width, height = height, ...)
@@ -55,7 +55,7 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, ...) {
       result <- cairo_ps(filename = file, width = width, height = height, ...)
     },
     "pdf" = {
-      result <- cairo_pdf(filename = file, ...)
+      result <- cairo_pdf(filename = file, width = width, height = height, ...)
     },
     "tif" = {
       result <- tiff(filename = file, width = width, height = height,

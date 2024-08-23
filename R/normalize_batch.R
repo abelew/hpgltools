@@ -1583,7 +1583,8 @@ plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0
 #' @param queries List of metadata factors to query.
 #' @param ... Used to make compatible with pc_fstatistics and to pass stuff to normalize_expt().
 #' @export
-sv_fstatistics <- function(expt, num_surrogates = NULL, filter = TRUE, norm = "raw",
+sv_fstatistics <- function(expt, num_surrogates = NULL,
+                           filter = TRUE, norm = "raw",
                            convert = "cpm", transform = "log2", batch = "svaseq",
                            sv_df = NULL, queries = c("typeofcells", "visitnumber", "donor"),
                            ...) {
@@ -1635,7 +1636,7 @@ svpc_fstats <- function(expt, ...) {
   if (expt[["state"]][["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
     pre_norm <- normalize_expt(expt, transform = "log2", convert = "cpm",
-                               norm = "quant", filter = TRUE)
+                               filter = TRUE)
   } else {
     pre_norm <- expt
   }
