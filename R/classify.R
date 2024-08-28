@@ -54,7 +54,7 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
     parameter_lst[["return_resample"]] <- "unused"
   } else if (sampler == "bootstrap") {
     sampling_method <- caret::trainControl(method = "boot", number = sample_number,
-                                    returnResamp = "all")
+                                           returnResamp = "all")
     parameter_lst[["return_resample"]] <- "all"
   } else {
     sampling_method <- sampler
@@ -76,10 +76,10 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
   } else if (method == "ranger") {
     if (is.null(tuner)) {
       tuner <- data.frame(
-          mtry = 200,
-          min.node.size = 1,
-          splitrule = "gini")
-      }
+        mtry = 200,
+        min.node.size = 1,
+        splitrule = "gini")
+    }
     train_args <- list(
       "importance" = "permutation")
     parameter_lst[["importance"]] <- "permutation"
@@ -147,10 +147,12 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
 
     trainer <- BiocGenerics::do.call(what = caret::train, args = all_train_args)
     trained <- stats::predict(trainer, train_df)
+    names(trained) <- rownames(train_all)
     message("Evaluating predictions.")
     trained_eval <- self_evaluate_model(trained, partitions,
                                         which_partition = d, type = "train")
     tested <- stats::predict(trainer, test_df)
+    names(tested) <- rownames(test_df)
     tested_eval <- self_evaluate_model(tested, partitions,
                                        which_partition = d, type = "test")
     this_result <- list(
@@ -323,7 +325,7 @@ create_partitions <- function(full_df, interesting_meta, outcome_factor = "condi
 #' @return List containing the resulting groups and some information about them.
 #' @export
 generate_nn_groups <- function(mtrx, resolution = 1, k = 10, type = "snn",
-                                full = TRUE, merge_to = NULL, ...) {
+                               full = TRUE, merge_to = NULL, ...) {
   params <- bluster::SNNGraphParam(k = k, ...)
   if (type == "knn") {
     params <- bluster::KNNGraphParam(k = k)
@@ -444,7 +446,24 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
   if (is.null(name)) {
     name <- result[["parameters"]]["method_used", 1]
   }
-  if (class(excel)[1] == "character" && !file.exists(excel)) {
+  new_worksheet <- TRUE
+  wb <- NULL
+  ## FIXME: multidispatch
+  if ("character" %in% class(excel)) {
+    xlsx <- init_xlsx(excel)
+    wb <- xlsx[["wb"]]
+  } else if (class(excel)[1] == "initialized_xlsx") {
+    wb <- xlsx[["wb"]]
+    new_worksheet <- FALSE
+  } else if (class(excel)[1] == "Workbook") {
+    new_worksheet <- FALSE
+    wb <- excel
+  } else {
+    stop("I do not understand this object.")
+  }
+
+  ## If the legend has not been created...
+  if (! "legend" %in% openxlsx::sheets(wb)) {
     ## Then write a legend sheet
     legend <- data.frame(rbind(
       c("top_table", "Some information about the model generation."),
@@ -473,15 +492,93 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
       c("detection_prevalence", "(/ (+ true_positive true_negative) (sum all))"),
       c("balanced_accuracy", "(/ (+ sensitivity specificity) 2)"),
       c("auc", "Area under the ROC curve.")))
-    excel <- write_xlsx(data = legend, start_col = 1,
-                          start_row = 1, sheet = "legend",
-                          excel = excel)
+    legend_written <- write_xlsx(data = legend, start_col = 1,
+                                 start_row = 1, sheet = "legend",
+                                 wb = wb)
   }
+
   summary_df <- rbind_summary_rows(result[["test_eval_summary"]])
-  written <- write_xlsx(data = result[["parameters"]], sheet = name,
-                        excel = excel, title = "parameters used")
-  written <- write_xlsx(data = summary_df, start_col = 1,
-                        start_row = written[["end_row"]] + 1,
-                        excel = written)
-  return(written)
+  result_written <- write_xlsx(data = result[["parameters"]], sheet = name,
+                               wb = wb, title = "parameters used")
+  summary_written <- write_xlsx(data = summary_df, start_col = 1,
+                                start_row = result_written[["end_row"]] + 1,
+                                wb = wb, sheet = name)
+
+  ## Add a composite roc plot and create a dataframe of the _actual_ train/test results
+  num_roc <- length(result[["all_results"]])
+  chosen_palette <- sm(grDevices::colorRampPalette(
+    RColorBrewer::brewer.pal(num_roc, "Dark2"))(num_roc))
+  train_roc_results <- list()
+  trained_roc_plot <- NULL
+  result_row <- 60
+  for (i in seq_len(num_roc)) {
+    ## Each iteration gets a different training/testing set with different classifications.
+    ## Thus, let us start at ~ row 60 (to stay out of the way of the summary plots)
+    ## and add a row for the test sample names, then a row for the test sample results;
+    ## repeat this process for every iteration; then repeat both of these for the test results.
+    train_result <- result[["all_results"]][[i]][["trained"]]
+    train_names <- names(train_result)
+    train_values <- t(as.data.frame(as.character(train_result)))
+    colnames(train_values) <- train_names
+    rownames(train_values) <- paste0("train_results iteration ", i)
+    test_result <- result[["all_results"]][[i]][["tested"]]
+    test_names <- names(test_result)
+    test_values <- t(as.data.frame(as.character(test_result)))
+    colnames(test_values) <- test_names
+    rownames(test_values) <- paste0("test_results iteration ", i)
+    header_string <- paste0("Iteration ", i, ", train and test results.")
+    xls_result <- openxlsx::writeData(
+      wb = wb, sheet = name, x = header_string,
+      startRow = result_row, startCol = 1)
+    result_row <- result_row + 1
+    train_values_written <- write_xlsx(data = train_values, start_col = 1, data_table = FALSE,
+                                       freeze_first_row = FALSE, freeze_first_column = FALSE,
+                                       title = NULL, start_row = result_row, wb = wb, sheet = name)
+    result_row <- result_row + 2
+    test_values_written <- write_xlsx(data = test_values, start_col = 1, data_table = FALSE,
+                                      freeze_first_row = FALSE, freeze_first_column = FALSE,
+                                      title = NULL, start_row = result_row, wb = wb, sheet = name)
+    result_row <- result_row + 2
+    train_roc <- result[["all_results"]][[i]][["trained_eval"]][["roc"]]
+    if (i == 1) {
+      plot(train_roc)
+    }
+    train_roc_results[[i]] <- train_roc
+    lines(train_roc, col = chosen_palette[i])
+  }
+  trained_roc_plot <- grDevices::recordPlot()
+
+  test_roc_results <- list()
+  tested_roc_plot <- NULL
+  for (i in seq_len(num_roc)) {
+    test_roc <- result[["all_results"]][[i]][["tested_eval"]][["roc"]]
+    if (i == 1) {
+      plot(test_roc)
+    }
+    test_roc_results[[i]] <- test_roc
+    lines(test_roc, col = chosen_palette[i])
+  }
+  tested_roc_plot <- grDevices::recordPlot()
+
+  xls_result <- openxlsx::writeData(
+    wb = wb, sheet = name, x = "Training ROC",
+    startRow = 1, startCol = summary_written[["end_col"]] + 2)
+  trained_plotted <- xlsx_insert_png(
+    a_plot = trained_roc_plot, wb = wb,
+    sheet = name, width = 6, height = 6,
+    start_row = 2, start_col = summary_written[["end_col"]] + 2)
+  xls_result <- openxlsx::writeData(
+    wb = wb, sheet = name, x = "Testing ROC",
+    startRow = 29, startCol = summary_written[["end_col"]] + 2)
+  tested_plotted <- xlsx_insert_png(
+    a_plot = tested_roc_plot, wb = wb,
+    sheet = name, width = 6, height = 6,
+    start_row = 30, start_col = summary_written[["end_col"]] + 2)
+  retlist <- list(
+    "wb" = wb,
+    "legend" = legend_written,
+    "result" = result_written,
+    "summary" = summary_written)
+  class(retlist) <- "ml_summary_written"
+  return(retlist)
 }

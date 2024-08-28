@@ -39,7 +39,7 @@ Suggests:
   pander, parallel, pasilla, pathfindR, pathview, pcaMethods, Peptides,
   pheatmap, plyr, preprocessCore, pROC, PROPER, purrr,
   qvalue,
-  R.utils, RColorBrewer, RCurl, readr, reactome.db, readODS, readxl,
+  R.utils, RColorBrewer, RCurl, readr, reactome.db, ReactomePA, readODS, readxl,
   reshape2, rGADEM, Rgraphviz, rhdf5, Rhdf5lib, rjson, rmarkdown, robust,
   robustbase, Rsamtools, Rtsne,
   rtracklayer, ruv, RUVSeq, rvest,
