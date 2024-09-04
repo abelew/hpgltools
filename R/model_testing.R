@@ -39,13 +39,15 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   }
 
   initial_lm <- lm(as.formula(initial_fstring), data = meta)
+  ## In the container, this seems to fail with 'no applicable method
+  ## for tidy applied to object of class summary.lm
   initial_summary <- summary(initial_lm) %>%
     generics::tidy(conf.int = TRUE)
   ## FIXME: Figure this out, presumably I am feeding lm a model which is not full rank in some way?
   stepwise_result <- try(step(initial_lm), silent = TRUE)
   forest_df <- initial_summary[2:nrow(initial_summary), ]
   colnames(forest_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
-  forest <- plot_forest_from_regression(plot_df, iterate = FALSE,
+  forest <- plot_forest_from_regression(forest_df, iterate = FALSE,
                                         type = "linear", intercept = intercept)
   written <- NULL
   if (!is.null(excel)) {
@@ -461,18 +463,18 @@ plot_forest_from_regression <- function(plot_df, percent = 95, type = "logistic"
   }
   ylabel <- glue("Coefficient {percent}% confidence interval")
   forest <- ggplot(plot_df, aes(x = term, y = estimate, ymin = conf_low, ymax = conf_high)) +
-    geom_pointrange(color = "black", size = 0.5) +
+    ggplot2::geom_pointrange(color = "black", size = 0.5) +
     ## scale_y_continuous(limits = c(min_val, max_val)) +
-    geom_hline(yintercept = 0, color = "steelblue") +
-    coord_flip() +
-    xlab("") +
-    ylab(ylabel) +
-    labs(title = title) +
-    theme_bw(base_size = base_size) +
-    theme(
-      plot.title = element_text(size = title_size, face = "bold"),
-      axis.text.x = element_text(size = axis_size),
-      axis.text.y = element_text(size = axis_size))
+    ggplot2::geom_hline(yintercept = 0, color = "steelblue") +
+    ggplot2::coord_flip() +
+    ggplot2::xlab("") +
+    ggplot2::ylab(ylabel) +
+    ggplot2::labs(title = title) +
+    ggplot2::theme_bw(base_size = base_size) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(size = title_size, face = "bold"),
+      axis.text.x = ggplot2::element_text(size = axis_size),
+      axis.text.y = ggplot2::element_text(size = axis_size))
   return(forest)
 }
 ## EOF
