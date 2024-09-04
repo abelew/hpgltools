@@ -12,18 +12,29 @@
 #' @param excel output xlsx file.
 #' @export
 extract_linear_regression <- function(meta, query = "condition", multivariable = TRUE,
-                                      intercept = FALSE, factors = NULL, excel = NULL) {
+                                      scale = TRUE, intercept = FALSE, factors = NULL,
+                                      excel = NULL) {
   if (isFALSE(multivariable)) {
     serial <- iterate_linear_regression(design, query = query, factors = factors, family = family,
                                         conf = conf, excel = excel)
     return(serial)
   }
   initial_fstring <- glue("{query} ~ .")
+  if (isTRUE(scale)) {
+    initial_fstring <- glue("scale({query}) ~ .")
+  }
   if (!is.null(factors)) {
     initial_fstring <- glue("{query} ~ ")
+    if (isTRUE(scale)) {
+      initial_fstring <- glue("scale({query}) ~ ")
+    }
     for (fct in factors) {
       message("Adding: ", fct)
-      initial_fstring <- glue("{initial_fstring} {fct} +")
+      if (isTRUE(scale)) {
+        initial_fstring <- glue("{initial_fstring} scale({fct}) +")
+      } else {
+        initial_fstring <- glue("{initial_fstring} {fct} +")
+      }
     }
     initial_fstring <- gsub(x = initial_fstring, pattern = " \\+$", replacement = "")
   }
@@ -97,7 +108,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
 #' @export
 extract_logistic_regression <- function(design, query = "condition", multivariable = TRUE,
                                         factors = NULL, family = "binomial", conf = 0.95,
-                                        excel = NULL, intercept = FALSE) {
+                                        scale = TRUE, excel = NULL, intercept = FALSE) {
   if (isFALSE(multivariable)) {
     serial <- iterate_logistic_regression(design, query = query, factors = factors, family = family,
                                           conf = conf, excel = excel)
@@ -107,11 +118,21 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   ## TODO: Make this smart enough to accept a formula string in addition to a
   ## vector of factors of interest.
   initial_fstring <- glue("{query} ~ .")
+  if (isTRUE(scale) && class(design[[query]])[1] == "numeric") {
+    initial_fstring <- glue("scale({query}) ~ .")
+  }
   if (!is.null(factors)) {
     initial_fstring <- glue("{query} ~ ")
+    if (isTRUE(scale) && class(design[[query]])[1] == "numeric") {
+      initial_fstring <- glue("scale({query}) ~ ")
+    }
     for (fct in factors) {
       message("Adding: ", fct)
-      initial_fstring <- glue("{initial_fstring} {fct} +")
+      if (isTRUE(scale) && class(design[[fct]])[1] == "numeric") {
+        initial_fstring <- glue("{initial_fstring} scale({fct}) +")
+      } else {
+        initial_fstring <- glue("{initial_fstring} {fct} +")
+      }
     }
     initial_fstring <- gsub(x = initial_fstring, pattern = " \\+$", replacement = "")
   }

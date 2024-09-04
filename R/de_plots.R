@@ -1572,9 +1572,10 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"))
   ##  axis.text.x = ggplot2::element_text(angle=-90))
-
+  num_labels <- 0
   if (!is.null(label)) {
     if (is.numeric(label)) {
+      num_labels <- label
       reordered_idx <- order(df[["xaxis"]])
       reordered <- df[reordered_idx, ]
       sig_idx <- reordered[["logyaxis"]] >= horiz_line &
@@ -1587,6 +1588,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
     } else if (is.character(label)) {
       sig_idx <- df[["label"]] %in% label
       mesg("Found ", sum(sig_idx), " of the labeled genes.")
+      num_labels <- sum(sig_idx)
       df_subset <- df[sig_idx, ]
     } else {
       stop("I do not understand this set of IDs to label.")
@@ -1597,7 +1599,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                    x = .data[["xaxis"]]),
                                colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
                                point.padding = ggplot2::unit(1.6, "lines"),
-                               size = label_size, max.overlaps = label * 2,
+                               size = label_size, max.overlaps = num_labels * 2,
                                arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
   }
 
