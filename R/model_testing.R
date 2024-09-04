@@ -46,7 +46,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   ## FIXME: Figure this out, presumably I am feeding lm a model which is not full rank in some way?
   stepwise_result <- try(step(initial_lm), silent = TRUE)
   forest_df <- initial_summary[2:nrow(initial_summary), ]
-  colnames(forest_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
+  colnames(forest_df) <- c("term", "estimate", "std_error", "z", "pr_z", "conf_low", "conf_high")
   forest <- plot_forest_from_regression(forest_df, iterate = FALSE,
                                         type = "linear", intercept = intercept)
   written <- NULL
