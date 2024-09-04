@@ -889,8 +889,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_go <- TRUE
   if (is.null(gprofiler_result[["GO"]])) {
     do_go <- FALSE
-  }
-  if (nrow(gprofiler_result[["GO"]]) == 0) {
+  } else if (nrow(gprofiler_result[["GO"]]) == 0) {
     do_go <- FALSE
   }
   if (isTRUE(do_go)) {
@@ -994,8 +993,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_kegg <- TRUE
   if (is.null(gprofiler_result[["KEGG"]])) {
     do_kegg <- FALSE
-  }
-  if (nrow(gprofiler_result[["KEGG"]]) == 0) {
+  } else if (nrow(gprofiler_result[["KEGG"]]) == 0) {
     do_kegg <- FALSE
   }
   if (isTRUE(do_kegg)) {
@@ -1048,8 +1046,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_tf <- TRUE
   if (is.null(gprofiler_result[["TF"]])) {
     do_tf <- FALSE
-  }
-  if (nrow(gprofiler_result[["TF"]]) == 0) {
+  } else if (nrow(gprofiler_result[["TF"]]) == 0) {
     do_tf <- FALSE
   }
   if (isTRUE(do_tf)) {
@@ -1099,8 +1096,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_reactome <- TRUE
   if (is.null(gprofiler_result[["REAC"]])) {
     do_reactome <- FALSE
-  }
-  if (nrow(gprofiler_result[["REAC"]]) == 0) {
+  } else if (nrow(gprofiler_result[["REAC"]]) == 0) {
     do_reactome <- FALSE
   }
   if (isTRUE(do_reactome)) {
@@ -1150,8 +1146,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_mi <- TRUE
   if (is.null(gprofiler_result[["MIRNA"]])) {
     do_mi <- FALSE
-  }
-  if (nrow(gprofiler_result[["MIRNA"]]) == 0) {
+  } else if (nrow(gprofiler_result[["MIRNA"]]) == 0) {
     do_mi <- FALSE
   }
   if (isTRUE(do_mi)) {
@@ -1201,8 +1196,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_hp <- TRUE
   if (is.null(gprofiler_result[["HP"]])) {
     do_hp <- FALSE
-  }
-  if (nrow(gprofiler_result[["HP"]]) == 0) {
+  } else if (nrow(gprofiler_result[["HP"]]) == 0) {
     do_hp <- FALSE
   }
   if (isTRUE(do_hp)) {
@@ -1252,8 +1246,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_hpa <- TRUE
   if (is.null(gprofiler_result[["HPA"]])) {
     do_hpa <- FALSE
-  }
-  if (nrow(gprofiler_result[["HPA"]]) == 0) {
+  } else if (nrow(gprofiler_result[["HPA"]]) == 0) {
     do_hpa <- FALSE
   }
   if (isTRUE(do_hpa)) {
@@ -1303,8 +1296,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_corum <- TRUE
   if (is.null(gprofiler_result[["CORUM"]])) {
     do_corum <- FALSE
-  }
-  if (nrow(gprofiler_result[["CORUM"]]) == 0) {
+  } else if (nrow(gprofiler_result[["CORUM"]]) == 0) {
     do_corum <- FALSE
   }
   if (isTRUE(do_corum)) {
@@ -1354,8 +1346,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   do_wp <- TRUE
   if (is.null(gprofiler_result[["WP"]])) {
     do_wp <- FALSE
-  }
-  if (nrow(gprofiler_result[["WP"]]) == 0) {
+  } else if (nrow(gprofiler_result[["WP"]]) == 0) {
     do_wp <- FALSE
   }
   if (isTRUE(do_wp)) {

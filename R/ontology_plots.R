@@ -760,7 +760,9 @@ plot_gprofiler2_pval <- function(gp_result, wrapped_width = 30,
     table <- types[num]
     plotting <- gp_result[[table]]
     plot <- NULL
-    if (is.null(plotting) | nrow(plotting) == 0) {
+    if (is.null(plotting)) {
+      plot <- NULL
+    } else if (nrow(plotting) == 0) {
       plot <- NULL
     } else {
       plotting <- gp_rewrite_df(plotting)

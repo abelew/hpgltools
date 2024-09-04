@@ -27,6 +27,7 @@ simple_gprofiler2(
   adjp = "g_SCS",
   domain_scope = "annotated",
   bg = NULL,
+  min_genes = 10,
   pseudo_gsea = TRUE,
   id_col = "row.names",
   plot_type = "dotplot",

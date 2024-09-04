@@ -449,7 +449,7 @@ local_get_value <- function(x, delimiter = ": ") {
 #' @return Factor with levels from q1 to q4.
 #' @export
 make_quartile_factor <- function(numeric_vector) {
-  new_factor <- as.factor(paste0("q", ntile(numeric_vector), 4))
+  new_factor <- as.factor(paste0("q", ntile(numeric_vector, 4)))
   return(new_factor)
 }
 

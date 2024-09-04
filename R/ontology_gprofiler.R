@@ -132,7 +132,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               do_corum = TRUE, do_hp = TRUE, do_hpa = TRUE, do_wp = TRUE,
                               significant = TRUE, exclude_iea = FALSE, do_under = FALSE,
                               evcodes = TRUE, threshold = 0.05, adjp = "g_SCS",
-                              domain_scope = "annotated", bg = NULL,
+                              domain_scope = "annotated", bg = NULL, min_genes = 10,
                               pseudo_gsea = TRUE, id_col = "row.names", plot_type = "dotplot",
                               excel = NULL, enrich_id_column = NULL) {
   if (!is.null(enrich_id_column)) {
@@ -169,6 +169,12 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     } else {
       gene_ids <- gene_list[[id_col]]
     }
+  }
+
+  ## gProfiler is somewhat focused on human data, turn some searches off if
+  ## we are not querying human data.
+  if (species != "hsapiens") {
+    do_hpa <- FALSE
   }
 
   retlst <- list()
@@ -215,10 +221,15 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   types <- c("GO", "KEGG", "REAC", "WP", "TF", "MIRNA", "HPA", "CORUM", "HP")
   num_hits <- rep(0, length(types))
   names(num_hits) <- types
+  num_genes <- length(gene_ids)
+  if (num_genes <= min_genes) {
+    message("There are only, ", num_genes, " returning null.")
+    return(NULL)
+  }
   for (t in seq_along(type_names)) {
     type <- type_names[t]
     mesg("Performing gProfiler ", type, " search of ",
-         length(gene_ids), " genes against ", species, ".")
+         num_genes, " genes against ", species, ".")
     Sys.sleep(1)
     ## To avoid the error: "'names' attribute [14] must be the same length as
     ## the vector [1]"
