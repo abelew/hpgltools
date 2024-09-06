@@ -48,10 +48,9 @@ Suggests:
   stringr, survJamda, SWATH2stats,
   taxize, testthat, tibble, tidyr, tidymodels, tidyselect, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
-  varhandle, variancePartition,
+  varhandle, variancePartition, Vennerable,
   WGCNA,
-  xCell, xml2,
-  Vennerable, venneuler
+  xCell, xml2
 Imports:
   data.table, DOSE, dplyr,
   forcats, foreach,
