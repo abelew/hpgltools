@@ -11,6 +11,7 @@ extract_logistic_regression(
   factors = NULL,
   family = "binomial",
   conf = 0.95,
+  scale = TRUE,
   excel = NULL,
   intercept = FALSE
 )

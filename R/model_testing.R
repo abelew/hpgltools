@@ -59,7 +59,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   forest_df <- initial_summary[2:nrow(initial_summary), ]
   colnames(forest_df) <- c("term", "estimate", "std_error", "z", "pr_z", "conf_low", "conf_high")
   forest <- plot_forest_from_regression(forest_df, iterate = FALSE,
-                                        type = "linear", intercept = intercept)
+                                        type = "linear", intercept = intercept, query = query)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -158,7 +158,7 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   }
   colnames(plot_df) <- c("estimate", "std_error", "z", "pr_z", "conf_low", "conf_high", "term")
   forest <- plot_forest_from_regression(plot_df, percent = percent, intercept = intercept,
-                                        family = family, iterate = FALSE)
+                                        family = family, iterate = FALSE, query = query)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -256,7 +256,7 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   }
   percent <- conf * 100
   forest <- plot_forest_from_regression(plot_df, percent = percent,
-                                        type = "linear", iterate = TRUE)
+                                        type = "linear", iterate = TRUE, query = query)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -355,7 +355,7 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
     plot_df <- summary_df
   }
   percent <- conf * 100
-  forest <- plot_forest_from_regression(plot_df, percent = percent, iterate = TRUE)
+  forest <- plot_forest_from_regression(plot_df, percent = percent, iterate = TRUE, query = query)
   written <- NULL
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
@@ -467,7 +467,7 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
 plot_forest_from_regression <- function(plot_df, percent = 95, type = "logistic",
                                         iterate = TRUE, family = "binomial",
                                         intercept = FALSE, base_size = 18, title_size = 22,
-                                        axis_size = 20) {
+                                        axis_size = 20, query = "condition") {
   ## On may not wish to see the intercept in the plot, if not, remove it here...
   if (!isTRUE(intercept)) {
     mesg("Removing intercept row(s).")
