@@ -32,6 +32,14 @@ NULL
 #' @importFrom foreach %dopar%
 NULL
 
+#' broom provides accessors to models
+#'
+#' I am spending a lot more time messing with models from various
+#' tools, as a result broom turns out to be quite handy.
+#' @name broom
+#' @import broom
+NULL
+
 #' The enrichResult class.
 #'
 #' I create enrichResult objects in each of the xxx2enrich().

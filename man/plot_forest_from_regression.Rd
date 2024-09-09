@@ -13,7 +13,8 @@ plot_forest_from_regression(
   intercept = FALSE,
   base_size = 18,
   title_size = 22,
-  axis_size = 20
+  axis_size = 20,
+  query = "condition"
 )
 }
 \arguments{
