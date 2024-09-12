@@ -47,10 +47,10 @@ plot_exprs_by_chromosome <- function(expt, chromosome_column = "chromosome", sca
     start <- start[min_idx, ]
 
     plt <- ggplot(start, aes(y = exprs_mean, x = genes)) +
-      geom_point() +
-      scale_y_log10()
+      ggplot2::geom_point() +
+      ggplot2::scale_y_log10()
     plt <- ggplot(start, aes(y = exprs_var, x = genes)) +
-      geom_point()
+      ggplot2::geom_point()
   }
   retlist <- list(
     "plot" = plt,

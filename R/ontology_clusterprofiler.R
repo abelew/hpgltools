@@ -84,6 +84,15 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
   return(ret)
 }
 
+#' I cannot be trusted to type 'cluster'
+#'
+#' @param ... Passed to simple_clusterprofiler()
+#' @export
+simple_cprofiler <- function(...) {
+  simple_clusterprofiler(...)
+}
+
+
 #' Perform the array of analyses in the 2016-04 version of clusterProfiler
 #'
 #' The new version of clusterProfiler has a bunch of new toys.  However, it is
@@ -296,6 +305,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   gse_go <- list()
   de_table_merged <- NULL
+  gse <- list()
   if (isTRUE(do_gsea)) {
     ## Why did I do this? ## Ahh for the GSE analyses, they want ordered gene IDs
     ## Add the entrezIDs to the end
@@ -438,18 +448,37 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                               color.params = list(foldChange = genelist)), silent = TRUE)
 
   tree_sig_mf <- tree_sig_bp <- tree_sig_cc <- NULL
+  tmp_file <- tmpmd5file(pattern = "mftree", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   tree_mf <- sm(try(clusterProfiler::plotGOgraph(ego_sig_mf), silent = TRUE))
   if (class(tree_mf)[[1]] != "try-error") {
     tree_sig_mf <- recordPlot()
   }
+  dev.off()
+  removed <- suppressWarnings(file.remove(tmp_file))
+  removed <- unlink(dirname(tmp_file))
+
+  tmp_file <- tmpmd5file(pattern = "bptree", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   tree_bp <- sm(try(clusterProfiler::plotGOgraph(ego_sig_bp), silent = TRUE))
   if (class(tree_bp)[[1]] != "try-error") {
     tree_sig_bp <- recordPlot()
   }
+  dev.off()
+  removed <- suppressWarnings(file.remove(tmp_file))
+  removed <- unlink(dirname(tmp_file))
+  tmp_file <- tmpmd5file(pattern = "cctree", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   tree_cc <- sm(try(clusterProfiler::plotGOgraph(ego_sig_cc), silent = TRUE))
   if (class(tree_cc)[[1]] != "try-error") {
     tree_sig_cc <- recordPlot()
   }
+  dev.off()
+  removed <- suppressWarnings(file.remove(tmp_file))
+  removed <- unlink(dirname(tmp_file))
 
   ggo_mf_bar <- try(barplot(ggo_mf, drop = TRUE,
                             showCategory = categories), silent = TRUE)

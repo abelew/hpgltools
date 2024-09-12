@@ -10,7 +10,8 @@ gprofiler2enrich(
   cutoff = 1,
   organism = NULL,
   padjust_method = "BH",
-  enrich_ids = NULL
+  enrich_ids = NULL,
+  min_go_level = 3
 )
 
 gprofiler2enrich(
@@ -19,7 +20,8 @@ gprofiler2enrich(
   cutoff = 1,
   organism = NULL,
   padjust_method = "BH",
-  enrich_ids = NULL
+  enrich_ids = NULL,
+  min_go_level = 3
 )
 }
 \arguments{

@@ -146,7 +146,6 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   colnames(initial_conf) <- c("conf.low", "conf.high")
   full_summary <- as.data.frame(cbind(summary_df, initial_conf))
   full_summary[["term"]] <- rownames(full_summary)
-  stepwise_result <- step(initial_glm)
   percent <- conf * 100
   complete_idx <- complete.cases(full_summary)
   if (sum(!complete_idx) > 0) {
@@ -174,7 +173,6 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   retlist <- list(
     "initial_glm" = initial_glm,
     "summary" = full_summary,
-    "stepwise_result" = stepwise_result,
     "forest" = forest,
     "excel" = written)
   return(retlist)
@@ -272,7 +270,6 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   retlist <- list(
     "initial_lm" = initial_lm,
     "summary" = full_summary,
-    "stepwise_result" = stepwise_result,
     "forest" = forest,
     "excel" = written)
   return(retlist)
@@ -371,7 +368,6 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   retlist <- list(
     "initial_glm" = initial_glm,
     "summary" = summary_df,
-    "stepwise_result" = stepwise_result,
     "forest" = forest,
     "excel" = written)
   return(retlist)

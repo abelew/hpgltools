@@ -10,7 +10,9 @@ simple_gprofiler2(
   convert = TRUE,
   first_col = "deseq_logfc",
   second_col = "logfc",
-  do_go = TRUE,
+  do_mf = TRUE,
+  do_bp = TRUE,
+  do_cc = FALSE,
   do_kegg = TRUE,
   do_reactome = TRUE,
   do_mi = TRUE,
@@ -28,11 +30,11 @@ simple_gprofiler2(
   domain_scope = "annotated",
   bg = NULL,
   min_genes = 10,
-  pseudo_gsea = TRUE,
+  ordered = TRUE,
   id_col = "row.names",
   plot_type = "dotplot",
   excel = NULL,
-  enrich_id_column = NULL
+  min_go_level = 3
 )
 }
 \arguments{
@@ -46,8 +48,6 @@ genes.}
 \item{first_col}{First place used to define the order of 'significant'.}
 
 \item{second_col}{If that fails, try a second column.}
-
-\item{do_go}{Perform GO search?}
 
 \item{do_kegg}{Perform KEGG search?}
 
@@ -82,7 +82,7 @@ longer.}
 
 \item{bg}{Background genes.}
 
-\item{pseudo_gsea}{Is the data in a ranked order by significance?}
+\item{ordered}{Is the data in a ranked order by significance?}
 
 \item{id_col}{Which column in the table should be used for gene ID
 crossreferencing?  gProfiler uses Ensembl ids.  So if you have a table of
@@ -91,6 +91,8 @@ entrez or whatever, translate it!}
 \item{plot_type}{Use this plot type for images.}
 
 \item{excel}{Print the results to an excel file?}
+
+\item{do_go}{Perform GO search?}
 
 \item{enrich_id_column}{Column from which to extract more readable gene IDs when
 creating a clusterProfiler-compatible enrich object.}
