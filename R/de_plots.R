@@ -1179,13 +1179,22 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
   }
 
   if (!is.null(label)) {
-    reordered_idx <- order(df[["logfc"]])
-    reordered <- df[reordered_idx, ]
-    ## I am now taking 1/2 of the number of desired labeled genes on each side.
-    ## I think this more accurately fits the spirit of this idea.
-    top <- head(reordered, n = (ceiling(label / 2)))
-    bottom <- tail(reordered, n = (ceiling(label / 2)))
-    df_subset <- rbind(top, bottom)
+    if (is.numeric(label)) {
+      reordered_idx <- order(df[["logfc"]])
+      reordered <- df[reordered_idx, ]
+      ## I am now taking 1/2 of the number of desired labeled genes on each side.
+      ## I think this more accurately fits the spirit of this idea.
+      top <- head(reordered, n = (ceiling(label / 2)))
+      bottom <- tail(reordered, n = (ceiling(label / 2)))
+      df_subset <- rbind(top, bottom)
+    } else if (is.character(label)) {
+      sig_idx <- df[["label"]] %in% label
+      mesg("Found ", sum(sig_idx), " of the labeled genes.")
+      num_labels <- sum(sig_idx)
+      df_subset <- df[sig_idx, ]
+    } else {
+      stop("I do not understand this set of IDs to label.")
+    }
     plt <- plt +
       ggrepel::geom_text_repel(
         data = df_subset,
@@ -1300,6 +1309,7 @@ plot_volcano_de <- function(table, alpha = 0.5, color_by = "p",
                             shapes_by_state = FALSE, minimum_p = NULL,
                             size = 2, invert = FALSE, label = NULL,
                             label_column = "hgncsymbol", ...) {
+  arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(p)
 
@@ -1472,6 +1482,7 @@ plot_volcano_de <- function(table, alpha = 0.5, color_by = "p",
 #' @param color_low and the downs.
 #' @param size Point size
 #' @param invert Flip the plot?
+#' @param stroke Include the geom_color to get the outline of the dots?
 #' @param label Label some points?
 #' @param label_column Using this column in the data.
 #' @param label_size Use this font size for the labels on the plot.
@@ -1480,11 +1491,11 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       fc_col = "logFC", fc_name = "log2 fold change",
                                       line_color = "black", line_position = "bottom", logfc = 1.0,
                                       p_col = "adj.P.Val", p_name = "-log10 p-value", pval = 0.05,
-                                      shapes_by_state = FALSE,
+                                      shapes_by_state = FALSE, stroke = TRUE, fill = TRUE,
                                       color_high = "darkred", color_low = "darkblue",
-                                      size = 2, invert = FALSE, label = NULL,
-                                      label_column = "hgncsymbol", label_size = 6) {
-
+                                      size = 2, invert = FALSE, label = NULL, label_type = "text",
+                                      label_column = "hgncsymbol", label_size = 6, ...) {
+  arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(pval)
 
@@ -1530,10 +1541,24 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
   plot_colors <- c("#555555", color_high, color_low)
   names(plot_colors) <- c("insignificant", "up", "down")
 
-  plt <- ggplot(data = df,
-                aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
-                    label = .data[["label"]], fill = .data[["state"]],
-                    colour = .data[["state"]]))
+  if (isTRUE(stroke) && isTRUE(fill)) {
+    plt <- ggplot(data = df,
+                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
+                      label = .data[["label"]], fill = .data[["state"]],
+                      colour = .data[["state"]]))
+  } else if (isTRUE(stroke)) {
+    plt <- ggplot(data = df,
+                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
+                      label = .data[["label"]], colour = .data[["state"]]))
+  } else if (isTRUE(fill)) {
+    plt <- ggplot(data = df,
+                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
+                      label = .data[["label"]], fill = .data[["state"]]))
+  } else {
+    plt <- ggplot(data = df,
+                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
+                      label = .data[["label"]]))
+  }
 
   ## Now define when to put lines vs. points
   if (is.null(line_position)) {
@@ -1561,11 +1586,22 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
   }
 
   ## Now set the colors and axis labels
+  if (isTRUE(stroke) && isTRUE(fill)) {
   plt <- plt +
     ggplot2::scale_fill_manual(name = "state", values = plot_colors,
                                guide = "none") +
     ggplot2::scale_color_manual(name = "state", values = plot_colors,
-                                guide = "none") +
+                                guide = "none")
+  } else if (isTRUE(stroke)) {
+    plt <- plt +
+      ggplot2::scale_color_manual(name = "state", values = plot_colors,
+                                  guide = "none")
+  } else if (isTRUE(fill)) {
+    plt <- plt +
+      ggplot2::scale_fill_manual(name = "state", values = plot_colors,
+                                 guide = "none")
+  }
+  plt <- plt +
     ggplot2::xlab(label = fc_name) +
     ggplot2::ylab(label = p_name) +
     ## ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 3))) +
@@ -1593,14 +1629,34 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
     } else {
       stop("I do not understand this set of IDs to label.")
     }
-    plt <- plt +
-      ggrepel::geom_text_repel(data = df_subset,
-                               aes(label = .data[["label"]], y = .data[["logyaxis"]],
-                                   x = .data[["xaxis"]]),
-                               colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
-                               point.padding = ggplot2::unit(1.6, "lines"),
-                               size = label_size, max.overlaps = num_labels * 2,
-                               arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
+    if (label_type == "text") {
+      plt <- plt +
+        ggrepel::geom_text_repel(data = df_subset,
+                                 aes(label = .data[["label"]], y = .data[["logyaxis"]],
+                                     x = .data[["xaxis"]]),
+                                 colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
+                                 point.padding = ggplot2::unit(1.6, "lines"),
+                                 size = label_size, max.overlaps = num_labels * 2,
+                                 arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
+    } else {
+      mesg("Assuming geom_label_repel for labels.")
+      nudge_x <- 0
+      nudge_y <- 0
+      if (!is.null(arglist[["nudge_x"]])) {
+        nudge_x <- arglist[["nudge_x"]]
+      }
+      if (!is.null(arglist[["nudge_y"]])) {
+        nudge_x <- arglist[["nudge_y"]]
+      }
+
+      plt <- plt +
+        ggrepel::geom_label_repel(data = df_subset,
+                                  aes(label = .data[["label"]],
+                                      y = .data[["logyaxis"]], x = .data[["xaxis"]]),
+                                  colour = "black", fill = "white",
+                                  max.overlaps = num_labels * 2, size = label_size,
+                                  nudge_x = nudge_x, nudge_y = nudge_y)
+    }
   }
 
   retlist <- list("plot" = plt,

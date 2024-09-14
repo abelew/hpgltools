@@ -249,10 +249,10 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     ## To avoid the error: "'names' attribute [14] must be the same length as
     ## the vector [1]"
     gene_ids <- as.vector(gene_ids)
-    a_result <- try(gprofiler2::gost(
+    a_result <- sm(try(gprofiler2::gost(
       query = gene_ids, organism = species, evcodes = evcodes, significant = significant,
       ordered_query = ordered, user_threshold = threshold, correction_method = adjp,
-      domain_scope = domain_scope, custom_bg = bg, sources = source))
+      domain_scope = domain_scope, custom_bg = bg, sources = source)))
     a_df <- data.frame(stringsAsFactors = FALSE)
     if ("try-error" %in% class(a_result)) {
       mesg("The ", type, " method failed for this organism.")
@@ -265,21 +265,24 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
       mesg(type, " search found ", nrow(sig_df), " hits.")
       num_hits[[type]] <- nrow(sig_df)
       sig_tables[[type]] <- sig_df
-      gost_links[[type]] <- gprofiler2::gost(
+      gost_links[[type]] <- sm(gprofiler2::gost(
         query = gene_ids, organism = species, evcodes = evcodes, significant = significant,
         ordered_query = ordered, user_threshold = threshold, correction_method = adjp,
-        domain_scope = domain_scope, custom_bg = bg, sources = source, as_short_link = TRUE)
-      interactive_plots[[type]] <- try(
-          gprofiler2::gostplot(a_result, capped = TRUE, interactive = TRUE), silent = TRUE)
-      gost_plots[[type]] <- try(
-          gprofiler2::gostplot(a_result, capped = FALSE, interactive = FALSE), silent = TRUE)
+        domain_scope = domain_scope, custom_bg = bg, sources = source, as_short_link = TRUE))
+      interactive_plots[[type]] <- sm(try(
+        gprofiler2::gostplot(a_result, capped = TRUE, interactive = TRUE), silent = TRUE))
+      gost_plots[[type]] <- sm(try(
+        gprofiler2::gostplot(a_result, capped = FALSE, interactive = FALSE), silent = TRUE))
     }
     enrich_name <- paste0(type, "_enrich")
     ## Note to self, now that I think about it I think gprofiler2 provides its own p-adjustment.
     retlst[[type]] <- a_df
     retlst[[enrich_name]] <- gprofiler2enrich(retlst, ontology = type,
-                                              cutoff = threshold, enrich_ids = enrich_ids,
+                                              cutoff = threshold,
                                               min_go_level = min_go_level)
+##    retlst[[enrich_name]] <- gprofiler2enrich(retlst, ontology = type,
+##                                              cutoff = threshold, enrich_ids = enrich_ids,
+##                                              min_go_level = min_go_level)
   } ## End iterating over the set of default sources.
   retlst[["num_genes"]] <- num_genes
   retlst[["interactive_plots"]] <- interactive_plots
@@ -299,7 +302,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     retlst[["pvalue_plots"]] <- try(plot_gprofiler2_pval(retlst))
   } else if (plot_type == "dotplot") {
     retlst[["pvalue_plots"]] <- try(plot_gprofiler2_pval(retlst))
-    message("Add a little logic here to use enrichplot::dotplot().")
+    mesg("Add a little logic here to use enrichplot::dotplot().")
   } else {
     retlst[["pvalue_plots"]] <- list()
   }
@@ -392,7 +395,7 @@ simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE
   for (t in seq_along(type_names)) {
     type <- type_names[t]
     if (isTRUE(retlst[[type]])) {
-      message("Performing gProfiler ", type, " search of ",
+      mesg("Performing gProfiler ", type, " search of ",
               length(gene_ids), " genes against ", species, ".")
       Sys.sleep(3)
       a_result <- suppressWarnings(
@@ -404,7 +407,7 @@ simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE
                              src_filter = type), silent = TRUE))
       if (class(a_result)[1] != "try-error") {
         retlst[[type]] <- a_result
-        message(type, " search found ", nrow(a_result), " hits.")
+        mesg(type, " search found ", nrow(a_result), " hits.")
       }
     } else {
       retlst[[type]] <- data.frame()
@@ -414,10 +417,10 @@ simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE
   retlst[["input"]] <- sig_genes
   retlst[["pvalue_plots"]] <- try(plot_gprofiler_pval(retlst), silent = TRUE)
   if (!is.null(excel)) {
-    message("Writing data to: ", excel, ".")
+    mesg("Writing data to: ", excel, ".")
     excel_ret <- sm(try(write_gprofiler_data(retlst, excel = excel)))
     retlst[["excel"]] <- excel_ret
-    message("Finished writing data.")
+    mesg("Finished writing data.")
   }
   class(retlst) <- c("gprofiler_result", "list")
   return(retlst)
@@ -439,7 +442,8 @@ simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE
 #' @return The same 'enrich' datastructure produced by clusterProfiler.
 #' @export
 gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
-                             organism = NULL, padjust_method = "BH", enrich_ids = NULL,
+                             organism = NULL, padjust_method = "BH",
+                             ## enrich_ids = NULL,
                              min_go_level = 3) {
   is_go <- FALSE
   if (ontology == "MF" || ontology == "BP" || ontology == "CC") {
@@ -448,9 +452,9 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   interesting <- retlst[[ontology]]
   sig_genes <- c()
   sig_genes_input <- retlst[["input"]]
-  if (!is.null(enrich_ids)) {
-    rownames(sig_genes_input) <- make.names(enrich_ids[["enrich"]], unique = TRUE)
-  }
+  ##if (!is.null(enrich_ids)) {
+  ##  rownames(sig_genes_input) <- make.names(enrich_ids[["enrich"]], unique = TRUE)
+  ##}
   if (class(sig_genes_input)[1] == "character") {
     sig_genes <- sig_genes_input
   } else if ("data.frame" %in% class(sig_genes_input)) {
@@ -468,14 +472,14 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   bg_genes <- sum(!duplicated(sort(interesting[["term_id"]])))
   interesting[["tmp"]] <- bg_genes
   interesting[["adjusted"]] <- p.adjust(interesting[["p_value"]], method = padjust_method)
-  if (!is.null(enrich_ids)) {
-    for (row in seq_len(nrow(enrich_ids))) {
-      from_id <- enrich_ids[row, "id"]
-      to_id <- enrich_ids[row, "enrich"]
-      interesting[["intersection"]] <- gsub(x = interesting[["intersection"]], pattern = from_id,
-                                            replacement = to_id)
-    }
-  }
+  ##if (!is.null(enrich_ids)) {
+  ##  for (row in seq_len(nrow(enrich_ids))) {
+  ##    from_id <- enrich_ids[row, "id"]
+  ##    to_id <- enrich_ids[row, "enrich"]
+  ##    interesting[["intersection"]] <- gsub(x = interesting[["intersection"]], pattern = from_id,
+  ##                                          replacement = to_id)
+  ##  }
+  ##}
 
   genes_per_category <- interesting[, c("term_id", "intersection")]
   category_genes <- gsub(pattern = ",\\s*", replacement = "/",

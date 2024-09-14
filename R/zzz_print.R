@@ -361,34 +361,21 @@ print.gostats_result <- function(x, ...) {
 #' @param ... Other args to match the generic.
 #' @export
 print.gprofiler_result <- function(x, ...) {
+  types <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
+             "MIRNA", "HPA", "CORUM", "HP")
+  num_string <- ""
+  for (t in types) {
+    if (!is.null(x[[t]])) {
+      num_string <- glue("{num_string}\
+{nrow(x[[t]])} {t}")
+    }
+  }
+  num_string <- gsub(x = num_string, pattern = "^\\,", replacement = "")
+
   hit_string <- glue("A set of ontologies produced by gprofiler using {x[['num_genes']]}
 genes against the {x[['species']]} annotations and significance cutoff {x[['threshold']]}.
-There are {nrow(x[['GO']])} GO hits, {nrow(x[['KEGG']])}, \\
-KEGG hits, {nrow(x[['REAC']])} reactome hits, \\
-{nrow(x[['WP']])} wikipathway hits, {nrow(x[['TF']])} transcription factor hits, \\
-{nrow(x[['MIRNA']])} miRNA hits, {nrow(x[['HPA']])} HPA hits, \\
-{nrow(x[['HP']])} HP hits, and {nrow(x[['CORUM']])} CORUM hits.")
+There are: {num_string} hits.")
   message(hit_string)
-  most <- NULL
-  most_num <- 0
-  tries <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
-             "MIRNA", "HPA", "HP", "CORUM")
-  for (t in tries) {
-    if (is.null(x[["pvalue_plots"]][[t]])) {
-      next
-    }
-    this_num <- nrow(x[["pvalue_plots"]][[t]][["data"]])
-    if (this_num > most_num) {
-      most_num <- this_num
-      most <- t
-    }
-  }
-  if (is.null(most)) {
-    message("No categories were deemed worth plotting.")
-  } else {
-    message("Category ", most, " is the most populated with ", most_num, " hits.")
-    plot(x[["pvalue_plots"]][[most]])
-  }
   return(invisible(x))
 }
 
