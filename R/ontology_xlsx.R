@@ -916,22 +916,21 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
       }
       enrich_name <- paste0(type, "_enrich")
       upset <- try(enrichplot::upsetplot(gprofiler_result[[enrich_name]]), silent = TRUE)
-      plot_name <- paste0(type, "_upset")
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = type, width = 12, height = 12,
-        start_col = new_plot_col, start_row = new_row,
-        plotname = plot_name, savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
+      ## If this fails, expect anything else to as well.
+      if (! "try-error" %in% class(upset)) {
+        plot_name <- paste0(type, "_upset")
+        plot_try <- xlsx_insert_png(
+          upset, wb = wb, sheet = type, width = 12, height = 12,
+          start_col = new_plot_col, start_row = new_row,
+          plotname = plot_name, savedir = excel_basename)
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 16
-      }
-      dotplot <- try(enrichplot::dotplot(gprofiler_result[[enrich_name]]), silent = TRUE)
-      plot_name <- paste0(type, "_dotplot")
-      plot_try <- xlsx_insert_png(
-        dotplot, wb = wb, sheet = type, width = 12, height = 12,
-        start_col = new_plot_col, start_row = new_row,
-        plotname = plot_name, savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
+        dotplot <- try(enrichplot::dotplot(gprofiler_result[[enrich_name]]), silent = TRUE)
+        plot_name <- paste0(type, "_dotplot")
+        plot_try <- xlsx_insert_png(
+          dotplot, wb = wb, sheet = type, width = 12, height = 12,
+          start_col = new_plot_col, start_row = new_row,
+          plotname = plot_name, savedir = excel_basename)
         image_files <- c(image_files, plot_try[["filename"]])
         new_plot_col <- new_plot_col + 14
       }

@@ -31,6 +31,7 @@ all_pairwise(
   norm = "quant",
   verbose = TRUE,
   surrogates = "be",
+  methods = NULL,
   ...
 )
 }

@@ -17,13 +17,17 @@ plot_volcano_condition_de(
   p_name = "-log10 p-value",
   pval = 0.05,
   shapes_by_state = FALSE,
+  stroke = TRUE,
+  fill = TRUE,
   color_high = "darkred",
   color_low = "darkblue",
   size = 2,
   invert = FALSE,
   label = NULL,
+  label_type = "text",
   label_column = "hgncsymbol",
-  label_size = 6
+  label_size = 6,
+  ...
 )
 }
 \arguments{
@@ -50,6 +54,8 @@ plot_volcano_condition_de(
 \item{pval}{Demarcation for (in)significance.}
 
 \item{shapes_by_state}{Change point shapes according to their states?}
+
+\item{stroke}{Include the geom_color to get the outline of the dots?}
 
 \item{color_high}{Color for the ups.}
 

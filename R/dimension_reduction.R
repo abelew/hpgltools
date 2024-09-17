@@ -1,5 +1,3 @@
-
-
 ## dimension_reduction.r: Variants of PCA plotting.  The functions in this file
 ## seek to simplify performing the various dimension reduction methods and plot
 ## the results.
@@ -174,7 +172,6 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
   for (fact in queries) {
     fvals <- c()
     pvals <- c()
-    message("PC vector: ", pc_vector)
     for (pc in pc_vector) {
       pc_name <- paste0("pc_", pc)
       pc_lm <- lm(as.numeric(pc_meta[[pc_name]]) ~ as.factor(pc_meta[[fact]]))

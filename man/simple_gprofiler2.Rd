@@ -34,7 +34,8 @@ simple_gprofiler2(
   id_col = "row.names",
   plot_type = "dotplot",
   excel = NULL,
-  min_go_level = 3
+  min_go_level = 3,
+  ...
 )
 }
 \arguments{
@@ -91,6 +92,8 @@ entrez or whatever, translate it!}
 \item{plot_type}{Use this plot type for images.}
 
 \item{excel}{Print the results to an excel file?}
+
+\item{...}{Primarily for changing options when writing a xlsx output.}
 
 \item{do_go}{Perform GO search?}
 

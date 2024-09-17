@@ -69,7 +69,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          do_edger = TRUE, do_limma = TRUE, do_noiseq = TRUE,
                          do_dream = FALSE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
-                         surrogates = "be", ...) {
+                         surrogates = "be", methods = NULL, ...) {
   arglist <- list(...)
   if (is.null(model_cond)) {
     model_cond <- TRUE
@@ -79,6 +79,31 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   }
   if (is.null(model_intercept)) {
     model_intercept <- FALSE
+  }
+
+  if (!is.null(methods)) {
+    if (!is.null(methods[["basic"]])) {
+      do_basic <- methods[["basic"]]
+    }
+    if (!is.null(methods[["deseq"]])) {
+      do_deseq <- methods[["deseq"]]
+    }
+    if (!is.null(methods[["ebseq"]])) {
+      do_ebseq <- methods[["ebseq"]]
+    }
+    if (!is.null(methods[["edger"]])) {
+      do_edger <- methods[["edger"]]
+    }
+    if (!is.null(methods[["limma"]])) {
+      do_limma <- methods[["limma"]]
+    }
+    if (!is.null(methods[["noiseq"]])) {
+      do_noiseq <- methods[["noiseq"]]
+    }
+    if (!is.null(methods[["dream"]])) {
+      do_dream <- methods[["dream"]]
+    }
+
   }
 
   ## EBSeq made an incompatible change in its most recent release.

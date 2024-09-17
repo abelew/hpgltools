@@ -119,6 +119,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 #' @param excel Print the results to an excel file?
 #' @param enrich_id_column Column from which to extract more readable gene IDs when
 #'  creating a clusterProfiler-compatible enrich object.
+#' @param ... Primarily for changing options when writing a xlsx output.
 #' @return a list of results for go, kegg, reactome, and a few more.
 #' @seealso [gProfiler]
 #' @examples
@@ -134,7 +135,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               exclude_iea = FALSE, do_under = FALSE, evcodes = TRUE,
                               threshold = 0.05, adjp = "g_SCS", domain_scope = "annotated",
                               bg = NULL, min_genes = 10, ordered = TRUE, id_col = "row.names",
-                              plot_type = "dotplot", excel = NULL, min_go_level = 3) {
+                              plot_type = "dotplot", excel = NULL, min_go_level = 3, ...) {
 
   gene_list <- NULL
   num_genes <- 0
@@ -166,11 +167,6 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   type_names <- c()
   ## I just noticed that you can pass GO:MF GO:BP and GO:CC
   ## As a result I perhaps should change this.
-  if (isTRUE(do_mf)) {
-    retlst[["MF"]] <- data.frame()
-    sources <- c(sources, "GO:MF")
-    type_names <- c(type_names, "MF")
-  }
   if (isTRUE(do_bp)) {
     retlst[["BP"]] <- data.frame()
     sources <- c(sources, "GO:BP")
@@ -181,36 +177,6 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     sources <- c(sources, "GO:CC")
     type_names <- c(type_names, "CC")
   }
-  if (isTRUE(do_kegg)) {
-    retlst[["KEGG"]] <- data.frame()
-    sources <- c(sources, "KEGG")
-    type_names <- c(type_names, "KEGG")
-  }
-  if (isTRUE(do_reactome)) {
-    retlst[["REAC"]] <- data.frame()
-    sources <- c(sources, "REAC")
-    type_names <- c(type_names, "REAC")
-  }
-  if (isTRUE(do_wp)) {
-    retlst[["WP"]] <- data.frame()
-    sources <- c(sources, "WP")
-    type_names <- c(type_names, "WP")
-  }
-  if (isTRUE(do_tf)) {
-    retlst[["TF"]] <- data.frame()
-    sources <- c(sources, "TF")
-    type_names <- c(type_names, "TF")
-  }
-  if (isTRUE(do_mi)) {
-    retlst[["MIRNA"]] <- data.frame()
-    sources <- c(sources, "MIRNA")
-    type_names <- c(type_names, "MIRNA")
-  }
-  if (isTRUE(do_hpa)) {
-    retlst[["HPA"]] <- data.frame()
-    sources <- c(sources, "HPA")
-    type_names <- c(type_names, "HPA")
-  }
   if (isTRUE(do_corum)) {
     retlst[["CORUM"]] <- data.frame()
     sources <- c(sources, "CORUM")
@@ -220,6 +186,41 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     retlst[["HP"]] <- data.frame()
     sources <- c(sources, "HP")
     type_names <- c(type_names, "HP")
+  }
+  if (isTRUE(do_hpa)) {
+    retlst[["HPA"]] <- data.frame()
+    sources <- c(sources, "HPA")
+    type_names <- c(type_names, "HPA")
+  }
+  if (isTRUE(do_kegg)) {
+    retlst[["KEGG"]] <- data.frame()
+    sources <- c(sources, "KEGG")
+    type_names <- c(type_names, "KEGG")
+  }
+  if (isTRUE(do_mi)) {
+    retlst[["MIRNA"]] <- data.frame()
+    sources <- c(sources, "MIRNA")
+    type_names <- c(type_names, "MIRNA")
+  }
+  if (isTRUE(do_mf)) {
+    retlst[["MF"]] <- data.frame()
+    sources <- c(sources, "GO:MF")
+    type_names <- c(type_names, "MF")
+  }
+  if (isTRUE(do_reactome)) {
+    retlst[["REAC"]] <- data.frame()
+    sources <- c(sources, "REAC")
+    type_names <- c(type_names, "REAC")
+  }
+  if (isTRUE(do_tf)) {
+    retlst[["TF"]] <- data.frame()
+    sources <- c(sources, "TF")
+    type_names <- c(type_names, "TF")
+  }
+  if (isTRUE(do_wp)) {
+    retlst[["WP"]] <- data.frame()
+    sources <- c(sources, "WP")
+    type_names <- c(type_names, "WP")
   }
 
   if (sum(grepl(pattern = "gene:", x = gene_ids)) > 0) {
@@ -280,9 +281,9 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
     retlst[[enrich_name]] <- gprofiler2enrich(retlst, ontology = type,
                                               cutoff = threshold,
                                               min_go_level = min_go_level)
-##    retlst[[enrich_name]] <- gprofiler2enrich(retlst, ontology = type,
-##                                              cutoff = threshold, enrich_ids = enrich_ids,
-##                                              min_go_level = min_go_level)
+    ##    retlst[[enrich_name]] <- gprofiler2enrich(retlst, ontology = type,
+    ##                                              cutoff = threshold, enrich_ids = enrich_ids,
+    ##                                              min_go_level = min_go_level)
   } ## End iterating over the set of default sources.
   retlst[["num_genes"]] <- num_genes
   retlst[["interactive_plots"]] <- interactive_plots
@@ -293,7 +294,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
 
   if (!is.null(excel)) {
     mesg("Writing data to: ", excel, ".")
-    excel_ret <- sm(try(write_gprofiler_data(retlst, excel = excel)))
+    excel_ret <- sm(try(write_gprofiler_data(retlst, excel = excel, ...)))
     retlst[["excel"]] <- excel_ret
     mesg("Finished writing data.")
   }
@@ -319,111 +320,6 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
 #' @export
 simple_gprofiler <- function(...) {
   simple_gprofiler2(...)
-}
-
-#' Run searches against the web service g:Profiler.
-#'
-#' Thank you Ginger for showing me your thesis, gProfiler is pretty cool!
-#'
-#' @param sig_genes Guess!  The set of differentially expressed/interesting
-#'  genes.
-#' @param species Organism supported by gprofiler.
-#' @param convert Use gProfileR's conversion utility?
-#' @param first_col First place used to define the order of 'significant'.
-#' @param second_col If that fails, try a second column.
-#' @param do_go Perform GO search?
-#' @param do_kegg Perform KEGG search?
-#' @param do_reactome Perform reactome search?
-#' @param do_mi Do miRNA search?
-#' @param do_tf Search for transcription factors?
-#' @param do_corum Do corum search?
-#' @param do_hp Do the hp search?
-#' @param significant Only return the statistically significant hits?
-#' @param pseudo_gsea Is the data in a ranked order by significance?
-#' @param id_col Which column in the table should be used for gene ID
-#'  crossreferencing?  gProfiler uses Ensembl ids.  So if you have a table of
-#'  entrez or whatever, translate it!
-#' @param excel Print the results to an excel file?
-#' @return List of results for go, kegg, reactome, and a few more.
-#' @seealso [gProfiler]
-#' @examples
-#' \dontrun{
-#'  gprofiler_is_nice_and_easy <- simple_gprofiler(genes, species='mmusculus')
-#' }
-#' @export
-simple_gprofiler_old <- function(sig_genes, species = "hsapiens", convert = TRUE,
-                             first_col = "logFC", second_col = "limma_logfc", do_go = TRUE,
-                             do_kegg = TRUE, do_reactome = TRUE, do_mi = TRUE, do_tf = TRUE,
-                             do_corum = TRUE, do_hp = TRUE, significant = TRUE,
-                             pseudo_gsea = TRUE, id_col = "row.names", excel = NULL) {
-  gene_list <- NULL
-  if (class(sig_genes)[1] == "AsIs") {
-    gene_ids <- as.character(sig_genes)
-  } else if (class(sig_genes)[1] == "character") {
-    gene_ids <- sig_genes
-  } else if (class(sig_genes)[1] == "numeric") {
-    gene_ids <- names(sig_genes)
-  } else {
-    if (!is.null(sig_genes[[first_col]])) {
-      gene_list <- sig_genes[order(-sig_genes[[first_col]]), ]
-      pseudo_gsea <- TRUE
-    } else if (!is.null(sig_genes[[second_col]])) {
-      gene_list <- sig_genes[order(-sig_genes[[second_col]]), ]
-      pseudo_gsea <- TRUE
-    }
-    gene_ids <- NULL
-    if (is.null(id_col)) {
-      id_col <- "ID"
-    }
-    if (id_col == "row.names") {
-      gene_ids <- rownames(gene_list)
-    } else {
-      gene_ids <- gene_list[[id_col]]
-    }
-  }
-
-  retlst <- list(
-      "GO" = do_go,
-      "KEGG" = do_kegg,
-      "REAC" = do_reactome,
-      "MI" = do_mi,
-      "TF" = do_tf,
-      "CORUM" = do_corum,
-      "HP" = do_hp)
-  type_names <- names(retlst)
-  gene_ids <- as.vector(gene_ids)
-  for (t in seq_along(type_names)) {
-    type <- type_names[t]
-    if (isTRUE(retlst[[type]])) {
-      mesg("Performing gProfiler ", type, " search of ",
-              length(gene_ids), " genes against ", species, ".")
-      Sys.sleep(3)
-      a_result <- suppressWarnings(
-          try(gProfileR::gprofiler(
-                             query = gene_ids,
-                             organism = species,
-                             significant = significant,
-                             ordered_query = pseudo_gsea,
-                             src_filter = type), silent = TRUE))
-      if (class(a_result)[1] != "try-error") {
-        retlst[[type]] <- a_result
-        mesg(type, " search found ", nrow(a_result), " hits.")
-      }
-    } else {
-      retlst[[type]] <- data.frame()
-    }
-  }
-  names(retlst) <- tolower(names(retlst))
-  retlst[["input"]] <- sig_genes
-  retlst[["pvalue_plots"]] <- try(plot_gprofiler_pval(retlst), silent = TRUE)
-  if (!is.null(excel)) {
-    mesg("Writing data to: ", excel, ".")
-    excel_ret <- sm(try(write_gprofiler_data(retlst, excel = excel)))
-    retlst[["excel"]] <- excel_ret
-    mesg("Finished writing data.")
-  }
-  class(retlst) <- c("gprofiler_result", "list")
-  return(retlst)
 }
 
 #' Recast gProfiler data to the output class produced by clusterProfiler.
@@ -492,17 +388,17 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   ## Note that for the moment I am repeating the pvalue/p.adjust/qvalue because
   ## I am reasonably certain that gprofiler2 does its own adjustment.
   representation_df <- data.frame(
-      "ID" = interesting[["term_id"]],
-      "Description" = interesting[["term_name"]],
-      ## The following two lines are ridiculous, but required for the enrichplots to work.
-      "GeneRatio" = paste0(interesting[["intersection_size"]], "/", interesting[["term_size"]]),
-      "BgRatio" = paste0(interesting[["term_size"]], "/", interesting[["query_size"]]),
-      "pvalue" = interesting[["p_value"]],
-      "p.adjust" = interesting[["p_value"]],
-      "qvalue" = interesting[["p_value"]],
-      "geneID" = category_genes,
-      "Count" = interesting[["intersection_size"]],
-      stringsAsFactors = FALSE)
+    "ID" = interesting[["term_id"]],
+    "Description" = interesting[["term_name"]],
+    ## The following two lines are ridiculous, but required for the enrichplots to work.
+    "GeneRatio" = paste0(interesting[["intersection_size"]], "/", interesting[["term_size"]]),
+    "BgRatio" = paste0(interesting[["term_size"]], "/", interesting[["query_size"]]),
+    "pvalue" = interesting[["p_value"]],
+    "p.adjust" = interesting[["p_value"]],
+    "qvalue" = interesting[["p_value"]],
+    "geneID" = category_genes,
+    "Count" = interesting[["intersection_size"]],
+    stringsAsFactors = FALSE)
   rownames(representation_df) <- representation_df[["ID"]]
   if (is.null(organism)) {
     organism <- "UNKNOWN"
