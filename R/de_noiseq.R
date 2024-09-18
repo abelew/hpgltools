@@ -33,11 +33,11 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
                             model_batch = TRUE, annot_df = NULL,
                             k = 0.5, norm = "rpkm", factor = "condition",
                             lc = 1, r = 20, adj = 1.5, a0per = 0.9, filter = 1,
-                            keepers = NULL, ...) {
+                            keepers = NULL, keep_underscore = FALSE, ...) {
   arglist <- list(...)
 
   message("Starting noiseq pairwise comparisons.")
-  input <- sanitize_expt(input)
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
   conditions <- design[["condition"]]
@@ -65,7 +65,8 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   }
   model_data <- model_choice[["chosen_model"]]
   model_string <- model_choice[["chosen_string"]]
-  apc <- make_pairwise_contrasts(model_data, conditions, keepers = keepers)
+  apc <- make_pairwise_contrasts(model_data, conditions, keepers = keepers,
+                                 keep_underscore = keep_underscore)
 
   contrast_list <- list()
   result_list <- list()

@@ -61,13 +61,14 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, libsize = NULL,
                            limma_method = "ls", limma_robust = FALSE, voom_norm = "quantile",
-                           limma_trend = FALSE, force = FALSE, keepers = NULL, ...) {
+                           limma_trend = FALSE, force = FALSE, keepers = NULL,
+                           keep_underscore = FALSE, ...) {
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
 
   message("Starting limma/varpart pairwise comparison.")
-  san_input <- sanitize_expt(input)
+  san_input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_limma_dataset(san_input, force = force)
   design <- pData(san_input)
   if (is.null(conditions)) {
@@ -152,7 +153,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   identity_fits <- NULL
   message("Limma/varpart step 3/6: running dream.")
   contrasts <- make_pairwise_contrasts(model = chosen_model, conditions = conditions,
-                                       extra_contrasts = extra_contrasts, keepers = keepers)
+                                       extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore)
   all_pairwise_contrasts <- contrasts[["all_pairwise"]]
   all_pairwise_contrasts <- gsub(x = all_pairwise_contrasts, pattern = ",$", replacement = "")
   contrast_vector <- c()

@@ -43,7 +43,7 @@
 basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE, model_intercept = FALSE,
                            alt_model = NULL, model_batch = FALSE, force = FALSE,
-                           keepers = NULL, fx = "mean", ...) {
+                           keepers = NULL, fx = "mean", keep_underscore = FALSE, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["input"]])) {
     input <- arglist[["input"]]
@@ -55,7 +55,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
     batches <- arglist[["force"]]
   }
   message("Starting basic pairwise comparison.")
-  input <- sanitize_expt(input)
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_basic_dataset(input, force = force)
   design <- pData(input)
   conditions <- input_data[["conditions"]]
@@ -120,7 +120,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   model_data <- model_choice[["chosen_model"]]
   ## basic_pairwise() does not support extra contrasts, but they may be passed through via ...
   apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE, do_extras = FALSE,
-                                 keepers = keepers, ...)
+                                 keepers = keepers, keep_underscore = keep_underscore, ...)
   contrasts_performed <- c()
   show_progress <- interactive() && is.null(getOption("knitr.in.progress"))
   if (isTRUE(show_progress)) {

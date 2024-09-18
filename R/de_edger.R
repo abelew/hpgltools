@@ -58,7 +58,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
                            model_batch = TRUE, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, force = FALSE, keepers = NULL,
-                           edger_method = "long", ...) {
+                           edger_method = "long", keep_underscore = FALSE, ...) {
   arglist <- list(...)
 
   edger_test <- "lrt"
@@ -66,7 +66,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     edger_test <- arglist[["edger_test"]]
   }
   message("Starting edgeR pairwise comparisons.")
-  input <- sanitize_expt(input)
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
   conditions <- design[["condition"]]
@@ -83,6 +83,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
                                model_cond = model_cond,
                                model_intercept = model_intercept,
                                alt_model = alt_model,
+                               keep_underscore = keep_underscore,
                                ...)
   ##model_choice <- choose_model(input, conditions, batches,
   ##                             model_batch = model_batch,
@@ -151,7 +152,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     }
 
     ## If we had a failure along the way, redo using estimateDisp()
-    if (!isTRUE(state)) {
+    if (isFALSE(state)) {
       warning("There was a failure when doing the estimations.")
       message("There was a failure when doing the estimations, using estimateDisp().")
       final_norm <- edgeR::estimateDisp(norm, design = model_data, robust = TRUE)
@@ -171,7 +172,9 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   message("EdgeR step 8/9: Making pairwise contrasts.")
   apc <- make_pairwise_contrasts(model_data, conditions,
                                  extra_contrasts = extra_contrasts,
-                                 do_identities = FALSE, keepers = keepers, ...)
+                                 do_identities = FALSE, keepers = keepers,
+                                 keep_underscore = keep_underscore,
+                                 ...)
   contrast_string <- apc[["contrast_string"]]
 
   ## This section is convoluted because glmLRT only seems to take up to 7
@@ -182,15 +185,8 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   lrt_list <- list()
   sc <- vector("list", length(apc[["names"]]))
   end <- length(apc[["names"]])
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
-    if (isTRUE(verbose)) {
-      pct_done <- con / length(apc[["names"]])
-      utils::setTxtProgressBar(bar, pct_done)
-    }
     sc[[name]] <- gsub(pattern = ",", replacement = "", apc[["all_pairwise"]][[con]])
     tt <- parse(text = sc[[name]])
     ## ctr_string <- paste0("tt = mymakeContrasts(", tt, ", levels = model_data)")
@@ -218,9 +214,6 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     res[["FDR"]] <- signif(x = as.numeric(res[["FDR"]]), digits = 4)
     result_list[[name]] <- res
   } ## End for loop
-  if (isTRUE(verbose)) {
-    close(bar)
-  }
 
   dispersions <- sm(try(edgeR::plotBCV(y = final_norm), silent = TRUE))
   dispersion_plot <- NULL

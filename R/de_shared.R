@@ -69,7 +69,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          do_edger = TRUE, do_limma = TRUE, do_noiseq = TRUE,
                          do_dream = FALSE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
-                         surrogates = "be", methods = NULL, ...) {
+                         surrogates = "be", methods = NULL,
+                         keep_underscore = FALSE, ...) {
   arglist <- list(...)
   if (is.null(model_cond)) {
     model_cond <- TRUE
@@ -259,7 +260,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
         type, input = input, conditions = conditions, batches = batches,
         model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
         extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
-        annot_df = annot_df, surrogates = surrogates, keepers = keepers, ...)
+        annot_df = annot_df, surrogates = surrogates, keepers = keepers,
+        keep_underscore = keep_underscore, ...)
     } ## End foreach() %dopar% { }
     parallel::stopCluster(cl)
     if (isTRUE(verbose)) {
@@ -284,6 +286,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
         model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
         extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
         annot_df = annot_df, surrogates = surrogates, keepers = keepers,
+        keep_underscore = keep_underscore,
         ...)
     }
   } ## End performing a serial comparison
@@ -1104,7 +1107,6 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     noint_string <- cond_noint_string
     including <- "condition"
   }
-
   tmpnames <- colnames(int_model)
   tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
   if (isTRUE(keep_underscore)) {
@@ -2269,7 +2271,7 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
   arglist <- list(...)
   tmpnames <- colnames(model)
   if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames)
+    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
   } else {
     tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
   }
@@ -2315,9 +2317,11 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
       }
     }
   } else {
-    for (keeper in keepers) {
-      n_name <- keeper[1]
-      d_name <- keeper[2]
+    for (k in seq_along(keepers)) {
+      keeper_name <- names(keepers)[k]
+      keeper_value <- keepers[[k]]
+      n_name <- keeper_value[1]
+      d_name <- keeper_value[2]
       minus_string <- paste0(n_name, "_vs_", d_name)
       exprs_string <- paste0(minus_string, "=", n_name, "-", d_name, ",")
       all_pairwise[minus_string] <- exprs_string
@@ -2481,6 +2485,7 @@ mymakeContrasts <- function(..., contrasts = NULL, levels) {
 #' playing with an expt.
 #'
 #' @param expt An expt object to clean.
+#' @param keep_underscore Sanitize underscores too?
 sanitize_expt <- function(expt, keep_underscore = FALSE) {
   design <- pData(expt)
   conditions <- gsub(
@@ -2496,8 +2501,8 @@ sanitize_expt <- function(expt, keep_underscore = FALSE) {
   conditions <- gsub(pattern = "[[:blank:]]", replacement = "", x = conditions)
   batches <- gsub(pattern = "[[:blank:]]", replacement = "", x = batches)
   if (isTRUE(keep_underscore)) {
-    conditions <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = conditions)
-    batches <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = batches)
+    conditions <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = conditions, perl = TRUE)
+    batches <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = batches, perl = TRUE)
   } else {
     conditions <- gsub(pattern="[[:punct:]]", replacement = "", x = conditions)
     batches <- gsub(pattern="[[:punct:]]", replacement = "", x = batches)

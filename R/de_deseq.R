@@ -196,11 +196,12 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
                             model_batch = TRUE, model_intercept = FALSE,
                             alt_model = NULL, extra_contrasts = NULL,
                             annot_df = NULL, force = FALSE, keepers = NULL,
-                            deseq_method = "long", fittype = "parametric", ...) {
+                            deseq_method = "long", fittype = "parametric",
+                            keep_underscore = FALSE, ...) {
   arglist <- list(...)
 
   mesg("Starting DESeq2 pairwise comparisons.")
-  input <- sanitize_expt(input)
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   ## Now that I understand pData a bit more, I should probably remove the
   ## conditions/batches slots from my expt classes.
@@ -225,7 +226,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## it will gather surrogate estimates from sva and friends and return those estimates.
   model_choice <- choose_model(input, conditions, batches, model_batch = model_batch,
                                model_cond = model_cond, model_intercept = model_intercept,
-                               alt_model = alt_model,
+                               alt_model = alt_model, keep_underscore = keep_underscore,
                                ...)
   model_data <- model_choice[["chosen_model"]]
   model_including <- model_choice[["including"]]
@@ -373,6 +374,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   apc <- make_pairwise_contrasts(model_data, conditions,
                                  extra_contrasts = extra_contrasts,
                                  do_identities = FALSE, keepers = keepers,
+                                 keep_underscore = keep_underscore,
                                  ...)
   contrast_order <- apc[["names"]]
   contrast_strings <- apc[["all_pairwise"]]
@@ -384,16 +386,9 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ##total_contrasts <- length(condition_levels)
   ##total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
   total_contrasts <- length(contrast_order)
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (i in seq_along(contrast_order)) {
     contrast_name <- contrast_order[[i]]
     contrast_string <- contrast_strings[[i]]
-    if (isTRUE(verbose)) {
-      pct_done <- i / length(contrast_order)
-      utils::setTxtProgressBar(bar, pct_done)
-    }
     num_den_string <- strsplit(x = contrast_name, split = "_vs_")[[1]]
     if (length(num_den_string) == 0) {
       warning("This contrast does not appear to have a _vs_ in it, it cannot be used.")
@@ -432,9 +427,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
       result <- merge(result, annot_df, by.x = "row.names", by.y = "row.names")
     }
     result_list[[contrast_name]] <- result
-  }
-  if (isTRUE(verbose)) {
-    close(bar)
   }
   ## The logic here is a little tortuous.
   ## Here are some sample column names from an arbitrary coef() call:
@@ -693,6 +685,30 @@ import_deseq <- function(data, column_data, model_string,
                                                    design = as.formula(model_string))
   }
   return(summarized)
+}
+
+subtract_deseq_results <- function(first_table, second_table,
+                                   first_lfc = "deseq_logfc", second_lfc = "deseq_logfc",
+                                   first_p = "deseq_adjp", second_p = "deseq_adjp",
+                                   first_name = "first", second_name = "second",
+                                   excel = NULL) {
+    first_fragment <- first_table[, c(first_lfc, first_p)]
+  second_fragment <- second_table[, c(second_lfc, second_p)]
+  comparison <- merge(first_fragment, second_fragment, by = "row.names")
+  rownames(comparison) <- comparison[["Row.names"]]
+  comparison[["Row.names"]] <- NULL
+  new_names <- c(glue("{first_name}_deseq_logfc"), glue("{first_name}_deseq_adjp"),
+                 glue("{second_name}_deseq_logfc"), glue("{second_name}_deseq_adjp"))
+  colnames(comparison) <- new_names
+  logfc_name <- glue("{first_name}_vs_{second_name}_logfc")
+  comparison[[logfc_name]] <- comparison[[1]] - comparison[[3]]
+  p_name <- glue("{first_name}_vs_{second_name}_p")
+  p_vector <- mapply(max, comparison[[2]], comparison[[4]])
+  comparison[[p_name]] <- p_vector
+  if (!is.null(excel)) {
+    written <- write_xlsx(data = comparison, excel = excel)
+  }
+  return(comparison)
 }
 
 #' Writes out the results of a deseq search using write_de_table()

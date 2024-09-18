@@ -304,14 +304,13 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                            annot_df = NULL, libsize = NULL,
                            which_voom = "limma", limma_method = "ls",
                            limma_robust = FALSE, voom_norm = "quantile",
-                           limma_trend = FALSE, force = FALSE,
+                           limma_trend = FALSE, force = FALSE, keep_underscore = FALSE,
                            keepers = NULL, ...) {
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
 
-  message("Starting limma pairwise comparison.")
-  san_input <- sanitize_expt(input)
+  san_input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_limma_dataset(san_input, force = force, which_voom = which_voom)
   design <- pData(san_input)
   if (is.null(conditions)) {
@@ -365,6 +364,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                         model_cond = model_cond,
                         model_intercept = model_intercept,
                         alt_model = alt_model,
+                        keep_underscore = keep_underscore,
                         ...)
   ##model <- choose_model(input, conditions, batches,
   ##                      model_batch = model_batch,
@@ -514,7 +514,9 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
   } else {
     message("Limma step 4/6: making and fitting contrasts with no intercept. (~ 0 + factors)")
     contrasts <- make_pairwise_contrasts(model = chosen_model, conditions = conditions,
-                                         extra_contrasts = extra_contrasts, keepers = keepers)
+                                         extra_contrasts = extra_contrasts, keepers = keepers,
+                                         keep_underscore = keep_underscore)
+    message("Finished make_pairwise_contrasts.")
     all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
     contrast_string <- contrasts[["contrast_string"]]
     all_pairwise <- contrasts[["all_pairwise"]]

@@ -45,11 +45,11 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
                            alt_model = NULL, model_batch = NULL, keepers = NULL,
                            ng_vector = NULL, rounds = 10, target_fdr = 0.05,
                            method = "pairwise_subset", norm = "median",
-                           force = FALSE,
+                           force = FALSE, keep_underscore = FALSE,
                            ...) {
   arglist <- list(...)
 
-  input <- sanitize_expt(input)
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
   conditions <- pData(input)[["condition"]]
@@ -144,7 +144,7 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
   model_data <- model_choice[["chosen_model"]]
   apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE,
                                  do_extras = FALSE, keepers = keepers,
-                                 ...)
+                                 keep_underscore = keep_underscore, ...)
   contrasts_performed <- c()
   retlst <- list()
   for (c in seq_along(apc[["names"]])) {
