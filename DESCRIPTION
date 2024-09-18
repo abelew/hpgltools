@@ -24,7 +24,7 @@ Suggests:
   caret, Category, cleaver, clusterProfiler, corpcor, corrplot, curl,
   DALEX, DBI, DEGreport, desc, DESeq2, devEMF, devtools, digest, directlabels,
   doParallel, dorothea, doSNOW, dotwhisker, DSS,
-  EBSeq, EDASeq, edgeR, enrichplot, EuPathDB,
+  EBSeq, EDASeq, edgeR, enrichplot, 
   fastcluster, fastICA, ffpe, fission, flashClust,
   genbankr, genefilter, GenomicRanges, GenomeInfoDb, genoPlotR, ggdendro,
   ggrepel, ggsankey, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
