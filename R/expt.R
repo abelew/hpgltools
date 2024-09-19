@@ -2085,6 +2085,10 @@ set_expt_conditions <- function(expt, fact = NULL, ids = NULL,
                                 prefix = NULL, null_cell = "null", colors = TRUE,
                                 ...) {
   arglist <- list(...)
+  if (!is.null(arglist[["factor"]])) {
+    warning("I probably should change this argument to factor, but it is 'fact'.")
+    fact <- arglist[["factor"]]
+  }
   original_conditions <- pData(expt)[["condition"]]
   original_length <- length(original_conditions)
   original_num_conditions <- length(levels(as.factor(original_conditions)))
