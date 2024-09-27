@@ -198,15 +198,15 @@ plot_density <- function(data, colors = NULL, expt_names = NULL, position = "ide
       scale <- "log"
       negative_idx <- data < 0
       if (sum(negative_idx) > 0) {
-        mesg("Some data are negative.  We are on a log scale, setting them to 0.5.")
         data[negative_idx] <- 0.5
+        mesg(sum(negative_idx), " entries are negative on a log scale, setting them to 0.5.")
+
         message("Changed ", sum(negative_idx), " negative features.")
       }
       zero_idx <- data == 0
       if (sum(zero_idx) > 0) {
-        mesg("Some entries are 0.  We are on a log scale, setting them to 0.5.")
         data[zero_idx] <- 0.5
-        message("Changed ", sum(zero_idx), " zero count features.")
+        mesg(sum(zero_idx), " entries are 0 on a log scale, setting them to 0.5.")
       }
     } else {
       scale <- "raw"

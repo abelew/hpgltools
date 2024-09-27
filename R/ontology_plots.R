@@ -461,7 +461,9 @@ plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
                                 cutoff = 0.1, n = 30,
                                 group_minsize = 5, scorer = "recall",
                                 ...) {
-  go_result <- gp_result[["go"]]
+  bp_result <- gp_result[["bp"]]
+  mf_result <- gp_result[["mf"]]
+  cc_result <- gp_result[["cc"]]
   kegg_result <- gp_result[["kegg"]]
   reactome_result <- gp_result[["reac"]]
   mi_result <- gp_result[["mi"]]
@@ -474,18 +476,6 @@ plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
                     "overlap.size", "recall", "precision",
                     "term.id", "term.name", "relative.depth")
   old_options <- options(scipen = 4)
-  mf_over <- go_result[go_result[["domain"]] == "MF", ]
-  mf_over <- mf_over[, kept_columns]
-  bp_over <- go_result[go_result[["domain"]] == "BP", ]
-  bp_over <- bp_over[, kept_columns]
-  cc_over <- go_result[go_result[["domain"]] == "CC", ]
-  cc_over <- cc_over[, kept_columns]
-  mf_over[["p.value"]] <- as.numeric(format(x = mf_over[["p.value"]],
-                                            digits = 3, scientific = TRUE))
-  bp_over[["p.value"]] <- as.numeric(format(x = bp_over[["p.value"]],
-                                            digits = 3, scientific = TRUE))
-  cc_over[["p.value"]] <- as.numeric(format(x = cc_over[["p.value"]],
-                                            digits = 3, scientific = TRUE))
 
   gp_rewrite_df <- function(plotting_df) {
     ## First set the order of the table to be something most descriptive.
@@ -515,7 +505,7 @@ plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
     return(plotting_df)
   }
 
-  plotting_mf_over <- mf_over
+  plotting_mf_over <- mf_result
   mf_pval_plot_over <- NULL
   if (is.null(mf_over) | nrow(mf_over) == 0) {
     plotting_mf_over <- NULL
@@ -528,7 +518,7 @@ plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
     mf_pval_plot_over <- NULL
   }
 
-  plotting_bp_over <- bp_over
+  plotting_bp_over <- bp_result
   bp_pval_plot_over <- NULL
   if (is.null(bp_over) | nrow(bp_over) == 0) {
     plotting_bp_over <- NULL
@@ -541,7 +531,7 @@ plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
     bp_pval_plot_over <- NULL
   }
 
-  plotting_cc_over <- cc_over
+  plotting_cc_over <- cc_result
   cc_pval_plot_over <- NULL
   if (is.null(cc_over) | nrow(cc_over) == 0) {
     plotting_cc_over <- NULL

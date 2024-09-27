@@ -3206,7 +3206,7 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
   if (! "try-error" %in% class(try_result)) {
     image_files <- c(image_files, try_result[["filename"]])
   }
-  tmp_data <- sm(normalize_expt(expt, transform = "log2", convert = "cpm", filter = TRUE,
+  tmp_data <- sm(normalize_expt(expt, transform = "log2", convert = "cpm", filter = filter,
                                 ...))
   rpca <- plot_pca(tmp_data,
                    ...)
@@ -3336,9 +3336,20 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
   sheet <- "norm_data"
   new_col <- 1
   new_row <- 1
+  ## Perform a quick query to see if sva will explode on this data.
+  test_norm <- normalize_expt(expt = expt, transform = transform,
+                              convert = convert, filter = filter)
+  test_zeros <- sum(rowSums(exprs(test_norm)) == 0)
+  if (test_zeros > 0) {
+    actual_filter <- "simple"
+  } else {
+    actual_filter <- filter
+  }
   norm_data <- sm(normalize_expt(expt = expt, transform = transform,
-                                 convert = convert, batch = batch, filter = filter,
+                                 convert = convert, batch = batch,
+                                 filter = actual_filter,
                                  ...))
+
   norm_reads <- exprs(norm_data)
   info <- fData(norm_data)
   read_info <- merge(norm_reads, info, by = "row.names")

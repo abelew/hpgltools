@@ -4,10 +4,11 @@
 #' @param according_to Use this result type for the gprofiler searches.
 #' @param together Concatenate the up/down genes into one set?
 #' @param plot_type Choose a plot method as the default.
+#' @param sleep Give the gProfiler servers a break between queries.
 #' @param ... Arguments to pass to simple_gprofiler().
 #' @export
 all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
-                          plot_type = "dotplot", ...) {
+                          sleep = 7, plot_type = "dotplot", ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
@@ -27,7 +28,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 
   sig_names <- names(input_up)
   for (i in seq_along(sig_names)) {
-    slept <- Sys.sleep(3)
+    slept <- Sys.sleep(sleep)
     name <- sig_names[i]
     retname_up <- paste0(name, "_up")
     retname_down <- paste0(name, "_down")

@@ -15,7 +15,7 @@
 #' @seealso [png()] [svg()] [postscript()] [cairo_ps()] [cairo_pdf()] [tiff()] [devEMF::emf()]
 #'  [jpg()] [bmp()]
 #' @export
-pp <- function(file, image = NULL, width = 9, height = 9, res = 180, ...) {
+pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE, ...) {
   ext <- tolower(tools::file_ext(file))
   file_dir <- dirname(file)
   if (!file.exists(file_dir)) {
@@ -98,6 +98,10 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, ...) {
     print(image)
   } else {
     plot(image)
+  }
+
+  if (isTRUE(crop)) {
+    cropped <- knitr::plot_crop(file)
   }
 
   if (length(new_dev) > 0) {
