@@ -482,7 +482,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
 #' @export
 make_pombe_se <- function(annotation = TRUE) {
   fission <- new.env()
-  tt <- sm(please_install("fission"))
   tt <- sm(requireNamespace("fission"))
   tt <- sm(try(attachNamespace("fission"), silent = TRUE))
   tt <- data(fission, envir = fission)

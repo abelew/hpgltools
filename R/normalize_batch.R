@@ -1038,10 +1038,6 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
       ##names(tstats[[counter]]) <- as.character(1:dim(data)[1])
       catplot_together <- NULL
       if (isTRUE(do_catplots)) {
-        if (!isTRUE("ffpe" %in% .packages(all.available = TRUE))) {
-          ## ffpe has some requirements which do not install all the time.
-          tt <- please_install("ffpe")
-        }
         if (isTRUE("ffpe" %in% .packages(all.available = TRUE))) {
           catplots[[adjust_name]] <- ffpe::CATplot(
             rank(tstats[[adjust_name]]), rank(null_tstat),

@@ -1415,7 +1415,6 @@ median_by_factor <- function(data, fact = "condition", fun = "median") {
 #' @export
 make_pombe_expt <- function(annotation = TRUE) {
   fission <- new.env()
-  tt <- sm(please_install("fission"))
   tt <- sm(requireNamespace("fission"))
   tt <- sm(try(attachNamespace("fission"), silent = TRUE))
   tt <- data(fission, envir = fission)

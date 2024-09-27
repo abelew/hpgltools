@@ -22,7 +22,6 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
 
   mid_pos <- genoPlotR::middle(segments)
   xlims <- list(c(Inf, -Inf), c(-Inf, Inf), c(start, end))
-  tt <- sm(please_install("genoPlotR"))
   genoPlotR::plot_gene_map(dna_segs = list(segments),
                            main = plot_title,
                            gene_type = "side_blocks",
