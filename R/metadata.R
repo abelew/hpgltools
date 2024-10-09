@@ -1863,7 +1863,7 @@ plot_metadata_factors <- function(expt, column = "hisatsinglemapped", second_col
 #' @return Df of metadata.
 #' @seealso [openxlsx] [readODS]
 #' @export
-read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "#",
+read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "#", sanitize = TRUE, sanitize_underscore = FALSE,
                           ...) {
   arglist <- list(...)
 
@@ -1903,13 +1903,21 @@ read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "
     definitions <- definitions[! commented, ]
   }
 
-  colnames(definitions) <- tolower(gsub(pattern = "[[:punct:]]",
-                                        replacement = "",
-                                        x = colnames(definitions)))
-  ## I recently received a sample sheet with a blank sample ID column name...
-  empty_idx <- colnames(definitions) == ""
-  colnames(definitions)[empty_idx] <- "empty"
-  colnames(definitions) <- make.names(colnames(definitions), unique = TRUE)
+  if (isTRUE(sanitize)) {
+    if (isTRUE(sanitize_underscore)) {
+      colnames(definitions) <- tolower(gsub(pattern = "[[:punct:]]",
+                                            replacement = "",
+                                            x = colnames(definitions)))
+    } else {
+      colnames(definitions) <- tolower(gsub(pattern = "[^_[:^punct:]]",
+                                            replacement = "",
+                                            x = colnames(definitions), perl = TRUE))
+    }
+    ## I recently received a sample sheet with a blank sample ID column name...
+    empty_idx <- colnames(definitions) == ""
+    colnames(definitions)[empty_idx] <- "empty"
+    colnames(definitions) <- make.names(colnames(definitions), unique = TRUE)
+  }
   return(definitions)
 }
 
@@ -2097,9 +2105,18 @@ tar_meta_column <- function(meta, column = "hisatcounttable", output = NULL, com
   }
 
   if (is.null(output)) {
-    output <- glue("{column}.tar.{compression}")
+    if (is.null(compression)) {
+      output <- glue("{column}.tar")
+    } else {
+      output <- glue("{column}.tar.{compression}")
+    }
   }
-  tarred <- utils::tar(output, files = include_list, compression = compression)
+  mesg("Creating a tar archive of ", toString(include_list))
+  if (is.null(compression)) {
+    tarred <- utils::tar(output, files = include_list)
+  } else {
+    tarred <- utils::tar(output, files = include_list, compression = compression)
+  }
   retlist <- list(
     "output" = output,
     "files_included" = include_list,

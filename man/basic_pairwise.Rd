@@ -16,6 +16,7 @@ basic_pairwise(
   force = FALSE,
   keepers = NULL,
   fx = "mean",
+  keep_underscore = FALSE,
   ...
 )
 }

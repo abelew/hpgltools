@@ -17,6 +17,7 @@ edger_pairwise(
   force = FALSE,
   keepers = NULL,
   edger_method = "long",
+  keep_underscore = FALSE,
   ...
 )
 }

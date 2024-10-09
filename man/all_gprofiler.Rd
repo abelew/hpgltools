@@ -8,6 +8,7 @@ all_gprofiler(
   sig,
   according_to = "deseq",
   together = FALSE,
+  sleep = 7,
   plot_type = "dotplot",
   ...
 )
@@ -18,6 +19,8 @@ all_gprofiler(
 \item{according_to}{Use this result type for the gprofiler searches.}
 
 \item{together}{Concatenate the up/down genes into one set?}
+
+\item{sleep}{Give the gProfiler servers a break between queries.}
 
 \item{plot_type}{Choose a plot method as the default.}
 

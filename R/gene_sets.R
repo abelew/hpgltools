@@ -205,11 +205,42 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
   sig_data <- NULL
 
   id_function <- get_identifier(id_type)
+  collection <- toupper(signature_category)
 
   if (class(signatures)[1] == "character" && grepl(pattern = "\\.gmt$", x = signatures)) {
     sig_data <- GSEABase::getGmt(signatures,
                                  collectionType = GSEABase::BroadCollection(category = signature_category),
                                  geneIdType = id_function())
+  } else if (class(signatures)[1] == "character" && grepl(pattern = "\\.db$", x = signatures)) {
+    gmt_filename <- glue("signatures_{collection}.gmt")
+    db <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = signatures)
+    query <- glue("SELECT gene_set_id, standard_name 'na',
+     (SELECT description_brief FROM gene_set_details WHERE gene_set_id = gene_set_id),
+     group_concat(symbol, ' ')
+    FROM gene_set gset
+      INNER JOIN gene_set_gene_symbol gsgs on gset.id = gene_set_id
+      INNER JOIN gene_symbol gsym on gsym.id = gene_symbol_id
+    WHERE collection_name like '{collection}%'
+    GROUP BY standard_name ORDER BY standard_name ASC;")
+    sent <- RSQLite::dbSendQuery(conn = db, query)
+    result <- RSQLite::fetch(sent)
+    colnames(result) <- c("id", "category", "description", "genes")
+    gmt_df <- result[, c("category", "description", "genes")]
+    cleared <- RSQLite::dbClearResult(sent)
+    closed <- RSQLite::dbDisconnect(db)
+    ## We might want some logic to write out the result gmt files; something like this:
+    ##write.table(x = gmt_df, file = gmt_filename, sep = "\t", col.names = FALSE, row.names = FALSE)
+    ## Apparently id_function() doesn't exist, and BroadCollection() only has the human stuff.
+    gsl <- list()
+    for (set in seq_len(nrow(gmt_df))) {
+      cat <- gmt_df[set, "category"]
+      desc <- gmt_df[set, "description"]
+      genes <- strsplit(x = gmt_df[set, "genes"], ' ')[[1]]
+      ## TODO: Other slots I should fill in when possible: geneIdType, colectionType,
+      ## longDescription, organism, pubMedIds, urls, contributor, version
+      gsl[[cat]] <- GeneSet(setName = cat, geneIds = genes, shortDescription = desc)
+    }
+    sig_data <- GeneSetCollection(gsl)
   } else if (class(signatures)[1] == "character" && grepl(pattern = "\\.xml$", x = signatures)) {
     gsc <- GSEABase::getBroadSets(signatures)
     types <- sapply(gsc, function(elt) GSEABase::bcCategory(GSEABase::collectionType(elt)))
@@ -753,8 +784,6 @@ collect_gsc_ids_from_df <- function(df, orgdb, current_id, required_id) {
   req_ids <- req_ids[idx, required_id]
   return(req_ids)
 }
-
-
 
 #' Given a pairwise result, make a gene set collection.
 #'

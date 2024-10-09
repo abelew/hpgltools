@@ -4,7 +4,7 @@
 \alias{pp}
 \title{Plot a picture, with hopefully useful options for most(any) format.}
 \usage{
-pp(file, image = NULL, width = 9, height = 9, res = 180, ...)
+pp(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE, ...)
 }
 \arguments{
 \item{file}{Filename to write}

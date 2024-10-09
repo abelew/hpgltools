@@ -572,7 +572,7 @@ score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
 #' @export
 simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                         signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
-                        required_id = "ENTREZID", min_catsize = 5, orgdb = "org.Hs.eg.db",
+                        required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5, orgdb = "org.Hs.eg.db",
                         method = "ssgsea", kcdf = NULL, ranking = FALSE, msig_db = NULL,
                         ## wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID"),
                         wanted_meta = "all", mx_diff = TRUE, verbose = FALSE, id_type = "entrez") {
@@ -602,11 +602,12 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
 
   ## Assume the desired category is c2 unless specified.
   if (is.null(signature_category)) {
+    message("Signature category was null, setting it to C2.")
     signature_category <- "c2"
   }
   signature_data <- load_gmt_signatures(signatures = signatures, data_pkg = data_pkg,
-                                            signature_category = signature_category,
-                                            id_type = id_type)
+                                        signature_category = signature_category,
+                                        id_type = id_type)
 
   ## The expressionset must have the annotation field filled in for gsva to
   ## work.
@@ -620,15 +621,26 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   eset <- expt
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
   if (current_id != required_id | !is.integer(grep("ENSG", rownames(exprs(expt))))) {
-    message("Converting the rownames() of the expressionset to ENTREZID.")
-    ##tt <- sm(library(orgdb, character.only = TRUE))
-    lib_result <- sm(requireNamespace(orgdb))
-    att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
-    old_ids <- rownames(exprs(expt))
-    new_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
-                                        keys = old_ids,
-                                        keytype = current_id,
-                                        columns = c(required_id)))
+    message("Converting the rownames() of the expressionset to ", required_id, ".")
+    if (id_source == "orgdb") {
+      ##tt <- sm(library(orgdb, character.only = TRUE))
+      lib_result <- sm(requireNamespace(orgdb))
+      att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
+      old_ids <- rownames(exprs(expt))
+      new_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
+                                          keys = old_ids,
+                                          keytype = current_id,
+                                          columns = c(required_id)))
+    } else if (id_source == "fdata") {
+      ids <- fData(expt)[[required_id]]
+      new_ids <- data.frame(
+        current_id = rownames(exprs(expt)),
+        required_id = ids)
+      rownames(new_ids) <- rownames(expt)
+      colnames(new_ids) <- c(current_id, required_id)
+    } else {
+      stop("I do not understand this ID source.")
+    }
     new_idx <- complete.cases(new_ids)
     if (!all(new_idx)) {
       message(sum(new_idx == FALSE),
@@ -656,8 +668,12 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     message("After conversion, the expressionset has ",
             length(rownames(exprs(converted_expt))),
             " entries.")
-    rownames(exprs(converted_expt)) <- gsub(pattern = "^X", replacement = "",
-                                     x = rownames(exprs(converted_expt)))
+    check_x <- grepl(pattern = "^X", x = rownames(exprs(converted_expt)))
+    if (required_id == "ENTREZ" && sum(check_x) > 0) {
+      remove_x <- gsub(pattern = "^X", replacement = "",
+                       x = rownames(exprs(converted_expt)))
+      rownames(exprs(converted_expt)) <- remove_x
+    }
     eset <- converted_expt
     fData(eset)[[required_id]] <- rownames(fData(eset))
   }

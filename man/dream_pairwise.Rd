@@ -22,6 +22,7 @@ dream_pairwise(
   limma_trend = FALSE,
   force = FALSE,
   keepers = NULL,
+  keep_underscore = FALSE,
   ...
 )
 }

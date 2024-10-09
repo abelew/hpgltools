@@ -1161,6 +1161,20 @@ setMethod(
               nonzero = nonzero, coverage = coverage)
   })
 
+#' Make a tarball using a metadata column given an xlsx file.
+#' @export
+setMethod(
+  "tar_meta_column", signature = signature(meta = "character"),
+  definition = function(meta, column = "hisatcounttable",
+                        output = NULL, compression = "xz") {
+    meta <- read_metadata(meta)
+    ## Someone snuck some spaces into my most recent sample sheet file column!
+    meta <- sanitize_metadata(meta, columns = column, punct = FALSE, lower = FALSE, spaces = TRUE)
+    result <- tar_meta_column(meta, column = column,
+                              output = output, compression = compression)
+    return(result)
+  })
+
 #' Write an xlsx file given the result of an existing xlsx write.
 #' @export
 setMethod(

@@ -12,6 +12,7 @@ simple_gsva(
   cores = NULL,
   current_id = "ENSEMBL",
   required_id = "ENTREZID",
+  id_source = "orgdb",
   min_catsize = 5,
   orgdb = "org.Hs.eg.db",
   method = "ssgsea",

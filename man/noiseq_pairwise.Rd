@@ -20,6 +20,7 @@ noiseq_pairwise(
   a0per = 0.9,
   filter = 1,
   keepers = NULL,
+  keep_underscore = FALSE,
   ...
 )
 }

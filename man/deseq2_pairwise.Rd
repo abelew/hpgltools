@@ -18,6 +18,7 @@ deseq2_pairwise(
   keepers = NULL,
   deseq_method = "long",
   fittype = "parametric",
+  keep_underscore = FALSE,
   ...
 )
 }

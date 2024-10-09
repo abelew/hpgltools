@@ -22,6 +22,7 @@ limma_pairwise(
   voom_norm = "quantile",
   limma_trend = FALSE,
   force = FALSE,
+  keep_underscore = FALSE,
   keepers = NULL,
   ...
 )

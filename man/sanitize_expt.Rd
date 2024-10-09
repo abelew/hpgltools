@@ -9,6 +9,8 @@ sanitize_expt(expt, keep_underscore = FALSE)
 }
 \arguments{
 \item{expt}{An expt object to clean.}
+
+\item{keep_underscore}{Sanitize underscores too?}
 }
 \description{
 Get rid of characters which will mess up contrast making and such before

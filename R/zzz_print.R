@@ -291,12 +291,29 @@ print.density_primers <- function(x, ...) {
 #' @param ... Other args to match the generic.
 #' @export
 print.expt <- function(x, ...) {
-  summary_string <- glue("An expressionSet containing experiment with {nrow(exprs(x))}
-{x[['feature_type']]} and {ncol(exprs(x))} samples. There are {ncol(pData(x))} metadata columns and
-{ncol(fData(x))} annotation columns; the primary condition is comprised of:
-{toString(levels(as.factor(pData(x)[['condition']])))}.
-Its current state is: {what_happened(x)}.")
-  message(summary_string)
+  feature_type <- "genes"
+  if (is.null(x[["feature_type"]])) {
+    feature_type <- x[["feature_type"]]
+  }
+  num_annotations <- ncol(fData(x))
+  num_meta <- ncol(pData(x))
+  num_samples <- ncol(exprs(x))
+  num_rows <- nrow(exprs(x))
+  state <- what_happened(x)
+  condition_set <- toString(levels(as.factor(pData(x)[["condition"]])))
+  ## I have a typeographic error somewhere in the following multi-line statement:
+  ## and I cannot seem to find it.
+  ##summary_string <- glue("An expressionSet containing experiment with {num_rows}
+##{feature_type} and {num_samples} samples. There are {num_meta} metadata columns and
+##{num_annotations} annotation columns; the primary condition is comprised of:
+##{condition_set}.
+##Its current state is: {state}.")
+  message("A modified expressionSet containing ", num_rows, " ",
+          feature_type, " and ", num_samples, " sample. There are ",
+          num_meta, " metadata columns and ", num_annotations, " annotation columns.
+The primary condition is comprised of:
+", condition_set, ".
+Its current state is: ", state, ".")
   return(invisible(x))
 }
 
