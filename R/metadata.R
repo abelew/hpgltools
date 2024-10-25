@@ -304,7 +304,8 @@ analyses more difficult/impossible.")
 #' @export
 gather_preprocessing_metadata <- function(starting_metadata = NULL, specification = NULL,
                                           basedir = "preprocessing", new_metadata = NULL,
-                                          species = "*", type = "genome", verbose = FALSE, ...) {
+                                          species = "*", type = "genome", verbose = FALSE,
+                                          md5 = FALSE, ...) {
   ## I want to create a set of specifications for different tasks:
   ## tnseq/rnaseq/assembly/phage/phylogenetics/etc.
   ## For the moment it assumes phage assembly.
@@ -321,6 +322,23 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   } else if (specification == "phage") {
     specification <- make_assembly_spec()
   }
+  if (isTRUE(md5)) {
+    specification[["md5_r1_raw"]] <- list(
+      "file" = "input_r1")
+    specification[["md5_r2_raw"]] <- list(
+      "file" = "input_r2")
+    specification[["md5_r1_trimmed"]] <- list(
+      "file" = "trimmed_r1")
+    specification[["md5_r2_trimmed"]] <- list(
+      "file" = "trimmed_r2")
+    if (!is.null(r1_input_column)) {
+      specification[["md5_r1_raw"]] <- "{meta[[r1_input_column]]}"
+    }
+    if (!is.null(r2_input_column)) {
+      specification[["md5_r2_raw"]] <- "{meta[[r2_input_column]]}"
+    }
+  }
+
   meta <- NULL
   if (is.null(starting_metadata)) {
     sample_directories <- list.dirs(path = basedir, recursive = FALSE)
@@ -844,16 +862,16 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                      ...)
     },
     "input_r1" = {
-      search <- "^\\s+<\\(less .+\\).*$"
-      replace <- "^\\s+<\\(less (.+?)\\).*$"
+      search <- "^\\s+<\\(\\w* .+\\).*$"
+      replace <- "^\\s+<\\(\\w* (.+?)\\).*$"
       mesg("Searching for the input R1.")
       entries <- dispatch_regex_search(meta, search, replace,
                                        input_file_spec, verbose = verbose, basedir = basedir,
                                        ...)
     },
     "input_r2" = {
-      search <- "^\\s+<\\(less .+\\) <\\(less .+\\).*$"
-      replace <- "^\\s+<\\(less .+\\) <\\(less (.+)\\).*$"
+      search <- "^\\s+<\\(\\w* .+\\) <\\(\\w* .+\\).*$"
+      replace <- "^\\s+<\\(\\w* .+\\) <\\(\\w* (.+)\\).*$"
       mesg("Searching for the input R2.")
       entries <- dispatch_regex_search(meta, search, replace,
                                        input_file_spec, verbose = verbose, basedir = basedir,
@@ -987,6 +1005,23 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                        input_file_spec, verbose = verbose, basedir = basedir,
                                        ...)
     },
+    "md5_r1_raw" = {
+      mesg("Gathering MD5 Sums for r1.")
+      entries <- dispatch_md5(meta, input_file_spec)
+    },
+    "md5_r2_raw" = {
+      mesg("Gathering MD5 Sums for r2.")
+      entries <- dispatch_md5(meta, search)
+    },
+    "md5_r1_trimmed" = {
+      mesg("Gathering MD5 Sums for r1 trimmed.")
+      entries <- dispatch_md5(meta, search)
+    },
+    "md5_r2_trimmed" = {
+      mesg("Gathering MD5 Sums for r2 trimmed.")
+      entries <- dispatch_md5(meta, search)
+    },
+
     "notes" = {
       search <- "^.*$"
       replace <- "^(.*)$"
@@ -1183,6 +1218,22 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the proportion of output/input from trimomatic.")
       entries <- dispatch_metadata_ratio(meta, numerator_column,
                                          denominator_column, verbose = verbose)
+    },
+    "trimmed_r1" = {
+      search <- "^output_r1=.+$"
+      replace <- "^output_r1=(.+)$"
+      mesg("Searching for the trimmed R1.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir,
+                                       ...)
+    },
+    "trimmed_r2" = {
+      search <- "^output_r2=.+$"
+      replace <- "^output_r2=(.+)$"
+      mesg("Searching for the trimmed R2.")
+      entries <- dispatch_regex_search(meta, search, replace,
+                                       input_file_spec, verbose = verbose, basedir = basedir,
+                                       ...)
     },
     "tRNA_hits" = {
       ## >1 length=40747 depth=1.00x circular=true
@@ -1552,6 +1603,37 @@ dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
 
     attribs <- sequence_attributes(input_file)
     output_entries[row] <- signif(x = attribs[["gc"]], digits = 3)
+  } ## End looking at every row of the metadata
+  return(output_entries)
+}
+
+dispatch_md5 <- function(meta, input_file_spec) {
+  filenames <- file.path(meta[[input_file_spec]])
+
+  if (isTRUE(verbose)) {
+    message("Example input filename: ", filenames[1], ".")
+  }
+  output_entries <- rep(0, length(filenames))
+  for (row in seq_len(nrow(meta))) {
+    found <- 0
+    ## Just in case there are multiple matches
+    input_file <- filenames[row]
+    if (isFALSE(file.exists(input_file))) {
+      warning("There is no file matching: ", input_file,
+              ".")
+      next
+    }
+    if (is.na(input_file)) {
+      warning("The input file is NA for: ", input_file, ".")
+      next
+    }
+
+    cmd <- glue("md5sum {input_file}")
+    md5 <- try(system(cmd, intern = TRUE))
+    a_sum <- gsub(md5, pattern = "^([^[:space:]]+)[[:space:]]+([^[:space:]]+)$",
+                  replacement = "\\1")
+    mesg(cmd, " produced ", a_sum, ".")
+    output_entries[row] <- a_sum
   } ## End looking at every row of the metadata
   return(output_entries)
 }
@@ -2385,6 +2467,12 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
     "input_r2" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
+    ## 202410: Given recent changes to FC/FH/FD handling, this will require some changes...
+    ## Make cyoa create input_r1= output_r1= lines to make this easier.
+##    "trimmed_r1" = list(
+##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
+##    "trimmed_r2" = list(
+##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
     "hisat_count_table" = list(
       ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
       ## So, for the moment I will make this less stringent to pick up both file names.

@@ -2,7 +2,7 @@
 ## methods. The hope is to remove some corner cases from tools like
 ## suppa/miso/etc and somewhat standardize the resulting outputs.
 
-gather_suppa_files <- function(file_prefix, numerator = "d15", denominator = "d10") {
+gather_suppa_files <- function(file_prefix = NULL, numerator = "d15", denominator = "d10") {
   type_suffixes <- c("A3", "A5", "AF", "AL", "RI", "MX", "SE")
   if (is.null(file_prefix)) {
     file_prefix <- file.path("outputs", "90suppa_mm38_100_time")
@@ -42,6 +42,54 @@ gather_suppa_files <- function(file_prefix, numerator = "d15", denominator = "d1
     "psi_matrices" = psi_matrix_files)
   return(retlist)
 }
+
+gather_rmats_files <- function(file_prefix = NULL, numerator = "t4h", denominator = "no") {
+  type_suffixes <- c("A3", "A5", "AF", "AL", "RI", "MX", "SE")
+  if (is.null(file_prefix)) {
+    file_prefix <- file.path("outputs", "90rmats_hg38_111_infect_state")
+  }
+  retlist <- list(
+    ## Taken from the GTF file
+    "gtf_a3ss" = file.path(file_prefix, "fromGTF.A3SS.txt"),
+    "gtf_a5ss" = file.path(file_prefix, "fromGTF.A5SS.txt"),
+    "gtf_mex" = file.path(file_prefix, "fromGTF.MXE.txt"),
+    "se_mex" = file.path(file_prefix, "fromGTF.SE.txt"),
+    "ri_mex" = file.path(file_prefix, "fromGTF.RI.txt"),
+    "gtf_a3_novel" = file.path(file_prefix, "fromGTF.novelJunction.A3SS.txt"),
+    "gtf_a5_novel" = file.path(file_prefix, "fromGTF.novelJunction.A5SS.txt"),
+    "gtf_mex_novel" = file.path(file_prefix, "fromGTF.novelJunction.MXE.txt"),
+    "gtf_ri_novel" = file.path(file_prefix, "fromGTF.novelJunction.RI.txt"),
+    "gtf_se_novel" = file.path(file_prefix, "fromGTF.novelJunction.SE.txt"),
+    "gtf_a3_novelss" = file.path(file_prefix, "fromGTF.novelSpliceSite.A3SS.txt"),
+    "gtf_a5_novelss" = file.path(file_prefix, "fromGTF.novelSpliceSite.A5SS.txt"),
+    "gtf_mxe_novelss" = file.path(file_prefix, "fromGTF.novelSpliceSite.MXE.txt"),
+    "gtf_ri_novelss" = file.path(file_prefix, "fromGTF.novelSpliceSite.RI.txt"),
+    "gtf_se_novelss" = file.path(file_prefix, "fromGTF.novelSpliceSite.SE.txt"),
+    ## Junction and exon reads
+    "a5ss_both" = file.path(file_prefix, "A5SS.MATS.JCEC.txt"),
+    "a3ss_both" = file.path(file_prefix, "A3SS.MATS.JCEC.txt"),
+    "mxe_both" = file.path(file_prefix, "MXE.MATS.JCEC.txt"),
+    "ri_both" = file.path(file_prefix, "RI.MATS.JCEC.txt"),
+    "se_both" = file.path(file_prefix, "SE.MATS.JCEC.txt"),
+    "a3_input_both" = file.path(file_prefix, "JCEC.raw.input.A3SS.txt"),
+    "a5_input_both" = file.path(file_prefix, "JCEC.raw.input.A5SS.txt"),
+    "mxe_input_both" = file.path(file_prefix, "JCEC.raw.input.MXE.txt"),
+    "ri_input_both" = file.path(file_prefix, "JCEC.raw.input.RI.txt"),
+    "se_input_both" = file.path(file_prefix, "JCEC.raw.input.SE.txt"),
+    ## Final outputs, junction reads
+    "a3ss_junct" = file.path(file_prefix, "A3SS.MATS.JC.txt"),
+    "a5ss_junct" = file.path(file_prefix, "A5SS.MATS.JC.txt"),
+    "mxe_junct" = file.path(file_prefix, "MXE.MATS.JC.txt"),
+    "ri_junct" = file.path(file_prefix, "RI.MATS.JC.txt"),
+    "se_junct" = file.path(file_prefix, "SE.MATS.JC.txt"),
+    "a3_input_junct" = file.path(file_prefix, "JC.raw.input.A3SS.txt"),
+    "a5_input_junct" = file.path(file_prefix, "JC.raw.input.A5SS.txt"),
+    "mxe_input_junct" = file.path(file_prefix, "JC.raw.input.MXE.txt"),
+    "ri_input_junct" = file.path(file_prefix, "JC.raw.input.RI.txt"),
+    "se_input_junct" = file.path(file_prefix, "JC.raw.input.SE.txt"))
+  return(retlist)
+}
+
 
 #' Given some psi and tpm data, make a pretty plot!
 #'
@@ -419,6 +467,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   se_data <- data.frame()
   if (class(se) == "character") {
     se_data <- read.table(se, header = TRUE)
+    mesg(se, " has ", nrow(se_data), " rows.")
   } else if (class(se) == "data.frame" | class(se) == "NULL") {
     se_data <- se_data
   } else {
@@ -428,6 +477,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   a5ss_data <- data.frame()
   if (class(a5ss) == "character") {
     a5ss_data <- read.table(a5ss, header = TRUE)
+    mesg(a5ss, " has ", nrow(a5ss_data), " rows.")
   } else if (class(a5ss)[1] == "data.frame" || class(a5ss)[1] == "NULL") {
     a5ss_data <- a5ss_data
   } else {
@@ -437,15 +487,18 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   a3ss_data <- data.frame()
   if (class(a3ss) == "character") {
     a3ss_data <- read.table(a3ss, header = TRUE)
+    mesg(a3ss, " has ", nrow(a3ss_data), " rows.")
   } else if (class(a3ss)[1] == "data.frame" || class(a3ss)[1] == "NULL") {
     a3ss_data <- a3ss_data
   } else {
     stop("I only understand filenames and data frames, your psi are neither.")
   }
 
+  ## This explodes when using read.table.
   mxe_data <- data.frame()
   if (class(mxe) == "character") {
     mxe_data <- read.table(mxe, header = TRUE)
+    mesg(mxe, " has ", nrow(mxe_data), " rows.")
   } else if (class(mxe)[1] == "data.frame" || class(mxe)[1] == "NULL") {
     mxe_data <- mxe_data
   } else {
@@ -455,6 +508,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   ri_data <- data.frame()
   if (class(ri) == "character") {
     ri_data <- read.table(ri, header = TRUE)
+    mesg(ri, " has ", nrow(ri_data), " rows.")
   } else if (class(ri)[1] == "data.frame" || class(ri)[1] == "NULL") {
     ri_data <- ri_data
   } else {
@@ -462,70 +516,66 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   }
 
   all_data <- data.frame()
-  kept_columns <- c("GeneID", "PValue", "FDR", "IncLevel1",
-                    "IncLevel2", "IncLevelDifference")
-  new_colnames <- c("gene_id", "pvalue", "adjp", "level1", "level2", "dpsi")
-
+  shared_columns <- c("ID", "GeneID", "geneSymbol", "chr", "strand", "IJC_SAMPLE_1",
+                      "SJC_SAMPLE_1", "IJC_SAMPLE_2", "SJC_SAMPLE_2", "IncFormLen",
+                      "SkipFormLen", "PValue", "FDR", "IncLevel1", "IncLevel2", "IncLevelDifference")
+  new_colnames <- c("id", "gene_id", "gene_symbol", "chr", "strand", "ijc_numerator",
+                    "sjc_numerator", "ijc_denominator", "sjc_denominator", "inclusion_length",
+                    "skip_length", "p_value", "fdr", "numerator_inclusion", "denominator_inclusion",
+                    "inclusion_difference", "event")
   if (nrow(se_data > 0)) {
-    se_subset <- se_data[, kept_columns]
-    colnames(se_subset) <- new_colnames
+    se_subset <- se_data[, shared_columns]
     se_subset[["event"]] <- "SE"
+    colnames(se_subset) <- new_colnames
     all_data <- rbind(all_data, se_subset)
   }
   if (nrow(a5ss_data) > 0) {
-    a5ss_subset <- a5ss_data[, kept_columns]
-    colnames(a5ss_subset) <- new_colnames
+    a5ss_subset <- a5ss_data[, shared_columns]
     a5ss_subset[["event"]] <- "A5"
+    colnames(a5ss_subset) <- new_colnames
     all_data <- rbind(all_data, a5ss_subset)
   }
   if (nrow(a3ss_data) > 0) {
-    a3ss_subset <- a3ss_data[, kept_columns]
-    colnames(a3ss_subset) <- new_colnames
+    a3ss_subset <- a3ss_data[, shared_columns]
     a3ss_subset[["event"]] <- "A3"
+    colnames(a3ss_subset) <- new_colnames
     all_data <- rbind(all_data, a3ss_subset)
   }
   if (nrow(mxe_data) > 0) {
-    mxe_subset <- mxe_data[, kept_columns]
-    colnames(mxe_subset) <- new_colnames
+    mxe_subset <- mxe_data[, shared_columns]
     mxe_subset[["event"]] <- "MX"
+    colnames(mxe_subset) <- new_colnames
     all_data <- rbind(all_data, mxe_subset)
   }
   if (nrow(ri_data) > 0) {
-    ri_subset <- ri_data[, kept_columns]
-    colnames(ri_subset) <- new_colnames
+    ri_subset <- ri_data[, shared_columns]
     ri_subset[["event"]] <- "RI"
+    colnames(ri_subset) <- new_colnames
     all_data <- rbind(all_data, ri_subset)
   }
 
   all_data <- data.table::as.data.table(all_data)
+  all_data[["id"]] <- seq_len(nrow(all_data))
   ## Adding stub variables to make dplyr/tidyr NSE operations not throw warnings
   ## when running R CMD check
   l1a <- l1b <- l2a <- l2b <- id <- l1mean <- l2mean <- NULL
+  mesg("Getting numerator/denominator mean values, this is slow.")
   plotting_data <- all_data %>%
-    tidyr::separate("level1", c("l1a", "l1b"), "\\,") %>%
-    tidyr::separate("level2", c("l2a", "l2b"), "\\,")
-  plotting_data[["l1a"]] <- suppressWarnings(as.numeric(plotting_data[["l1a"]]))
-  plotting_data[["l1b"]] <- suppressWarnings(as.numeric(plotting_data[["l1b"]]))
-  plotting_data[["l2a"]] <- suppressWarnings(as.numeric(plotting_data[["l2a"]]))
-  plotting_data[["l2b"]] <- suppressWarnings(as.numeric(plotting_data[["l2b"]]))
-  plotting_data[["id"]] <- rownames(plotting_data)
-  ## suppressWarnings(plotting_data[, `:=` (l1mean = mean(c(l1a, l1b), na.rm = TRUE)), by = id])
-  plotting_data <- plotting_data %>%
     group_by(id) %>%
-    dplyr::mutate(l1mean = mean(c(l1a, l1b), na.rm = TRUE),
-                  l2mean = mean(c(l2a, l2b), na.rm = TRUE),
-                  all_mean = mean(c(l1mean, l2mean), na.rm = TRUE))
-  ## plotting_data[, `:=` (l2mean = mean(c(l2a, l2b), na.rm = TRUE)), by = id]
-  ## plotting_data[, `:=` (all_mean = mean(c(l1mean, l2mean), na.rm = TRUE)), by = id]
-  plotting_data[["check"]] <- plotting_data[["l1mean"]] - plotting_data[["l2mean"]]
-  test <- all.equal(plotting_data[["check"]],
-                    plotting_data[["dpsi"]], tolerance = 0.01)
-  plotting_data[["log10pval"]] <- -1.0 * log10(plotting_data[["pvalue"]])
-  plotting_data[["log10adjpval"]] <- -1.0 * log10(plotting_data[["adjp"]])
-
+    dplyr::mutate(
+      num_ijc_mean = mean(as.numeric(strsplit(ijc_numerator, ",")[[1]]), na.rm = TRUE),
+      den_ijc_mean = mean(as.numeric(strsplit(ijc_denominator, ",")[[1]]), na.rm = TRUE),
+      all_ijc_mean = mean(c(num_ijc_mean, den_ijc_mean), na.rm = TRUE),
+      num_mean = mean(as.numeric(strsplit(numerator_inclusion, ",")[[1]]), na.rm = TRUE),
+      den_mean = mean(as.numeric(strsplit(denominator_inclusion, ",")[[1]]), na.rm = TRUE),
+      all_mean = mean(c(num_mean, den_mean), na.rm = TRUE))
+  mesg("Adding comparison columns and log p-values.")
+  plotting_data[["subtraction"]] <- plotting_data[["num_mean"]] - plotting_data[["den_mean"]]
+  plotting_data[["log10pval"]] <- -1.0 * log10(plotting_data[["p_value"]])
+  plotting_data[["log10adjpval"]] <- -1.0 * log10(plotting_data[["fdr"]])
+  plotting_data[["log2ijc"]] <- log2(plotting_data[["all_ijc_mean"]] + 1)
   plotting_data[["psig"]] <- FALSE
   plotting_data[["adjpsig"]] <- FALSE
-
   plotting_data[["plot_cat"]] <- plotting_data[["event"]]
   plotting_data[["plot_cat"]] <- ifelse(
     test = plotting_data[["plot_cat"]] == "SE",
@@ -548,7 +598,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
                                     yes = "Alternate last exon",
                                     no = "Unknown")))))))
   plotting_data[["category"]] <- plotting_data[["plot_cat"]]
-  insig_idx <- plotting_data[["adjp"]] > sig_threshold
+  insig_idx <- plotting_data[["fdr"]] > sig_threshold
   plotting_data[insig_idx, "plot_cat"] <- "Insignificant"
   ## If, somehow something is observed as unknown, make it insignificant.
   unknown_idx <- plotting_data[["plot_cat"]] == "Unknown"
@@ -561,9 +611,9 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
                                         labels = level_names)
   plotting_data[["event"]] <- rownames(plotting_data)
 
-  psig_idx <- plotting_data[["adjp"]] <= sig_threshold
+  psig_idx <- plotting_data[["fdr"]] <= sig_threshold
   plotting_data[psig_idx, "psig"] <- TRUE
-  adjpsig_idx <- plotting_data[["adjp"]] <= sig_threshold
+  adjpsig_idx <- plotting_data[["fdr"]] <= sig_threshold
   plotting_data[adjpsig_idx, "adjpsig"] <- TRUE
 
   ## A quick volcano plot, which should be made prettier soon.
@@ -577,7 +627,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   ## Now a somewhat more involved ma plot, first dropping the super-low tpm stuff
   label_subset_idx <- plotting_data[["psig"]] == TRUE
   label_subset <- plotting_data[label_subset_idx, ]
-  label_subset_idx <- abs(label_subset[["dpsi"]]) > dpsi_threshold ## |
+  label_subset_idx <- abs(label_subset[["subtraction"]]) > dpsi_threshold ## |
   ##    abs(label_subset[["all_mean"]] - 0.5) > (dpsi_threshold / 2)
   label_subset <- label_subset[label_subset_idx, ]
   ##label_subset_idx <- label_subset[["plot_cat"]] != "Insignificant"
@@ -599,7 +649,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   ## Now make a quick and dirty ma plot.
   sig_splicing_maplot <- ggplot(
     plotting_data,
-    aes(x = .data[["all_mean"]], y = .data[["dpsi"]],
+    aes(x = .data[["log2ijc"]], y = .data[["subtraction"]],
         color = .data[["plot_cat"]], fill = .data[["plot_cat"]])) +
     ggplot2::geom_point(alpha = alpha) +
     ggplot2::scale_shape_manual(values = 21) +
@@ -615,7 +665,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
       data = label_subset,
       show.legend = FALSE,
       arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")),
-      aes(x = .data[["all_mean"]], y = .data[["dpsi"]], label = .data[["gene_id"]])) +
+      aes(x = .data[["all_mean"]], y = .data[["subtraction"]], label = .data[["gene_id"]])) +
     ggplot2::xlab("Average Inclusion.") +
     ggplot2::ylab("Delta PSI calculated by rMATS.") +
     ggplot2::theme_bw(base_size = base_size)
