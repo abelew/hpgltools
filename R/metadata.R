@@ -304,7 +304,7 @@ analyses more difficult/impossible.")
 #' @export
 gather_preprocessing_metadata <- function(starting_metadata = NULL, specification = NULL,
                                           basedir = "preprocessing", new_metadata = NULL,
-                                          species = "*", type = "genome", verbose = FALSE,
+                                          species = "*", type = "genome", subtype = NULL, verbose = FALSE,
                                           md5 = FALSE, ...) {
   ## I want to create a set of specifications for different tasks:
   ## tnseq/rnaseq/assembly/phage/phylogenetics/etc.
@@ -386,13 +386,18 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
       warning("Column: ", new_column, " already exists, replacing it.")
     }
     input_file_spec <- specification[[entry_type]][["file"]]
+    old_spec <- NULL
+    if (!is.null(specification[[entry_type]][["oldfile"]])) {
+      old_spec <- specification[[entry_type]][["oldfile"]]
+    }
     if (verbose) {
       message("Checking input_file_spec: ", input_file_spec, ".")
+      message("basedir is ", basedir, ", species is ", species, " and type is ", type, ".")
     }
     new_entries <- dispatch_metadata_extract(
       meta, entry_type, input_file_spec, specification,
       basedir = basedir, verbose = verbose, species = species, type = type,
-      ...)
+      old_spec = old_spec) ##, ...)
     test_entries <- new_entries
     na_idx <- is.na(test_entries)
     na_entries <- sum(na_idx)
@@ -469,87 +474,85 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
 #'  column in the metadata.
 dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                       specification, basedir = "preprocessing", verbose = FALSE,
-                                      species = "*", type = "genome", ...) {
+                                      old_spec = NULL, species = "*", type = "genome", ...) {
   switchret <- switch(
     entry_type,
     "aragorn_tRNAs" = {
       search <- "^\\d+ genes found"
       replace <- "^(\\d+) genes found"
       mesg("Searching aragorn outputs for tRNA-like genes.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       verbose = verbose, as = "numeric",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir,
+        verbose = verbose, as = "numeric", ...)
     },
     "assembly_fasta_nt" = {
       mesg("Searching for assembly fasta files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_genbank_annotated" = {
       mesg("Searching for assembly genbank files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_genbank_stripped" = {
       mesg("Searching for stripped down assembly genbank files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_cds_amino_acids" = {
       mesg("Searching for assembly amino acid fasta files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_cds_nucleotides" = {
       mesg("Searching for assembly CDS fasta files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_gff" = {
       mesg("Searching for assembly gff files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_tsv" = {
       mesg("Searching for assembly tsv feature files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "assembly_xls" = {
       mesg("Searching for assembly xlsx feature files.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "bedtools_coverage_file" = {
       mesg("Searching for files containing coverage from bedtools")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "bbmap_coverage_stats" = {
       mesg("Searching for coverage statistics from bbmap.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "bbmap_coverage_per_nt" = {
       mesg("Searching for coverage/nucleotide from bbmap.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "deduplication_stats" = {
       mesg("Searching for the GATK/picard deduplication stats file.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = type, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, type = type, basedir = basedir)
     },
     "fastqc_pct_gc" = {
       ## %GC     62
       search <- "^%GC	\\d+$"
       replace <- "^%GC	(\\d+)$"
       mesg("Searching for the percent GC content from fastqc.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       as = "numeric", basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose,
+        as = "numeric", basedir = basedir, ...)
     },
     "fastqc_most_overrepresented" = {
       ## Two lines after:
@@ -567,157 +570,145 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^>\\d+ length=\\d+ coverage=.*x.*$"
       replace <- "^>\\d+ length=\\d+ coverage=(.*)x.*$"
       mesg("Searching for relative coverage observed by unicycler/spades.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "all",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "all", ...)
     },
     "final_gc_content" = {
       mesg("Searching for the GC content of a finalized assembly.")
-      entries <- dispatch_gc(meta, input_file_spec, basedir = basedir, verbose = verbose)
+      entries <- dispatch_gc(
+        meta, input_file_spec, basedir = basedir, verbose = verbose)
     },
     "gatk_unpaired" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t(\\d+)\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching the number of unpaired reads observed by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_paired" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t(\\d+)\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of paired reads observed by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_supplementary" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t(\\d+)\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of supplementary reads observed by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_unmapped" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t(\\d+)\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of unmapped reads by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_unpaired_duplicates" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t(\\d+)\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of unpaired duplicate reads observed by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_paired_duplicates" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t(\\d+)\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of paired duplicate reads observed by GATK.")
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_paired_opt_duplicates" = {
       mesg("Searching for the number of optical paired duplicate reads observed by GATK.")
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t(\\d+)\t0\\.\\d+\t\\d+$"
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_duplicate_pct" = {
       mesg("Searching for the percentage duplication observed by GATK.")
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t(0\\.\\d+)\t\\d+$"
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "gatk_libsize" = {
       mesg("Searching for the library size by GATK.")
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t(\\d+)$"
-      entries <- dispatch_regex_search(meta, search, replace, species = species,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, species = species, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "glimmer_positive_strand" = {
       search <- "\\s+\\+\\d+\\s+"
       mesg("Searching for the number of + strand entries observed by glimmer.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "glimmer_negative_strand" = {
       search <- "\\s+-\\d+\\s+"
       mesg("Searching for the number of - strand entries observed by glimmer.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "hisat_count_table" = {
       mesg("Searching for the count tables from hisat->htseq.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = type, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, type = type,
+        basedir = basedir)
     },
     "hisat_genome_single_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
       mesg("Searching for number of concordant single-mapped reads to CDS by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, type = type, species = species, old_spec = old_spec, ...)
     },
     "hisat_genome_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
       mesg("Searching for number of concordant multi-mapped reads to RNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, type = type, species = species, old_spec = old_spec, ...)
     },
     "hisat_genome_single_all" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned exactly 1 time"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned exactly 1 time"
       mesg("Searching for number of all reads mapped to CDS by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       as = "numeric", basedir = basedir,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
+        basedir = basedir, type = type, species = species, old_spec = old_spec,
+        ...)
     },
     "hisat_genome_multi_all" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned >1 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned >1 times"
       mesg("Searching for number of all reads multi-mapped to CDS by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       as = "numeric", basedir = basedir,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
+        basedir = basedir, type = type, species = species, old_spec = old_spec, ...)
     },
     "hisat_genome_percent_log" = {
       search <- "^.+% overall alignment rate"
       replace <- "^(.+)% overall alignment rate"
       mesg("Searching for the percent mapped in the hisat log.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       basedir = basedir,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        type = type, species = species, old_spec = old_spec, ...)
     },
     "hisat_genome_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_genome_single_concordant"]][["column"]]
@@ -732,61 +723,64 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column)
     },
     "hisat_genome_input_reads" = {
-      search <- "^\\d+ reads; of these"
-      replace <- "^(\\d+) reads; of these"
+      search <- "^[[:digit:]]+ reads; of these"
+      replace <- "^([[:digit:]]+) reads.+$"
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, species = species, old_spec = old_spec,
+        ...)
     },
     "hisat_observed_genes" = {
       search <- "^.*\t0$"
       mesg("Searching for the number of genes observed by hisat.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir, inverse = TRUE,
-                                      type = type, species = species)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir, inverse = TRUE,
+        type = type, species = species)
+    },
+    "hisat_sum_genes" = {
+      mesg("Searching for the number of reads counted to genes.")
+      entries <- dispatch_sum_column(
+        meta, input_file_spec, verbose = verbose, basedir = basedir,
+        type = type, species = species)
+
     },
     "hisat_observed_mean_exprs" = {
       mesg("Searching for the mean expression observed by hisat.")
-      entries <- dispatch_csv_search(meta, 2, input_file_spec, file_type = "tsv",
-                                    which = "function", chosen_func = "mean",
-                                     verbose = verbose, basedir = basedir,
-                                     type = type, species = species, as = "numeric")
+      entries <- dispatch_csv_search(
+        meta, 2, input_file_spec, file_type = "tsv", which = "function", chosen_func = "mean",
+        verbose = verbose, basedir = basedir, type = type, species = species, as = "numeric")
     },
     "hisat_observed_median_exprs" = {
       mesg("Searching for the median expression observed by hisat.")
-      entries <- dispatch_csv_search(meta, 2, input_file_spec, file_type = "tsv",
-                                     which = "function", chosen_func = "median",
-                                     verbose = verbose, basedir = basedir,
-                                     type = type, species = species, as = "numeric")
+      entries <- dispatch_csv_search(
+        meta, 2, input_file_spec, file_type = "tsv", which = "function", chosen_func = "median",
+        verbose = verbose, basedir = basedir, type = type, species = species, as = "numeric")
     },
     "hisat_rrna_input_reads" = {
-      search <- "^\\d+ reads; of these"
-      replace <- "^(\\d+) reads; of these"
+      search <- "^[[:digit:]]+ reads; of these"
+      replace <- "^([[:digit:]]+) reads.+"
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, species = species, type = "rRNA", old_spec = old_spec,
+        ...)
     },
     "hisat_rrna_single_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, species = species, type = "rRNA", old_spec = old_spec, ...)
     },
     "hisat_rrna_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
       mesg("Searching for number of concordant multi-mapped reads to rRNA by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, basedir = basedir,
-                                       as = "numeric", verbose = verbose,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
+        verbose = verbose, type = "rRNA", species = species, old_spec = old_spec, ...)
     },
     "hisat_rrna_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_rrna_multi_concordant"]][["column"]]
@@ -802,208 +796,197 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         denominator_column <- "trimomatic_output"
       }
       mesg("Searching for percent rRNA mapped by hisat.")
-      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column,
-                                         numerator_add = numerator_add)
+      entries <- dispatch_metadata_ratio(
+        meta, numerator_column, denominator_column, numerator_add = numerator_add)
     },
     "hisat_rrna_percent_log" = {
       search <- "^.+% overall alignment rate"
       replace <- "^(.+)% overall alignment rate"
       mesg("Searching for the percent mapped in the hisat log.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       basedir = basedir,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        type = "rRNA", species = species, old_spec = old_spec, ...)
     },
     "hisat_unmapped" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned 0 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned 0 times"
       mesg("Searching for number of all reads that did not map to CDS by hisat.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       as = "numeric", basedir = basedir,
-                                       type = type, species = species, ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
+        basedir = basedir, type = type, species = species, old_spec = old_spec, ...)
     },
     "host_filter_species" = {
       search <- "^.*$"
       replace <- "^(.*)$"
       mesg("Searching for the most likely host species for reads according to kraken.")
-      entries <- dispatch_regex_search(meta, search, replace, input_file_spec,
-                                       which = "first", verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, which = "first",
+        verbose = verbose, basedir = basedir)
     },
     "ictv_taxonomy" = {
       ## column <- "taxon"
       column <- "name"
       mesg("Searching for the likely ICTV taxonomy of an assembly.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "all", verbose = verbose, basedir = basedir,
-                                     ...)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "all",
+        verbose = verbose, basedir = basedir, ...)
     },
     "ictv_accession" = {
       column <- "hit_accession"
       mesg("Searching for the likely ICTV accession of an assembly.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "all", verbose = verbose, basedir = basedir,
-                                     ...)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "all", verbose = verbose,
+        basedir = basedir, ...)
     },
     "ictv_family" = {
       ## column <- "taxon"
       column <- "hit_family"
       mesg("Searching for the likely ICTV virus family of an assembly.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "first", verbose = verbose, basedir = basedir,
-                                     ...)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "first",
+        verbose = verbose, basedir = basedir, ...)
     },
     "ictv_genus" = {
       ## column <- "taxon"
       column <- "hit_genus"
       mesg("Searching for the likely ICTV virus genus of an assembly.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "first", verbose = verbose, basedir = basedir,
-                                     ...)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "first",
+        verbose = verbose, basedir = basedir, ...)
     },
     "input_r1" = {
       search <- "^\\s+<\\(\\w* .+\\).*$"
       replace <- "^\\s+<\\(\\w* (.+?)\\).*$"
       mesg("Searching for the input R1.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "input_r2" = {
       search <- "^\\s+<\\(\\w* .+\\) <\\(\\w* .+\\).*$"
       replace <- "^\\s+<\\(\\w* .+\\) <\\(\\w* (.+)\\).*$"
       mesg("Searching for the input R2.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "interpro_signalp_hits" = {
       search <- "\\tSignalP.*\\t"
       mesg("Searching for interpro signalP hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_phobius_hits" = {
       search <- "\\tPhobius\\t"
       mesg("Searching for interpro phobius hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_pfam_hits" = {
       search <- "\\tPfam\\t"
       mesg("Searching for interpro pfam hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_tmhmm_hits" = {
       search <- "\\tTMHMM\\t"
       mesg("Searching for interpro TMHMM hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_cdd_hits" = {
       search <- "\\tCDD\\t"
       mesg("Searching for interpro CDD hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_smart_hits" = {
       search <- "\\tSMART\\t"
       mesg("Searching for interpro SMART hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_gene3d_hits" = {
       search <- "\\tGene3D\\t"
       mesg("Searching for interpro gene3D hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "interpro_superfamily_hits" = {
       search <- "\\tSUPERFAMILY\\t"
       mesg("Searching for interpro superfamily hits.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "jellyfish_count_table" = {
       mesg("Searching for hits/kmer matrices by jellyfish.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "jellyfish_observed" = {
       search <- "^.*$"
       mesg("Searching for the number of separate kmers observed by jellyfish.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "kraken_viral_classified" = {
       search <- "^\\s+\\d+ sequences classified.*$"
       replace <- "^\\s+(\\d+) sequences classified.*$"
       mesg("Searching for reads classified by the kraken virus database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_viral_unclassified" = {
       search <- "^\\s+\\d+ sequences unclassified.*$"
       replace <- "^\\s+(\\d+) sequences unclassified.*$"
       mesg("Searching for reads not classified by the kraken virus database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_viral_species" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__(.*)\\t\\d+$"
       mesg("Searching for the most represented species by the kraken viral database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_viral_species_reads" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__.*\\t(\\d+)$"
       mesg("Searching for the number of reads most represented by the kraken viral database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_matrix" = {
       mesg("Searching for a matrix of reads/taxonomy from kraken.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "kraken_standard_classified" = {
       search <- "^\\s+\\d+ sequences classified.*$"
       replace <- "^\\s+(\\d+) sequences classified.*$"
       mesg("Searching for reads classified by the kraken standard database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_standard_unclassified" = {
       search <- "^\\s+\\d+ sequences unclassified.*$"
       replace <- "^\\s+(\\d+) sequences unclassified.*$"
       mesg("Searching for reads not classified by the kraken standard database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_standard_species" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__(.*)\\t\\d+$"
       mesg("Searching for the most represented species by the kraken standard database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_standard_species_reads" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__.*\\t(\\d+)$"
       mesg("Searching for the number of reads most represented by the kraken standard database.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "md5_r1_raw" = {
       mesg("Gathering MD5 Sums for r1.")
@@ -1026,184 +1009,175 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.*$"
       replace <- "^(.*)$"
       mesg("Searching for the text in a notes.txt file.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "all")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "all")
     },
     "pernt_mean_coverage" = {
       column <- "Coverage"
       mesg("Searching for mean coverage/nucleotide from bbmap.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "function", chosen_func = "mean",
-                                     verbose = verbose, basedir = basedir,
-                                     as = "numeric")
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "function",
+        chosen_func = "mean", verbose = verbose, basedir = basedir, as = "numeric")
     },
     "pernt_median_coverage" = {
       column <- "Coverage"
       mesg("Searching for median coverage/nucleotide from bbmap.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     chosen_func = "median", basedir = basedir,
-                                     which = "function", as = "numeric",
-                                     verbose = verbose)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", chosen_func = "median",
+        basedir = basedir, which = "function", as = "numeric", verbose = verbose)
     },
     "pernt_max_coverage" = {
       column <- "Coverage"
       mesg("Searching for maximum coverage/nucleotide from bbmap.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "function", chosen_func = "max",
-                                     verbose = verbose, basedir = basedir)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "function", chosen_func = "max",
+        verbose = verbose, basedir = basedir)
     },
     "pernt_min_coverage" = {
       column <- "Coverage"
       mesg("Searching for minimum coverage/nucleotide from bbmap.")
-      entries <- dispatch_csv_search(meta, column, input_file_spec, file_type = "tsv",
-                                     which = "function", chosen_func = "min",
-                                     verbose = verbose, basedir = basedir)
+      entries <- dispatch_csv_search(
+        meta, column, input_file_spec, file_type = "tsv", which = "function", chosen_func = "min",
+        verbose = verbose, basedir = basedir)
     },
     "phageterm_dtr_length" = {
       mesg("Searching for the DTR length according to phageterm.")
-      entries <- dispatch_fasta_lengths(meta, input_file_spec, verbose = verbose,
-                                        basedir = basedir)
+      entries <- dispatch_fasta_lengths(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "phanotate_positive_strand" = {
       search <- "\\t\\+\\t"
       mesg("Searching for the number of features on the + strand observed by phanotate.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "phanotate_negative_strand" = {
       search <- "\\t-\\t"
       mesg("Searching for the number of features on the - strand observed by phanotate.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "phastaf_num_hits" = {
       search <- "^.*$"
       mesg("Searching for the number of potential hits observed by phastaf.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "prodigal_positive_strand" = {
       search <- "\\t\\+\\t"
       mesg("Searching for the number of features on the + strand observed by prodigal.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "prodigal_negative_strand" = {
       search <- "\\t-\\t"
       mesg("Searching for the number of features on the - strand observed by prodigal.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "possible_host_species" = {
       search <- ".*times\\.$"
       mesg("Searching for the species of a likely host according to kraken.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "racer_changed" = {
       search <- "^Number of changed positions"
       replace <- "^Number of changed positions\\s+(\\d+)$"
       mesg("Searching for the number of bases corrected by RACER.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "first", ...)
     },
     "salmon_stranded" = {
       search <- "Automatically detected most likely library type as .+$"
       replace <- "^.*Automatically detected most likely library type as (\\w+)$"
       mesg("Searching the likely library type observed by salmon.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       basedir = basedir, which = "first",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose,
+        basedir = basedir, which = "first", ...)
     },
     "salmon_mapped" = {
       search <- "Counted .+ total reads in the equivalence classes"
       replace <- "^.*Counted (.+)? total reads in the equivalence classes"
       mesg("Searching the number of reads quantified by salmon.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose,
+        basedir = basedir, ...)
     },
     "salmon_percent" = {
       search <- "^.* Mapping rate = \\d+\\.\\d+%"
       replace <- "^.* Mapping rate = (\\d+\\.\\d+)%"
       mesg("Searching the percentage reads quantified by salmon.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose,
-                                       basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose,
+        basedir = basedir, ...)
     },
     "salmon_count_table" = {
       mesg("Searching for the salmon quantitation file.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "salmon_observed_genes" = {
       search <- "^.*\t0\\.0+$"
       mesg("Searching for the number of genes observed by salmon.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      basedir = basedir, inverse = TRUE,
-                                      type = type, species = species)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir, inverse = TRUE,
+        type = type, species = species)
     },
     "shovill_contigs" = {
       ## [shovill] It contains 1 (min=131) contigs totalling 40874 bp.
       search <- "^\\[shovill\\] It contains \\d+ .*$"
       replace <- "^\\[shovill\\] It contains (\\d+) .*$"
       mesg("Searching for the number of contigs observed by shovill.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       as = "numeric", which = "last",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last", ...)
     },
     "shovill_length" = {
       ## [shovill] It contains 1 (min=131) contigs totalling 40874 bp.
       search <- "^\\[shovill\\] It contains \\d+ .* contigs totalling \\d+ bp\\.$"
       replace <- "^\\[shovill\\] It contains \\d+ .* contigs totalling (\\d+) bp\\.$"
       mesg("Searching for the assembly length observed by shovill.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "last", as = "numeric",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "last", as = "numeric", ...)
     },
     "shovill_estlength" = {
       ## [shovill] Assembly is 109877, estimated genome size was 117464 (-6.46%)
       search <- "^\\[shovill\\] Assembly is \\d+\\, estimated genome size was \\d+.*$"
       replace <- "^\\[shovill\\] Assembly is \\d+\\, estimated genome size was (\\d+).*$"
       mesg("Searching for the estimated genome size observed by shovill.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "last", as = "numeric",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "last", as = "numeric", ...)
     },
     "shovill_minlength" = {
       ## [shovill] It contains 1 (min=145) contigs totalling 109877 bp.
       search <- "^\\[shovill\\] It contains \\d+ \\(min=\\d+\\).*$"
       replace <- "^\\[shovill\\] It contains \\d+ \\(min=(\\d+)\\).*$"
       mesg("Searching for the minimum contig size observed by shovill.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "last", as = "numeric",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "last", as = "numeric", ...)
     },
     "trimomatic_input" = {
       search <- "^Input (Read Pairs|Reads): \\d+ .*$"
       replace <- "^Input (Read Pairs|Reads): (\\d+) .*$"
       mesg("Searching for the number of trimomatic input reads.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir, extraction = "\\2",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        extraction = "\\2", ...)
     },
     "trimomatic_output" = {
       search <- "^Input (Read Pairs|Reads): \\d+ (Both Surviving|Surviving): \\d+ .*$"
       replace <- "^Input (Read Pairs|Reads): \\d+ (Both Surviving|Surviving): (\\d+) .*$"
       mesg("Searching for the number of trimomatic output reads.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir, extraction = "\\3",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        extraction = "\\3", ...)
     },
     "trimomatic_ratio" = {
       ## I think we can assume that the trimomatic ratio will come immediately after input/output
@@ -1216,42 +1190,42 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         denominator_column <- specification[["trimomatic_input"]][["column"]]
       }
       mesg("Searching for the proportion of output/input from trimomatic.")
-      entries <- dispatch_metadata_ratio(meta, numerator_column,
-                                         denominator_column, verbose = verbose)
+      entries <- dispatch_metadata_ratio(
+        meta, numerator_column, denominator_column, verbose = verbose)
     },
     "trimmed_r1" = {
       search <- "^output_r1=.+$"
       replace <- "^output_r1=(.+)$"
       mesg("Searching for the trimmed R1.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "trimmed_r2" = {
       search <- "^output_r2=.+$"
       replace <- "^output_r2=(.+)$"
       mesg("Searching for the trimmed R2.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "tRNA_hits" = {
       ## >1 length=40747 depth=1.00x circular=true
       search <- "^.*Found \\d+ tRNAs"
       replace <- "^.*Found (\\d+) tRNAs"
       mesg("Searching for the number of putative tRNAs observed by prokka.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_output_bam" = {
       mesg("Searching for umi-filtered alignments.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_dedup_output_count" = {
       mesg("Searching for umi-filtered counts.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_dedup_chimeric" = {
       ## Example line:
@@ -1259,8 +1233,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* Chimeric read pair: \\d+\\,.*$"
       replace <- "^.* Chimeric read pair: (\\d+)\\,.*$"
       mesg("Searching for the umi_tools chimeric reads.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_num_reads_in" = {
       ## Example line:
@@ -1268,8 +1242,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* INFO Reads: Input Reads: \\d+\\,.*$"
       replace <- "^.* INFO Reads: Input Reads: (\\d+)\\,.*$"
       mesg("Searching for the umi_tools number of input reads.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_num_reads_out" = {
       ## Example line:
@@ -1277,8 +1251,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* Number of reads out: \\d+$"
       replace <- "^.* Number of reads out: (\\d+)$"
       mesg("Searching for the umi_tools number of output reads.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_pct_reads" = {
       mesg("Getting the percent of deduplication reads output/input.")
@@ -1292,8 +1266,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* number of positions deduplicated: \\d+$"
       replace <- "^.* number of positions deduplicated: (\\d+)$"
       mesg("Searching for the umi_tools number of deduplicated positions.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_mean_umi_per_pos" = {
       ## Example line:
@@ -1301,8 +1275,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* Mean number of unique UMIs per position: \\d+\\.*\\d*$"
       replace <- "^.* Mean number of unique UMIs per position: (\\d+\\.*\\d*)$"
       mesg("Searching for the umi_tools mean number of umis per position.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_max_umi_per_pos" = {
       ## Example line:
@@ -1310,27 +1284,31 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^.* Max\\. number of unique UMIs per position: \\d+$"
       replace <- "^.* Max\\. number of unique UMIs per position: (\\d+)$"
       mesg("Searching for the umi_tools maximum number of umis per position.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_dedup_edit_distance" = {
       mesg("Searching for umi-dedup distance statistics.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_dedup_umi_positions" = {
       mesg("Searching for umi-dedup position statistics.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_dedup_umi_stats" = {
       mesg("Searching for umi-dedup statistics.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_extract_r1_output" = {
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, type = "genome", basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species,
+        type = "genome", basedir = basedir)
     },
     "umi_extract_r2_output" = {
       ## Example line:
@@ -1338,73 +1316,71 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       search <- "^# read2_out\\s+:.*$"
       replace <- "^# read2_out\\s+: (.+)$"
       mesg("Searching for the umi_tools R2 extract output.")
-      entries <- dispatch_filename_search(meta, search, replace,
-                                          input_file_spec, verbose = verbose, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir)
     },
     "umi_extract_matches" = {
       ## Example line:
       ## 2024-06-06 11:27:37,727 INFO regex matches read2: 21454044
       search <- "^.+ regex matches read2: \\d+$"
       replace <- "^.+ regex matches read2: (\\d+)$"
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       as = "numeric", ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose,
+        basedir = basedir, as = "numeric", ...)
     },
     "unicycler_lengths" = {
       ## >1 length=40747 depth=1.00x circular=true
       search <- "^>\\d+ length=\\d+ depth.*$"
       replace <- "^>\\d+ length=(\\d+) depth.*$"
       mesg("Searching for contig lengths observed by unicycler/spades.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "all",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "all", ...)
     },
     "unicycler_relative_coverage" = {
       ## >1 length=40747 depth=1.00x circular=true
       search <- "^>\\d+ length=\\d+ depth=.*x.*$"
       replace <- "^>\\d+ length=\\d+ depth=(.*)x.*$"
       mesg("Searching for relative coverage observed by unicycler.")
-      entries <- dispatch_regex_search(meta, search, replace,
-                                       input_file_spec, verbose = verbose, basedir = basedir,
-                                       which = "all",
-                                       ...)
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        which = "all", ...)
     },
     "freebayes_observed" = {
       search <- ".*"
       mesg("Searching for the number of variants observed by freebayes.")
-      entries <- dispatch_count_lines(meta, search, input_file_spec, verbose = verbose,
-                                      species = species, basedir = basedir)
+      entries <- dispatch_count_lines(
+        meta, search, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_observed_file" = {
       mesg("Searching for the matrix of all freebayes observations.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_variants_by_gene" = {
       mesg("Searching for variants/gene observed by freebayes.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_variants_table" = {
       mesg("REMOVE ME? Redundant with freebayes_observed_file, REMOVE ME?")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_modified_genome" = {
       mesg("Searching for the modified genome from freebayes.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_bcf_file" = {
       mesg("Searching for the freebayes bcf output.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     "freebayes_penetrance_file" = {
       mesg("Searching for a table of variant penetrance according to freebayes.")
-      entries <- dispatch_filename_search(meta, input_file_spec, verbose = verbose,
-                                          species = species, basedir = basedir)
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
     },
     {
       stop("I do not know this spec: ", entry_type)
@@ -1483,6 +1459,64 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
       num_hits <- sum(found_idx)
     }
     close(input_handle)
+    output_entries[row] <- num_hits
+  } ## End looking at every row of the metadata
+  return(output_entries)
+}
+
+#' Note: This is not taking some important things into account yet.
+dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
+                                species = "*", basedir = "preprocessing",
+                                type = "genome") {
+
+  if (length(species) > 1) {
+    output_entries <- data.frame(row.names = seq_len(nrow(meta)))
+    for (s in seq_len(length(species))) {
+      species_name <- species[s]
+      output_entries[[species_name]] <- dispatch_sum_column(
+        meta, input_file_spec, verbose = verbose,
+        species = species_name, basedir = basedir, type = type)
+    }
+    return(output_entries)
+  }
+
+  filenames_with_wildcards <- glue(input_file_spec)
+  if (isTRUE(verbose)) {
+    message("Example count filename: ", filenames_with_wildcards[1], ".")
+  }
+  output_entries <- rep(0, length(filenames_with_wildcards))
+  for (row in seq_len(nrow(meta))) {
+    found <- 0
+    ## Just in case there are multiple matches
+    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
+    if (length(input_file) == 0) {
+      mesg("There is no file matching: ", filenames_with_wildcards[row],
+           ".")
+      output_entries[row] <- ''
+      next
+    }
+    if (is.na(input_file)) {
+      mesg("The input file is NA for: ", filenames_with_wildcards[row], ".")
+      output_entries[row] <- ''
+      next
+    }
+
+    input_df <- as.data.frame(read.table(input_file))
+    if (rownames(input_df)[1] == "1") {
+      rownames(input_df) <- input_df[["V1"]]
+      input_df[["V1"]] <- NULL
+    }
+    ## FIXME: This is only useful for count tables.
+    if (class(input_df) == "data.frame") {
+      drop_idx <- grepl(x = rownames(input_df), pattern = "^_")
+      ## I am not sure why, but this is getting coerced to a vector.
+      input_df <- input_df[!drop_idx, ]
+      num_hits <- sum(input_df)
+    } else {
+      keep_idx <- !grepl(x = names(input_df), pattern = "^_")
+      input_df <- input_df[keep_idx]
+      num_hits <- sum(input_df)
+    }
     output_entries[row] <- num_hits
   } ## End looking at every row of the metadata
   return(output_entries)
@@ -1705,7 +1739,7 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 #' @param ... Used to pass extra variables to glue for finding files.
 dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
-                                  extraction = "\\1", which = "first",
+                                  extraction = "\\1", which = "first", old_spec = NULL,
                                   as = NULL, verbose = FALSE, type = "genome",
                                   ...) {
   arglist <- list(...)
@@ -1720,11 +1754,15 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
       output_entries[[species_name]] <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
         species = species_name, basedir = basedir, type = type,
-        extraction = extraction, which = which, as = as, ...)
+        extraction = extraction, which = which, as = as, old_spec = old_spec, ...)
     }
     return(output_entries)
   }
   filenames_with_wildcards <- glue(input_file_spec, ...)
+  old_filenames <- NULL
+  if (!is.null(old_spec)) {
+    old_filenames <- glue(old_spec, ...)
+  }
   if (isTRUE(verbose)) {
     message("Example regex filename: ", filenames_with_wildcards[1], ".")
   }
@@ -1734,9 +1772,17 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
     ## Just in case there are multiple matches
     input_file <- Sys.glob(filenames_with_wildcards[row])[1]
     if (is.na(input_file)) {
-      output_entries[row] <- ''
-      ## The file did not exist.
-      next
+      old_file <- NA
+      if (!is.null(old_filenames[row])) {
+        old_file <- Sys.glob(old_filenames[row])[1]
+      }
+      if (is.na(old_file)) {
+        output_entries[row] <- ''
+        ## The file did not exist.
+        next
+      } else {
+        input_file <- old_file
+      }
     }
     if (length(input_file) == 0) {
       warning("There is no file matching: ", filenames_with_wildcards[row], ".")
@@ -2449,6 +2495,8 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "hisat_genome_pct_vs_trimmed" = list(
       "column" = "hisat_genome_pct_vs_trimmed"),
     "hisat_observed_genes" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+    "hisat_sum_genes" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_observed_mean_exprs" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),

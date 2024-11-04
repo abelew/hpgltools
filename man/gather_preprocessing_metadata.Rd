@@ -13,6 +13,7 @@ gather_preprocessing_metadata(
   species = "*",
   type = "genome",
   verbose = FALSE,
+  md5 = FALSE,
   ...
 )
 }
