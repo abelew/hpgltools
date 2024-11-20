@@ -18,7 +18,7 @@ choose_model(
   contr = NULL,
   surrogates = "be",
   verbose = TRUE,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   ...
 )
 }

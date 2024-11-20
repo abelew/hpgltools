@@ -140,9 +140,9 @@ perhaps change gff_type to make the merge work.")
   ## https://support.bioconductor.org/p/108656/
   mf_over <- bp_over <- cc_over <- NULL
   mf_under <- bp_under <- cc_under <- NULL
-  message("simple_gostats(): Performing MF GSEA.")
+  message("simple_gostats(): Performing MF enrichment.")
   mf_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
                              geneIds = degenes_ids, universeGeneIds = universe_ids,
                              ontology = "MF", pvalueCutoff = pcutoff,
                              conditional = conditional, testDirection = "over")
@@ -152,9 +152,9 @@ perhaps change gff_type to make the merge work.")
     mf_over <- Category::hyperGTest(mf_params)
   }
   message("Found ", nrow(GOstats::summary(mf_over)), " over MF categories.")
-  message("simple_gostats(): Performing BP GSEA.")
+  message("simple_gostats(): Performing BP enrichment.")
   bp_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
                              geneIds = degenes_ids, universeGeneIds = universe_ids,
                              ontology = "BP", pvalueCutoff = pcutoff,
                              conditional = FALSE, testDirection = "over")
@@ -163,9 +163,9 @@ perhaps change gff_type to make the merge work.")
     bp_over <- Category::hyperGTest(bp_params)
   }
   message("Found ", nrow(GOstats::summary(bp_over)), " over BP categories.")
-  message("simple_gostats(): Performing CC GSEA.")
+  message("simple_gostats(): Performing CC enrichment.")
   cc_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
                              geneIds = degenes_ids, universeGeneIds = universe_ids,
                              ontology = "CC", pvalueCutoff = pcutoff,
                              conditional = FALSE, testDirection = "over")

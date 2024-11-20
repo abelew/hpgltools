@@ -687,7 +687,7 @@ batch_counts <- function(count_table, method = TRUE, expt_design = NULL, batch1 
   ##if (grep(pattern = "combat", x = method)) {
   ##  method_class <- "batch correction."
   ##}
-  mesg("Passing the data to all_adjusters using the ", method, " ", method_class)
+  mesg("Passing the data to all_adjusters() using the ", method, " ", method_class)
   new_material <- all_adjusters(count_table, design = design, estimate_type = method,
                                 cpus = cpus, batch1 = batch1, batch2 = batch2,
                                 expt_state = used_state, noscale = noscale,

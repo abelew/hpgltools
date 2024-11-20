@@ -84,7 +84,7 @@ guess_factors <- function(meta_df, ratio = 3) {
 #' @export
 extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
                              fill_condition = TRUE, fill_batch = TRUE,
-                             sanitize = TRUE, ...) {
+                             keep_underscore = TRUE, sanitize = TRUE, ...) {
   ## FIXME: Now that this has been yanked into its own function,
   ## Make sure it sets good, standard rownames.
   file <- NULL
@@ -141,9 +141,14 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
   }
 
   if (isTRUE(sanitize)) {
-    colnames(sample_definitions) <- gsub(pattern = "[[:punct:]]",
-                                         replacement = "",
-                                         x = colnames(sample_definitions))
+    if (isTRUE(keep_underscore)) {
+      colnames(sample_definitions) <- gsub(pattern = "[^_[:^punct:]]", replacement = "",
+                                 x = colnames(sample_definitions), perl = TRUE)
+    } else {
+      colnames(sample_definitions) <- gsub(pattern = "[[:punct:]]",
+                                           replacement = "",
+                                           x = colnames(sample_definitions))
+    }
     id_column <- tolower(id_column)
     id_column <- gsub(pattern = "[[:punct:]]",
                       replacement = "",
@@ -219,23 +224,32 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
     }
   }
 
+  message("Checking the state of the condition column.")
   ## Check the condition/batch columns (if they exist) for NA values.
   if (!is.null(sample_definitions[["condition"]])) {
+    ## Adding this casting of the condition/batch columns
+    ## in case they are something weird like 'Date'
+    sample_definitions[["condition"]] <- as.character(sample_definitions[["condition"]])
     na_idx <- is.na(sample_definitions[["condition"]])
     if (sum(na_idx) > 0) {
       warning("There were NA values in the condition column, setting them to 'undefined'.")
       sample_definitions[na_idx, "condition"] <- "undefined"
     }
+    sample_definitions[["condition"]] <- as.factor(sample_definitions[["condition"]])
   }
 
+  message("Checking the state of the batch column.")
   if (!is.null(sample_definitions[["batch"]])) {
+    sample_definitions[["batch"]] <- as.character(sample_definitions[["batch"]])
     na_idx <- is.na(sample_definitions[["batch"]])
     if (sum(na_idx) > 0) {
       warning("There were NA values in the condition column, setting them to 'undefined'.")
+      sample_definitions[na_idx, "batch"] <- "undefined"
     }
-    sample_definitions[na_idx, "batch"] <- "undefined"
+    sample_definitions[["batch"]] <- as.factor(sample_definitions[["batch"]])
   }
 
+  message("Checking the condition factor.")
   ## Extract out the condition names as a factor
   condition_names <- unique(sample_definitions[["condition"]])
   if (is.null(condition_names)) {
@@ -743,6 +757,20 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_sum_column(
         meta, input_file_spec, verbose = verbose, basedir = basedir,
         type = type, species = species)
+
+    },
+    "hisat_sum_genes_pct" = {
+      numerator_column <- specification[["hisat_sum_genes"]][["column"]]
+      if (is.null(numerator_column)) {
+        numerator_column <- "hisat_sum_genes"
+      }
+      denominator_column <- specification[["trimomatic_output"]][["column"]]
+      if (is.null(denominator_column)) {
+        denominator_column <- "trimomatic_output"
+      }
+      mesg("Searching for percent reads counted by hisat.")
+      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column,
+                                         species = species, as = "percent")
 
     },
     "hisat_observed_mean_exprs" = {
@@ -1513,8 +1541,8 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
       input_df <- input_df[!drop_idx, ]
       num_hits <- sum(input_df)
     } else {
-      keep_idx <- !grepl(x = names(input_df), pattern = "^_")
-      input_df <- input_df[keep_idx]
+      drop_idx <- grepl(x = names(input_df), pattern = "^_")
+      input_df <- input_df[!keep_idx]
       num_hits <- sum(input_df)
     }
     output_entries[row] <- num_hits
@@ -1682,7 +1710,20 @@ dispatch_md5 <- function(meta, input_file_spec) {
 #' @param verbose unsed for the moment.
 dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
                                     denominator_column = NULL, digits = 3,
-                                    numerator_add = NULL, verbose = FALSE) {
+                                    numerator_add = FALSE, verbose = FALSE,
+                                    as = "numeric", species = "*") {
+  if (length(species) > 1) {
+    output_entries <- data.frame(row.names = seq_len(nrow(meta)))
+    for (s in seq_len(length(species))) {
+      species_name <- species[s]
+      output_entries[[species_name]] <- dispatch_metadata_ratio(
+        meta, numerator_column = numerator_column,
+        denominator_column = denominator_column,
+        digits = digits, numerator_add = numerator_add,
+        verbose = verbose, species = species_name)
+    }
+    return(output_entries)
+  }
   column_number <- ncol(meta)
   if (is.null(numerator_column)) {
     numerator_column <- colnames(meta)[ncol(meta)]
@@ -1690,7 +1731,17 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
   if (is.null(denominator_column)) {
     denominator_column <- colnames(meta)[ncol(meta) - 1]
   }
-
+  if (!is.null(species)) {
+    test_numerator <- paste0(numerator_column, "_", species)
+    if (!is.null(meta[[test_numerator]])) {
+      numerator_column <- test_numerator
+    }
+    test_denominator <- paste0(denominator_column, "_", species)
+    if (!is.null(meta[[test_denominator]])) {
+      denominator_column <- test_denominator
+    }
+    ##test_numerator_regex <- grep(x = colnames(meta), pattern = paste0("^", numerator_column))
+  }
   entries <- NULL
   if (is.null(meta[[numerator_column]]) | is.null(meta[[denominator_column]])) {
     if (isTRUE(verbose)) {
@@ -1702,11 +1753,14 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
       message("The numerator column is: ", numerator_column, ".")
       message("The denominator column is: ", denominator_column, ".")
     }
-    if (is.null(numerator_add)) {
-      entries <- as.numeric(meta[[numerator_column]]) / as.numeric(meta[[denominator_column]])
-    } else {
+    if (isTRUE(numerator_add)) {
       entries <- (as.numeric(meta[[numerator_column]]) + as.numeric(meta[[numerator_add]])) /
         as.numeric(meta[[denominator_column]])
+    } else {
+      entries <- as.numeric(meta[[numerator_column]]) / as.numeric(meta[[denominator_column]])
+    }
+    if (as == "percent") {
+      entries <- entries * 100
     }
     if (!is.null(digits)) {
       entries <- signif(entries, digits)
@@ -2252,6 +2306,7 @@ tar_meta_column <- function(meta, column = "hisatcounttable", output = NULL, com
   class(retlist) <- "meta_tarball"
   return(retlist)
 }
+setGeneric("tar_meta_column")
 
 #' Generate an assembly annotation specification for use by gather_preprocessing_metadata()
 #'
@@ -2498,6 +2553,8 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_sum_genes" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+    "hisat_sum_genes_pct" = list(
+      "column" = "hisat_sum_genes_pct"),
     "hisat_observed_mean_exprs" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
     "hisat_observed_median_exprs" = list(

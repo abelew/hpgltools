@@ -11,7 +11,7 @@ subset_expt(
   ids = NULL,
   nonzero = NULL,
   coverage = NULL,
-  print_excluded = TRUE
+  print_excluded = FALSE
 )
 }
 \arguments{

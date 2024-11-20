@@ -51,7 +51,7 @@ test_that("rpkm conversions are equivalent?", {
 ## I have a modification of rpkm(), cp_seq_m(), which should give some expected results.
 ## This is intended to count the number of instances of a given sequence ('TA' by default)
 ## and normalize based on its relative frequency.  This is useful primarily for tnseq.
-tt <- sm(please_install("BSgenome.Dmelanogaster.UCSC.dm6"))
+tt <- BiocManager::install("BSgenome.Dmelanogaster.UCSC.dm6")
 tt <- sm(library("BSgenome.Dmelanogaster.UCSC.dm6"))
 
 pasilla_convert <- sm(normalize_expt(

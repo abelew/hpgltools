@@ -130,7 +130,7 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
     annot_df <- annot_df[!na_idx, ]
   }
   plusone_idx <- annot_df[[strand_column]] == 1
-  if (sum(one_idx) > 0) {
+  if (sum(plusone_idx) > 0) {
     annot_df[plusone_idx, strand_column] <- "+"
   }
   minusone_idx <- annot_df[[strand_column]] == -1

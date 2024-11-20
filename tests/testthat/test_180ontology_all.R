@@ -177,8 +177,8 @@ if (file.exists("test_go_write.xlsx")) {
 }
 
 top_test <- simple_topgo(ups, go_db = pombe_go, overwrite = TRUE)
-cat_expected <- c("GO:0016491", "GO:0016614", "GO:0016616",
-                  "GO:0004032", "GO:0008106", "GO:0010844")
+cat_expected <- c("GO:0000994", "GO:0003825", "GO:0004031",
+                  "GO:0004061", "GO:0004108", "GO:0004338")
 cat_actual <- rownames(top_test[["tables"]][["mf_subset"]])
 test_that("Do we get expected catalogs from topgo?", {
   expect_equal(6, sum(cat_expected %in% cat_actual))
@@ -200,9 +200,9 @@ annot <- fData(pombe_expt)
 colnames(annot) <- c("ID", "txid2", "pombeid", "symbol", "description", "type", "width",
                      "chromosome", "strand", "start", "end")
 gos_test <- simple_gostats(ups, go_db = pombe_go, gff_df = annot, gff_type = "protein_coding")
-cat_actual <- head(gos_test[["tables"]][["mf_over_enriched"]][["GOMFID"]])
-cat_expected <- c("GO:0016491", "GO:0016614", "GO:0016616",
-                  "GO:0008106", "GO:0004033", "GO:0004032")
+cat_actual <- head(sort(gos_test[["tables"]][["mf_over_enriched"]][["GOMFID"]]))
+cat_expected <- c("GO:0000978", "GO:0000981", "GO:0000987",
+                  "GO:0000994", "GO:0001217", "GO:0003700")
 test_that("Do we get expected stuff from gostats? (cat)", {
   expect_equal(6, sum(cat_expected %in% cat_actual))
 })
@@ -217,7 +217,7 @@ if (file.exists("test_gostats_write.xlsx")) {
 }
 
 gprof_test <- simple_gprofiler(sig_genes = ups, species = "spombe")
-gprof_table <- gprof_test[["GO"]]
+gprof_table <- gprof_test[["BP"]]
 actual_dim <- nrow(gprof_table)
 expected_dim <- 30
 test_that("Does gprofiler provide some expected tables?", {

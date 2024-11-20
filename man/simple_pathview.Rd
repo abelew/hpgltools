@@ -14,7 +14,7 @@ simple_pathview(
   from_list = NULL,
   to_list = NULL,
   suffix = "_colored",
-  id_column = "kegg_ids",
+  id_column = NULL,
   filenames = "id",
   fc_column = "limma_logfc",
   format = "png",

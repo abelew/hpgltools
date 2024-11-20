@@ -993,7 +993,7 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
   trees <- NULL
   if (!is.null(wb)) {
     message("Writing a sheet containing the legend.")
-    legend <- data.frame(rbind(
+    legend <- rbind.data.frame(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
       c("Term", "Short definition of the category."),
@@ -1003,18 +1003,18 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
       c("All genes in cat", "The full set of gene annotations included in this category."),
       c("Num. de", "The number of genes in column 'F'."),
       c("Num. in cat", "The number of genes in column 'G'.")
-    ))
+    )
     colnames(legend) <- c("column name", "column definition")
     xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
                              title = "Columns used in the following tables.")
     summary_row <- nrow(legend) + 5
-    summary_df <- data.frame(rbind(
-      c("Queried BP ontologies", nrow(table_list[["bp"]])),
+    summary_df <- rbind.data.frame(
+      c("Queried BP ontologies", nrow(table_list[["bp_subset"]])),
       c("Significant BP ontologies", nrow(table_list[["bp_interesting"]])),
-      c("Queried MF ontologies", nrow(table_list[["mf"]])),
+      c("Queried MF ontologies", nrow(table_list[["mf_subset"]])),
       c("Significant MF ontologies", nrow(table_list[["mf_interesting"]])),
-      c("Queried CC ontologies", nrow(table_list[["cc"]])),
-      c("Significant CC ontologies", nrow(table_list[["cc_interesting"]]))))
+      c("Queried CC ontologies", nrow(table_list[["cc_subset"]])),
+      c("Significant CC ontologies", nrow(table_list[["cc_interesting"]])))
     colnames(summary_df) <- c("Ontology type", "Number found")
     xls_result <- write_xlsx(wb, data = summary_df, sheet = "legend", rownames = FALSE,
                              title = "Summary of the topgo search.", start_row = 1, start_col = 4)
@@ -1025,20 +1025,6 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
       plot_try <- sm(xlsx_insert_png(topgo_result[["pvalue_histograms"]][["fisher"]],
                                      wb = wb, sheet = "legend", start_col = 1,
                                      start_row = summary_row, plotname = "fisher_histogram",
-                                     savedir = excel_basename))
-      if (! "try-error" %in% class(plot_try)) {
-        image_files <- c(image_files, plot_try[["filename"]])
-      }
-      plot_try <- sm(xlsx_insert_png(topgo_result[["pvalue_histograms"]][["KS"]],
-                                     wb = wb, sheet = "legend", start_col = 11,
-                                     start_row = summary_row, plotname = "ks_histogram",
-                                     savedir = excel_basename))
-      if (! "try-error" %in% class(plot_try)) {
-        image_files <- c(image_files, plot_try[["filename"]])
-      }
-      plot_try <- sm(xlsx_insert_png(topgo_result[["pvalue_histograms"]][["EL"]],
-                                     wb = wb, sheet = "legend", start_col = 21,
-                                     start_row = summary_row, plotname = "el_histogram",
                                      savedir = excel_basename))
       if (! "try-error" %in% class(plot_try)) {
         image_files <- c(image_files, plot_try[["filename"]])

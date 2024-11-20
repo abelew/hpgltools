@@ -383,6 +383,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
     ## Then it is named 'width' and I want to rename it to length
     colnames(metadf) <- gsub(x = colnames(metadf), pattern = "width", replacement = "length")
   }
+  colnames(metadf) <- c("ID", "length")
   ## Now I should have the gene list and gene lengths
 
   godf <- data.frame()

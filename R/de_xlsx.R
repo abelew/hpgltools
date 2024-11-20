@@ -557,7 +557,7 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 combine_mapped_table <- function(entry, includes, adjp = TRUE, padj_type = "fdr",
                                  annot_df = NULL, excludes = NULL, lfc_cutoff = 1,
                                  p_cutoff = 0.05, format_sig = 4, sheet_count = 0,
-                                 keep_underscore = FALSE, wanted_genes = NULL) {
+                                 keep_underscore = TRUE, wanted_genes = NULL) {
   if (padj_type[1] != "ihw" && !(padj_type %in% p.adjust.methods)) {
     warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
 Defaulting to fdr.")

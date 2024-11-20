@@ -39,7 +39,7 @@
 simple_pathview <- function(gene_input = NULL, compound_input = NULL,
                             indir = "pathview_in", outdir = "pathview",
                             pathway = "all", species = "lma", from_list = NULL,
-                            to_list = NULL, suffix = "_colored", id_column = "kegg_ids",
+                            to_list = NULL, suffix = "_colored", id_column = NULL,
                             filenames = "id", fc_column = "limma_logfc",
                             format = "png", verbose = TRUE) {
 
@@ -99,7 +99,7 @@ simple_pathview <- function(gene_input = NULL, compound_input = NULL,
       my_to <- to_list[[sub_count]]
       tmp_names <- gsub(pattern = my_from, replacement = my_to, x = tmp_names, perl = TRUE)
     }
-    names(path_data) <- tmp_names
+    names(input_vector) <- tmp_names
     rm(tmp_names)
   }
 
@@ -159,57 +159,61 @@ simple_pathview <- function(gene_input = NULL, compound_input = NULL,
     }
     if (format == "png") {
       ## In this invocation, include all the possible arguments for debugging.
-      pv <- suppressWarnings(
-          try(pathview::pathview(gene.data = input_vector,
-                                 cpd.data = compound_input,
-                                 pathway.id = canonical_path,
-                                 species = species,
-                                 kegg.dir = indir,
-                                 cpd.idtype = "kegg",
-                                 gene.idtype = "KEGG",
-                                 gene.annotpkg = NULL,
-                                 min.nnodes = 3,
-                                 kegg.native = TRUE,
-                                 map.null = TRUE,
-                                 expand.node = FALSE, ## Was true
-                                 split.group = FALSE,
-                                 map.symbol = TRUE,
-                                 map.cpdname = TRUE,
-                                 node.sum = "sum",
-                                 discrete = list(gene = FALSE, cpd = FALSE),
-                                 limit = list(gene = limits, cpd = limits),
-                                 bins = list(gene = 10, cpd = 10),
-                                 both.dirs = list(gene = TRUE, cpd = TRUE),
-                                 trans.fun = list(gene = NULL, cpd = NULL),
-                                 low = list(gene = "red", cpd = "yellow"),
-                                 mid = list(gene = "gray", cpd = "gray"),
-                                 high = list(gene = "green", cpd = "blue"),
-                                 na.col = "transparent",
-                                 out.suffix = suffix,
-                                 same.layer = FALSE,
-                                 res = 1200,
-                                 new.signature = FALSE,
-                                 cex = 0.05,
-                                 key.pos = "topright")))
+      ## FIXME: Replace this with do.call() so that I can fill in the various args
+      ## on the fly
+      pv <- try(pathview::pathview(
+        gene.data = input_vector,
+        cpd.data = compound_input,
+        pathway.id = canonical_path,
+        species = species,
+        kegg.dir = indir,
+        cpd.idtype = "kegg",
+        gene.idtype = "KEGG",
+        gene.annotpkg = NULL,
+        min.nnodes = 3,
+        kegg.native = TRUE,
+        map.null = TRUE,
+        expand.node = FALSE, ## Was true
+        split.group = FALSE,
+        map.symbol = TRUE,
+        map.cpdname = TRUE,
+        node.sum = "sum",
+        discrete = list(gene = FALSE, cpd = FALSE),
+        ##limit = list(gene = limits, cpd = limits),
+        bins = list(gene = 10, cpd = 10),
+        both.dirs = list(gene = TRUE, cpd = TRUE),
+        trans.fun = list(gene = NULL, cpd = NULL),
+        low = list(gene = "red", cpd = "yellow"),
+        mid = list(gene = "gray", cpd = "gray"),
+        high = list(gene = "green", cpd = "blue"),
+        na.col = "transparent",
+        out.suffix = suffix,
+        same.layer = FALSE,
+        res = 1200,
+        new.signature = FALSE,
+        cex = 0.05,
+        key.pos = "topright"))
+      Sys.sleep(5)
     } else { ## The other format is svg, and at least in the past it was rather more picky.
       pv <- suppressWarnings(
-          try(pathview::pathview(gene.data = input_vector,
-                                 kegg.dir = indir,
-                                 pathway.id = canonical_path,
-                                 species = species,
-                                 limit = list(gene = limits, cpd = limits),
-                                 map.null = TRUE,
-                                 gene.idtype = "KEGG",
-                                 out.suffix = suffix,
-                                 split.group = TRUE,
-                                 expand.node = TRUE,
-                                 kegg.native = FALSE,
-                                 map.symbol = TRUE,
-                                 same.layer = FALSE,
-                                 res = 1200,
-                                 new.signature = FALSE,
-                                 cex = 0.05,
-                                 key.pos = "topright")))
+        try(pathview::pathview(
+          gene.data = input_vector,
+          kegg.dir = indir,
+          pathway.id = canonical_path,
+          species = species,
+          limit = list(gene = limits, cpd = limits),
+          map.null = TRUE,
+          gene.idtype = "KEGG",
+          out.suffix = suffix,
+          split.group = TRUE,
+          expand.node = TRUE,
+          kegg.native = FALSE,
+          map.symbol = TRUE,
+          same.layer = FALSE,
+          res = 1200,
+          new.signature = FALSE,
+          cex = 0.05,
+          key.pos = "topright")))
     }
     if (class(pv) == "numeric") {
       warning(glue("There was a failure for: {canonical_path}."))
@@ -302,7 +306,7 @@ simple_pathview <- function(gene_input = NULL, compound_input = NULL,
       retdf[path, "total_mapped_pct"] <- as.numeric(return_list[[path]][["total_mapped_pct"]])
       retdf[path, "unique_mapped_nodes"] <- as.numeric(return_list[[path]][["unique_mapped_nodes"]])
       retdf[path, "unique_mapped_pct"] <- as.numeric(return_list[[path]][["unique_mapped_pct"]])
-      }
+    }
   }
   retdf <- retdf[with(retdf, order(up, down)), ]
   keepers <- !is.na(retdf[["total_mapped_pct"]])
@@ -475,11 +479,11 @@ get_kegg_genes <- function(pathway = "all", abbreviation = NULL,
 
       for (s in seq_along(tritryp_geneids)) {
         result <- rbind(result, data.frame(
-                                    "GID" = tritryp_geneids[s],
-                                    "KEGG_NAME" = kegg_name,
-                                    "KEGG_CLASS" = kegg_class,
-                                    "KEGG_DESCRIPTION" = kegg_description,
-                                    "KEGG" = path))
+          "GID" = tritryp_geneids[s],
+          "KEGG_NAME" = kegg_name,
+          "KEGG_CLASS" = kegg_class,
+          "KEGG_DESCRIPTION" = kegg_description,
+          "KEGG" = path))
       }
     } ## End iterating over pathways
     message("Total genes observed: ", total_genes)
@@ -511,8 +515,8 @@ get_kegg_sub <- function(species = "lma") {
   }
 
   ret <- list(
-      "patterns" = patterns,
-      "replaces" = replaces)
+    "patterns" = patterns,
+    "replaces" = replaces)
   return(ret)
 }
 
@@ -672,15 +676,15 @@ pct_all_kegg <- function(all_ids, sig_ids, organism = "dme", pathways = "all",
   path_data <- data.frame()
   for (c in seq_along(path_ids)) {
     a_row <- list(
-        "pathway" = path_ids[[c]],
-        "path_name" = path_names[[c]],
-        "filename" = filenames[[c]],
-        "percent_nodes" = pct_nodes[[c]],
-        "percent_edges" = pct_edges[[c]],
-        "path_nodes" = path_nodes[[c]],
-        "diff_nodes" = diff_nodes[[c]],
-        "path_edges" = path_edges[[c]],
-        "diff_edges" = diff_edges[[c]])
+      "pathway" = path_ids[[c]],
+      "path_name" = path_names[[c]],
+      "filename" = filenames[[c]],
+      "percent_nodes" = pct_nodes[[c]],
+      "percent_edges" = pct_edges[[c]],
+      "path_nodes" = path_nodes[[c]],
+      "diff_nodes" = diff_nodes[[c]],
+      "path_edges" = path_edges[[c]],
+      "diff_edges" = diff_edges[[c]])
     ## Remove c(
     a_row <- gsub(pattern = "c\\(", replacement = "", x = a_row)
     ## Remove ),
@@ -755,14 +759,14 @@ pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
                                     destfile = filename))
     if (class(retrieved) == "try-error") {
       retlist <- list(
-          "pathway" = pathway,
-          "filename" = "unavailable",
-          "percent_nodes" = NA,
-          "percent_edges" = NA,
-          "all_nodes" = NULL,
-          "diff_nodes" = NULL,
-          "all_edges" = NULL,
-          "diff_edges" = NULL)
+        "pathway" = pathway,
+        "filename" = "unavailable",
+        "percent_nodes" = NA,
+        "percent_edges" = NA,
+        "all_nodes" = NULL,
+        "diff_nodes" = NULL,
+        "all_edges" = NULL,
+        "diff_edges" = NULL)
       return(retlist)
     }
   }
@@ -777,19 +781,6 @@ pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
       parse_result <- try(KEGGgraph::parseKGML2Graph(filename, expandGenes = TRUE))
       if (class(parse_result) == "try-error") {
         retlist <- list(
-            "pathway" = pathway,
-            "filename" = "unavailable",
-            "percent_nodes" = NA,
-            "percent_edges" = NA,
-            "all_nodes" = NULL,
-            "diff_nodes" = NULL,
-            "all_edges" = NULL,
-            "diff_edges" = NULL)
-        return(retlist)
-      }
-    } else if (grepl(pattern = "Start tag expected", x = parse_result[[1]])) {
-      message("This pathway does not have a complete specification.")
-      retlist <- list(
           "pathway" = pathway,
           "filename" = "unavailable",
           "percent_nodes" = NA,
@@ -798,6 +789,19 @@ pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
           "diff_nodes" = NULL,
           "all_edges" = NULL,
           "diff_edges" = NULL)
+        return(retlist)
+      }
+    } else if (grepl(pattern = "Start tag expected", x = parse_result[[1]])) {
+      message("This pathway does not have a complete specification.")
+      retlist <- list(
+        "pathway" = pathway,
+        "filename" = "unavailable",
+        "percent_nodes" = NA,
+        "percent_edges" = NA,
+        "all_nodes" = NULL,
+        "diff_nodes" = NULL,
+        "all_edges" = NULL,
+        "diff_edges" = NULL)
       return(retlist)
     }
   }
@@ -822,14 +826,14 @@ pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
   message(pct_edge_diff, "% edges differentially expressed in pathway ",
           pathway, ": '", path_name, "'.")
   retlist <- list(
-      "pathway" = pathway,
-      "filename" = filename,
-      "percent_nodes" = pct_node_diff,
-      "percent_edges" = pct_edge_diff,
-      "all_nodes" = toString(possible_nodes),
-      "diff_nodes" = toString(found_nodes),
-      "all_edges" = toString(possible_edges),
-      "diff_edges" = toString(found_edges)
+    "pathway" = pathway,
+    "filename" = filename,
+    "percent_nodes" = pct_node_diff,
+    "percent_edges" = pct_edge_diff,
+    "all_nodes" = toString(possible_nodes),
+    "diff_nodes" = toString(found_nodes),
+    "all_edges" = toString(possible_edges),
+    "diff_edges" = toString(found_edges)
   )
   return(retlist)
 }

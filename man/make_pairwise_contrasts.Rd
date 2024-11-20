@@ -12,7 +12,7 @@ make_pairwise_contrasts(
   do_pairwise = TRUE,
   keepers = NULL,
   extra_contrasts = NULL,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   ...
 )
 }

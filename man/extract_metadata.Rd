@@ -10,6 +10,7 @@ extract_metadata(
   fill = NULL,
   fill_condition = TRUE,
   fill_batch = TRUE,
+  keep_underscore = TRUE,
   sanitize = TRUE,
   ...
 )

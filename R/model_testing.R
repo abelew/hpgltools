@@ -178,6 +178,94 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   return(retlist)
 }
 
+#' Use a vector of factors and design to count up the levels.
+get_degrees <- function(design, fctrs) {
+  degrees <- 0
+  for (f in fctrs) {
+    if (is.null(design[[f]])) {
+      message("Factor ", f, " is not in the experimental design.")
+      next
+    }
+    fctr <- as.factor(design[[f]])
+    range <- table(fctr)
+    adder <- length(levels(fctr))
+    mesg("Factor: ", f, " has ", adder, " elements.")
+    mesg("They range from ", min(range), " to ", max(range), " elements/level.")
+    degrees <- degrees + adder
+  }
+  retlist <- list(
+    "sum" = degrees,
+    "dof" = degrees - length(fctrs))
+  return(retlist)
+}
+
+#' Simplify a model formula string to a simple vector of factors.
+#'
+#' I would like to be able to make my various pairwise methods
+#' generalizable, therefore I need to no longer rely on an expected
+#' pair of factors: 'condition' and 'batch', instead I want to observe
+#' the first factor and anything which follows.  Thus, I will string
+#' split the formula string by punctuation and yank out the names of
+#' interest.
+#'
+#' @param formula_string Formula describing the formula of interest.
+#' @return Ordered vector of factors in the formula ignoring
+#' interactions etc.
+#' @export
+get_formula_factors <- function(formula_string = NULL) {
+  if (is.null(formula_string)) {
+    warning("No formula string was provided, this is an error, but for now this will assume condition+batch.")
+    formula_string = "~ 0 + condition + batch"
+  }
+  message("Getting factors from: ", formula_string, ".")
+  split_result <- strsplit(x = formula_string, split = "[[:punct:]]", perl = TRUE)
+  factor_vector <- split_result[[1]]
+  retlist <- list(
+    "type" = "cellmeans",
+    "interaction" = FALSE,
+    "mixed" = FALSE)
+  interaction_test <- grepl(x = formula_string, pattern = "\\*|\\:")
+  if (isTRUE(interaction_test)) {
+    retlist[["interaction"]] <- TRUE
+    interactor_split <- strsplit(x = formula_string, split = "\\*|\\:")[[1]]
+    interactors <- c("first", "second")
+    first_interactor <- strsplit(x = interactor_split[1], split = "[[:punct:]|[:space:]]")[[1]]
+    interactors[1] <- first_interactor[length(first_interactor)]
+    second_interactor <- strsplit(x = interactor_split[2], split = "[[:punct:]|[:space:]]")[[1]]
+    interactors[2] <- second_interactor[1]
+    retlist[["interactors"]] <- interactors
+  }
+  mixed_test <- grepl(x = formula_string, pattern = "\\|")
+  if (isTRUE(mixed_test)) {
+    retlist[["mixed"]] <- TRUE
+    mixed_split <- strsplit(x = formula_string, split = "\\|")[[1]]
+    mixers <- c("first", "second")
+    first_mix <- strsplit(x = mixed_split[1], split = "[[:punct:]|[:space:]]")[[1]]
+    mixers[1] <- first_mix[length(first_mix)]
+    second_mix <- strsplit(x = mixed_split[2], split = "[[:punct:]|[:space:]]")[[1]]
+    mixers[2] <- second_mix[1]
+    retlist[["mixers"]] <- mixers
+  }
+
+  fct_vector <- c()
+  for (i in seq_len(length(factor_vector))) {
+    fct <- gsub(x = factor_vector[i], pattern = "[[:space:]]", replacement = "")
+    ## Check for an cell-means model intercept: ~ 0 + f1 + f2
+    ##                                            ^
+    if (grepl(x = fct, pattern = "^[[:digit:]]+$")) {
+      retlist[["type"]] <- "cellmeans"
+      retlist[["cellmeans_intercept"]] <- fct
+      next
+    }
+
+    if (grepl(x = fct, pattern = "^[[:alnum:]]+$")) {
+      fct_vector <- c(fct_vector, fct)
+    }
+  }
+  retlist[["factors"]] <- unique(fct_vector)
+  return(retlist)
+}
+
 #' Perform a series of single regression analyses and tabulate/plot the results.
 #'
 #' @param design Experimental design.
@@ -373,6 +461,62 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   return(retlist)
 }
 
+make_null_formula <- function(formula_string, starting = 2) {
+  formula_info <- get_formula_factors(formula_string)
+  factors <- formula_info[["factors"]]
+  message("Extracting a new formula string starting with ", factors[starting], ".")
+
+  start <- formula_info[["cellmeans_intercept"]]
+  null_string <- "~"
+  if (formula_info[["type"]] == "cellmeans") {
+    null_string <- glue("{null_string} {start}")
+  }
+  if (starting <= length(factors)) {
+    for (f in starting:length(factors)) {
+      fct <- factors[f]
+      message("Adding fct: ", fct)
+      null_string <- glue("{null_string} + {fct}")
+    }
+  }
+  return(null_string)
+}
+
+#' Ensure an experimental model is safe to use
+#'
+#' @param model input model
+#' @param keep_underscore I previously dropped all punctuation including underscores.
+#' @param exclude_strings simplify the strings for these factors a little.
+sanitize_model <- function(model, keep_underscore = FALSE,
+                           exclude_strings = c("condition", "batch")) {
+  startnames <- colnames(model)
+  ## Get rid of punctuation in the model column names
+  ## optionally leave underscores alone.
+  if (isTRUE(keep_underscore)) {
+    startnames <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = startnames, perl = TRUE)
+  } else {
+    startnames <- gsub(pattern = "[[:punct:]]", replacement = "", x = startnames)
+  }
+  ## The next lines ensure that conditions/batches which are all numeric will
+  ## not cause weird errors for contrasts. Ergo, if a condition is something
+  ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
+
+  ## I think the following two lines are mistaken, I wanted to change the
+  ## elements of the model, not the colnames when they are just numeric.
+  ##startnames <- gsub(pattern = "^condition(\\d+)$", replacement = "c\\1", x = startnames)
+  ##startnames <- gsub(pattern = "^batch(\\d+)$", replacement = "b\\1", x = startnames)
+  count <- 1
+  for (exclude in exclude_strings) {
+    numeric_regex <- paste0("^", exclude, "(\\d+)$")
+    startchar <- substr(exclude, 1, 1)
+    replace_string <- paste0(startchar, "\\1")
+    startnames <- gsub(pattern = numeric_regex, replacement = replace_string, x = startnames)
+    regex_string <- paste0("^", exclude)
+    startnames <- gsub(pattern = regex_string, replacement = "", x = startnames)
+    count <- count + 1
+  }
+  return(model)
+}
+
 #' Make sure a given experimental factor and design will play together.
 #'
 #' Have you ever wanted to set up a differential expression analysis and after
@@ -386,25 +530,25 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
 #' @return List of booleans telling if the factors + goal will work.
 #' @seealso [model.matrix()] [qr()]
 #' @export
-model_test <- function(design, goal = "condition", factors = NULL, ...) {
+test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
   arglist <- list(...)
   ## For testing, use some existing matrices/data
   message("There are ", length(levels(as.factor(design[, goal]))),
           " levels in the goal: ", goal, ".")
-  ret_list <- list()
+  retlist <- list()
   if (is.null(factors)) {
     message("Testing an experimental design with only ", goal, ".")
-    matrix_all_formula <- as.formula(glue("~ 0 + {goal}"))
+    matrix_all_formula <- as.formula(glue("~ {goal}"))
     matrix_test <- model.matrix(matrix_all_formula, data = design)
     num_columns <- ncol(matrix_test)
     matrix_decomp <- qr(matrix_test)
-    message("The model of ", goal, "has ", num_columns,
+    message("The model of ", goal, " has ", num_columns,
             " levels and rank ", matrix_decomp[["rank"]], ".")
     if (matrix_decomp[["rank"]] < num_columns) {
       message("This will not work, a different factor should be used.")
-      ret_list[[goal]] <- 0
+      retlist[[goal]] <- FALSE
     } else {
-      ret_list[[goal]] <- 1
+      retlist[[goal]] <- TRUE
     }
     for (factor in colnames(design)) {
       if (factor == goal) {
@@ -417,7 +561,7 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
         message("Factor ", factor, " has only 1 level, skipping it.")
         next
       }
-      matrix_all_formula <- as.formula(glue("~ 0 + {goal} + {factor}"))
+      matrix_all_formula <- as.formula(glue("~ {goal} + {factor}"))
       matrix_test <- model.matrix(matrix_all_formula, data = design)
       num_columns <- ncol(matrix_test)
       matrix_decomp <- qr(matrix_test)
@@ -425,16 +569,16 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
               " and rank ", matrix_decomp[["rank"]])
       if (matrix_decomp[["rank"]] < num_columns) {
         message("This will not work, a different factor should be used.")
-        ret_list[[factor]] <- 0
+        retlist[[factor]] <- FALSE
       } else {
-        ret_list[[factor]] <- 1
+        retlist[[factor]] <- TRUE
       }
     } ## End for loop
   } else {
     for (factor in factors) {
       matrix_goal <- design[, goal]
       matrix_factor <- design[, factor]
-      matrix_all_formula <- as.formula(glue("~ 0 + {goal} + {factor}"))
+      matrix_all_formula <- as.formula(glue("~ {goal} + {factor}"))
       matrix_test <- model.matrix(matrix_all_formula, data = design)
       num_columns <- ncol(matrix_test)
       matrix_decomp <- qr(matrix_test)
@@ -442,13 +586,37 @@ model_test <- function(design, goal = "condition", factors = NULL, ...) {
               " and rank ", matrix_decomp[["rank"]])
       if (matrix_decomp[["rank"]] < num_columns) {
         message("This will not work, a different factor should be used.")
-        ret_list[[factor]] <- 0
+        retlist[[factor]] <- FALSE
       } else {
-        ret_list[[factor]] <- 1
+        retlist[[factor]] <- TRUE
       }
     }
   }
-  return(ret_list)
+  return(retlist)
+}
+
+test_expt_model_rank <- function(expt, fstring = "~ donor") {
+  retlist <- list()
+  design <- pData(expt)
+  fctrs <- get_formula_factors(fstring)
+  degrees <- get_degrees(design, fctrs[["factors"]])
+  test_formula <- as.formula(fstring)
+  matrix_test <- model.matrix(test_formula, data = design)
+  num_columns <- ncol(matrix_test)
+  matrix_decomp <- qr(matrix_test)
+  message("The model of ", fstring, " has ", num_columns,
+          " column
+and rank ", matrix_decomp[["rank"]])
+  if (matrix_decomp[["rank"]] < num_columns) {
+    message("This will not work, a different factor should be used.")
+    retlist[["full_rank"]] <- FALSE
+  } else {
+    retlist[["full_rank"]] <- TRUE
+  }
+  retlist[["matrix"]] <- matrix_test
+  retlist[["matrix_decomp"]] <- matrix_decomp
+  retlist[["matrix_num_column"]] <- num_columns
+  return(retlist)
 }
 
 #' Given the result from one of the regression testers, plot it!

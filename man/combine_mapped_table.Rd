@@ -15,7 +15,7 @@ combine_mapped_table(
   p_cutoff = 0.05,
   format_sig = 4,
   sheet_count = 0,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   wanted_genes = NULL
 )
 }

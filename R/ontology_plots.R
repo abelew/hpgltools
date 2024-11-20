@@ -185,6 +185,7 @@ plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
   }
   return(retlist)
 }
+setGeneric("plot_topn_gsea")
 
 #' Make a pvalue plot from goseq data.
 #'

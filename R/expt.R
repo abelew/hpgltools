@@ -305,7 +305,8 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
                         savefile = NULL, low_files = FALSE, handle_na = "drop",
                         researcher = "elsayed", study_name = NULL, file_type = NULL,
                         annotation_name = "org.Hs.eg.db", tx_gene_map = NULL,
-                        feature_type = "gene", ignore_tx_version = TRUE, ...) {
+                        feature_type = "gene", ignore_tx_version = TRUE,
+                        keep_underscore = TRUE, ...) {
   arglist <- list(...)  ## pass stuff like sep=, header=, etc here
 
   if ("gene_tx_map" %in% names(arglist)) {
@@ -350,10 +351,18 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     id_column <- "sampleid"
   } else {
     id_column <- tolower(id_column)
-    id_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = id_column)
+    if (isTRUE(keep_underscore)) {
+      id_column <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = id_column, perl = TRUE)
+    } else {
+      id_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = id_column)
+    }
   }
   file_column <- tolower(file_column)
-  file_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = file_column)
+  if (isTRUE(keep_underscore)) {
+    file_column <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = file_column, perl = TRUE)
+  } else {
+    file_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = file_column)
+  }
 
   round <- FALSE
   if (!is.null(arglist[["round"]])) {
@@ -363,6 +372,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
   ## Read in the metadata from the provided data frame, csv, or xlsx.
   message("Reading the sample metadata.")
   sample_definitions <- extract_metadata(metadata, id_column = id_column,
+                                         keep_underscore = keep_underscore,
                                          ...)
   ## Add an explicit removal of the file column if the option file_column is NULL.
   ## This is a just in case measure to avoid conflicts.
@@ -399,6 +409,8 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     ## If neither of these cases is true, start looking for the files in the
     ## processed_data/ directory
   } else if (is.null(sample_definitions[[file_column]])) {
+    message("The file column: ", file_column, " is not in the set of sample columns.")
+    print(colnames(sample_definitions))
     stop("This requires either a count dataframe/matrix or column containing the filenames.")
   }
 
@@ -418,7 +430,8 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     sample_ids <- rownames(sample_definitions)
     count_data <- read_counts_expt(sample_ids, filenames, countdir = countdir,
                                    tx_gene_map = tx_gene_map, file_type = file_type,
-                                   ignore_tx_version = ignore_tx_version, ...)
+                                   ignore_tx_version = ignore_tx_version,
+                                   ...)
     if (count_data[["source"]] == "tximport") {
       tximport_data <- list("raw" = count_data[["tximport"]],
                             "scaled" = count_data[["tximport_scaled"]])
@@ -2427,7 +2440,8 @@ setGeneric("state<-")
 #' }
 #' @export
 subset_expt <- function(expt, subset = NULL, ids = NULL,
-                        nonzero = NULL, coverage = NULL, print_excluded = TRUE) {
+                        nonzero = NULL, coverage = NULL,
+                        print_excluded = FALSE) {
   starting_expressionset <- NULL
   starting_metadata <- NULL
   starting_samples <- sampleNames(expt)

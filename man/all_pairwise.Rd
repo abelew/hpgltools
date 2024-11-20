@@ -32,7 +32,7 @@ all_pairwise(
   verbose = TRUE,
   surrogates = "be",
   methods = NULL,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   ...
 )
 }

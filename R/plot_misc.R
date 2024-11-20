@@ -100,14 +100,14 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
     plot(image)
   }
 
-  if (isTRUE(crop)) {
-    cropped <- knitr::plot_crop(file)
-  }
-
   if (length(new_dev) > 0) {
     dev.off(which = new_dev)
   } else {
     warning("There is no device to shut down.")
+  }
+
+  if (isTRUE(crop)) {
+    cropped <- knitr::plot_crop(file)
   }
   return(image)
 }

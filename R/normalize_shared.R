@@ -324,6 +324,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   new_expt[["notes"]] <- toString(current_notes)
   return(new_expt)
 }
+setGeneric("normalize_expt")
 
 #' Normalize a SummarizedExperiment and think about how I want to reimplement some of this.
 #'

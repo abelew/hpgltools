@@ -70,7 +70,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          do_dream = FALSE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          surrogates = "be", methods = NULL,
-                         keep_underscore = FALSE, ...) {
+                         keep_underscore = TRUE, ...) {
   arglist <- list(...)
   if (is.null(model_cond)) {
     model_cond <- TRUE
@@ -900,7 +900,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
                          model_cond = TRUE, model_intercept = FALSE,
                          alt_model = NULL, alt_string = NULL,
                          intercept = 0, reverse = FALSE, contr = NULL,
-                         surrogates = "be", verbose = TRUE, keep_underscore = FALSE, ...) {
+                         surrogates = "be", verbose = TRUE, keep_underscore = TRUE, ...) {
   arglist <- list(...)
   design <- NULL
   if (class(input)[1] != "matrix" && class(input)[1] != "data.frame") {
@@ -2267,7 +2267,8 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #' @export
 make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
                                     do_extras = TRUE, do_pairwise = TRUE,
-                                    keepers = NULL, extra_contrasts = NULL, keep_underscore = FALSE, ...) {
+                                    keepers = NULL, extra_contrasts = NULL,
+                                    keep_underscore = TRUE, ...) {
   arglist <- list(...)
   tmpnames <- colnames(model)
   if (isTRUE(keep_underscore)) {
@@ -2486,7 +2487,7 @@ mymakeContrasts <- function(..., contrasts = NULL, levels) {
 #'
 #' @param expt An expt object to clean.
 #' @param keep_underscore Sanitize underscores too?
-sanitize_expt <- function(expt, keep_underscore = FALSE) {
+sanitize_expt <- function(expt, keep_underscore = TRUE) {
   design <- pData(expt)
   conditions <- gsub(
     pattern = "^(\\d+)$", replacement = "c\\1", x = as.character(design[["condition"]]))

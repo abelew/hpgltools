@@ -19,7 +19,7 @@ normalized_expt <- normalize_expt(pasilla_expt, transform = "log2", norm = "quan
 
 ## Interestingly, doParallel does not work when run from packrat.
 test_keepers <- list("treatment" = c("treated", "untreated"))
-hpgl_all <- all_pairwise(pasilla_expt, filter = TRUE, verbose = TRUE)
+hpgl_all <- all_pairwise(pasilla_expt, filter = TRUE, verbose = TRUE, keepers = test_keepers)
 hpgl_tables <- combine_de_tables(hpgl_all, keepers = test_keepers,
                                  excel = "excel_test.xlsx")
 
@@ -49,7 +49,7 @@ test_that("Does combine_de_tables create an excel file?", {
 table <- "treatment"
 actual <- dim(significant_excel[["limma"]][["ups"]][[table]])
 expected_rows <- 90
-expected_cols <- 63
+expected_cols <- 53
 test_that("Is the number of significant up genes as expected? (limma)", {
   expect_gt(actual[1], expected_rows)
   expect_equal(actual[2], expected_cols)

@@ -27,6 +27,7 @@ create_expt(
   tx_gene_map = NULL,
   feature_type = "gene",
   ignore_tx_version = TRUE,
+  keep_underscore = TRUE,
   ...
 )
 }
