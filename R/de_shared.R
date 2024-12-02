@@ -153,7 +153,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   model_type <- model_batch
 
   if (class(model_batch)[1] == "character") {
-    model_params <- all_adjusters(input, estimate_type = estimate_type,
+    model_params <- all_adjusters(input, estimate_type = model_sv,
                                   surrogates = surrogates)
     model_sv <- model_params[["model_adjust"]]
     ## Remove the following line once we separate model_batch and estimate

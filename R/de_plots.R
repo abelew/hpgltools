@@ -177,8 +177,10 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   ## Now extract the coefficent df
   if (type == "edger") {
     coefficient_df <- as.data.frame(output[["lrt"]][[1]][["coefficients"]])
-    xname <- paste0(coefficient_column, xname)
-    yname <- paste0(coefficient_column, yname)
+    if (is.null(coefficient_df[[xname]])) {
+      xname <- paste0(coefficient_column, xname)
+      yname <- paste0(coefficient_column, yname)
+    }
     if (is.null(coefficient_df[[xname]]) || is.null(coefficient_df[[yname]])) {
       message("coefficient edger did not find ", xname, " or ", yname, ".")
       return(NULL)
