@@ -153,14 +153,13 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   model_type <- model_batch
 
   if (class(model_batch)[1] == "character") {
-    model_params <- all_adjusters(input, estimate_type = model_sv,
-                                  surrogates = surrogates)
+    model_params <- all_adjusters(input, estimate_type = model_type, surrogates = surrogates)
     model_sv <- model_params[["model_adjust"]]
     ## Remove the following line once we separate model_batch and estimate
     null_model <- model_params[["null_model"]]
     ## Add the SVs to the expressionset.
     for (sv in seq_len(ncol(model_sv))) {
-      name <- glue("{estimate}_SV{sv}")
+      name <- glue("{model_type}_SV{sv}")
       if (is.null(pData(input)[[name]])) {
         pData(input)[[name]] <- model_sv[, sv]
       }
