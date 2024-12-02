@@ -17,7 +17,8 @@ extract_coefficient_scatter(
   loess = FALSE,
   alpha = 0.4,
   color_low = "#DD0000",
-  color_high = "#7B9F35"
+  color_high = "#7B9F35",
+  coefficient_column = "condition"
 )
 }
 \arguments{

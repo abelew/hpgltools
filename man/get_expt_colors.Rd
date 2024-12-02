@@ -4,7 +4,7 @@
 \alias{get_expt_colors}
 \title{Get a named vector of colors by condition.}
 \usage{
-get_expt_colors(expt)
+get_expt_colors(expt, keep_underscore = TRUE)
 }
 \arguments{
 \item{expt}{Expression from which to gather colors.}

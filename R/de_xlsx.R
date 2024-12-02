@@ -117,9 +117,10 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               de_types = c("limma", "deseq", "edger"),
                               excel_title = "Table SXXX: Combined Differential Expression of YYY",
                               increment_start = "SXXX", start_worksheet_num = 2,
-                              rda = NULL, rda_input = FALSE, label = 10, label_column = "hgncsymbol",
+                              rda = NULL, rda_input = FALSE, label = 10, label_column = "hgnc_symbol",
                               format_sig = 4, excel = NULL, plot_columns = 10,
-                              alpha = 0.4, z = 1.5, z_lines = FALSE, wanted_genes = NULL) {
+                              alpha = 0.4, z = 1.5, z_lines = TRUE, wanted_genes = NULL,
+                              scale_p = FALSE, ...) {
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
   excel_basename <- xlsx[["basename"]]
@@ -128,7 +129,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     do_excel <- FALSE
   }
 
-  plot_colors <- get_expt_colors(apr[["input"]])
+  plot_colors <- get_expt_colors(apr[["input"]], ...)
   ## Create a list of image files so that they may be properly cleaned up
   ## after writing the xlsx file.
   image_files <- c()
@@ -200,7 +201,8 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
     format_sig = format_sig,
     plot_colors = plot_colors, z = z, alpha = alpha, z_lines = z_lines,
-    label = label, label_column = label_column, wanted_genes = wanted_genes)
+    label = label, label_column = label_column, wanted_genes = wanted_genes,
+    scale_p = scale_p)
   numerators <- extracted[["numerators"]]
   denominators <- extracted[["denominators"]]
 
@@ -381,7 +383,7 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
                                     plot_colors = NULL, fancy = FALSE, adjp = TRUE,
                                     do_inverse = FALSE, invert_colors = FALSE,
                                     z = 1.5, alpha = 0.4, z_lines = FALSE,
-                                    label = 10, label_column = "hgncsymbol") {
+                                    label = 10, label_column = "hgnc_symbol") {
   combined_data <- combined[["data"]]
   plots <- list()
   types <- c()
@@ -557,7 +559,8 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 combine_mapped_table <- function(entry, includes, adjp = TRUE, padj_type = "fdr",
                                  annot_df = NULL, excludes = NULL, lfc_cutoff = 1,
                                  p_cutoff = 0.05, format_sig = 4, sheet_count = 0,
-                                 keep_underscore = TRUE, wanted_genes = NULL) {
+                                 keep_underscore = TRUE, wanted_genes = NULL,
+                                 scale_p = FALSE) {
   if (padj_type[1] != "ihw" && !(padj_type %in% p.adjust.methods)) {
     warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
 Defaulting to fdr.")
@@ -814,6 +817,9 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "limma_p",
                                     mean_column = "limma_ave",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["limma_p_zstd"]] <- scale(comb[["limma_p"]], center = TRUE, scale = TRUE)
+    }
   }
   if (!is.null(comb[["deseq_p"]])) {
     colname <- glue("deseq_adjp_{padj_type}")
@@ -821,6 +827,10 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "deseq_p",
                                     mean_column = "deseq_basemean",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["deseq_p_zstd"]] <- scale(comb[["limma_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "deseq_p_zstd")
+    }
   }
   if (!is.null(comb[["edger_p"]])) {
     colname <- glue("edger_adjp_{padj_type}")
@@ -828,6 +838,10 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "edger_p",
                                     mean_column = "edger_logcpm",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["edger_p_zstd"]] <- scale(comb[["limma_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "edger_p_zstd")
+    }
   }
   if (!is.null(comb[["ebseq_ppde"]])) {
     colname <- glue("ebseq_adjp_{padj_type}")
@@ -835,6 +849,10 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "ebseq_ppde",
                                     mean_column = "ebseq_mean",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["ebseq_p_zstd"]] <- scale(comb[["ebseq_ppde"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "ebseq_p_zstd")
+    }
   }
   if (!is.null(comb[["basic_p"]])) {
     colname <- glue("basic_adjp_{padj_type}")
@@ -842,6 +860,10 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "basic_p",
                                     mean_column = "basic_num",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["basic_p_zstd"]] <- scale(comb[["basic_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "basic_p_zstd")
+    }
   }
   if (!is.null(comb[["noiseq_p"]])) {
     colname <- glue("noiseq_adjp_{padj_type}")
@@ -849,6 +871,10 @@ Defaulting to fdr.")
     comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "noiseq_p",
                                     mean_column = "noiseq_num",
                                     method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["noiseq_p_zstd"]] <- scale(comb[["noiseq_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "noiseq_p_zstd")
+    }
   }
 
   ## Set a consistent numeric format for the adjusted p-values
@@ -1548,7 +1574,7 @@ extract_keepers <- function(extracted, keepers, table_names,
                             format_sig = 4, plot_colors = plot_colors,
                             z = 1.5, alpha = 0.4, z_lines = FALSE,
                             label = 10, label_column = "hgncsymbol",
-                            wanted_genes = NULL) {
+                            wanted_genes = NULL, scale_p = FALSE) {
   ## First check that your set of keepers is in the data
   ## all_keepers is therefore the set of all coefficients in numerators/denominators
   all_keepers <- as.character(unlist(keepers))
@@ -1679,7 +1705,7 @@ extract_keepers <- function(extracted, keepers, table_names,
       entry, includes, adjp = adjp, padj_type = padj_type,
       annot_df = annot_df, excludes = excludes,
       lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff, format_sig = format_sig,
-      wanted_genes = wanted_genes)
+      wanted_genes = wanted_genes, scale_p = scale_p)
 
     ## I am not sure if this should be the set of inverted tables yet.
     invert_colors <- FALSE

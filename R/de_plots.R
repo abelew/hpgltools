@@ -135,7 +135,8 @@ extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
 extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
                                         x = 1, y = 2, z = 1.5, logfc = NULL, n = NULL,
                                         z_lines = FALSE, loess = FALSE, alpha = 0.4,
-                                        color_low = "#DD0000", color_high = "#7B9F35") {
+                                        color_low = "#DD0000", color_high = "#7B9F35",
+                                        coefficient_column = "condition") {
   ## This is an explicit test against all_pairwise() and reduces it to result from type.
   if (!is.null(output[[type]])) {
     output <- output[[type]]
@@ -145,7 +146,7 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   coefficients <- data.frame()
   thenames <- NULL
   if (type == "edger") {
-    thenames <- names(output[["contrasts"]][["identities"]])
+    thenames <- output[["contrasts"]][["identity_names"]]
   } else if (type == "limma") {
     coefficients <- as.data.frame(output[["identity_comparisons"]][["coefficients"]])
     thenames <- colnames(coefficients)
@@ -176,8 +177,10 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   ## Now extract the coefficent df
   if (type == "edger") {
     coefficient_df <- as.data.frame(output[["lrt"]][[1]][["coefficients"]])
+    xname <- paste0(coefficient_column, xname)
+    yname <- paste0(coefficient_column, yname)
     if (is.null(coefficient_df[[xname]]) || is.null(coefficient_df[[yname]])) {
-      message("Did not find ", xname, " or ", yname, ".")
+      message("coefficient edger did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficient_df[, c(xname, yname)]
@@ -187,13 +190,13 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   } else if (type == "limma") {
     coefficient_df <- as.data.frame(output[["pairwise_comparisons"]][["coefficients"]])
     if (is.null(coefficients[[x]]) || is.null(coefficients[[y]])) {
-      message("Did not find ", x, " or ", y, ".")
+      message("coefficient limma did not find ", x, " or ", y, ".")
       return(NULL)
     }
     coefficient_df <- coefficients[, c(x, y)]
   } else if (type == "deseq") {
     if (is.null(coefficients[[xname]]) || is.null(coefficients[[yname]])) {
-      message("Did not find ", xname, " or ", yname, ".")
+      message("coefficient deseq did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficients[, c(xname, yname)]
@@ -211,7 +214,8 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
       table <- output[["all_tables"]][[tables[table_idx]]]
       coefficient_df <- table[, c("ebseq_c2mean", "ebseq_c1mean")]
     } else {
-      stop("Did not find the table for ebseq.")
+      message("coefficient ebseq did not find ", xname, " or ", yname, ".")
+      return(NULL)
     }
     colnames(coefficient_df) <- c(xname, yname)
     coefficient_df[[1]] <- log2(coefficient_df[[1]])
@@ -219,7 +223,7 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   } else if (type == "basic") {
     coefficient_df <- output[["medians"]]
     if (is.null(coefficient_df[[xname]]) || is.null(coefficient_df[[yname]])) {
-      message("Did not find ", xname, " or ", yname, ".")
+      message("coefficient basic did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficient_df[, c(xname, yname)]

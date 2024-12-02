@@ -16,7 +16,8 @@ combine_mapped_table(
   format_sig = 4,
   sheet_count = 0,
   keep_underscore = TRUE,
-  wanted_genes = NULL
+  wanted_genes = NULL,
+  scale_p = FALSE
 )
 }
 \arguments{

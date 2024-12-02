@@ -1877,10 +1877,14 @@ set_expt_batches <- function(expt, fact, ids = NULL, ...) {
 #' @param expt Expression from which to gather colors.
 #' @return List of colors by condition.
 #' @export
-get_expt_colors <- function(expt) {
+get_expt_colors <- function(expt, keep_underscore = TRUE) {
   all_colors <- expt[["colors"]]
   condition_fact <- as.character(pData(expt)[["condition"]])
-  condition_fact <- gsub(x = condition_fact, pattern = "[[:punct:]]", replacement = "")
+  if (isTRUE(keep_underscore)) {
+    condition_fact <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = condition_fact, perl = TRUE)
+  } else {
+    condition_fact <- gsub(x = condition_fact, pattern = "[[:punct:]]", replacement = "")
+  }
   names(all_colors) <- condition_fact
   single_idx <- !duplicated(all_colors)
   all_colors <- all_colors[single_idx]

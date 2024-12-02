@@ -283,6 +283,17 @@ print.density_primers <- function(x, ...) {
   return(invisible(x))
 }
 
+#' Print a summary of the result from dream_pairwise().
+#'
+#' @param x List from dream_pairwise().
+#' @param ... Other args for the generic.
+#' @export
+print.dream_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the hybrid variancePartition/limma pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Modified print function for an expt.
 #'
 #' I am trying to understand how R collates functions.

@@ -27,7 +27,8 @@ extract_keepers(
   z_lines = FALSE,
   label = 10,
   label_column = "hgncsymbol",
-  wanted_genes = NULL
+  wanted_genes = NULL,
+  scale_p = FALSE
 )
 
 \S4method{extract_keepers}{list,character}(
@@ -51,7 +52,8 @@ extract_keepers(
   alpha = 0.4,
   z_lines = FALSE,
   label = 10,
-  label_column = "hgncsymbol"
+  label_column = "hgncsymbol",
+  scale_p = FALSE
 )
 }
 \arguments{

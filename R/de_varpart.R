@@ -60,14 +60,13 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
                            model_batch = TRUE, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, libsize = NULL,
-                           limma_method = "ls", limma_robust = FALSE, voom_norm = "quantile",
+                           limma_method = "ls", limma_robust = FALSE, voom_norm = "none",
                            limma_trend = FALSE, force = FALSE, keepers = NULL,
-                           keep_underscore = FALSE, ...) {
+                           keep_underscore = TRUE, adjust = "BH", ...) {
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
 
-  message("Starting limma/varpart pairwise comparison.")
   san_input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_limma_dataset(san_input, force = force)
   design <- pData(san_input)
@@ -81,7 +80,14 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## The following small piece of logic is intended to handle situations where we use
   ## tximport for limma (kallisto/sailfish/salmon).
   if (is.null(san_input[["tximport"]])) {
-    data <- input_data[["data"]]
+    ## Adding an explicit as.data.frame() because otherwise this gets cast as an EList
+    ## and fails the function 'varianceParition::filterObj' or whatever
+    ## matrices are always class("matrix", "array") which when queried
+    ## comes back as an EList, and so variancePartition expects to find the
+    ## 'E' slot because it assumes it is therefore a DGEList; but no it is a matrix
+    ## So, if I recast this as a dataframe, it is no longer multi-classed
+    ## and gets passed through properly, which is a stupid solution to a stupid problem.
+    data <- as.data.frame(input_data[["data"]])
   } else {
     data <- edgeR::DGEList(san_input[["tximport"]][["scaled"]][["counts"]])
     data <- edgeR::calcNormFactors(data)
@@ -115,23 +121,30 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   batches <- as.factor(batches)
 
   message("Limma step 1/6: choosing model.")
-  model <- choose_model(input = san_input,
-                        conditions = conditions,
-                        batches = batches,
-                        model_batch = model_batch,
-                        model_cond = model_cond,
-                        model_intercept = model_intercept,
-                        alt_model = alt_model,
-                        ...)
+  ## for the moment, if someone choose an alt model, force it through.
+  if (is.null(alt_model)) {
+    model <- choose_model(input = san_input,
+                          conditions = conditions,
+                          batches = batches,
+                          model_batch = model_batch,
+                          model_cond = model_cond,
+                          model_intercept = model_intercept,
+                          alt_model = alt_model,
+                          ...)
   ##model <- choose_model(input, conditions, batches,
   ##                      model_batch = model_batch,
   ##                      model_cond = model_cond,
   ##                      model_intercept = model_intercept,
   ##                      alt_model = alt_model)
-  chosen_model <- model[["chosen_model"]]
-  model_string <- model[["chosen_string"]]
-  my_formula <- as.formula(model_string)
+    chosen_model <- model[["chosen_model"]]
+    model_string <- model[["chosen_string"]]
+  } else {
+    model <- alt_model
+    chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
+    model_string <- alt_model
+  }
 
+  my_formula <- as.formula(model_string)
   voom_plot <- NULL
   message("Attempting voomWithDreamWeights.")
   fun_voom <- variancePartition::voomWithDreamWeights(
@@ -139,6 +152,9 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
 
+  fctrs <- get_formula_factors(model_string)
+  ## Note, if we want to work like DESEq2, this should not be first, but last.
+  contrast_factor <- fctrs[["factors"]][1]
   one_replicate <- FALSE
   fun_design <- pData(san_input)
   if (is.null(fun_voom)) {
@@ -152,37 +168,40 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   pairwise_fits <- NULL
   identity_fits <- NULL
   message("Limma/varpart step 3/6: running dream.")
-  contrasts <- make_pairwise_contrasts(model = chosen_model, conditions = conditions,
-                                       extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore)
-  all_pairwise_contrasts <- contrasts[["all_pairwise"]]
-  all_pairwise_contrasts <- gsub(x = all_pairwise_contrasts, pattern = ",$", replacement = "")
+  contrasts <- make_pairwise_contrasts(
+    model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
+    extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore)
   contrast_vector <- c()
-  for (f in all_pairwise_contrasts) {
-    name_val <- strsplit(f, "=")[[1]]
-    vec_name <- name_val[1]
-    vec <- name_val[2]
-    num_den <- strsplit(vec, "-")[[1]]
-    num <- paste0("condition", num_den[1])
-    den <- paste0("condition", num_den[2])
-    expression <- paste0(num, " - ", den)
-    names(expression) <- vec_name
-    contrast_vector <- c(contrast_vector, expression)
+  for (n in seq_along(contrasts[["all_pairwise"]])) {
+       dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,$", replacement = "")
+       contrast_vector <- c(contrast_vector, dream_contrast)
   }
-
-  varpart_contrasts <- variancePartition::makeContrastsDream(my_formula, design,
-                                                contrasts = contrast_vector)
+  varpart_contrasts <- variancePartition::makeContrastsDream(
+    formula = my_formula, data = design, contrasts = contrast_vector)
   fitted_data <- variancePartition::dream(
     exprObj = fun_voom, formula = model_string, data = design, L = varpart_contrasts)
 
+  ## One might reasonably ask, wtf for the next few lines:
+  ## Here is a snippet of the dream documentation:
+  ## Since dream uses an estimated degrees of freedom value for each
+  ## hypothsis test, the degrees of freedom is different for each gene
+  ## here. Therefore, the t-statistics are not directly comparable since
+  ## they have different degrees of freedom. In order to be able to
+  ## compare test statistics, we report z.std which is the p-value
+  ## transformed into a signed z-score. This can be used for downstream
+  ## analysis.Note that if a random effect is not specified, dream()
+  ## automatically uses lmFit(), but the user must run eBayes()
+  ## afterward.
   all_tables <- NULL
-  all_pairwise_comparisons <- limma::eBayes(fitted_data,
-                                            robust = limma_robust,
-                                            trend = limma_trend)
+  all_pairwise_comparisons <- variancePartition::eBayes(fitted_data,
+                                                        robust = limma_robust,
+                                                        trend = limma_trend)
   message("Limma step 6/6: Writing limma outputs.")
-  pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = "BH",
-                                        n = 0, coef = NULL, annot_df = NULL)
+  ## Make a list of the output, one element for each comparison of the contrast matrix
+  pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
+                                          adjust = adjust, n = 0, coef = NULL,
+                                          annot_df = NULL)
   contrasts_performed <- names(pairwise_results)
-
   retlist <- list(
     "all_pairwise" = all_pairwise,
     "all_tables" = pairwise_results,
@@ -231,10 +250,10 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
 #'  finished_comparison = eBayes(limma_output)
 #'  table = make_limma_tables(finished_comparison, adjust = "fdr")
 #' }
-make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
-                              annot_df = NULL, intercept = FALSE) {
+make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
+                                annot_df = NULL, intercept = FALSE) {
   ## Figure out the number of genes if not provided
-  if (n == 0) {
+  if (n == 0 || is.null(n)) {
     n <- nrow(fit[["coefficients"]])
   }
 
@@ -258,8 +277,8 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
     ## If we do have an intercept model, then we get the data
     ## in a slightly different fashion.
     for (c in seq_len(ncol(fit[["coefficients"]]))) {
-      data_table <-  limma::topTable(fit, adjust.method = adjust,
-                                     n = n, coef = c, sort.by = "logFC")
+      data_table <- variancePartition::topTable(fit, adjust.method = adjust,
+                                                n = n, coef = c, sort.by = "logFC")
 
       for (column in seq_len(ncol(data_table))) {
         data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = 4)
@@ -275,23 +294,23 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
         return_data[[comparison]] <- data_table
       }
     }
-
   } else {
     ## If we do not have an intercept (~ 0 + ...)
     ## Then extract the coefficients and identities separately.
     for (c in seq_len(end)) {
       comparison <- coef[c]
+      comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
       message("Limma step 6/6: ", c, "/", end, ": Creating table: ",
-              comparison, ".  Adjust = ", adjust)
-      data_tables[[c]] <- limma::topTable(fit, adjust.method = adjust,
-                                          n = n, coef = comparison, sort.by = "logFC")
-      names(data_tables)[c] <- comparison
+              comp_name, ".  Adjust = ", adjust)
+      data_tables[[comp_name]] <- variancePartition::topTable(
+        fit, adjust.method = adjust,
+        n = n, coef = comparison, sort.by = "logFC")
     }
-
     ## Take a moment to prettily format the numbers in the tables
     ## and fill in the identity table.
     for (d in seq_along(data_tables)) {
       comparison <- coef[d]
+      comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
       table <- data_tables[[d]]
       for (column in seq_len(ncol(table))) {
         table[[column]] <- signif(x = as.numeric(table[[column]]), digits = 4)
@@ -300,12 +319,11 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
         table <- merge(table, annot_df, by.x = "row.names", by.y = "row.names")
       }
       if (grepl(pattern = "_vs_", x = comparison)) {
-        return_data[[comparison]] <- table
+        return_data[[comp_name]] <- table
       } else {
-        return_identities[[comparison]] <- table
+        return_identities[[comp_name]] <- table
       }
     }
-
   } ## End checking for an intercept/nointercept model.
 
   retlist <- list(
@@ -314,9 +332,6 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
   return(retlist)
 }
 
-#' Writes out the results of a limma search using write_de_table()
-#'
-#' Looking to provide a single interface for writing tables from limma and friends.
 #'
 #' @param data Output from limma_pairwise()
 #' @param ... Options for writing the xlsx file.
@@ -327,9 +342,10 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
 #'  data_list = write_limma(finished_comparison)
 #' }
 #' @export
-write_limma <- function(data, ...) {
-  result <- write_de_table(data, type = "limma", ...)
+write_varpart <- function(data, ...) {
+  result <- write_de_table(data, type = "varpart", ...)
   return(result)
 }
+
 
 ## EOF

@@ -33,6 +33,7 @@ all_pairwise(
   surrogates = "be",
   methods = NULL,
   keep_underscore = TRUE,
+  model_sv = NULL,
   ...
 )
 }

@@ -30,7 +30,7 @@ combine_extracted_plots(
   alpha = 0.4,
   z_lines = FALSE,
   label = 10,
-  label_column = "hgncsymbol"
+  label_column = "hgnc_symbol"
 )
 }
 \arguments{

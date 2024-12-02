@@ -123,14 +123,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
                                  keepers = keepers, keep_underscore = keep_underscore, ...)
   contrasts_performed <- c()
   show_progress <- interactive() && is.null(getOption("knitr.in.progress"))
-  if (isTRUE(show_progress)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (c in seq_along(apc[["names"]])) {
-    if (isTRUE(show_progress)) {
-      pct_done <- c / length(apc[["names"]])
-      utils::setTxtProgressBar(bar, pct_done)
-    }
     num_done <- num_done + 1
     name  <- apc[["names"]][[c]]
     c_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\1", x = name)
@@ -174,9 +167,6 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
       pvalues <- cbind(pvalues, p_data)
     }
   } ## End for each contrast
-  if (isTRUE(show_progress)) {
-    close(bar)
-  }
 
   ## Because of the way I made tvalues/pvalues into a list
   ## If only 1 comparison was performed, the resulting data structure never gets coerced into a

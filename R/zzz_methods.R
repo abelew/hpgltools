@@ -354,7 +354,8 @@ setMethod(
                         lfc_cutoff = 1.0, p_cutoff = 0.05,
                         format_sig = 4, plot_colors = plot_colors,
                         z = 1.5, alpha = 0.4, z_lines = FALSE,
-                        label = 10, label_column = "hgncsymbol") {
+                        label = 10, label_column = "hgncsymbol",
+                        scale_p = FALSE) {
     if (keepers[1] == "all") {
       new_keepers <- list()
       numerators <- denominators <- c()
@@ -390,7 +391,8 @@ setMethod(
                     lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
                     format_sig = format_sig, plot_colors = plot_colors,
                     z = z, alpha = alpha, z_lines = z_lines,
-                    label = label, label_column = label_column)
+                    label = label, label_column = label_column,
+                    scale_p = scale_p)
   })
 
 #' A getter to pull the gene annotation data from an expt.
@@ -459,6 +461,22 @@ setMethod(
   definition = function(expt) {
     message("The expressionset currently does not keep a backup.")
     return(expt)
+  })
+
+#' Set method for formula input to get_formula_factors
+#'
+#' @param formula_string What should have been a string, but is a formula.
+#' @return List describing the formula
+#' @export
+setMethod(
+  "get_formula_factors", signature = signature(formula_string = "formula"),
+  function(formula_string) {
+    new_string <- ""
+    cheat <- as.character(formula_string)
+    for (chr in cheat) {
+      new_string <- paste0(new_string, chr)
+    }
+    get_formula_factors(new_string)
   })
 
 #' Set method for matrix to input data to iDA

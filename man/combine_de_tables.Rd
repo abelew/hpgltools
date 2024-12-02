@@ -33,14 +33,16 @@ combine_de_tables(
   rda = NULL,
   rda_input = FALSE,
   label = 10,
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   format_sig = 4,
   excel = NULL,
   plot_columns = 10,
   alpha = 0.4,
   z = 1.5,
-  z_lines = FALSE,
-  wanted_genes = NULL
+  z_lines = TRUE,
+  wanted_genes = NULL,
+  scale_p = FALSE,
+  ...
 )
 }
 \arguments{

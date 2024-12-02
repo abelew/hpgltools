@@ -49,13 +49,13 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   batches <- as.factor(batches)
 
   noiseq_input <- NOISeq::readData(input_data[["data"]], factors = pData(input))
-  norm <- NOISeq::ARSyNseq(noiseq_input, factor = "condition", batch = FALSE,
-                           norm = "rpkm", logtransf = FALSE)
+  norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = "condition", batch = FALSE,
+                                 norm = norm, logtransf = FALSE)
 
   ## Yes I know NOISeq doesn't use models in the same way as other
   ## methods I have applied, but this will make it easier to set up
   ## the contrasts.
-  model_choice <- choose_model(input, conditions = conditions,
+  model_choice <- choose_model(norm_input, conditions = conditions,
                                batches = batches,
                                model_batch = model_batch,
                                model_cond = model_cond)
@@ -73,31 +73,35 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   lrt_list <- list()
   sc <- vector("list", length(apc[["names"]]))
   end <- length(apc[["names"]])
-  if (isTRUE(verbose)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
     numerator <- apc[["numerators"]][[name]]
     denominator <- apc[["denominators"]][[name]]
-    if (isTRUE(verbose)) {
-      pct_done <- con / length(apc[["names"]])
-      utils::setTxtProgressBar(bar, pct_done)
-    }
+    ## Noiseq uses the levels of the factor to define numerator/denominator.
+    pData(norm_input)[[factor]] <- as.factor(pData(norm_input)[[factor]])
+    relevel(pData(norm_input)[[factor]], numerator)
+    ## Noiseq recasts the pData() as a factor and blows away my levels!
     noiseq_table <- sm(NOISeq::noiseqbio(
-      norm, k = 0.5, norm = "rpkm", factor = "condition", lc = 1,
+      norm_input, k = 0.5, norm = norm, factor = factor, lc = 1,
       r = 20, adj = 1.5, plot = TRUE, a0per = 0.9, filter = 1,
       conditions = c(numerator, denominator)))
+    invert <- FALSE
+    actual_comparison <- strsplit(noiseq_table@comparison, " - ")[[1]]
+    actual_numerator <- actual_comparison[1]
+    actual_denominator <- actual_comparison[2]
+    if (actual_numerator != numerator) {
+      invert <- TRUE
+    }
     noiseq_result <- noiseq_table@results[[1]]
     rename_col <- colnames(noiseq_result) == "log2FC"
     colnames(noiseq_result)[rename_col] <- "logFC"
     ## It looks to me like noiseq flips the logFC compared to other methods.
     noiseq_result[["p"]] <- 1.0 - noiseq_result[["prob"]]
+    if (isTRUE(invert)) {
+      noiseq_result[["logFC"]] <- -1.0 * noiseq_result[["logFC"]]
+    }
     noiseq_result[["adjp"]] <- p.adjust(noiseq_result[["p"]])
     result_list[[name]] <- noiseq_result
-  }
-  if (isTRUE(verbose)) {
-    close(bar)
   }
 
   retlist <- list(

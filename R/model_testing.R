@@ -240,8 +240,9 @@ get_formula_factors <- function(formula_string = NULL) {
     retlist[["mixed"]] <- TRUE
     mixed_split <- strsplit(x = formula_string, split = "\\|")[[1]]
     mixers <- c("first", "second")
-    first_mix <- strsplit(x = mixed_split[1], split = "[[:punct:]|[:space:]]")[[1]]
+    first_mix <- strsplit(x = mixed_split[1], split = "[[:punct:]|[:space:]]+")[[1]]
     mixers[1] <- first_mix[length(first_mix)]
+    mixed_split[2] <- gsub(x = mixed_split[2], pattern = "^[[:space:]]+", replacement = "")
     second_mix <- strsplit(x = mixed_split[2], split = "[[:punct:]|[:space:]]")[[1]]
     mixers[2] <- second_mix[1]
     retlist[["mixers"]] <- mixers
@@ -249,22 +250,25 @@ get_formula_factors <- function(formula_string = NULL) {
 
   fct_vector <- c()
   for (i in seq_len(length(factor_vector))) {
-    fct <- gsub(x = factor_vector[i], pattern = "[[:space:]]", replacement = "")
-    ## Check for an cell-means model intercept: ~ 0 + f1 + f2
-    ##                                            ^
-    if (grepl(x = fct, pattern = "^[[:digit:]]+$")) {
-      retlist[["type"]] <- "cellmeans"
-      retlist[["cellmeans_intercept"]] <- fct
+    factor_vector[i] <- gsub(x = factor_vector[i], pattern = "[[:space:]]", replacement = "")
+    if (grepl(x = factor_vector[i], pattern = "^[[:digit:]]+$")) {
       next
     }
-
-    if (grepl(x = fct, pattern = "^[[:alnum:]]+$")) {
-      fct_vector <- c(fct_vector, fct)
+    if (grepl(x = factor_vector[i], pattern = "^[[:alnum:]]+$")) {
+      fct_vector <- c(fct_vector, factor_vector[i])
     }
   }
+  ## Check for an cell-means model intercept: ~ 0 + f1 + f2
+  ##                                            ^
+  if (grepl(x = factor_vector[2], pattern = "^[[:digit:]]+$")) {
+    retlist[["type"]] <- "cellmeans"
+    retlist[["cellmeans_intercept"]] <- factor_vector[2]
+  }
+
   retlist[["factors"]] <- unique(fct_vector)
   return(retlist)
 }
+setGeneric("get_formula_factors")
 
 #' Perform a series of single regression analyses and tabulate/plot the results.
 #'

@@ -7,6 +7,7 @@
 make_pairwise_contrasts(
   model,
   conditions,
+  contrast_factor = "condition",
   do_identities = FALSE,
   do_extras = TRUE,
   do_pairwise = TRUE,

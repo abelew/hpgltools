@@ -18,11 +18,12 @@ dream_pairwise(
   libsize = NULL,
   limma_method = "ls",
   limma_robust = FALSE,
-  voom_norm = "quantile",
+  voom_norm = "none",
   limma_trend = FALSE,
   force = FALSE,
   keepers = NULL,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
+  adjust = "BH",
   ...
 )
 }

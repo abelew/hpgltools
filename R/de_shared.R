@@ -70,7 +70,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          do_dream = FALSE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          surrogates = "be", methods = NULL,
-                         keep_underscore = TRUE, ...) {
+                         keep_underscore = TRUE, model_sv = NULL,
+                         ...) {
   arglist <- list(...)
   if (is.null(model_cond)) {
     model_cond <- TRUE
@@ -104,8 +105,11 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     if (!is.null(methods[["dream"]])) {
       do_dream <- methods[["dream"]]
     }
-
   }
+
+  ## I am soon going to separate the model_batch and surrogate estimate variables.
+  ## But for now, just put that here.
+  model_sv <- model_batch
 
   ## EBSeq made an incompatible change in its most recent release.
   ## I unthinkingly changed my code to match it without considering the old
@@ -142,14 +146,25 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     input <- sm(normalize_expt(input, filter = filter))
   }
   null_model <- NULL
-  sv_model <- NULL
+  ## Going to use this test until we cleanly separate model_batch from estimate_type.
+  if ("character" %in% class(model_batch)) {
+    model_sv <- model_batch
+  }
   model_type <- model_batch
+
   if (class(model_batch)[1] == "character") {
-    model_params <- all_adjusters(input, estimate_type = model_batch,
+    model_params <- all_adjusters(input, estimate_type = estimate_type,
                                   surrogates = surrogates)
-    model_batch <- model_params[["model_adjust"]]
+    model_sv <- model_params[["model_adjust"]]
+    ## Remove the following line once we separate model_batch and estimate
     null_model <- model_params[["null_model"]]
-    sv_model <- model_batch
+    ## Add the SVs to the expressionset.
+    for (sv in seq_len(ncol(model_sv))) {
+      name <- glue("{estimate}_SV{sv}")
+      if (is.null(pData(input)[[name]])) {
+        pData(input)[[name]] <- model_sv[, sv]
+      }
+    }
   }
 
   ## Add a little logic to do a before/after batch PCA plot.
@@ -177,9 +192,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
       }
       mesg("Performing a test normalization with: ", test_norm)
       if (!isFALSE(model_batch)) {
-        post_batch <- try(normalize_expt(input, filter = TRUE, batch = model_type,
-                                         transform = "log2", convert = "cpm",
-                                         norm = test_norm, surrogates = surrogates))
+        post_batch <- sm(try(normalize_expt(input, filter = TRUE, batch = model_type,
+                                            transform = "log2", convert = "cpm",
+                                            norm = test_norm, surrogates = surrogates)))
       } else {
         post_batch <- NULL
       }
@@ -200,6 +215,16 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   } else {
     num_conditions <- length(levels(as.factor(conditions)))
   }
+
+  num_comparisons <- 0
+  if (is.null(keepers)) {
+    num_comparisons <- choose(num_conditions, k = 2)
+    mesg("This pairwise function should perform ", num_comparisons, " pairwise comparisons.")
+  } else {
+    num_comparisons <- length(keepers)
+    mesg("This pairwise function should perform ", num_comparisons, " pairwise comparisons taken from the keepers argument.")
+  }
+
   if (is.null(do_ebseq)) {
     if (num_conditions > 4) {
       do_ebseq <- FALSE
@@ -215,33 +240,14 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## having to query do_method.
   num_cpus_needed <- 0
   results <- list()
-  if (isTRUE(do_basic)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["basic"]] <- list()
-  }
-  if (isTRUE(do_deseq)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["deseq"]] <- list()
-  }
-  if (isTRUE(do_ebseq)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["ebseq"]] <- list()
-  }
-  if (isTRUE(do_edger)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["edger"]] <- list()
-  }
-  if (isTRUE(do_limma)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["limma"]] <- list()
-  }
-  if (isTRUE(do_noiseq)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["noiseq"]] <- list()
-  }
-  if (isTRUE(do_dream)) {
-    num_cpus_needed <- num_cpus_needed + 1
-    results[["dream"]] <- list()
+  possible_methods <- c("basic", "deseq", "dream", "ebseq",
+                        "edger", "limma", "noiseq")
+  for (p in possible_methods) {
+    var <- glue("do_{p}")
+    if (isTRUE(get0(var))) {
+      num_cpus_needed <- num_cpus_needed + 1
+      results[[p]] <- list()
+    }
   }
 
   res <- NULL
@@ -261,7 +267,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
         model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
         extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
         annot_df = annot_df, surrogates = surrogates, keepers = keepers,
-        keep_underscore = keep_underscore, ...)
+        keep_underscore = keep_underscore, model_sv = model_sv, ...)
     } ## End foreach() %dopar% { }
     parallel::stopCluster(cl)
     if (isTRUE(verbose)) {
@@ -286,7 +292,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
         model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
         extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
         annot_df = annot_df, surrogates = surrogates, keepers = keepers,
-        keep_underscore = keep_underscore,
+        keep_underscore = keep_underscore, model_sv = model_sv,
         ...)
     }
   } ## End performing a serial comparison
@@ -323,6 +329,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     "input" = input,
     "model_cond" = model_cond,
     "model_batch" = model_batch,
+    "model_sv" = model_sv,
     "original_pvalues" = original_pvalues,
     "pre_batch" = pre_pca,
     "post_batch" = post_pca)
@@ -357,7 +364,7 @@ binary_pairwise <- function(...) {
 #' Calculate the Area under the Concordance Curve.
 #'
 #' This is taken verbatim from a recent paper sent to me by Julie
-#' Cridland.
+#' Cridland. 10.1038/s41467-021-25960-2
 #'
 #' @param tbl DE table
 #' @param tbl2 Second table
@@ -1119,10 +1126,6 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   ## The next lines ensure that conditions/batches which are all numeric will
   ## not cause weird errors for contrasts. Ergo, if a condition is something
   ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  tmpnames <- gsub(pattern = "^condition(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "^batch(\\d+)$", replacement = "b\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "condition", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch", replacement = "", x = tmpnames)
   colnames(int_model) <- tmpnames
 
   tmpnames <- colnames(noint_model)
@@ -1137,10 +1140,6 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   ## The next lines ensure that conditions/batches which are all numeric will
   ## not cause weird errors for contrasts. Ergo, if a condition is something
   ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  tmpnames <- gsub(pattern = "condition^(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch^(\\d+)$", replacement = "b\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "condition", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "batch", replacement = "", x = tmpnames)
   colnames(noint_model) <- tmpnames
 
   chosen_model <- NULL
@@ -2265,11 +2264,17 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #'  pretend <- make_pairwise_contrasts(model, conditions)
 #' }
 #' @export
-make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
-                                    do_extras = TRUE, do_pairwise = TRUE,
+make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condition",
+                                    do_identities = FALSE, do_extras = TRUE, do_pairwise = TRUE,
                                     keepers = NULL, extra_contrasts = NULL,
                                     keep_underscore = TRUE, ...) {
   arglist <- list(...)
+  possible_names <- colnames(model)
+  match <- paste0("^", contrast_factor)
+  relevant_idx <- grepl(x = possible_names, pattern = match)
+  full_names <- possible_names[relevant_idx]
+  short_names <- gsub(x = full_names, pattern = match, replacement = "")
+
   tmpnames <- colnames(model)
   if (isTRUE(keep_underscore)) {
     tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
@@ -2278,18 +2283,25 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
   }
   tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
   tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "conditions^(\\d+)$", replacement = "c\\1", x = tmpnames)
-  tmpnames <- gsub(pattern = "conditions", replacement = "", x = tmpnames)
   colnames(model) <- tmpnames
   conditions <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = conditions)
   condition_table <- table(conditions)
+  message("The provided conditions are:")
+  print(condition_table)
+  message("Choosing among model matrix columns: ", toString(full_names), ".")
   identities <- list()
   contrast_string <- ""
   eval_strings <- list()
-  for (c in seq_along(condition_table)) {
-    identity_name <- names(condition_table[c])
-    identity_string <- paste(identity_name, " = ", identity_name, ",", sep = "")
-    identities[identity_name] <- identity_string
+  ##  for (c in seq_along(condition_table)) {
+  ##    identity_name <- names(condition_table[c])
+  ##    identity_string <- paste(identity_name, " = ", identity_name, ",", sep = "")
+  ##    identities[identity_name] <- identity_string
+  ##  }
+  for (c in seq_along(full_names)) {
+    full_name <- full_names[c]
+    short_name <- short_names[c]
+    identity_string <- paste0(short_name, " = ", full_name, ",")
+    identities[short_name] <- identity_string
   }
   ## If I also create a sample condition 'alice', and also perform a subtraction
   ## of 'alice' from 'bob', then the full makeContrasts() will be:
@@ -2300,18 +2312,20 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
   ## ((bob-alice)-(jane-alice)) or whatever....
   all_pairwise <- list()
   identity_names <- names(identities)
-  lenminus <- length(identities) - 1
+  lenminus <- length(full_names) - 1
   numerators <- c()
   denominators <- c()
 
   if (is.null(keepers)) {
     for (c in seq_len(lenminus)) {
-      c_name <- names(identities[c])
+      c_name <- short_names[c]
+      c_string <- full_names[c]
       nextc <- c + 1
-      for (d in seq(from = nextc, to = length(identities))) {
-        d_name <- names(identities[d])
+      for (d in seq(from = nextc, to = length(full_names))) {
+        d_name <- short_names[d]
+        d_string <- full_names[d]
         minus_string <- paste0(d_name, "_vs_", c_name)
-        exprs_string <- paste0(minus_string, "=", d_name, "-", c_name, ",")
+        exprs_string <- paste0(minus_string, "=", d_string, "-", c_string, ",")
         all_pairwise[minus_string] <- exprs_string
         numerators <- c(numerators, d_name)
         denominators <- c(denominators, c_name)
@@ -2322,9 +2336,11 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
       keeper_name <- names(keepers)[k]
       keeper_value <- keepers[[k]]
       n_name <- keeper_value[1]
+      n_string <- paste0(contrast_factor, n_name)
       d_name <- keeper_value[2]
+      d_string <- paste0(contrast_factor, d_name)
       minus_string <- paste0(n_name, "_vs_", d_name)
-      exprs_string <- paste0(minus_string, "=", n_name, "-", d_name, ",")
+      exprs_string <- paste0(minus_string, "=", n_string, "-", d_string, ",")
       all_pairwise[minus_string] <- exprs_string
       numerators <- c(numerators, n_name)
       denominators <- c(denominators, d_name)
@@ -2345,6 +2361,9 @@ make_pairwise_contrasts <- function(model, conditions, do_identities = FALSE,
   }
   eval_names <- names(eval_strings)
 
+  ## FIXME FIXME FIXME
+  ## Given how I redid the evaluation of contrast strings,
+  ## the following will not work until it is rewritten
   if (!is.null(extra_contrasts) && isTRUE(do_extras)) {
     extra_eval_strings <- strsplit(extra_contrasts, ",")[[1]]
     extra_eval_names <- extra_eval_strings
@@ -2637,9 +2656,9 @@ semantic_copynumber_filter <- function(input, max_copies = 2, use_files = FALSE,
         tab <- tab[idx, ]
         table_list[[count]] <- tab
         mesg("Table started with: ", pre_remove_size, ". ", type,
-                " entries with string ", string,
-                ", found ", num_removed, "; table has ",
-                nrow(tab),  " rows left.")
+             " entries with string ", string,
+             ", found ", num_removed, "; table has ",
+             nrow(tab),  " rows left.")
       } else {
         message("Found no entries of type ", string, ".")
       }

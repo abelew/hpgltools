@@ -768,7 +768,8 @@ hpgl_norm <- function(data, ...) {
     }
     mesg("Step 1: performing count filter with option: ", filter)
     ## All the other intermediates have a libsize slot, perhaps this should too
-    filtered_counts <- filter_counts(count_table, method = filter, ...)
+    filtered_counts <- filter_counts(count_table, method = filter,
+                                     ...)
     ## filtered_counts <- filter_counts(count_table, method = filter)
     count_table <- filtered_counts[["count_table"]]
     filter_performed <- filter
@@ -821,6 +822,7 @@ hpgl_norm <- function(data, ...) {
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
+
   converted_counts <- NULL
   convert <- "raw"
   if (!is.null(arglist[["convert"]])) {
