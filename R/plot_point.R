@@ -186,6 +186,8 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
                                 identity = FALSE, z = 1.5, z_lines = FALSE,
                                 first = NULL, second = NULL, base_url = NULL,
                                 pretty_colors = TRUE, xlab = NULL, ylab = NULL,
+                                model_type = "lm", add_equation = TRUE, add_rsq = TRUE,
+                                add_cor = TRUE
                                 color_high = NULL, color_low = NULL, alpha = 0.4, ...) {
   ## At this time, one might expect arglist to contain
   ## z, p, fc, n and these will therefore be passed to get_sig_genes()
@@ -212,44 +214,40 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   if (is.null(ylab)) {
     ylab <- glue("Expression of {ycol}")
   }
-  test_formula <- as.formula(paste0(ycol, " ~ ", xcol))
-  model_test <- try(robustbase::lmrob(formula = test_formula,
-                                      data = df, method = "SMDM"), silent = TRUE)
+  test_formula <- as.formula(glue("{ycol} ~ {xcol}"))
   linear_model <- NULL
   linear_model_summary <- NULL
   linear_model_rsq <- NULL
   linear_model_weights <- NULL
   linear_model_intercept <- NULL
   linear_model_slope <- NULL
-  if (class(model_test)[1] == "try-error") {
+  if (model_type == "robust") {
+    model_test <- try(robustbase::lmrob(formula = test_formula,
+                                        data = df, method = "SMDM"), silent = TRUE)
+  } else if (model_type == "glm") {
+    model_test <- try(glm(formula = test_formula, data = df), silent = TRUE)
+  } else if (model_type == "lm") {
     model_test <- try(lm(formula = test_formula, data = df), silent = TRUE)
   } else {
-    linear_model <- model_test
-    linear_model_summary <- summary(linear_model)
-    linear_model_rsq <- linear_model_summary[["r.squared"]]
-    linear_model_weights <- stats::weights(linear_model, type = "robustness", na.action = NULL)
-    linear_model_intercept <- stats::coef(linear_model_summary)[1]
-    linear_model_slope <- stats::coef(linear_model_summary)[2]
+    stop("I don't yet know this model type.")
   }
   if (class(model_test)[1] == "try-error") {
-    model_test <- try(glm(formula = test_formula, data = df), silent = TRUE)
-  } else {
-    linear_model <- model_test
-    linear_model_summary <- summary(linear_model)
-    linear_model_rsq <- linear_model_summary[["r.squared"]]
-    linear_model_weights <- stats::weights(linear_model, type = "robustness", na.action = NULL)
-    linear_model_intercept <- stats::coef(linear_model_summary)[1]
-    linear_model_slope <- stats::coef(linear_model_summary)[2]
+    warning("Model type ", model_type, " failed, falling back to a default lm.")
+    model_test <- try(lm(formula = test_formula, data = df), silent = TRUE)
+    if (class(model_test)[1] == "try-error") {
+      message("Could not create a linear model of the data.")
+      message("Going to perform a scatter plot without linear model.")
+      plot <- plot_scatter(df)
+      ret <- list(data = df, scatter = plot)
+      return(ret)
+    }
   }
-
-  if (class(model_test)[1] == "try-error") {
-    message("Could not create a linear model of the data.")
-    message("Going to perform a scatter plot without linear model.")
-    plot <- plot_scatter(df)
-    ret <- list(data = df, scatter = plot)
-    return(ret)
-  }
-
+  linear_model <- model_test
+  linear_model_summary <- summary(linear_model)
+  linear_model_rsq <- linear_model_summary[["r.squared"]]
+  linear_model_weights <- stats::weights(linear_model, type = "robustness", na.action = NULL)
+  linear_model_intercept <- stats::coef(linear_model_summary)[1]
+  linear_model_slope <- stats::coef(linear_model_summary)[2]
   first_median <- summary(df[[xcol]])[["Median"]]
   second_median <- summary(df[[ycol]])[["Median"]]
   first_mad <- stats::mad(df[[xcol]], na.rm = TRUE)
@@ -282,6 +280,11 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
     ggplot2::geom_abline(
       colour = "grey", slope = linear_model_slope,
       intercept = linear_model_intercept, size = line_size)
+  if (isTRUE(identity)) {
+    first_vs_second <- first_vs_second +
+      ggplot2::geom_abline(colour = "darkgreen", slope = 1, intercept = 0, size = 0.8)
+  }
+
   ## The axes and guide-lines are set up, now add the points
   low_df <- high_df <- NULL
   if (!is.null(color_low) || !is.null(color_high)) {
@@ -330,14 +333,22 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
       ggplot2::geom_point(colour = "black", size = size, alpha = alpha)
   }
 
-  if (loess == TRUE) {
-    first_vs_second <- first_vs_second +
-      ggplot2::geom_smooth(method = "loess")
+  annot_string <- NULL
+  if (isTRUE(add_equation)) {
+    annot_string <- glue("Equation: {ymxb_print(linear_model)}")
+  }
+  if (isTRUE(add_rsq)) {
+    annot_string <- glue("{annot_string}
+R^2: {signif(x=linear_model_rsq, digits=3)}")
+  }
+  if (isTRUE(add_cor)) {
+    annot_string <- glue("{annot_string}
+{cormethod} correlation: {signif(x=correlation, digits=3)}")
   }
 
-  if (identity == TRUE) {
+  if (isTRUE(loess)) {
     first_vs_second <- first_vs_second +
-      ggplot2::geom_abline(colour = "darkgreen", slope = 1, intercept = 0, size = 1)
+      ggplot2::geom_smooth(method = "loess")
   }
 
   first_vs_second <- first_vs_second +

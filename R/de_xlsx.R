@@ -3025,7 +3025,7 @@ write_combined_summary <- function(wb, excel_basename, apr, extracted, compare_p
 #'  data_list <- write_deseq(finished_comparison, workbook="excel/deseq_output.xls")
 #' }
 #' @export
-write_de_table <- function(data, type = "limma", coef = NULL, type = "contrasts",
+write_de_table <- function(data, type = "limma", coef = NULL, table_type = "contrasts",
                            excel = "de_table.xlsx", n = 0, ...) {
   arglist <- list(...)
   if (!is.null(data[[type]])) {
@@ -3042,8 +3042,8 @@ write_de_table <- function(data, type = "limma", coef = NULL, type = "contrasts"
 
   if (is.null(coef)) {
     coef <- data[["contrasts_performed"]]
-    if (type %in% coef) {
-      coef <- data[["contrasts_performed"]][[type]]
+    if (table_type %in% coef) {
+      coef <- data[["contrasts_performed"]][[table_type]]
     }
   } else {
     coef <- as.character(coef)
