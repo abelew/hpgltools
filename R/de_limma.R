@@ -299,7 +299,7 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #' @export
 limma_pairwise <- function(input = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_intercept = FALSE,
+                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, libsize = NULL,
                            which_voom = "limma", limma_method = "ls",
@@ -357,14 +357,11 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
   batches <- as.factor(batches)
 
   message("Limma step 1/6: choosing model.")
-  model <- choose_model(input = san_input,
-                        conditions = conditions,
-                        batches = batches,
-                        model_batch = model_batch,
-                        model_cond = model_cond,
-                        model_intercept = model_intercept,
-                        alt_model = alt_model,
-                        keep_underscore = keep_underscore,
+
+  model <- choose_model(san_input, conditions = conditions, batches = batches,
+                        model_batch = model_batch, model_cond = model_cond,
+                        model_intercept = model_intercept, model_sv = model_sv,
+                        alt_model = alt_model, keep_underscore = keep_underscore,
                         ...)
   ##model <- choose_model(input, conditions, batches,
   ##                      model_batch = model_batch,
@@ -373,7 +370,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
   ##                      alt_model = alt_model)
   chosen_model <- model[["chosen_model"]]
   model_string <- model[["chosen_string"]]
-  fun_voom <- NULL
+  voom_result <- NULL
   ## voom() it, taking into account whether the data has been log2 transformed.
 
   ## Leaving the following here for the moment, but I think it will no longer be needed.
@@ -412,33 +409,33 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     ## My version of voom can handle nas
     which_voom <- "hpgl"
   }
-  fun_voom <- NULL
+  voom_result <- NULL
   voom_plot <- NULL
   if (which_voom == "hpgl_weighted") {
     message("Limma step 2/6: running hpgl_voomweighted(), switch with the argument 'which_voom'.")
-    fun_voom <- hpgl_voomweighted(
+    voom_result <- hpgl_voomweighted(
       data, chosen_model, libsize = libsize, voom_norm = voom_norm,
       span = 0.5, var.design = NULL, method = "genebygene",
       maxiter = 50, tol = 1E-10, trace = FALSE, replace.weights = TRUE, col = NULL,
       logged = loggedp, converted = convertedp)
-    voom_plot <- fun_voom[["plot"]]
+    voom_plot <- voom_result[["plot"]]
   } else if (which_voom == "hpgl") {
     message("Limma step 2/6: running hpgl_voom(), switch with the argument 'which_voom'.")
-    fun_voom <- hpgl_voom(
+    voom_result <- hpgl_voom(
       data, chosen_model, libsize = libsize,
       logged = loggedp, converted = convertedp)
-    voom_plot <- fun_voom[["plot"]]
+    voom_plot <- voom_result[["plot"]]
   } else if (which_voom == "limma_weighted") {
     message("Limma step 2/6: running limma::voomWithQualityWeights(), ",
             "switch with the argument 'which_voom'.")
-    fun_voom <- try(limma::voomWithQualityWeights(
+    voom_result <- try(limma::voomWithQualityWeights(
       counts = data, design = chosen_model, lib.size = libsize,
       normalize.method = voom_norm, plot = TRUE, span = 0.5,
       var.design = NULL, method = "genebygene", maxiter = 50,
       tol = 1E-10, trace = FALSE, replace.weights = TRUE, col = NULL))
-    if (class(fun_voom) == "try-error") {
+    if (class(voom_result) == "try-error") {
       message("voomWithQualityWeights failed, falling back to voom.")
-      fun_voom <- limma::voom(
+      voom_result <- limma::voom(
         counts = data, design = chosen_model, lib.size = libsize,
         normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     }
@@ -448,7 +445,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     message("Using normalize.method = ", voom_norm, " for voom.")
     ## Note to self, the defaults are span = 0.5, plot = FALSE, save.plot = FALSE,
     ## normalize.method = "none", lib.size = NULL, design = NULL
-    fun_voom <- limma::voom(
+    voom_result <- limma::voom(
       counts = data, design = chosen_model, lib.size = libsize,
       normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     voom_plot <- grDevices::recordPlot()
@@ -457,35 +454,35 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     ## logcpm might be sufficient when the data distributions are nice and
     ## consistent.
     message("Limma step 2/6: using edgeR::cpm(), switch with the argument 'which_voom'.")
-    fun_voom <- edgeR::cpm(data, log = TRUE, prior.count = 3)
+    voom_result <- edgeR::cpm(data, log = TRUE, prior.count = 3)
   } else if (which_voom == "none") {
     ## Then this is microarray-ish data.
     message("Assuming this data is similar to a micro array and not performign voom.")
-    fun_voom <- data
+    voom_result <- data
   } else {
     message("Limma step 2/6: running limma::voom(), switch with the argument 'which_voom'.")
     message("Using normalize.method = ", voom_norm, " for voom.")
     ## Note to self, the defaults are span = 0.5, plot = FALSE, save.plot = FALSE,
     ## normalize.method = "none", lib.size = NULL, design = NULL
-    fun_voom <- limma::voom(
+    voom_result <- limma::voom(
       counts = data, design = chosen_model, lib.size = libsize,
       normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     voom_plot <- grDevices::recordPlot()
   }
   one_replicate <- FALSE
-  fun_design <- pData(san_input)
-  if (is.null(fun_voom)) {
+  voom_design <- pData(san_input)
+  if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
     message("voom returned null, I am not sure what will happen.")
     one_replicate <- TRUE
-    fun_voom <- data
+    voom_result <- data
   }
 
   ## Do the lmFit() using this model
   pairwise_fits <- NULL
   identity_fits <- NULL
   message("Limma step 3/6: running lmFit with method: ", limma_method, ".")
-  fitted_data <- limma::lmFit(object = fun_voom,
+  fitted_data <- limma::lmFit(object = voom_result,
                               design = chosen_model,
                               method = limma_method)
   all_tables <- NULL
@@ -573,8 +570,8 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     "model_string" = model_string,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
-    "voom_design" = fun_design,
-    "voom_result" = fun_voom)
+    "voom_design" = voom_design,
+    "voom_result" = voom_result)
   class(retlist) <- c("limma_pairwise", "list")
   if (!is.null(arglist[["limma_excel"]])) {
     retlist[["limma_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])

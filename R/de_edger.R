@@ -55,7 +55,7 @@
 #' @export
 edger_pairwise <- function(input = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_intercept = FALSE,
+                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, force = FALSE, keepers = NULL,
                            edger_method = "long", keep_underscore = FALSE, ...) {
@@ -77,13 +77,10 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
 
-  model_choice <- choose_model(input, conditions = conditions,
-                               batches = batches,
-                               model_batch = model_batch,
-                               model_cond = model_cond,
-                               model_intercept = model_intercept,
-                               alt_model = alt_model,
-                               keep_underscore = keep_underscore,
+  model_choice <- choose_model(input, conditions = conditions, batches = batches,
+                               model_batch = model_batch, model_cond = model_cond,
+                               model_intercept = model_intercept, model_sv = model_sv,
+                               alt_model = alt_model, keep_underscore = keep_underscore,
                                ...)
   ##model_choice <- choose_model(input, conditions, batches,
   ##                             model_batch = model_batch,

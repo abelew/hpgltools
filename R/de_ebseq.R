@@ -137,10 +137,11 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
   batches_table <- table(batches)
   condition_levels <- levels(as.factor(conditions))
 
-  model_choice <- choose_model(
-      input, conditions = conditions, batches = batches,
-      model_batch = FALSE, model_cond = TRUE, model_intercept = FALSE, alt_model = NULL,
-      ...)
+  model_choice <- choose_model(input, conditions = conditions, batches = batches,
+                               model_batch = FALSE, model_cond = model_cond,
+                               model_intercept = FALSE, model_sv = NULL,
+                               alt_model = NULL, keep_underscore = keep_underscore,
+                               ...)
   model_data <- model_choice[["chosen_model"]]
   apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE,
                                  do_extras = FALSE, keepers = keepers,

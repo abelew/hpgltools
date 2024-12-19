@@ -57,7 +57,7 @@
 #' @export
 dream_pairwise <- function(input = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_intercept = FALSE,
+                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
                            annot_df = NULL, libsize = NULL,
                            limma_method = "ls", limma_robust = FALSE, voom_norm = "none",
@@ -123,14 +123,11 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   message("Limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
   if (is.null(alt_model)) {
-    model <- choose_model(input = san_input,
-                          conditions = conditions,
-                          batches = batches,
-                          model_batch = model_batch,
-                          model_cond = model_cond,
-                          model_intercept = model_intercept,
-                          alt_model = alt_model,
-                          ...)
+  model <- choose_model(san_input, conditions = conditions, batches = batches,
+                        model_batch = model_batch, model_cond = model_cond,
+                        model_intercept = model_intercept, model_sv = model_sv,
+                        alt_model = alt_model, keep_underscore = keep_underscore,
+                        ...)
   ##model <- choose_model(input, conditions, batches,
   ##                      model_batch = model_batch,
   ##                      model_cond = model_cond,
@@ -147,7 +144,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   my_formula <- as.formula(model_string)
   voom_plot <- NULL
   message("Attempting voomWithDreamWeights.")
-  fun_voom <- variancePartition::voomWithDreamWeights(
+  voom_result <- variancePartition::voomWithDreamWeights(
     counts = data, formula = model_string,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
@@ -156,12 +153,12 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["factors"]][1]
   one_replicate <- FALSE
-  fun_design <- pData(san_input)
-  if (is.null(fun_voom)) {
+  voom_design <- pData(san_input)
+  if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
     message("voom returned null, I am not sure what will happen.")
     one_replicate <- TRUE
-    fun_voom <- data
+    voom_result <- data
   }
 
   ## Do the lmFit() using this model
@@ -170,7 +167,8 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   message("Limma/varpart step 3/6: running dream.")
   contrasts <- make_pairwise_contrasts(
     model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
-    extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore)
+    extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
+    do_identities = FALSE)
   contrast_vector <- c()
   for (n in seq_along(contrasts[["all_pairwise"]])) {
        dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,$", replacement = "")
@@ -179,8 +177,15 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   varpart_contrasts <- variancePartition::makeContrastsDream(
     formula = my_formula, data = design, contrasts = contrast_vector)
   fitted_data <- variancePartition::dream(
-    exprObj = fun_voom, formula = model_string, data = design, L = varpart_contrasts)
-
+    exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
+  identity_contrasts <- make_pairwise_contrasts(model = my_formula, conditions = conditions,
+                                                do_identities = TRUE, do_pairwise = FALSE,
+                                                keep_underscore = keep_underscore)
+  identities <- identity_contrasts[["all_pairwise_contrasts"]]
+  if (isTRUE(one_replicate)) {
+    all_pairwise_comparisons <- fitted_data[["coefficients"]]
+    all_identity_comparisons <- fitted_data[["coefficients"]]
+  }
   ## One might reasonably ask, wtf for the next few lines:
   ## Here is a snippet of the dream documentation:
   ## Since dream uses an estimated degrees of freedom value for each
@@ -196,12 +201,20 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   all_pairwise_comparisons <- variancePartition::eBayes(fitted_data,
                                                         robust = limma_robust,
                                                         trend = limma_trend)
+  all_identity_comparisons <- variancePartition::eBayes(identity_fits,
+                                                        robust = limma_robust,
+                                                        trend = limma_trend)
   message("Limma step 6/6: Writing limma outputs.")
   ## Make a list of the output, one element for each comparison of the contrast matrix
   pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
                                           adjust = adjust, n = 0, coef = NULL,
                                           annot_df = NULL)
-  contrasts_performed <- names(pairwise_results)
+  limma_tables <- pairwise_results[["contrasts"]]
+  identity_results <- make_limma_tables(fit = all_identity_comparisons, adjust = "BH",
+                                        n = 0, coef = NULL, annot_df = NULL)
+  limma_identities <- identity_results[["identities"]]
+
+  contrasts_performed <- names(limma_tables)
   retlist <- list(
     "all_pairwise" = all_pairwise,
     "all_tables" = pairwise_results,
@@ -213,14 +226,17 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     "contrasts_performed" = contrasts_performed,
     "dispersion_plot" = voom_plot,
     "fit" = fitted_data,
+    "identities" = identities,
+    "identity_tables" = limma_identities,
+    "identity_comparisons" = all_identity_comparisons,
     "input_data" = input,
-    "method" = "limma",
+    "method" = "varpart",
     "model" = model,
     "model_string" = model_string,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
-    "voom_design" = fun_design,
-    "voom_result" = fun_voom)
+    "voom_design" = voom_design,
+    "voom_result" = voom_result)
   class(retlist) <- c("dream_pairwise", "list")
   if (!is.null(arglist[["limma_excel"]])) {
     retlist[["dream_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])

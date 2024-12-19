@@ -112,7 +112,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               include_edger = TRUE, include_ebseq = TRUE, include_basic = TRUE,
                               include_noiseq = TRUE, include_dream = FALSE,
                               rownames = TRUE, add_plots = TRUE, loess = FALSE, plot_dim = 6,
-                              compare_plots = TRUE, padj_type = "fdr", fancy = FALSE,
+                              compare_plots = TRUE, padj_type = "ihw", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
                               de_types = c("limma", "deseq", "edger"),
                               excel_title = "Table SXXX: Combined Differential Expression of YYY",
@@ -3025,25 +3025,32 @@ write_combined_summary <- function(wb, excel_basename, apr, extracted, compare_p
 #'  data_list <- write_deseq(finished_comparison, workbook="excel/deseq_output.xls")
 #' }
 #' @export
-write_de_table <- function(data, type = "limma", excel = "de_table.xlsx", ...) {
+write_de_table <- function(data, type = "limma", coef = NULL, type = "contrasts",
+                           excel = "de_table.xlsx", n = 0, ...) {
   arglist <- list(...)
   if (!is.null(data[[type]])) {
     data <- data[[type]]
   }
-  n <- arglist[["n"]]
+
   if (is.null(n)) {
     n <- 0
   }
-  coef <- arglist[["coef"]]
-  if (is.null(coef)) {
-    coef <- data[["contrasts_performed"]]
-  } else {
-    coef <- as.character(coef)
-  }
-
   ## Figure out the number of genes if not provided
   if (n == 0) {
     n <- nrow(data[["coefficients"]])
+  }
+
+  if (is.null(coef)) {
+    coef <- data[["contrasts_performed"]]
+    if (type %in% coef) {
+      coef <- data[["contrasts_performed"]][[type]]
+    }
+  } else {
+    coef <- as.character(coef)
+  }
+  annot <- NULL
+  if (!is.null(data[["input_data"]])) {
+    annot <- fData(data[["input_data"]])
   }
 
   xlsx <- init_xlsx(excel)
@@ -3056,6 +3063,12 @@ write_de_table <- function(data, type = "limma", excel = "de_table.xlsx", ...) {
     comparison <- coef[c]
     mesg("Writing ", c, "/", end, ": table: ", comparison, ".")
     table <- data[["all_tables"]][[c]]
+    if (!is.null(annot)) {
+      table <- merge(annot, table, by = "row.names")
+      rownames(table) <- table[["Row.names"]]
+      table[["Row.names"]] <- NULL
+    }
+
 
     written <- try(write_xlsx(
       data = table, wb = wb, sheet = comparison,

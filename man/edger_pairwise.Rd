@@ -10,6 +10,7 @@ edger_pairwise(
   batches = NULL,
   model_cond = TRUE,
   model_batch = TRUE,
+  model_sv = NULL,
   model_intercept = FALSE,
   alt_model = NULL,
   extra_contrasts = NULL,

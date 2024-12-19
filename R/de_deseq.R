@@ -193,7 +193,7 @@ deseq_pairwise <- function(...) {
 #' @export
 deseq2_pairwise <- function(input = NULL, conditions = NULL,
                             batches = NULL, model_cond = TRUE,
-                            model_batch = TRUE, model_intercept = FALSE,
+                            model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
                             alt_model = NULL, extra_contrasts = NULL,
                             annot_df = NULL, force = FALSE, keepers = NULL,
                             deseq_method = "long", fittype = "parametric",
@@ -226,7 +226,8 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## it will gather surrogate estimates from sva and friends and return those estimates.
   model_choice <- choose_model(input, conditions, batches, model_batch = model_batch,
                                model_cond = model_cond, model_intercept = model_intercept,
-                               alt_model = alt_model, keep_underscore = keep_underscore,
+                               model_sv = model_sv, alt_model = alt_model,
+                               keep_underscore = keep_underscore,
                                ...)
   model_data <- model_choice[["chosen_model"]]
   model_including <- model_choice[["including"]]

@@ -155,7 +155,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   if (class(model_batch)[1] == "character") {
     model_params <- all_adjusters(input, estimate_type = model_type, surrogates = surrogates)
     model_sv <- model_params[["model_adjust"]]
-    ## Remove the following line once we separate model_batch and estimate
+    ## Remove the following line once we separate model_batch and model_sv
+    model_batch <- model_sv
     null_model <- model_params[["null_model"]]
     ## Add the SVs to the expressionset.
     for (sv in seq_len(ncol(model_sv))) {
@@ -300,11 +301,11 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## Add in a little work to re-adjust the p-values in the situation where sva
   ## was used Only perform this f adjustment if you modify the data without
   ## making limma/deseq/edger aware of the modified model.  Ergo, if we feed
-  ## sv_model to this function, then by definition, we do not want to use this
+  ## model_sv to this function, then by definition, we do not want to use this
   ## function.
   ## Thus we will use modified_data to note the data was modified by sva.
   modified_data <- FALSE
-  if (is.null(sv_model) && isTRUE(modified_data)) {
+  if (is.null(model_sv) && isTRUE(modified_data)) {
     ret <- sva_modify_pvalues(results)
     results <- ret[["results"]]
     original_pvalues <- ret[["original_pvalues"]]
@@ -507,11 +508,11 @@ sva_modify_pvalues <- function(results) {
 
     ## I am going to need to extract the set of data for the samples in
     ## 'first' and 'second'. I will need to also extract the surrogates for
-    ## those samples from sv_model. Then I rewrite null_model as the
-    ## subset(null_model, samples included) and rewrite sv_model as
-    ## subset(sv_model, samples_included) in that rewrite, there will just be
+    ## those samples from model_sv. Then I rewrite null_model as the
+    ## subset(null_model, samples included) and rewrite model_sv as
+    ## subset(model_sv, samples_included) in that rewrite, there will just be
     ## conditions a, b where a and b are the subsets for first and
-    ## second. Then the sv_model will be a for the first samples and b for the
+    ## second. Then the model_sv will be a for the first samples and b for the
     ## second. With that information, I should e able to feed sva::f.pvalue
     ## the appropriate information for it to run properly. The resulting
     ## pvalues will then be appropriate for backfilling the various tables
@@ -534,19 +535,19 @@ sva_modify_pvalues <- function(results) {
     colnames(included_samples) <- c(rep("first", times = num_first),
                                     rep("second", times = num_second))
     ## Do the same thing, but using the rows of the sva model adjustment
-    first_sva <- results[["limma"]][["sv_model"]][samples_first_idx, ]
-    second_sva <- results[["limma"]][["sv_model"]][samples_second_idx, ]
+    first_sva <- results[["limma"]][["model_sv"]][samples_first_idx, ]
+    second_sva <- results[["limma"]][["model_sv"]][samples_second_idx, ]
     ## But instead of just appending them, I need a matrix of 0s and 1s
     ## identifying which sv rows correspond to 'wildtype' and 'mutant'
     first_model <- append(rep(1, num_first), rep(0, num_second))
     second_model <- append(rep(0, num_first), rep(1, num_second))
     ## Once I have them, make the subset model matrix with append and cbind
-    new_sv_model <- append(first_sva, second_sva)
-    new_model <- cbind(first_model, second_model, new_sv_model)
+    new_model_sv <- append(first_sva, second_sva)
+    new_model <- cbind(first_model, second_model, new_model_sv)
     colnames(new_model) <- c("first", "second", "sv")
     ## The sva f.pvalue requires a null model of the appropriate size, create
     ## that here.
-    new_null <- cbind(rep(1, (num_first + num_second)), new_sv_model)
+    new_null <- cbind(rep(1, (num_first + num_second)), new_model_sv)
     ## And give its columns suitable names
     colnames(new_null) <- c("null", "sv")
     ## Now all the pieces are in place, call f.pvalue().
@@ -903,7 +904,7 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ver
 #' }
 #' @export
 choose_model <- function(input, conditions = NULL, batches = NULL, model_batch = TRUE,
-                         model_cond = TRUE, model_intercept = FALSE,
+                         model_cond = TRUE, model_intercept = FALSE, model_sv = NULL,
                          alt_model = NULL, alt_string = NULL,
                          intercept = 0, reverse = FALSE, contr = NULL,
                          surrogates = "be", verbose = TRUE, keep_underscore = TRUE, ...) {
@@ -2022,6 +2023,9 @@ ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
                        mean_column = "baseMean", significance = 0.05) {
   ## We need to know the method used, because the values returned are not
   ## necessarily in the scale expected by IHW.
+  if (type == "dream") {
+    type <- "limma"
+  }
   if (is.null(type)) {
     ## This little if statement is dumb.  FIXME.
     if (grepl(pattern = "^limma", x = pvalue_column)) {

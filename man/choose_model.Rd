@@ -11,6 +11,7 @@ choose_model(
   model_batch = TRUE,
   model_cond = TRUE,
   model_intercept = FALSE,
+  model_sv = NULL,
   alt_model = NULL,
   alt_string = NULL,
   intercept = 0,

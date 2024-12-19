@@ -30,7 +30,9 @@
 #' @export
 noiseq_pairwise <- function(input = NULL, conditions = NULL,
                             batches = NULL, model_cond = TRUE,
-                            model_batch = TRUE, annot_df = NULL,
+                            model_batch = TRUE, model_sv = NULL,
+                            model_intercept = FALSE, alt_model = NULL,
+                            annot_df = NULL,
                             k = 0.5, norm = "rpkm", factor = "condition",
                             lc = 1, r = 20, adj = 1.5, a0per = 0.9, filter = 1,
                             keepers = NULL, keep_underscore = FALSE, ...) {
@@ -55,10 +57,11 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   ## Yes I know NOISeq doesn't use models in the same way as other
   ## methods I have applied, but this will make it easier to set up
   ## the contrasts.
-  model_choice <- choose_model(norm_input, conditions = conditions,
-                               batches = batches,
-                               model_batch = model_batch,
-                               model_cond = model_cond)
+  model_choice <- choose_model(norm_input, conditions = conditions, batches = batches,
+                               model_batch = model_batch, model_cond = model_cond,
+                               model_intercept = model_intercept, model_sv = model_sv,
+                               alt_model = alt_model, keep_underscore = keep_underscore,
+                               ...)
   model_including <- model_choice[["including"]]
   if (class(model_choice[["model_batch"]])[1] == "matrix") {
     model_batch <- model_choice[["model_batch"]]
