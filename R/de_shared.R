@@ -65,9 +65,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          model_intercept = FALSE, extra_contrasts = NULL,
                          alt_model = NULL, libsize = NULL, test_pca = TRUE,
                          annot_df = NULL, parallel = TRUE,
-                         do_basic = TRUE, do_deseq = TRUE, do_ebseq = FALSE,
+                         do_basic = TRUE, do_deseq = TRUE, do_ebseq = TRUE,
                          do_edger = TRUE, do_limma = TRUE, do_noiseq = TRUE,
-                         do_dream = FALSE, keepers = NULL,
+                         do_dream = TRUE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          surrogates = "be", methods = NULL,
                          keep_underscore = TRUE, model_sv = NULL,
@@ -211,9 +211,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## than 3 or 4 conditions I do not think I want to wait for it.
   num_conditions <- 0
   if (is.null(conditions)) {
-    num_conditions <- length(levels(as.factor(input[["conditions"]])))
+    num_conditions <- length(levels(droplevels(as.factor(input[["conditions"]]))))
   } else {
-    num_conditions <- length(levels(as.factor(conditions)))
+    num_conditions <- length(levels(droplevels(as.factor(conditions))))
   }
 
   num_comparisons <- 0
@@ -243,8 +243,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   possible_methods <- c("basic", "deseq", "dream", "ebseq",
                         "edger", "limma", "noiseq")
   for (p in possible_methods) {
-    var <- glue("do_{p}")
-    if (isTRUE(get0(var))) {
+    method_varname <- glue("do_{p}")
+    if (isTRUE(get0(method_varname))) {
       num_cpus_needed <- num_cpus_needed + 1
       results[[p]] <- list()
     }
@@ -319,6 +319,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ret <- list(
     "basic" = results[["basic"]],
     "deseq" = results[["deseq"]],
+    "dream" = results[["dream"]],
     "ebseq" = results[["ebseq"]],
     "edger" = results[["edger"]],
     "limma" = results[["limma"]],
@@ -910,6 +911,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
                          surrogates = "be", verbose = TRUE, keep_underscore = TRUE, ...) {
   arglist <- list(...)
   design <- NULL
+  model_batch_info <- NULL
   if (class(input)[1] != "matrix" && class(input)[1] != "data.frame") {
     design <- pData(input)
   }
@@ -1115,7 +1117,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     including <- "condition"
   }
   tmpnames <- colnames(int_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
+  tmpnames <- gsub(pattern = "model_batch", replacement = "", x = tmpnames)
   if (isTRUE(keep_underscore)) {
     tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
   } else {
@@ -1129,7 +1131,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   colnames(int_model) <- tmpnames
 
   tmpnames <- colnames(noint_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "SV1", x = tmpnames)
+  tmpnames <- gsub(pattern = "model_batch", replacement = "", x = tmpnames)
   if (isTRUE(keep_underscore)) {
     tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
   } else {
@@ -1166,6 +1168,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     "chosen_model" = chosen_model,
     "chosen_string" = chosen_string,
     "model_batch" = model_batch,
+    "model_batch_info" = model_batch_info,
     "including" = including)
   return(retlist)
 }
@@ -1459,15 +1462,15 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
   meth <- methods[1]
   len <- length(names(retlst[[meth]]))
   ## FIXME: This is wrong.
-  for (c in seq_len(lenminus)) {
-    c_name <- methods[c]
-    nextc <- c + 1
-    for (d in seq(from = nextc, to = length(methods))) {
-      d_name <- methods[d]
-      method_comp_name <- glue("{c_name}_vs_{d_name}")
+  for (d in seq_len(lenminus)) {
+    d_name <- methods[d]
+    nextd <- d + 1
+    for (e in seq(from = nextd, to = length(methods))) {
+      e_name <- methods[e]
+      method_comp_name <- glue("{d_name}_vs_{e_name}")
       for (l in seq_len(len)) {
-        contr <- names(retlst[[c_name]])[l]
-        mesg(glue("Comparing {contr} of {c_name} vs. {d_name}."))
+        contr <- names(retlst[[d_name]])[l]
+        mesg(glue("Comparing {contr} of {d_name} vs. {e_name}."))
         if (contr %in% extra_eval_names) {
           next
         }
@@ -1479,18 +1482,18 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
         den_name <- num_den_names[2]
         rev_contr <- glue("{den_name}_vs_{num_name}")
         num_reversed <- 0
-        fst <- retlst[[c_name]][[contr]]
-        scd <- retlst[[d_name]][[contr]]
+        fst <- retlst[[d_name]][[contr]]
+        scd <- retlst[[e_name]][[contr]]
         if (is.null(fst)) {
-          fst <- retlst[[c_name]][[rev_contr]]
+          fst <- retlst[[d_name]][[rev_contr]]
           fst[["logFC"]] <- fst[["logFC"]] * -1
-          mesg("Used reverse contrast for ", c_name, ".")
+          mesg("Used reverse contrast for ", d_name, ".")
           num_reversed <- num_reversed + 1
         }
         if (is.null(scd)) {
-          scd <- retlst[[d_name]][[rev_contr]]
+          scd <- retlst[[e_name]][[rev_contr]]
           scd[["logFC"]] <- scd[["logFC"]] * -1
-          mesg("Used reverse contrast for ", d_name, ".")
+          mesg("Used reverse contrast for ", e_name, ".")
           num_reversed <- num_reversed + 1
         }
         ## An extra test condition in case of extra contrasts not performed by all methods.
@@ -1500,16 +1503,16 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
         contrast_name_list <- c(contr, contrast_name_list)
         fs <- merge(fst, scd, by = "row.names")
         if (nrow(fs) == 0) {
-          warning("The merge of ", c_name, ", ", contr, " and ",
-                  d_name, ", ", contr, " failed.")
+          warning("The merge of ", d_name, ", ", contr, " and ",
+                  e_name, ", ", contr, " failed.")
           next
         }
         fs <- fs[, c("logFC.x", "logFC.y")]
-        colnames(fs) <- c(glue("{c_name} logFC"), glue("{d_name} logFC"))
+        colnames(fs) <- c(glue("{d_name} logFC"), glue("{e_name} logFC"))
         fs_cor <- stats::cor.test(x = fs[, 1], y = fs[, 2])[["estimate"]]
         comparison_df[method_comp_name, contr] <- fs_cor
         fs_plt <- plot_scatter(fs) +
-          ggplot2::labs(title = glue("{contr}: {c_name} vs. {d_name}.")) +
+          ggplot2::labs(title = glue("{contr}: {d_name} vs. {e_name}.")) +
           ggplot2::geom_abline(intercept = 0.0, slope = 1.0, colour = "blue")
         complst[[method_comp_name]] <- fs_cor
         plotlst[[method_comp_name]] <- fs_plt
@@ -2023,9 +2026,6 @@ ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
                        mean_column = "baseMean", significance = 0.05) {
   ## We need to know the method used, because the values returned are not
   ## necessarily in the scale expected by IHW.
-  if (type == "dream") {
-    type <- "limma"
-  }
   if (is.null(type)) {
     ## This little if statement is dumb.  FIXME.
     if (grepl(pattern = "^limma", x = pvalue_column)) {
@@ -2040,6 +2040,8 @@ ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
       type <- "ebseq"
     } else if (grepl(pattern = "^noiseq", x = pvalue_column)) {
       type <- "noiseq"
+    } else  if (grepl(pattern = "^dream", x = pvalue_column)) {
+      type <- "limma"
     } else {
       stop("Unable to determine the type of pvalues in this data.")
     }

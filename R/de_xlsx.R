@@ -110,7 +110,7 @@ check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
 combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes = NULL,
                               adjp = TRUE, include_limma = TRUE, include_deseq = TRUE,
                               include_edger = TRUE, include_ebseq = TRUE, include_basic = TRUE,
-                              include_noiseq = TRUE, include_dream = FALSE,
+                              include_noiseq = TRUE, include_dream = TRUE,
                               rownames = TRUE, add_plots = TRUE, loess = FALSE, plot_dim = 6,
                               compare_plots = TRUE, padj_type = "ihw", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
@@ -576,6 +576,13 @@ Defaulting to fdr.")
                      "deseq_num" = 0, "deseq_den" = 0)
   rownames(dedf) <- "dropme"
 
+  drdf <- data.frame("dream_logfc" = 0, "dream_ave" = 0, "dream_t" = 0,
+                     "dream_p" = 0, "dream_adjp" = 0, "dream_b" = 0)
+  rownames(drdf) <- "dropme"
+  if (!is.null(entry[["dream"]][["data"]][["z.std"]])) {
+    drdf[["dream_zstd"]] <- 0
+  }
+
   eddf <- data.frame("edger_logfc" = 0, "edger_logcpm" = 0, "edger_lr" = 0,
                      "edger_p" = 0, "edger_adjp" = 0)
   rownames(eddf) <- "dropme"
@@ -590,8 +597,9 @@ Defaulting to fdr.")
                      "noiseq_prob" = 0, "noiseq_logfc" = 0, "noiseq_p" = 0, "noiseq_adjp" = 0)
   rownames(nodf) <- "dropme"
 
-  badf <- data.frame("numerator" = 0, "denominator" = 0, "numerator_var" = 0,
-                     "denominator_var" = 0, "logFC" = 0, "t" = 0, "p" = 0, "adjp" = 0)
+  badf <- data.frame("basic_num" = 0, "basic_den" = 0, "basic_numvar" = 0,
+                     "basic_denvar" = 0, "basic_logfc" = 0, "basic_t" = 0,
+                     "basic_p" = 0, "basic_adjp" = 0)
   rownames(badf) <- "dropme"
 
   ## I am changing the logic of this function so that the inversion of the values
@@ -600,6 +608,7 @@ Defaulting to fdr.")
   inverts <- list(
     "basic" = FALSE,
     "deseq" = FALSE,
+    "dream" = FALSE,
     "ebseq" = FALSE,
     "edger" = FALSE,
     "limma" = FALSE,
@@ -627,16 +636,18 @@ Defaulting to fdr.")
           mesg("Method ", query, " does not have this contrast.")
           badf <- data.frame()
           ba_stats <- data.frame()
+          ba_lfc_adjp <- data.fram()
         } else {
           badf <- entry[[query]][["data"]]
           ## I recently changed basic to optionally do means or medians.  I need to take that into
           ## account when working with these tables.  For the moment, I think I will simply rename
           ## the column to _median to avoid confusion.
-          colnames(badf) <- gsub(pattern = "_mean|_avg|_median", replacement = "", x = colnames(badf))
-          ba_stats <- badf[, c("numerator", "denominator", "numerator_var",
-            "denominator_var", "logFC", "t", "p", "adjp")]
-          colnames(ba_stats) <- c("basic_num", "basic_den", "basic_numvar", "basic_denvar",
-            "basic_logfc", "basic_t", "basic_p", "basic_adjp")
+          colnames(badf) <- c("basic_num", "basic_den", "basic_numvar",
+                              "basic_denvar", "basic_logfc", "basic_t",
+                              "basic_p", "basic_adjp")
+          ba_stats <- badf[, c("basic_num", "basic_den", "basic_numvar", "basic_denvar",
+                               "basic_t", "basic_p")]
+          ba_lfc_adjp <- badf[, c("basic_logfc", "basic_adjp")]
         }
       }
       if (query == "deseq") {
@@ -655,17 +666,42 @@ Defaulting to fdr.")
           de_lfc_adjp <- dedf[, c("deseq_logfc", "deseq_adjp")]
         }
       }
+      if (query == "dream") {
+        if (is.null(entry[[query]][["data"]])) {
+          mesg("dream does not have this entry.")
+          drdf <- data.frame()
+          dr_stats <- data.frame()
+          dr_lfc_adjp <- data.frame
+        } else {
+          drdf <- entry[[query]][["data"]]
+          if (ncol(drdf) == 6) {
+            colnames(drdf) <- c("dream_logfc", "dream_ave", "dream_t", "dream_p",
+                                "dream_adjp", "dream_b")
+            dr_stats <- drdf[, c("dream_ave", "dream_t", "dream_p", "dream_b")]
+          } else {
+            colnames(drdf) <- c("dream_logfc", "dream_ave", "dream_t", "dream_p",
+                                "dream_adjp", "dream_b", "dream_zstd")
+            dr_stats <- drdf[, c("dream_ave", "dream_t", "dream_p", "dream_p", "dream_zstd")]
+
+          }
+          dr_lfc_adjp <- drdf[, c("dream_logfc", "dream_adjp")]
+        }
+      }
       if (query == "ebseq") {
         if (is.null(entry[[query]][["data"]])) {
           mesg("EBSeq does not have this entry.")
           ebdf <- data.frame()
           eb_stats <- data.frame()
+          eb_lfc_adjp <- data.frame()
         } else {
           ebdf <- entry[[query]][["data"]]
           colnames(ebdf) <- c("ebseq_fc", "ebseq_logfc", "ebseq_c1mean",
-            "ebseq_c2mean", "ebseq_mean", "ebseq_var",
-            "ebseq_postfc", "ebseq_ppee", "ebseq_p",
-            "ebseq_adjp")
+                              "ebseq_c2mean", "ebseq_mean", "ebseq_var",
+                              "ebseq_postfc", "ebseq_ppee", "ebseq_ppde",
+                              "ebseq_adjp")
+          eb_stats <- ebdf[, c("ebseq_fc", "ebseq_c1mean", "ebseq_c2mean",
+                               "ebseq_postfc", "ebseq_ppee", "ebseq_ppde")]
+          eb_lfc_adjp <- ebdf[, c("ebseq_logfc", "ebseq_adjp")]
         }
       }
       if (query == "edger") {
@@ -691,7 +727,7 @@ Defaulting to fdr.")
           lidf <- entry[[query]][["data"]]
           colnames(lidf) <- c("limma_logfc", "limma_ave", "limma_t", "limma_p",
             "limma_adjp", "limma_b")
-          li_stats <- lidf[, c("limma_ave", "limma_t", "limma_b", "limma_p")]
+          li_stats <- lidf[, c("limma_ave", "limma_t", "limma_p", "limma_b")]
           li_lfc_adjp <- lidf[, c("limma_logfc", "limma_adjp")]
         }
       }
@@ -720,6 +756,8 @@ Defaulting to fdr.")
   datalst <- list()
   statslst <- list()
   if (isTRUE(includes[["basic"]])) {
+    datalst[["basic"]] <- data.table::as.data.table(ba_lfc_adjp)
+    datalst[["basic"]][["rownames"]] <- rownames(ba_lfc_adjp)
     statslst[["basic"]] <- data.table::as.data.table(ba_stats)
     statslst[["basic"]][["rownames"]] <- rownames(ba_stats)
   }
@@ -729,7 +767,15 @@ Defaulting to fdr.")
     statslst[["deseq"]] <- data.table::as.data.table(de_stats)
     statslst[["deseq"]][["rownames"]] <- rownames(de_stats)
   }
+  if (isTRUE(includes[["dream"]])) {
+    datalst[["dream"]] <- data.table::as.data.table(dr_lfc_adjp)
+    datalst[["dream"]][["rownames"]] <- rownames(dr_lfc_adjp)
+    statslst[["dream"]] <- data.table::as.data.table(dr_stats)
+    statslst[["dream"]][["rownames"]] <- rownames(dr_stats)
+  }
   if (isTRUE(includes[["ebseq"]])) {
+    datalst[["ebseq"]] <- data.table::as.data.table(eb_lfc_adjp)
+    datalst[["ebseq"]][["rownames"]] <- rownames(eb_lfc_adjp)
     statslst[["ebseq"]] <- data.table::as.data.table(ebdf)
     statslst[["ebseq"]][["rownames"]] <- rownames(ebdf)
   }
@@ -819,6 +865,18 @@ Defaulting to fdr.")
                                     method = padj_type, significance = p_cutoff)
     if (isTRUE(scale_p)) {
       comb[["limma_p_zstd"]] <- scale(comb[["limma_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "limma_p_zstd")
+    }
+  }
+  if (!is.null(comb[["dream_p"]])) {
+    colname <- glue("dream_adjp_{padj_type}")
+    extra_adjust_columns <- c(extra_adjust_columns, colname)
+    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "dream_p",
+                                    mean_column = "dream_ave",
+                                    method = padj_type, significance = p_cutoff)
+    if (isTRUE(scale_p)) {
+      comb[["dream_p_zstd"]] <- scale(comb[["dream_p"]], center = TRUE, scale = TRUE)
+      extra_adjust_columns <- c(extra_adjust_columns, "dream_p_zstd")
     }
   }
   if (!is.null(comb[["deseq_p"]])) {
@@ -1700,7 +1758,7 @@ extract_keepers <- function(extracted, keepers, table_names,
       if (length(internal[["idx"]]) > 1) {
         warning("There appear to be multiple tables for ", entry_name, " choosing the first.")
       }
-    }
+    }  ## End iterating over the methods
     combined <- combine_mapped_table(
       entry, includes, adjp = adjp, padj_type = padj_type,
       annot_df = annot_df, excludes = excludes,
@@ -2819,7 +2877,7 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
   }
   if (isTRUE(includes[["dream"]])) {
     legend <- rbind(legend, dream_legend)
-    table_mames[["dream"]] <- dream[["contrasts_performed"]]
+    table_names[["dream"]] <- dream[["contrasts_performed"]]
   } else {
     dream <- NULL
   }

@@ -45,7 +45,7 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
                            alt_model = NULL, model_batch = NULL, keepers = NULL,
                            ng_vector = NULL, rounds = 10, target_fdr = 0.05,
                            method = "pairwise_subset", norm = "median",
-                           force = FALSE, keep_underscore = FALSE,
+                           force = FALSE, keep_underscore = TRUE,
                            ...) {
   arglist <- list(...)
 
@@ -140,12 +140,12 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
   model_choice <- choose_model(input, conditions = conditions, batches = batches,
                                model_batch = FALSE, model_cond = model_cond,
                                model_intercept = FALSE, model_sv = NULL,
-                               alt_model = NULL, keep_underscore = keep_underscore,
-                               ...)
+                               alt_model = NULL, keep_underscore = keep_underscore)
   model_data <- model_choice[["chosen_model"]]
   apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE,
                                  do_extras = FALSE, keepers = keepers,
-                                 keep_underscore = keep_underscore, ...)
+                                 keep_underscore = keep_underscore,
+                                 ...)
   contrasts_performed <- c()
   retlst <- list()
   for (c in seq_along(apc[["names"]])) {
@@ -314,16 +314,19 @@ ebseq_two <- function(pair_data, conditions,
   posteriors <- EBSeq::GetPPMat(eb_output)
   fold_changes <- EBSeq::PostFC(eb_output)
   eb_result <- EBSeq::GetDEResults(eb_output, FDR = target_fdr)
+  mean_df <- as.data.frame(eb_output[["Mean"]])
+  meanlist_df <- as.data.frame(eb_output[["MeanList"]])
+  varlist_df <- as.data.frame(eb_output[["VarList"]])
+  p_df <- as.data.frame(eb_result[["PPMat"]])
   table <- data.frame(row.names = rownames(posteriors))
   table[["ebseq_FC"]] <- fold_changes[["RealFC"]]
   table[["logFC"]] <- log2(table[["ebseq_FC"]])
-  table[["ebseq_c1mean"]] <- as.numeric(eb_output[["Mean"]][[1]])
-  table[["ebseq_c2mean"]] <- as.numeric(eb_output[["Mean"]][[2]])
-  table[["ebseq_mean"]] <- as.numeric(eb_output[["MeanList"]][[1]])
-  table[["ebseq_var"]] <- as.numeric(eb_output[["VarList"]][[1]])
+  table[["ebseq_c1mean"]] <- as.numeric(mean_df[[1]])
+  table[["ebseq_c2mean"]] <- as.numeric(mean_df[[2]])
+  table[["ebseq_mean"]] <- as.numeric(meanlist_df[[1]])
+  table[["ebseq_var"]] <- as.numeric(varlist_df[[1]])
   table[["ebseq_postfc"]] <- fold_changes[["PostFC"]]
-  table <- merge(table, as.data.frame(eb_result[["PPMat"]]),
-                 by = "row.names", all.x = TRUE)
+  table <- merge(table, p_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]
   table[["Row.names"]] <- NULL
   ## This is incorrect I think, but being used as a placeholder until I figure out how to

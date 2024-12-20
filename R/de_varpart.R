@@ -120,30 +120,36 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
 
-  message("Limma step 1/6: choosing model.")
+  message("Dream/limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
   if (is.null(alt_model)) {
-  model <- choose_model(san_input, conditions = conditions, batches = batches,
-                        model_batch = model_batch, model_cond = model_cond,
-                        model_intercept = model_intercept, model_sv = model_sv,
-                        alt_model = alt_model, keep_underscore = keep_underscore,
-                        ...)
-  ##model <- choose_model(input, conditions, batches,
-  ##                      model_batch = model_batch,
-  ##                      model_cond = model_cond,
-  ##                      model_intercept = model_intercept,
-  ##                      alt_model = alt_model)
+    model <- choose_model(san_input, conditions = conditions, batches = batches,
+                          model_batch = model_batch, model_cond = model_cond,
+                          model_intercept = model_intercept, model_sv = model_sv,
+                          alt_model = alt_model, keep_underscore = keep_underscore,
+                          ...)
+    ##model <- choose_model(input, conditions, batches,
+    ##                      model_batch = model_batch,
+    ##                      model_cond = model_cond,
+    ##                      model_intercept = model_intercept,
+    ##                      alt_model = alt_model)
     chosen_model <- model[["chosen_model"]]
     model_string <- model[["chosen_string"]]
+    if (sum(c("data.frame", "matrix") %in% class(model[["model_batch"]])) > 0) {
+      batch_df <- as.data.frame(model[["model_batch"]])
+      for (sv in colnames(model[["model_batch"]])) {
+          design[[sv]] <- batch_df[[sv]]
+      }
+    }
   } else {
     model <- alt_model
     chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
     model_string <- alt_model
   }
 
-  my_formula <- as.formula(model_string)
+  model_formula <- as.formula(model_string)
   voom_plot <- NULL
-  message("Attempting voomWithDreamWeights.")
+  message("Varpart/limma 2/6: Attempting voomWithDreamWeights.")
   voom_result <- variancePartition::voomWithDreamWeights(
     counts = data, formula = model_string,
     data = design, plot = TRUE)
@@ -153,7 +159,6 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["factors"]][1]
   one_replicate <- FALSE
-  voom_design <- pData(san_input)
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
     message("voom returned null, I am not sure what will happen.")
@@ -169,19 +174,24 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
     do_identities = FALSE)
+  all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
   contrast_vector <- c()
   for (n in seq_along(contrasts[["all_pairwise"]])) {
        dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,$", replacement = "")
        contrast_vector <- c(contrast_vector, dream_contrast)
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
-    formula = my_formula, data = design, contrasts = contrast_vector)
+    formula = model_formula, data = design, contrasts = contrast_vector)
   fitted_data <- variancePartition::dream(
     exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
-  identity_contrasts <- make_pairwise_contrasts(model = my_formula, conditions = conditions,
-                                                do_identities = TRUE, do_pairwise = FALSE,
-                                                keep_underscore = keep_underscore)
+  identity_contrasts <- sm(make_pairwise_contrasts(model = chosen_model, conditions = conditions,
+                                                   contrast_factor = contrast_factor,
+                                                   do_identities = TRUE, do_pairwise = FALSE,
+                                                   keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
+  identity_fits <- variancePartition::dream(
+    exprObj = voom_result, formula = model_string, data = design, L = identities)
+  message("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
     all_pairwise_comparisons <- fitted_data[["coefficients"]]
     all_identity_comparisons <- fitted_data[["coefficients"]]
@@ -209,25 +219,26 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
                                           adjust = adjust, n = 0, coef = NULL,
                                           annot_df = NULL)
-  limma_tables <- pairwise_results[["contrasts"]]
+  varpart_tables <- pairwise_results[["contrasts"]]
   identity_results <- make_limma_tables(fit = all_identity_comparisons, adjust = "BH",
                                         n = 0, coef = NULL, annot_df = NULL)
-  limma_identities <- identity_results[["identities"]]
+  varpart_identities <- identity_results[["identities"]]
 
   contrasts_performed <- names(limma_tables)
   retlist <- list(
     "all_pairwise" = all_pairwise,
-    "all_tables" = pairwise_results,
+    "all_tables" = varpart_tables,
     "batches" = batches,
     "batches_table" = batch_table,
     "conditions" = conditions,
     "conditions_table" = condition_table,
     "contrast_string" = contrast_vector,
     "contrasts_performed" = contrasts_performed,
+    "design" = design,
     "dispersion_plot" = voom_plot,
     "fit" = fitted_data,
     "identities" = identities,
-    "identity_tables" = limma_identities,
+    "identity_tables" = varpart_identities,
     "identity_comparisons" = all_identity_comparisons,
     "input_data" = input,
     "method" = "varpart",
@@ -235,7 +246,6 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     "model_string" = model_string,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
-    "voom_design" = voom_design,
     "voom_result" = voom_result)
   class(retlist) <- c("dream_pairwise", "list")
   if (!is.null(arglist[["limma_excel"]])) {

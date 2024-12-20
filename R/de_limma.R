@@ -357,7 +357,6 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
   batches <- as.factor(batches)
 
   message("Limma step 1/6: choosing model.")
-
   model <- choose_model(san_input, conditions = conditions, batches = batches,
                         model_batch = model_batch, model_cond = model_cond,
                         model_intercept = model_intercept, model_sv = model_sv,
@@ -470,7 +469,6 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     voom_plot <- grDevices::recordPlot()
   }
   one_replicate <- FALSE
-  voom_design <- pData(san_input)
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
     message("voom returned null, I am not sure what will happen.")
@@ -559,6 +557,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     "conditions_table" = condition_table,
     "contrast_string" = contrast_string,
     "contrasts_performed" = contrasts_performed,
+    "design" = design,
     "dispersion_plot" = voom_plot,
     "fit" = fitted_data,
     "identities" = identities,
@@ -570,7 +569,6 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     "model_string" = model_string,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
-    "voom_design" = voom_design,
     "voom_result" = voom_result)
   class(retlist) <- c("limma_pairwise", "list")
   if (!is.null(arglist[["limma_excel"]])) {

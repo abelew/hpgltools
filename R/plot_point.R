@@ -187,7 +187,7 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
                                 first = NULL, second = NULL, base_url = NULL,
                                 pretty_colors = TRUE, xlab = NULL, ylab = NULL,
                                 model_type = "lm", add_equation = TRUE, add_rsq = TRUE,
-                                add_cor = TRUE
+                                add_cor = TRUE, label_prefix = "Expression of",
                                 color_high = NULL, color_low = NULL, alpha = 0.4, ...) {
   ## At this time, one might expect arglist to contain
   ## z, p, fc, n and these will therefore be passed to get_sig_genes()
@@ -204,15 +204,17 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   }
 
   correlation <- try(cor.test(df[[xcol]], df[[ycol]], method = cormethod, exact = FALSE))
+  cor_value <- correlation[["estimate"]]
   if (class(correlation)[1] == "try-error") {
     correlation <- NULL
+    cor_value <- NULL
   }
   df_columns <- colnames(df)
   if (is.null(xlab)) {
-    xlab <- glue("Expression of {xcol}")
+    xlab <- glue("{label_prefix} {xcol}")
   }
   if (is.null(ylab)) {
-    ylab <- glue("Expression of {ycol}")
+    ylab <- glue("{label_prefix} {ycol}")
   }
   test_formula <- as.formula(glue("{ycol} ~ {xcol}"))
   linear_model <- NULL
@@ -343,7 +345,11 @@ R^2: {signif(x=linear_model_rsq, digits=3)}")
   }
   if (isTRUE(add_cor)) {
     annot_string <- glue("{annot_string}
-{cormethod} correlation: {signif(x=correlation, digits=3)}")
+{cormethod} correlation: {signif(x=cor_value, digits=3)}")
+  }
+  if (!is.null(annot_string)) {
+    first_vs_second <- first_vs_second +
+      ggplot2::annotate("text", x = -Inf, y = Inf, label = annot_string, vjust = 2, hjust = 2)
   }
 
   if (isTRUE(loess)) {
