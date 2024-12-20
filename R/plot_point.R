@@ -335,21 +335,23 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
       ggplot2::geom_point(colour = "black", size = size, alpha = alpha)
   }
 
-  annot_string <- NULL
+  annot_string <- glue("
+")
   if (isTRUE(add_equation)) {
-    annot_string <- glue("Equation: {ymxb_print(linear_model)}")
+    annot_string <- glue("{annot_string}
+  Equation: {ymxb_print(linear_model)}")
   }
   if (isTRUE(add_rsq)) {
     annot_string <- glue("{annot_string}
-R^2: {signif(x=linear_model_rsq, digits=3)}")
+  R^2: {signif(x=linear_model_rsq, digits=3)}")
   }
   if (isTRUE(add_cor)) {
     annot_string <- glue("{annot_string}
-{cormethod} correlation: {signif(x=cor_value, digits=3)}")
+  {cormethod} correlation: {signif(x=cor_value, digits=3)}")
   }
   if (!is.null(annot_string)) {
     first_vs_second <- first_vs_second +
-      ggplot2::annotate("text", x = -Inf, y = Inf, label = annot_string, vjust = 2, hjust = 2)
+      ggplot2::annotate("text", x = -Inf, y = Inf, label = annot_string, vjust = 1, hjust = 0)
   }
 
   if (isTRUE(loess)) {
