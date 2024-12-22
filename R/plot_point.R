@@ -339,15 +339,15 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
 ")
   if (isTRUE(add_equation)) {
     annot_string <- glue("{annot_string}
-  Equation: {ymxb_print(linear_model)}")
+  Equation: {ymxb_print(linear_model)}", .trim = FALSE)
   }
   if (isTRUE(add_rsq)) {
     annot_string <- glue("{annot_string}
-  R^2: {signif(x=linear_model_rsq, digits=3)}")
+  R^2: {signif(x=linear_model_rsq, digits=3)}", .trim = FALSE)
   }
   if (isTRUE(add_cor)) {
     annot_string <- glue("{annot_string}
-  {cormethod} correlation: {signif(x=cor_value, digits=3)}")
+  {cormethod} correlation: {signif(x=cor_value, digits=3)}", .trim = FALSE)
   }
   if (!is.null(annot_string)) {
     first_vs_second <- first_vs_second +

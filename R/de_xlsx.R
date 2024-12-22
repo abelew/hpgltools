@@ -114,7 +114,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               rownames = TRUE, add_plots = TRUE, loess = FALSE, plot_dim = 6,
                               compare_plots = TRUE, padj_type = "ihw", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
-                              de_types = c("limma", "deseq", "edger"),
                               excel_title = "Table SXXX: Combined Differential Expression of YYY",
                               increment_start = "SXXX", start_worksheet_num = 2,
                               rda = NULL, rda_input = FALSE, label = 10, label_column = "hgnc_symbol",
@@ -129,7 +128,8 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     do_excel <- FALSE
   }
 
-  plot_colors <- get_expt_colors(apr[["input"]], ...)
+  plot_colors <- get_expt_colors(apr[["input"]],
+                                 ...)
   ## Create a list of image files so that they may be properly cleaned up
   ## after writing the xlsx file.
   image_files <- c()
@@ -266,7 +266,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
           current_column <- venn_info[["current_column"]]
         }
 
-        de_plots_written <- write_plots_de_xlsx(de_types, extracted, sheetname,
+        de_plots_written <- write_plots_de_xlsx(includes, extracted, sheetname,
                                                 current_row, current_column, tab,
                                                 xls_result, wb, plot_dim,
                                                 excel_basename, image_files)
@@ -376,58 +376,32 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
 #' @param label Label this number of the top genes.
 #' @param label_column Label the top genes with this column.
 combine_extracted_plots <- function(name, combined, denominator, numerator, plot_inputs,
-                                    plot_basic = TRUE, plot_deseq = TRUE,
-                                    plot_edger = TRUE, plot_limma = TRUE,
-                                    plot_ebseq = FALSE, plot_noiseq = FALSE, loess = FALSE,
-                                    logfc = 1, pval = 0.05, found_table = NULL, p_type = "all",
-                                    plot_colors = NULL, fancy = FALSE, adjp = TRUE,
-                                    do_inverse = FALSE, invert_colors = FALSE,
+                                    loess = FALSE, logfc = 1, pval = 0.05, found_table = NULL,
+                                    p_type = "all", plot_colors = NULL, fancy = FALSE,
+                                    adjp = TRUE, do_inverse = FALSE, invert_colors = FALSE,
                                     z = 1.5, alpha = 0.4, z_lines = FALSE,
                                     label = 10, label_column = "hgnc_symbol") {
   combined_data <- combined[["data"]]
   plots <- list()
   types <- c()
-  if (isTRUE(plot_deseq)) {
-    plots[["deseq_scatter_plots"]] <- list()
-    plots[["deseq_ma_plots"]] <- list()
-    plots[["deseq_vol_plots"]] <- list()
-    plots[["deseq_p_plots"]] <- list()
-    types <- c("deseq", types)
-  }
-  if (isTRUE(plot_edger)) {
-    plots[["edger_scatter_plots"]] <- list()
-    plots[["edger_ma_plots"]] <- list()
-    plots[["edger_vol_plots"]] <- list()
-    plots[["edger_p_plots"]] <- list()
-    types <- c("edger", types)
-  }
-  if (isTRUE(plot_limma)) {
-    plots[["limma_scatter_plots"]] <- list()
-    plots[["limma_ma_plots"]] <- list()
-    plots[["limma_vol_plots"]] <- list()
-    plots[["limma_p_plots"]] <- list()
-    types <- c("limma", types)
-  }
-  if (isTRUE(plot_noiseq)) {
-    plots[["noiseq_scatter_plots"]] <- list()
-    plots[["noiseq_ma_plots"]] <- list()
-    plots[["noiseq_vol_plots"]] <- list()
-    plots[["noiseq_p_plots"]] <- list()
-    types <- c("noiseq", types)
-  }
-
-  for (t in seq_along(types)) {
-    type <- types[t]
-    sc_name <- paste0(type, "_scatter_plots")
-    ma_name <- paste0(type, "_ma_plots")
-    vol_name <- paste0(type, "_vol_plots")
-    p_name <- paste0(type, "_p_plots")
+  for (i in seq_along(plot_inputs)) {
+    type <- names(plot_inputs)[i]
+    scatter_name <- glue("{type}_scatter_plots")
+    ma_name <- glue("{type}_ma_plots")
+    vol_name <- glue("{type}_vol_plots")
+    p_name <- glue("{type}_p_plots")
+    adjp_name <- glue("{type}_adjp_plots")
+    plots[[scatter_name]] <- list()
+    plots[[ma_name]] <- list()
+    plots[[vol_name]] <- list()
+    plots[[p_name]] <- list()
+    plots[[adjp_name]] <- list()
+    types <- c(type, types)
     ## I think I should plot the coefficient plot with the
     ## MA/volcano.  I am stealing the following 6 lines from the
     ## volcano/MA plotter to make pretty colors
     color_high <- plot_colors[numerator]
     color_low <- plot_colors[denominator]
-
     ## A quick short circuit for extra contrasts
     ## They will not have colors defined in the conditions of the input data and so will be NA
     ## here, so drop out now.
@@ -445,16 +419,16 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
       numerator = numerator, denominator = denominator, alpha = alpha, z = z,
       logfc = logfc, pval = pval, adjp = adjp, found_table = found_table,
       p_type = p_type, color_low = color_low, color_high = color_high,
-      z_lines = z_lines, label = label, label_column = label_column), silent = TRUE)
+      z_lines = z_lines, label = label, label_column = label_column))
     if ("try-error" %in% class(ma_vol_coef)) {
-      plots[[sc_name]] <- NULL
+      plots[[scatter_name]] <- NULL
       plots[[vol_name]] <- NULL
       plots[[ma_name]] <- NULL
     } else {
       if ("try-error" %in% class(ma_vol_coef[["coef"]])) {
-        plots[[sc_name]] <- NULL
+        plots[[scatter_name]] <- NULL
       } else {
-        plots[[sc_name]] <- ma_vol_coef[["coef"]]
+        plots[[scatter_name]] <- ma_vol_coef[["coef"]]
       }
       if ("try-error" %in% class(ma_vol_coef[["volcano"]])) {
         plots[[vol_name]] <- NULL
@@ -475,12 +449,16 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
       ## from the data at this point.  In my vignette, I set padj_type to 'BH'
       ## and as a result I have a series of columns: 'limma_adj_bh' etc.
       ## Therefore we need to get that information to this function call.
-      pval_plot <- try(plot_de_pvals(combined[["data"]], type = type, p_type = p_type),
+      pval_plot <- try(plot_de_pvals(combined[["data"]], type = type, p_type = "raw"),
+                       silent = TRUE)
+      adjpval_plot <- try(plot_de_pvals(combined[["data"]], type = type, p_type = "adj"),
                        silent = TRUE)
       if ("try-error" %in% class(pval_plot)) {
         plots[[p_name]] <- NULL
+        plots[[adjp_name]] <- NULL
       } else {
         plots[[p_name]] <- pval_plot
+        plots[[adjp_name]] <- adjpval_plot
       }
     }
   }
@@ -567,9 +545,10 @@ Defaulting to fdr.")
     padj_type <- "fdr"
   }
 
-  lidf <- data.frame("limma_logfc" = 0, "limma_ave" = 0, "limma_t" = 0,
-                     "limma_p" = 0, "limma_adjp" = 0, "limma_b" = 0)
-  rownames(lidf) <- "dropme"
+  badf <- data.frame("basic_num" = 0, "basic_den" = 0, "basic_numvar" = 0,
+                     "basic_denvar" = 0, "basic_logfc" = 0, "basic_t" = 0,
+                     "basic_p" = 0, "basic_adjp" = 0)
+  rownames(badf) <- "dropme"
 
   dedf <- data.frame("deseq_basemean" = 0, "deseq_logfc" = 0, "deseq_lfcse" = 0,
                      "deseq_stat" = 0, "deseq_p" = 0, "deseq_adjp" = 0,
@@ -583,24 +562,24 @@ Defaulting to fdr.")
     drdf[["dream_zstd"]] <- 0
   }
 
-  eddf <- data.frame("edger_logfc" = 0, "edger_logcpm" = 0, "edger_lr" = 0,
-                     "edger_p" = 0, "edger_adjp" = 0)
-  rownames(eddf) <- "dropme"
-
   ebdf <- data.frame("ebseq_fc" = 0, "ebseq_logfc" = 0, "ebseq_c1mean" = 0,
                      "ebseq_c2mean" = 0, "ebseq_mean" = 0, "ebseq_var" = 0,
                      "ebseq_postfc" = 0, "ebseq_ppee" = 0, "ebseq_ppde" = 0,
                      "ebseq_adjp" = 0)
   rownames(ebdf) <- "dropme"
 
+  eddf <- data.frame("edger_logfc" = 0, "edger_logcpm" = 0, "edger_lr" = 0,
+                     "edger_p" = 0, "edger_adjp" = 0)
+  rownames(eddf) <- "dropme"
+
+  lidf <- data.frame("limma_logfc" = 0, "limma_ave" = 0, "limma_t" = 0,
+                     "limma_p" = 0, "limma_adjp" = 0, "limma_b" = 0)
+  rownames(lidf) <- "dropme"
+
   nodf <- data.frame("noiseq_num" = 0, "noiseq_den" = 0, "noiseq_theta" = 0,
                      "noiseq_prob" = 0, "noiseq_logfc" = 0, "noiseq_p" = 0, "noiseq_adjp" = 0)
   rownames(nodf) <- "dropme"
 
-  badf <- data.frame("basic_num" = 0, "basic_den" = 0, "basic_numvar" = 0,
-                     "basic_denvar" = 0, "basic_logfc" = 0, "basic_t" = 0,
-                     "basic_p" = 0, "basic_adjp" = 0)
-  rownames(badf) <- "dropme"
 
   ## I am changing the logic of this function so that the inversion of the values
   ## is no longer connected to the inversion of colors
@@ -700,7 +679,8 @@ Defaulting to fdr.")
                               "ebseq_postfc", "ebseq_ppee", "ebseq_ppde",
                               "ebseq_adjp")
           eb_stats <- ebdf[, c("ebseq_fc", "ebseq_c1mean", "ebseq_c2mean",
-                               "ebseq_postfc", "ebseq_ppee", "ebseq_ppde")]
+                               "ebseq_mean", "ebseq_postfc",
+                               "ebseq_ppee", "ebseq_ppde")]
           eb_lfc_adjp <- ebdf[, c("ebseq_logfc", "ebseq_adjp")]
         }
       }
@@ -740,9 +720,10 @@ Defaulting to fdr.")
         } else {
           nodf <- entry[[query]][["data"]]
           colnames(nodf) <- c("noiseq_num", "noiseq_den", "noiseq_theta", "noiseq_prob",
-            "noiseq_logfc", "noiseq_p", "noiseq_adjp")
-          no_stats <- nodf[, c("noiseq_num", "noiseq_den", "noiseq_theta",
-            "noiseq_prob", "noiseq_p")]
+                              "noiseq_logfc", "noiseq_p", "noiseq_adjp")
+          nodf[["noiseq_mean"]] <- (nodf[["noiseq_num"]] + nodf[["noiseq_den"]]) / 2
+          no_stats <- nodf[, c("noiseq_num", "noiseq_den", "noiseq_mean",
+                               "noiseq_theta", "noiseq_prob", "noiseq_p")]
           no_lfc_adjp <- nodf[, c("noiseq_logfc", "noiseq_adjp")]
         }
       }
@@ -776,8 +757,8 @@ Defaulting to fdr.")
   if (isTRUE(includes[["ebseq"]])) {
     datalst[["ebseq"]] <- data.table::as.data.table(eb_lfc_adjp)
     datalst[["ebseq"]][["rownames"]] <- rownames(eb_lfc_adjp)
-    statslst[["ebseq"]] <- data.table::as.data.table(ebdf)
-    statslst[["ebseq"]][["rownames"]] <- rownames(ebdf)
+    statslst[["ebseq"]] <- data.table::as.data.table(eb_stats)
+    statslst[["ebseq"]][["rownames"]] <- rownames(eb_stats)
   }
   if (isTRUE(includes[["edger"]])) {
     datalst[["edger"]] <- data.table::as.data.table(ed_lfc_adjp)
@@ -1758,7 +1739,7 @@ extract_keepers <- function(extracted, keepers, table_names,
       if (length(internal[["idx"]]) > 1) {
         warning("There appear to be multiple tables for ", entry_name, " choosing the first.")
       }
-    }  ## End iterating over the methods
+    } ## End iterating over the methods
     combined <- combine_mapped_table(
       entry, includes, adjp = adjp, padj_type = padj_type,
       annot_df = annot_df, excludes = excludes,
@@ -1776,25 +1757,12 @@ extract_keepers <- function(extracted, keepers, table_names,
     ## extracted[["kept"]] <- kept_tables
     extracted[["keepers"]] <- keepers
     plot_inputs <- list()
-    plot_basic <- combined[["includes"]][["basic"]]
-    if (isTRUE(plot_basic)) {
-      plot_inputs[["basic"]] <- datum[["basic"]]
-    }
-    plot_deseq <- combined[["includes"]][["deseq"]]
-    if (isTRUE(plot_deseq)) {
-      plot_inputs[["deseq"]] <- datum[["deseq"]]
-    }
-    plot_edger <- combined[["includes"]][["edger"]]
-    if (isTRUE(plot_edger)) {
-      plot_inputs[["edger"]] <- datum[["edger"]]
-    }
-    plot_limma <- combined[["includes"]][["limma"]]
-    if (isTRUE(plot_limma)) {
-      plot_inputs[["limma"]] <- datum[["limma"]]
-    }
-    plot_ebseq <- combined[["includes"]][["ebseq"]]
-    if (isTRUE(plot_ebseq)) {
-      plot_inputs[["ebseq"]] <- datum[["ebseq"]]
+    for (i in seq_along(combined[["includes"]])) {
+      plot_method <- names(combined[["includes"]])[i]
+      plot_bool <- combined[["includes"]][[i]]
+      if (isTRUE(plot_bool)) {
+        plot_inputs[[plot_method]] <- datum[[plot_method]]
+      }
     }
 
     ## Using the isTRUE() in case label_column is NULL, in which case
@@ -1806,10 +1774,7 @@ extract_keepers <- function(extracted, keepers, table_names,
     ## Changing this to a try() for when we have weirdo extra_contrasts.
     extracted[["plots"]][[entry_name]] <- suppressWarnings(combine_extracted_plots(
       entry_name, combined, wanted_denominator, wanted_numerator, plot_inputs,
-      plot_basic = plot_basic, plot_deseq = plot_deseq,
-      plot_edger = plot_edger, plot_limma = plot_limma,
-      plot_ebseq = plot_ebseq, loess = loess,
-      logfc = lfc_cutoff, pval = p_cutoff, adjp = adjp,
+      loess = loess, logfc = lfc_cutoff, pval = p_cutoff, adjp = adjp,
       found_table = found_table, p_type = padj_type,
       plot_colors = plot_colors, fancy = fancy,
       do_inverse = FALSE, invert_colors = invert_colors,
@@ -3229,33 +3194,34 @@ write_sample_design <- function(wb, apr) {
   return(xls_meta_result)
 }
 
-write_plots_de_xlsx <- function(de_types, extracted, sheetname, current_row, current_column, tab,
-                                xls_result, wb, plot_dim, excel_basename, image_files,
+write_plots_de_xlsx <- function(includes, extracted, sheetname, current_row,
+                                current_column, tab, xls_result, wb, plot_dim,
+                                excel_basename, image_files,
                                 plot_rows = 31, plot_columns = 10) {
   ## Now add the coefficients, ma, and volcanoes below the venns.
   ## Text on row 18, plots from 19-49 (30 rows)
-  for (t in seq_along(de_types)) {
+  for (t in seq_along(includes)) {
     num_plotted <- 0
-    type <- de_types[t]
+    type <- includes[t]
     sc <- paste0(type, "_scatter_plots")
     ma <- paste0(type, "_ma_plots")
     vo <- paste0(type, "_vol_plots")
     pp <- paste0(type, "_p_plots")
+    ap <- paste0(type, "_adjp_plots")
     short <- substr(type, 0, 2)
     cap <- R.utils::capitalize(type)
     plt <- extracted[["plots"]][[sheetname]][[sc]]
     ma_plt <- extracted[["plots"]][[sheetname]][[ma]]
     vol_plt <- extracted[["plots"]][[sheetname]][[vo]]
     p_plt <- extracted[["plots"]][[sheetname]][[pp]]
+    adjp_plt <- extracted[["plots"]][[sheetname]][[ap]]
     current_row <- current_row + 2
     current_column <- xls_result[["end_col"]] + 2
 
     ## Note that these are lists now.
     if (class(plt)[1] != "try-error" && length(plt) > 0) {
-      printme <- as.character(
-        glue("{cap} expression coefficients for {tab}; R^2: \\
-                          {signif(x=plt[['lm_rsq']], digits=3)}; equation: \\
-                          {ymxb_print(plt[['lm_model']])}"))
+      ## The summary is now included with the plot.
+      printme <- as.character(glue("{cap} expression coefficients for {tab}"))
       xl_result <- openxlsx::writeData(
         wb = wb, sheet = sheetname, x = printme,
         startRow = current_row, startCol = current_column)
@@ -3315,6 +3281,22 @@ write_plots_de_xlsx <- function(de_types, extracted, sheetname, current_row, cur
         savedir = excel_basename, start_row = current_row + 1)
       if (!"try-error" %in% class(try_p_result)) {
         image_files <- c(image_files, try_p_result[["filename"]])
+        num_plotted <- num_plotted + 1
+        current_column <- current_column + plot_columns
+      }
+    }
+
+    if (class(adjp_plt)[1] != "try-error" && length(adjp_plt) > 0) {
+      xl_result <- openxlsx::writeData(
+        wb = wb, sheet = sheetname, x = paste0(type, " adjp-value plot"),
+        startRow = current_row, startCol = current_column)
+      plotname <- paste0(short, "adjp")
+      try_adjp_result <- xlsx_insert_png(
+        adjp_plt, wb = wb, sheet = sheetname, width = plot_dim,
+        height = plot_dim, start_col = current_column, pltname = plotname,
+        savedir = excel_basename, start_row = current_row + 1)
+      if (!"try-error" %in% class(try_adjp_result)) {
+        image_files <- c(image_files, try_adjp_result[["filename"]])
         num_plotted <- num_plotted + 1
         current_column <- current_column + plot_columns
       }

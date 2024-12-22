@@ -149,7 +149,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
 
   model_formula <- as.formula(model_string)
   voom_plot <- NULL
-  message("Varpart/limma 2/6: Attempting voomWithDreamWeights.")
+  message("Dream/limma 2/6: Attempting voomWithDreamWeights.")
   voom_result <- variancePartition::voomWithDreamWeights(
     counts = data, formula = model_string,
     data = design, plot = TRUE)
@@ -169,7 +169,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## Do the lmFit() using this model
   pairwise_fits <- NULL
   identity_fits <- NULL
-  message("Limma/varpart step 3/6: running dream.")
+  message("Dream/limma step 3/6: running dream.")
   contrasts <- make_pairwise_contrasts(
     model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
@@ -214,7 +214,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   all_identity_comparisons <- variancePartition::eBayes(identity_fits,
                                                         robust = limma_robust,
                                                         trend = limma_trend)
-  message("Limma step 6/6: Writing limma outputs.")
+  message("Dream/limma step 6/6: Writing limma outputs.")
   ## Make a list of the output, one element for each comparison of the contrast matrix
   pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
                                           adjust = adjust, n = 0, coef = NULL,
@@ -224,7 +224,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
                                         n = 0, coef = NULL, annot_df = NULL)
   varpart_identities <- identity_results[["identities"]]
 
-  contrasts_performed <- names(limma_tables)
+  contrasts_performed <- names(varpart_tables)
   retlist <- list(
     "all_pairwise" = all_pairwise,
     "all_tables" = varpart_tables,

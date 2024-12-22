@@ -145,18 +145,24 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   ## Extract the set of available names -- FIXME this should be standardized!!
   coefficients <- data.frame()
   thenames <- NULL
-  if (type == "edger") {
+  if (type == "basic") {
+    thenames <- names(output[["conditions_table"]])
+  } else if (type == "deseq") {
+    coefficients <- as.data.frame(output[["coefficients"]])
+    thenames <- colnames(output[["coefficients"]])
+  } else if (type == "dream") {
+    coefficients <- as.data.frame(output[["identity_comparisons"]][["coefficients"]])
+    thenames <- colnames(coefficients)
+  } else if (type == "ebseq") {
+    thenames <- names(output[["conditions_table"]])
+  } else if (type == "edger") {
     thenames <- output[["contrasts"]][["identity_names"]]
   } else if (type == "limma") {
     coefficients <- as.data.frame(output[["identity_comparisons"]][["coefficients"]])
     thenames <- colnames(coefficients)
-  } else if (type == "deseq") {
-    coefficients <- as.data.frame(output[["coefficients"]])
-    thenames <- colnames(output[["coefficients"]])
-  } else if (type == "basic") {
-    thenames <- names(output[["conditions_table"]])
-  } else if (type == "ebseq") {
-    thenames <- names(output[["conditions_table"]])
+  } else if (type == "noiseq") {
+    coefficients <- output[["coefficients"]]
+    thenames <- colnames(coefficients)
   } else {
     stop("I do not know what type you wish to query.")
   }
@@ -175,33 +181,26 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   }
 
   ## Now extract the coefficent df
-  if (type == "edger") {
-    coefficient_df <- as.data.frame(output[["lrt"]][[1]][["coefficients"]])
-    if (is.null(coefficient_df[[xname]])) {
-      xname <- paste0(coefficient_column, xname)
-      yname <- paste0(coefficient_column, yname)
-    }
+  if (type == "basic") {
+    coefficient_df <- output[["medians"]]
     if (is.null(coefficient_df[[xname]]) || is.null(coefficient_df[[yname]])) {
-      message("coefficient edger did not find ", xname, " or ", yname, ".")
+      message("coefficient basic did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficient_df[, c(xname, yname)]
-    coef_offset <- min(coefficient_df)
-    ## This is dumb.
-    coefficient_df <- coefficient_df + (coef_offset * -1.0)
-  } else if (type == "limma") {
-    coefficient_df <- as.data.frame(output[["pairwise_comparisons"]][["coefficients"]])
-    if (is.null(coefficients[[x]]) || is.null(coefficients[[y]])) {
-      message("coefficient limma did not find ", x, " or ", y, ".")
-      return(NULL)
-    }
-    coefficient_df <- coefficients[, c(x, y)]
   } else if (type == "deseq") {
     if (is.null(coefficients[[xname]]) || is.null(coefficients[[yname]])) {
       message("coefficient deseq did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficients[, c(xname, yname)]
+  } else if (type == "dream") {
+    coefficient_df <- as.data.frame(output[["pairwise_comparisons"]][["coefficients"]])
+    if (is.null(coefficients[[x]]) || is.null(coefficients[[y]])) {
+      message("coefficient limma did not find ", x, " or ", y, ".")
+      return(NULL)
+    }
+    coefficient_df <- coefficients[, c(x, y)]
   } else if (type == "ebseq") {
     tables <- names(output[["all_tables"]])
     verted <- glue("{xname}_vs_{yname}")
@@ -222,14 +221,37 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
     colnames(coefficient_df) <- c(xname, yname)
     coefficient_df[[1]] <- log2(coefficient_df[[1]])
     coefficient_df[[2]] <- log2(coefficient_df[[2]])
-  } else if (type == "basic") {
-    coefficient_df <- output[["medians"]]
+  } else if (type == "edger") {
+    coefficient_df <- as.data.frame(output[["lrt"]][[1]][["coefficients"]])
+    if (is.null(coefficient_df[[xname]])) {
+      xname <- paste0(coefficient_column, xname)
+      yname <- paste0(coefficient_column, yname)
+    }
     if (is.null(coefficient_df[[xname]]) || is.null(coefficient_df[[yname]])) {
-      message("coefficient basic did not find ", xname, " or ", yname, ".")
+      message("coefficient edger did not find ", xname, " or ", yname, ".")
       return(NULL)
     }
     coefficient_df <- coefficient_df[, c(xname, yname)]
+    coef_offset <- min(coefficient_df)
+    ## This is dumb.
+    coefficient_df <- coefficient_df + (coef_offset * -1.0)
+  } else if (type == "limma") {
+    coefficient_df <- as.data.frame(output[["pairwise_comparisons"]][["coefficients"]])
+    if (is.null(coefficients[[x]]) || is.null(coefficients[[y]])) {
+      message("coefficient limma did not find ", x, " or ", y, ".")
+      return(NULL)
+    }
+    coefficient_df <- coefficients[, c(x, y)]
+  } else if (type == "noiseq") {
+    if (is.null(coefficients[[xname]]) || is.null(coefficients[[yname]])) {
+      message("coefficient deseq did not find ", xname, " or ", yname, ".")
+      return(NULL)
+    }
+    coefficient_df <- coefficients[, c(xname, yname)]
+    coefficient_df[[1]] <- log2(coefficient_df[[1]])
+    coefficient_df[[2]] <- log2(coefficient_df[[2]])
   }
+
   maxvalue <- max(coefficient_df) + 1.0
   minvalue <- min(coefficient_df) - 1.0
   plot <- plot_linear_scatter(df = coefficient_df, loess = loess, first = xname, second = yname,
@@ -406,16 +428,20 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   p_col <- NULL
   all_tables <- NULL
   if (table_source == "combined_table") {
-    if (type == "deseq") {
+    if (type == "basic") {
+      expr_col <- "basic_nummed"
+    } else if (type == "deseq") {
       expr_col <- "deseq_basemean"
+    } else if (type == "dream") {
+      expr_col <- "dream_ave"
+    } else if (type == "ebseq") {
+      expr_col <- "ebseq_mean"
     } else if (type == "edger") {
       expr_col <- "edger_logcpm"
     } else if (type == "limma") {
       expr_col <- "limma_ave"
-    } else if (type == "basic") {
-      expr_col <- "basic_nummed"
-    } else if (type =="ebseq") {
-      expr_col <- "ebseq_mean"
+    } else if (type == "noiseq") {
+      expr_col <- "noiseq_mean"
     }
     fc_col <- glue("{type}_logfc")
     if (p_type == "adj" || isTRUE(adjp)) {
@@ -426,6 +452,19 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       p_col <- glue("{type}_p")
     }
     all_tables <- NULL
+  } else if (table_source == "basic_pairwise") {
+    ## basic_pairwise() may have columns which are 'numerator_median' or 'numerator_mean'.
+    expr_col <- "numerator"
+    if (!is.null(data[["all_tables"]][[1]][["numerator_mean"]])) {
+      expr_col <- "numerator_mean"
+    }
+    fc_col <- "logFC"  ## The most common
+    if (p_type == "adj") {
+      p_col <- "adjp"
+    } else {
+      p_col <- "p"
+    }
+    all_tables <- data[["all_tables"]]
   } else if (table_source == "deseq_pairwise") {
     ## This column will need to be changed from base 10 to log scale.
     expr_col <- "baseMean"
@@ -434,6 +473,24 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       p_col <- "adj.P.Val"
     } else {
       p_col <- "P.Value"
+    }
+    all_tables <- data[["all_tables"]]
+  } else if (table_source == "dream_pairwise") {
+    expr_col <- "AveExpr"
+    fc_col <- "logFC"  ## The most common
+    if (p_type == "adj") {
+      p_col <- "adj.P.Val"
+    } else {
+      p_col <- "P.Value"
+    }
+    all_tables <- data[["all_tables"]]
+  } else if (table_source == "ebseq_pairwise") {
+    expr_col <- "ebseq_mean"
+    fc_col <- "logFC"
+    if (p_type == "adj") {
+      p_col <- "ebseq_adjp"
+    } else {
+      p_col <- "ebseq_ppde"
     }
     all_tables <- data[["all_tables"]]
   } else if (table_source == "edger_pairwise") {
@@ -454,39 +511,30 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       p_col <- "P.Value"
     }
     all_tables <- data[["all_tables"]]
-  } else if (table_source == "basic_pairwise") {
-    ## basic_pairwise() may have columns which are 'numerator_median' or 'numerator_mean'.
-    expr_col <- "numerator"
-    if (!is.null(data[["all_tables"]][[1]][["numerator_mean"]])) {
-      expr_col <- "numerator_mean"
-    }
-    fc_col <- "logFC"  ## The most common
+  } else if (table_source == "noiseq_pairwise") {
+    expr_col <- "num_mean"
+    fc_col <- "logFC"
     if (p_type == "adj") {
       p_col <- "adjp"
     } else {
       p_col <- "p"
     }
     all_tables <- data[["all_tables"]]
-  } else if (table_source == "ebseq_pairwise") {
-    expr_col <- "ebseq_mean"
-    fc_col <- "logFC"
-    if (p_type == "adj") {
-      p_col <- "ebseq_adjp"
-    } else {
-      p_col <- "ebseq_ppde"
-    }
-    all_tables <- data[["all_tables"]]
   } else if (table_source == "combined") {
-    if (type == "deseq") {
+    if (type == "basic") {
+      expr_col <- "basic_nummed"
+    } else if (type == "deseq") {
       expr_col <- "deseq_basemean"
+    } else if (type == "dream") {
+      expr_col <- "dream_ave"
+    } else if (type == "ebseq") {
+      expr_col <- "ebseq_mean"
     } else if (type == "edger") {
       expr_col <- "edger_logcpm"
     } else if (type == "limma") {
       expr_col <- "limma_ave"
-    } else if (type == "basic") {
-      expr_col <- "basic_nummed"
-    } else if (type =="ebseq") {
-      expr_col <- "ebseq_mean"
+    } else if (type == "noiseq") {
+      expr_col <- "noiseq_num_mean"
     }
     fc_col <- glue("{type}_logfc")
     if (p_type == "adj") {
@@ -646,7 +694,7 @@ plot_de_pvals <- function(combined_data, type = "limma", p_type = "both", column
 #'  crazy_sigplots <- plot_num_siggenes(pairwise_result)
 #' }
 #' @export
-plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebseq"),
+plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebseq", "basic", "noiseq", "dream"),
                               bins = 100, constant_p = 0.05, constant_fc = 0) {
   min_fc <- -1
   max_fc <- 1
