@@ -149,14 +149,13 @@ which are shared among multiple samples.")
     fitting <- variancePartition::fitVarPartModel(exprObj = data,
                                                   formula = test_formula, data = design)
     last_fact <- fctrs[length(fctrs)]
-    last_fact <- factors[length(factors)]
     idx <- order(design[[condition_fctr]], design[[last_fact]])
     ##first <- variancePartition::plotCorrStructure(fitting, reorder = idx)
     test_strat <- data.frame(Expression = data[3, ],
-                             condition = design[[condition_fctr]],
-                             batch = design[[last_fact]])
-    batch_expression <- as.formula(glue("Expression ~ {last_fact}"))
-    cond_expression <- as.formula(glue("Expression ~ {condition_fctr}"))
+                             first = design[[condition_fctr]],
+                             last = design[[last_fact]])
+    batch_expression <- as.formula(glue("Expression ~ first"))
+    cond_expression <- as.formula(glue("Expression ~ last"))
     stratify_batch_plot <- variancePartition::plotStratify(batch_expression, test_strat)
     stratify_condition_plot <- variancePartition::plotStratify(cond_expression, test_strat)
   }
@@ -167,7 +166,7 @@ which are shared among multiple samples.")
 
   ret <- list(
     "fstring" = fstring,
-    "model_used" = test_model,
+    "model_used" = test_formula,
     "percent_plot" = percent_plot,
     "partition_plot" = partition_plot,
     "sorted_df" = sorted_fit,
@@ -191,6 +190,7 @@ which are shared among multiple samples.")
     ## Make it possible to use a generic expressionset, though maybe this is
     ## impossible for this function.
     fData(new_expt) <- tmp_annot
+    ret[["modified_expt"]] <- new_expt
   }
   class(ret) <- "varpart"
   return(ret)
