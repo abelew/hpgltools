@@ -1193,6 +1193,17 @@ setMethod(
     return(result)
   })
 
+#' Pass an expt to test_design_model_rank.
+#' @param design In this instance, an expressionset.
+#' @param fstring Formula string to query.
+#' @export
+setMethod(
+  "test_design_model_rank", signature = signature(design = "expt"),
+  definition = function(design, fstring = "~ condition + batch") {
+    design <- pData(design)
+    test_design_model_rank(design, fstring)
+  })
+
 #' Write an xlsx file given the result of an existing xlsx write.
 #' @export
 setMethod(

@@ -49,7 +49,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
     }
   }
 
-  initial_lm <- lm(as.formula(initial_fstring), data = meta)
+  initial_lm <- suppressWarnings(lm(as.formula(initial_fstring), data = meta))
   ## In the container, this seems to fail with 'no applicable method
   ## for tidy applied to object of class summary.lm
   initial_summary <- summary(initial_lm) %>%
@@ -138,8 +138,8 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   }
 
   mesg("Testing regression coefficients with model string: ", initial_fstring, ".")
-  initial_glm <- glm(as.formula(initial_fstring), data = design,
-                     family = family)
+  initial_glm <- suppressWarnings(glm(as.formula(initial_fstring), data = design,
+                     family = family))
   initial_summary <- summary(initial_glm)
   summary_df <- initial_summary[["coefficients"]]
   initial_conf <- stats::confint(initial_glm, level = conf)
@@ -181,12 +181,14 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
 #' Use a vector of factors and design to count up the levels.
 get_degrees <- function(design, fctrs) {
   degrees <- 0
+  factor_levels <- list()
   for (f in fctrs) {
     if (is.null(design[[f]])) {
       message("Factor ", f, " is not in the experimental design.")
       next
     }
     fctr <- as.factor(design[[f]])
+    factor_levels[[f]] <- length(levels(fctr))
     range <- table(fctr)
     adder <- length(levels(fctr))
     mesg("Factor: ", f, " has ", adder, " elements.")
@@ -194,8 +196,10 @@ get_degrees <- function(design, fctrs) {
     degrees <- degrees + adder
   }
   retlist <- list(
-    "sum" = degrees,
-    "dof" = degrees - length(fctrs))
+    "dof" = degrees - length(fctrs),
+    "factor_levels" = factor_levels,
+    "sum" = degrees)
+
   return(retlist)
 }
 
@@ -599,11 +603,22 @@ test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
   return(retlist)
 }
 
-test_expt_model_rank <- function(expt, fstring = "~ donor") {
+#' Check on the rank of an experimental design
+#'
+#' @param design Dataframe of metadata
+#' @param fstring Formula to test.
+#' @return List containing some information about degrees of freedom
+#' @export
+test_design_model_rank <- function(design, fstring = "~ condition + batch") {
   retlist <- list()
-  design <- pData(expt)
   fctrs <- get_formula_factors(fstring)
   degrees <- get_degrees(design, fctrs[["factors"]])
+  levels <- degrees[["factor_levels"]]
+  for (f in names(levels)) {
+    if (levels[[f]] < 2) {
+      stop("Factor: ", f, " has less than 2 levels, cannot make a model matrix.")
+    }
+  }
   test_formula <- as.formula(fstring)
   matrix_test <- model.matrix(test_formula, data = design)
   num_columns <- ncol(matrix_test)
@@ -612,7 +627,8 @@ test_expt_model_rank <- function(expt, fstring = "~ donor") {
           " column
 and rank ", matrix_decomp[["rank"]])
   if (matrix_decomp[["rank"]] < num_columns) {
-    message("This will not work, a different factor should be used.")
+    message("This will not work with a linear model,
+a different factor or random effect should be used.")
     retlist[["full_rank"]] <- FALSE
   } else {
     retlist[["full_rank"]] <- TRUE
@@ -620,8 +636,11 @@ and rank ", matrix_decomp[["rank"]])
   retlist[["matrix"]] <- matrix_test
   retlist[["matrix_decomp"]] <- matrix_decomp
   retlist[["matrix_num_column"]] <- num_columns
+  retlist[["fctrs"]] <- fctrs
+  retlist[["factors"]] <- fctrs[["factors"]]
   return(retlist)
 }
+setGeneric("test_design_model_rank")
 
 #' Given the result from one of the regression testers, plot it!
 #'

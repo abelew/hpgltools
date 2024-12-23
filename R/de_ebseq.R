@@ -63,6 +63,7 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
     result <- ebseq_pairwise_subset(input,
                                     ng_vector = ng_vector, rounds = rounds,
                                     target_fdr = target_fdr, norm = norm, force = force,
+                                    keep_underscore = keep_underscore,
                                     ...)
   } else {
     mesg("Starting single EBSeq invocation.")
@@ -125,7 +126,9 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
 ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_fdr = 0.05,
                                   model_batch = FALSE, model_cond = TRUE,
                                   model_intercept = FALSE, alt_model = NULL, keepers = NULL,
-                                  conditions = NULL, norm = "median", force = FALSE, ...) {
+                                  conditions = NULL, norm = "median", force = FALSE,
+                                  keep_underscore = TRUE,
+                                  ...) {
   mesg("Starting EBSeq pairwise subset.")
   ## Now that I understand pData a bit more, I should probably remove the
   ## conditions/batches slots from my expt classes.

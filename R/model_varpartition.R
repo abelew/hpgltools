@@ -58,15 +58,12 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
 #' @return List of plots and variance data frames
 #' @seealso [variancePartition] DOI:10.1186/s12859-016-1323-z.
 #' @export
-simple_varpart <- function(expt, predictor = NULL, factors = c("condition", "batch"),
-                           chosen_factor = "batch", do_fit = FALSE, cor_gene = 1,
+simple_varpart <- function(expt, predictor = NULL, fstring = "~ condition + batch",
+                           do_fit = FALSE, cor_gene = 1,
                            cpus = NULL, genes = 40, parallel = TRUE, strict_filter = TRUE,
-                           mixed = FALSE, modify_expt = TRUE) {
+                           modify_expt = TRUE) {
   cl <- NULL
   para <- NULL
-  ## One is not supposed to use library() in packages, but it needs to do all
-  ## sorts of foolish attaching.
-  ## tt <- sm(library("variancePartition"))
   lib_result <- sm(requireNamespace("variancePartition"))
   att_result <- sm(try(attachNamespace("variancePartition"), silent = TRUE))
   lib_result <- sm(requireNamespace("BiocParallel"))
@@ -86,93 +83,63 @@ simple_varpart <- function(expt, predictor = NULL, factors = c("condition", "bat
     ## multi <- BiocParallel::MulticoreParam()
   }
   design <- pData(expt)
-  #for (f in factors) {
-  #  design[[f]] <- as.factor(design[[f]])
-  #}
-  num_batches <- length(levels(as.factor(design[[chosen_factor]])))
-  if (num_batches == 1) {
-    message("varpart sees only 1 batch, adjusting the model accordingly.")
-    factors <- factors[!grepl(pattern = chosen_factor, x = factors)]
+  rank_test <- test_design_model_rank(expt, fstring)
+  fctrs <- rank_test[["factors"]]
+  condition_fctr <- rank_test[["factors"]][1]
+  for (f in rank_test[["factors"]]) {
+    design[[f]] <- droplevels(as.factor(design[[f]]))
   }
 
-  model_string <- "~ "
-  if (isTRUE(mixed)) {
-    if (!is.null(predictor)) {
-      model_string <- glue("{model_string}{predictor} + ")
-    }
-    for (fact in factors) {
-      model_string <- glue("{model_string}(1|{fact}) + ")
-    }
-  } else {
-    for (fact in factors) {
-      model_string <- glue("{model_string}{fact} + ")
-    }
-  }
-  model_string <- gsub(pattern = "\\+ $", replacement = "", x = model_string)
-  if (isTRUE(mixed)) {
-    mesg("Attempting mixed linear model with: ", model_string)
-  } else {
-    mesg("Attempting regular linear model with: ", model_string)
-  }
-  my_model <- as.formula(model_string)
+  test_formula <- as.formula(fstring)
   ## I think the simple filter is insufficient and I need there to be
   ## no genes with 0 counts in any one condition.
   norm <- sm(normalize_expt(expt, filter = "simple"))
   if (isTRUE(strict_filter)) {
-    test <- sm(median_by_factor(norm, fact = "condition", fun = "mean"))
+    test <- sm(median_by_factor(norm, fact = condition_fctr, fun = "mean"))
     all_condition_gt_zero_idx <- rowSums(test[["medians"]] == 0) == 0
     kept_gt <- rownames(exprs(norm))[all_condition_gt_zero_idx]
     norm <- norm[kept_gt, ]
   }
   data <- exprs(norm)
 
-  design_sub <- as.data.frame(design[, factors])
-  if (length(factors) == 1) {
-    colnames(design_sub) <- factors
-  }
   mesg("Fitting the expressionset to the model, this is slow.")
-  my_extract <- try(variancePartition::fitExtractVarPartModel(data, my_model, design_sub))
+  fit_extract <- try(variancePartition::fitExtractVarPartModel(data, test_formula, design))
   ## my_extract <- try(variancePartition::fitVarPartModel(data, my_model, design))
-  if ("try-error" %in% class(my_extract)) {
+  if ("try-error" %in% class(fit_extract)) {
     mesg("A couple of common errors:
 An error like 'vtv downdated' may be because there are too many 0s, filter the data and rerun.
 An error like 'number of levels of each grouping factor must be < number of observations' means
 that the factor used is not appropriate for the analysis - it really only works for factors
 which are shared among multiple samples.")
     message("Retrying with only condition in the model.")
-    my_model <- as.formula("~ condition")
-    my_extract <- try(variancePartition::fitExtractVarPartModel(data, my_model, design))
-    if ("try-error" %in% class(my_extract)) {
+    test_formula <- as.formula(glue("~ {condition_fctr}"))
+    fit_extract <- try(variancePartition::fitExtractVarPartModel(data, test_formula, design))
+    if ("try-error" %in% class(fit_extract)) {
       message("Attempting again with only condition failed.")
       stop()
     }
   }
-  chosen_column <- predictor
-  if (is.null(predictor)) {
-    chosen_column <- factors[[1]]
-    mesg("Placing factor: ", chosen_column, " at the beginning of the model.")
-  }
 
   ## A new dataset has some NAs!
-  na_idx <- is.na(my_extract)
+  na_idx <- is.na(fit_extract)
   if (sum(na_idx) > 0) {
     warning("There are ", sum(na_idx), " NAs in this data, something may be wrong.")
     message("There are ", sum(na_idx), " NAs in this data, something may be wrong.")
     message("Converting NAs to 0.")
-    my_extract[na_idx] <- 0
+    fit_extract[na_idx] <- 0
   }
 
-  my_sorted <- sortCols(my_extract)
-  order_idx <- order(my_sorted[[chosen_column]], decreasing = TRUE)
-  my_sorted <- my_sorted[order_idx, ]
+  sorted_fit <- sortCols(fit_extract)
+  order_idx <- order(sorted_fit[[condition_fctr]], decreasing = TRUE)
+  sorted_fit <- sorted_fit[order_idx, ]
   ## Recent error noticed when checking that variances sum to 1
   ## This is because sometimes we have smaller data sets
-  if (genes > ncol(my_sorted)) {
-    genes <- ncol(my_sorted)
+  if (genes > ncol(sorted_fit)) {
+    genes <- ncol(sorted_fit)
   }
 
-  percent_plot <- variancePartition::plotPercentBars(my_sorted[1:genes, ])
-  partition_plot <- variancePartition::plotVarPart(my_sorted)
+  percent_plot <- variancePartition::plotPercentBars(sorted_fit[1:genes, ])
+  partition_plot <- variancePartition::plotVarPart(sorted_fit)
 
   fitting <- NULL
   stratify_batch_plot <- NULL
@@ -180,15 +147,16 @@ which are shared among multiple samples.")
   if (isTRUE(do_fit)) {
     ## Try fitting with lmer4
     fitting <- variancePartition::fitVarPartModel(exprObj = data,
-                                                  formula = my_model, data = design)
+                                                  formula = test_formula, data = design)
+    last_fact <- fctrs[length(fctrs)]
     last_fact <- factors[length(factors)]
-    idx <- order(design[[chosen_column]], design[[last_fact]])
+    idx <- order(design[[condition_fctr]], design[[last_fact]])
     ##first <- variancePartition::plotCorrStructure(fitting, reorder = idx)
     test_strat <- data.frame(Expression = data[3, ],
-                             condition = design[[chosen_column]],
+                             condition = design[[condition_fctr]],
                              batch = design[[last_fact]])
-    batch_expression <- as.formula("Expression ~ batch")
-    cond_expression <- as.formula("Expression ~ condition")
+    batch_expression <- as.formula(glue("Expression ~ {last_fact}"))
+    cond_expression <- as.formula(glue("Expression ~ {condition_fctr}"))
     stratify_batch_plot <- variancePartition::plotStratify(batch_expression, test_strat)
     stratify_condition_plot <- variancePartition::plotStratify(cond_expression, test_strat)
   }
@@ -198,12 +166,12 @@ which are shared among multiple samples.")
   }
 
   ret <- list(
-    "model_string" = model_string,
-    "model_used" = my_model,
+    "fstring" = fstring,
+    "model_used" = test_model,
     "percent_plot" = percent_plot,
     "partition_plot" = partition_plot,
-    "sorted_df" = my_sorted,
-    "fitted_df" = my_extract,
+    "sorted_df" = sorted_fit,
+    "fitted_df" = fit_extract,
     "fitting" = fitting,
     "stratify_batch_plot" = stratify_batch_plot,
     "stratify_condition_plot" = stratify_condition_plot)
@@ -211,7 +179,7 @@ which are shared among multiple samples.")
     new_expt <- expt
     tmp_annot <- fData(new_expt)
     tmp_annot[["Row.names"]] <- NULL
-    added_data <- my_sorted
+    added_data <- sorted_fit
     colnames(added_data) <- glue("variance_{colnames(added_data)}")
     ## Note that we are getting these variance numbers from data which was filtered
     ## thus we need all.x to get the IDs to match up.
@@ -223,7 +191,6 @@ which are shared among multiple samples.")
     ## Make it possible to use a generic expressionset, though maybe this is
     ## impossible for this function.
     fData(new_expt) <- tmp_annot
-    ret[["modified_expt"]] <- new_expt
   }
   class(ret) <- "varpart"
   return(ret)
