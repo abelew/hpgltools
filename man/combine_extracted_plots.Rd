@@ -10,12 +10,6 @@ combine_extracted_plots(
   denominator,
   numerator,
   plot_inputs,
-  plot_basic = TRUE,
-  plot_deseq = TRUE,
-  plot_edger = TRUE,
-  plot_limma = TRUE,
-  plot_ebseq = FALSE,
-  plot_noiseq = FALSE,
   loess = FALSE,
   logfc = 1,
   pval = 0.05,
@@ -43,18 +37,6 @@ combine_extracted_plots(
 \item{numerator}{Name of the numerator coefficient.}
 
 \item{plot_inputs}{The individual outputs from limma etc.}
-
-\item{plot_basic}{Add basic data?}
-
-\item{plot_deseq}{Add deseq data?}
-
-\item{plot_edger}{Add edger data?}
-
-\item{plot_limma}{Add limma data?}
-
-\item{plot_ebseq}{Add ebseq data?}
-
-\item{plot_noiseq}{Add noiseq plots?}
 
 \item{loess}{Add a loess estimation?}
 
@@ -87,6 +69,18 @@ the colors.  I think these invert parameters are not needed anymore.}
 \item{label}{Label this number of the top genes.}
 
 \item{label_column}{Label the top genes with this column.}
+
+\item{plot_basic}{Add basic data?}
+
+\item{plot_deseq}{Add deseq data?}
+
+\item{plot_edger}{Add edger data?}
+
+\item{plot_limma}{Add limma data?}
+
+\item{plot_ebseq}{Add ebseq data?}
+
+\item{plot_noiseq}{Add noiseq plots?}
 }
 \description{
 It should be possible to significantly simplify the arguments passed to this

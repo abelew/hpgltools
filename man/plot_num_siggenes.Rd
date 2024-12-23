@@ -7,7 +7,7 @@ changes with changing cutoffs.}
 \usage{
 plot_num_siggenes(
   table,
-  methods = c("limma", "edger", "deseq", "ebseq"),
+  methods = c("limma", "edger", "deseq", "ebseq", "basic", "noiseq", "dream"),
   bins = 100,
   constant_p = 0.05,
   constant_fc = 0

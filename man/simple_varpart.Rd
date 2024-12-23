@@ -7,15 +7,13 @@
 simple_varpart(
   expt,
   predictor = NULL,
-  factors = c("condition", "batch"),
-  chosen_factor = "batch",
+  fstring = "~ condition + batch",
   do_fit = FALSE,
   cor_gene = 1,
   cpus = NULL,
   genes = 40,
   parallel = TRUE,
   strict_filter = TRUE,
-  mixed = FALSE,
   modify_expt = TRUE
 )
 }
@@ -24,11 +22,6 @@ simple_varpart(
 
 \item{predictor}{Non-categorical predictor factor with which to begin the
 model.}
-
-\item{factors}{Character list of columns in the experiment design to query}
-
-\item{chosen_factor}{When checking for sane 'batches', what column to
-extract from the design?}
 
 \item{do_fit}{Perform a fitting using variancePartition?}
 
@@ -44,9 +37,14 @@ to the first gene.}
 \item{strict_filter}{Perform a strict filtering of the results via median_by_factor and dropping
 any genes with a 0.}
 
-\item{mixed}{Used a mixed model?}
-
 \item{modify_expt}{Add annotation columns with the variance/factor?}
+
+\item{factors}{Character list of columns in the experiment design to query}
+
+\item{chosen_factor}{When checking for sane 'batches', what column to
+extract from the design?}
+
+\item{mixed}{Used a mixed model?}
 }
 \value{
 List of plots and variance data frames

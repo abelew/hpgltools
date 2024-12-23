@@ -15,7 +15,7 @@ noiseq_pairwise(
   alt_model = NULL,
   annot_df = NULL,
   k = 0.5,
-  norm = "rpkm",
+  norm = "tmm",
   factor = "condition",
   lc = 1,
   r = 20,
@@ -23,7 +23,7 @@ noiseq_pairwise(
   a0per = 0.9,
   filter = 1,
   keepers = NULL,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   ...
 )
 }

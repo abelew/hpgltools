@@ -21,7 +21,7 @@ ebseq_pairwise(
   method = "pairwise_subset",
   norm = "median",
   force = FALSE,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   ...
 )
 }

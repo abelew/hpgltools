@@ -16,17 +16,16 @@ combine_de_tables(
   include_ebseq = TRUE,
   include_basic = TRUE,
   include_noiseq = TRUE,
-  include_dream = FALSE,
+  include_dream = TRUE,
   rownames = TRUE,
   add_plots = TRUE,
   loess = FALSE,
   plot_dim = 6,
   compare_plots = TRUE,
-  padj_type = "fdr",
+  padj_type = "ihw",
   fancy = FALSE,
   lfc_cutoff = 1,
   p_cutoff = 0.05,
-  de_types = c("limma", "deseq", "edger"),
   excel_title = "Table SXXX: Combined Differential Expression of YYY",
   increment_start = "SXXX",
   start_worksheet_num = 2,
@@ -91,8 +90,6 @@ plotting?}
 
 \item{p_cutoff}{In this context, used for volcano/MA plots.}
 
-\item{de_types}{Used for plotting pvalue/logFC cutoffs.}
-
 \item{excel_title}{Title for the excel sheet(s).  If it has the
 string 'YYY', that will be replaced by the contrast name.}
 
@@ -127,6 +124,8 @@ plotting.}
 plots.}
 
 \item{z_lines}{Add z-score lines to coefficient plots?}
+
+\item{de_types}{Used for plotting pvalue/logFC cutoffs.}
 }
 \value{
 Table combining limma/edger/deseq outputs.

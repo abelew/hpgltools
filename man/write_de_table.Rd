@@ -4,7 +4,15 @@
 \alias{write_de_table}
 \title{Writes out the results of a single pairwise comparison.}
 \usage{
-write_de_table(data, type = "limma", excel = "de_table.xlsx", ...)
+write_de_table(
+  data,
+  type = "limma",
+  coef = NULL,
+  table_type = "contrasts",
+  excel = "de_table.xlsx",
+  n = 0,
+  ...
+)
 }
 \arguments{
 \item{data}{Output from results().}
