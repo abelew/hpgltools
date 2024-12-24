@@ -243,7 +243,6 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   for (p in possible_methods) {
     method_varname <- glue("do_{p}")
     if (isTRUE(get0(method_varname))) {
-      num_cpus_needed <- num_cpus_needed + 1
       results[[p]] <- list()
     }
   }
