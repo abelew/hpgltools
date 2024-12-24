@@ -301,7 +301,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE,
                            model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
                            alt_model = NULL, extra_contrasts = NULL,
-                           annot_df = NULL, libsize = NULL,
+                           annot_df = NULL, libsize = NULL, adjust = "BH",
                            which_voom = "limma", limma_method = "ls",
                            limma_robust = FALSE, voom_norm = "quantile",
                            limma_trend = FALSE, force = FALSE, keep_underscore = FALSE,
@@ -538,10 +538,10 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                                                 trend = limma_trend)
     }
     message("Limma step 6/6: Writing limma outputs.")
-    pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = "BH",
+    pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = adjust,
                                           n = 0, coef = NULL, annot_df = NULL)
     limma_tables <- pairwise_results[["contrasts"]]
-    identity_results <- make_limma_tables(fit = all_identity_comparisons, adjust = "BH",
+    identity_results <- make_limma_tables(fit = all_identity_comparisons, adjust = adjust,
                                           n = 0, coef = NULL, annot_df = NULL)
     limma_identities <- identity_results[["identities"]]
 

@@ -3280,6 +3280,7 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
     full_model_rank <- 0
     reduced_model_rank <- 0
     varpart_factors <- c("condition")
+    fstring <- "~ condition + batch"
     if ("try-error" %in% class(data_full_model)) {
       do_varpart <- FALSE
       message("The expressionset has a minimal or missing set of conditions/batches.")
@@ -3300,10 +3301,11 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
         do_varpart <- FALSE
       } else {
         varpart_factors <- "condition"
+        fstring <- "~ condition"
       }
     }
     if (isTRUE(do_varpart)) {
-      varpart_raw <- sm(suppressWarnings(try(simple_varpart(filt, factors = varpart_factors),
+      varpart_raw <- sm(suppressWarnings(try(simple_varpart(filt, fstring = fstring),
                                              silent = TRUE)))
     }
     if (! "try-error" %in% class(varpart_raw)) {

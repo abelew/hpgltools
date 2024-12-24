@@ -197,7 +197,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
                             alt_model = NULL, extra_contrasts = NULL,
                             annot_df = NULL, force = FALSE, keepers = NULL,
                             deseq_method = "long", fittype = "parametric",
-                            keep_underscore = FALSE, ...) {
+                            keep_underscore = TRUE, ...) {
   arglist <- list(...)
 
   mesg("Starting DESeq2 pairwise comparisons.")
@@ -270,19 +270,22 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     model_string <- model_choice[["chosen_string"]]
     column_data[["batch"]] <- as.factor(column_data[["batch"]])
     summarized <- import_deseq(data, column_data,
-                               model_string, tximport = input[["tximport"]][["raw"]])
+                               model_string,
+                               tximport = input[["tximport"]][["raw"]])
     dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
   } else if (class(model_batch)[1] == "matrix") {
     mesg("DESeq2 step 1/5: Including a matrix of batch estimates in the deseq model.")
-    sv_model_string <- model_choice[["chosen_string"]]
+    model_string <- model_choice[["chosen_string"]]
     column_data[["condition"]] <- as.factor(column_data[["condition"]])
     for (i in seq_along(ncol(data))) {
       data[[i]] <- as.integer(data[[i]])
     }
     summarized <- import_deseq(data, column_data,
-                               sv_model_string, tximport = input[["tximport"]][["raw"]])
+                               model_string,
+                               tximport = input[["tximport"]][["raw"]])
 
-    dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(sv_model_string))
+    dataset <- DESeq2::DESeqDataSet(se = summarized,
+                                    design = as.formula(model_string))
   } else {
     mesg("DESeq2 step 1/5: Including only condition in the deseq model.")
     model_string <- model_choice[["chosen_string"]]
@@ -292,6 +295,8 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
   }
 
+  fctrs <- get_formula_factors(model_string)
+  contrast_factor <- fctrs[["factors"]][1]
   normalized_counts <- NULL ## When performing the 'long' analysis, I pull
   ## out the normalized counts so that we can compare against other analyses (e.g. with Julieth)
   deseq_run <- NULL
@@ -373,6 +378,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## rather than make all the contrasts myself, then use that ordering
   ## to handle DESeq's contrast method.
   apc <- make_pairwise_contrasts(model_data, conditions,
+                                 contrast_factor = contrast_factor,
                                  extra_contrasts = extra_contrasts,
                                  do_identities = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,

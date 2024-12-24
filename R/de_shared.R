@@ -64,10 +64,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          modify_p = FALSE, model_batch = TRUE, filter = NULL,
                          model_intercept = FALSE, extra_contrasts = NULL,
                          alt_model = NULL, libsize = NULL, test_pca = TRUE,
-                         annot_df = NULL, parallel = TRUE,
-                         do_basic = TRUE, do_deseq = TRUE, do_ebseq = TRUE,
-                         do_edger = TRUE, do_limma = TRUE, do_noiseq = TRUE,
-                         do_dream = TRUE, keepers = NULL,
+                         annot_df = NULL, do_basic = TRUE, do_deseq = TRUE,
+                         do_ebseq = TRUE, do_edger = TRUE, do_limma = TRUE,
+                         do_noiseq = TRUE, do_dream = TRUE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          surrogates = "be", methods = NULL,
                          keep_underscore = TRUE, model_sv = NULL,
@@ -238,7 +237,6 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## Put a series of empty lists in the final results data structure
   ## so that later I will know to perform each of these analyses without
   ## having to query do_method.
-  num_cpus_needed <- 0
   results <- list()
   possible_methods <- c("basic", "deseq", "dream", "ebseq",
                         "edger", "limma", "noiseq")
@@ -250,52 +248,18 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     }
   }
 
-  res <- NULL
-  if (isTRUE(parallel)) {
-    ## Make a cluster with one cpu for each method used: basic, edger, ebseq, limma, deseq.
-    cl <- parallel::makeCluster(num_cpus_needed)
-    registered <- doParallel::registerDoParallel(cl)
-    tt <- sm(requireNamespace("parallel"))
-    tt <- sm(requireNamespace("doParallel"))
-    tt <- sm(requireNamespace("iterators"))
-    tt <- sm(requireNamespace("foreach"))
-    res <- foreach(c = seq_along(results),
-                   .packages = c("hpgltools")) %dopar% {
-      type <- names(results)[c]
-      results[[type]] <- do_pairwise(
-        type, input = input, conditions = conditions, batches = batches,
-        model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
-        extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
-        annot_df = annot_df, surrogates = surrogates, keepers = keepers,
-        keep_underscore = keep_underscore, model_sv = model_sv, ...)
-    } ## End foreach() %dopar% { }
-    parallel::stopCluster(cl)
+  for (type in names(results)) {
     if (isTRUE(verbose)) {
-      mesg("Finished running DE analyses, collecting outputs.")
+      mesg("Starting ", type, "_pairwise().")
     }
-    ## foreach returns the results in no particular order
-    ## Therefore, I will reorder the results now and ensure that they are happy.
-    for (r in seq_along(res)) {
-      a_result <- res[[r]]
-      type <- a_result[["type"]]
-      results[[type]] <- a_result
-    }
-    rm(res)
-    ## End performing parallel comparisons
-  } else {
-    for (type in names(results)) {
-      if (isTRUE(verbose)) {
-        mesg("Starting ", type, "_pairwise().")
-      }
-      results[[type]] <- do_pairwise(
-        type, input = input, conditions = conditions, batches = batches,
-        model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
-        extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
-        annot_df = annot_df, surrogates = surrogates, keepers = keepers,
-        keep_underscore = keep_underscore, model_sv = model_sv,
-        ...)
-    }
-  } ## End performing a serial comparison
+    results[[type]] <- do_pairwise(
+      type, input = input, conditions = conditions, batches = batches,
+      model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
+      extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
+      annot_df = annot_df, surrogates = surrogates, keepers = keepers,
+      keep_underscore = keep_underscore, model_sv = model_sv,
+      ...)
+  }
 
   original_pvalues <- NULL
   ## Add in a little work to re-adjust the p-values in the situation where sva
@@ -1079,23 +1043,25 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     if (isTRUE(verbose)) {
       mesg("Including batch estimates from sva/ruv/pca in the model.")
     }
-    int_model <- stats::model.matrix(~ condition + model_batch,
+    int_fstring <- "~ condition"
+    noint_fstring <- "~ 0 + condition"
+    sv_added <- ""
+    for (sv in colnames(model_batch)) {
+      sv_added <- glue("{sv_added} + {sv}")
+    }
+    int_fstring <- glue("{int_fstring}{sv_added}")
+    noint_fstring <- glue("{noint_fstring}{sv_added}")
+    int_formula <- as.formula(int_fstring)
+    noint_formula <- as.formula(noint_fstring)
+    design <- cbind.data.frame(design, model_batch)
+
+    int_model <- stats::model.matrix(int_formula,
                                      contrasts.arg = clist,
                                      data = design)
-    noint_model <- stats::model.matrix(~ 0 + condition + model_batch,
+    noint_model <- stats::model.matrix(noint_formula,
                                        contrasts.arg = clist,
                                        data = design)
-    sv_names <- glue("SV{1:ncol(model_batch)}")
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
-    sv_string <- ""
-    for (sv in sv_names) {
-      sv_string <- glue("{sv_string} + {sv}")
-    }
-    int_string <- glue("{int_string}{sv_string}")
-    noint_string <- glue("{noint_string}{sv_string}")
-    rownames(model_batch) <- rownames(int_model)
-    including <- glue("condition{sv_string}")
+    including <- glue("condition{sv_added}")
   } else if (isTRUE(model_cond)) {
     int_model <- cond_int_model
     noint_model <- cond_noint_model
@@ -1117,7 +1083,6 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     including <- "condition"
   }
   tmpnames <- colnames(int_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "", x = tmpnames)
   if (isTRUE(keep_underscore)) {
     tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
   } else {
@@ -1131,7 +1096,6 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   colnames(int_model) <- tmpnames
 
   tmpnames <- colnames(noint_model)
-  tmpnames <- gsub(pattern = "model_batch", replacement = "", x = tmpnames)
   if (isTRUE(keep_underscore)) {
     tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
   } else {
