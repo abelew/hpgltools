@@ -913,58 +913,58 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     }
   }
 
-  cond_noint_string <- "~ 0 + condition"
+  cond_noint_fstring <- "~ 0 + condition"
   cond_noint_model <- try(stats::model.matrix(
-    object = as.formula(cond_noint_string),
+    object = as.formula(cond_noint_fstring),
     contrasts.arg = clist,
     data = design), silent = TRUE)
 
-  batch_noint_string <- "~ 0 + batch"
+  batch_noint_fstring <- "~ 0 + batch"
   batch_noint_model <- try(stats::model.matrix(
-    object = as.formula(batch_noint_string),
+    object = as.formula(batch_noint_fstring),
     contrasts.arg = blist,
     data = design), silent = TRUE)
 
-  condbatch_noint_string <- "~ 0 + condition + batch"
+  condbatch_noint_fstring <- "~ 0 + condition + batch"
   condbatch_noint_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_noint_string),
+    object = as.formula(condbatch_noint_fstring),
     contrasts.arg = cblist,
     data = design), silent = TRUE)
 
-  batchcond_noint_string <- "~ 0 + batch + condition"
+  batchcond_noint_fstring <- "~ 0 + batch + condition"
   batchcond_noint_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_noint_string),
+    object = as.formula(batchcond_noint_fstring),
     contrasts.arg = cblist,
     data = design), silent = TRUE)
 
-  cond_int_string <- "~ condition"
+  cond_int_fstring <- "~ condition"
   cond_int_model <- try(stats::model.matrix(
-    object = as.formula(cond_int_string),
+    object = as.formula(cond_int_fstring),
     contrasts.arg = clist,
     data = design), silent = TRUE)
 
-  batch_int_string <- "~ batch"
+  batch_int_fstring <- "~ batch"
   batch_int_model <- try(stats::model.matrix(
-    object = as.formula(batch_int_string),
+    object = as.formula(batch_int_fstring),
     contrasts.arg = blist,
     data = design), silent = TRUE)
 
-  condbatch_int_string <- "~ condition + batch"
+  condbatch_int_fstring <- "~ condition + batch"
   condbatch_int_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_int_string),
+    object = as.formula(condbatch_int_fstring),
     contrasts.arg = cblist,
     data = design), silent = TRUE)
 
-  batchcond_int_string <- "~ batch + condition"
+  batchcond_int_fstring <- "~ batch + condition"
   batchcond_int_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_int_string),
+    object = as.formula(batchcond_int_fstring),
     contrasts.arg = cblist,
     data = design), silent = TRUE)
 
   noint_model <- NULL
   int_model <- NULL
-  noint_string <- NULL
-  int_string <- NULL
+  noint_fstring <- NULL
+  int_fstring <- NULL
   including <- NULL
   if (!is.null(alt_model)) {
     chosen_model <- stats::model.matrix(object = as.formula(alt_model),
@@ -976,14 +976,14 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     }
     int_model <- chosen_model
     noint_model <- chosen_model
-    int_string <- alt_model
-    notint_string <- alt_model
+    int_fstring <- alt_model
+    notint_fstring <- alt_model
     including <- "alt"
   } else if (is.null(model_batch)) {
     int_model <- cond_int_model
     noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
+    int_fstring <- cond_int_fstring
+    noint_fstring <- cond_noint_fstring
     including <- "condition"
   } else if (isTRUE(model_cond) && isTRUE(model_batch)) {
     if (class(condbatch_int_model)[1] == "try-error") {
@@ -994,20 +994,20 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
       }
       int_model <- cond_int_model
       noint_model <- cond_noint_model
-      int_string <- cond_int_string
-      noint_string <- cond_noint_string
+      int_fstring <- cond_int_fstring
+      noint_fstring <- cond_noint_fstring
       including <- "condition"
     } else if (isTRUE(reverse)) {
       int_model <- batchcond_int_model
       noint_model <- batchcond_noint_model
-      int_string <- batchcond_int_string
-      noint_string <- batchcond_noint_string
+      int_fstring <- batchcond_int_fstring
+      noint_fstring <- batchcond_noint_fstring
       including <- "batch+condition"
     } else {
       int_model <- condbatch_int_model
       noint_model <- condbatch_noint_model
-      int_string <- condbatch_int_string
-      noint_string <- condbatch_noint_string
+      int_fstring <- condbatch_int_fstring
+      noint_fstring <- condbatch_noint_fstring
       including <- "condition+batch"
     }
   } else if (class(model_batch)[1] == "character") {
@@ -1028,16 +1028,16 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
                                        contrasts.arg = clist,
                                        data = design)
     sv_names <- glue("SV{1:ncol(model_batch)}")
-    noint_string <- cond_noint_string
-    int_string <- cond_int_string
-    sv_string <- ""
+    noint_fstring <- cond_noint_fstring
+    int_fstring <- cond_int_fstring
+    sv_fstring <- ""
     for (sv in sv_names) {
-      sv_string <- glue("{sv_string} + {sv}")
+      sv_fstring <- glue("{sv_fstring} + {sv}")
     }
-    noint_string <- glue("{noint_string}{sv_string}")
-    int_string <- glue("{int_string}{sv_string}")
+    noint_fstring <- glue("{noint_fstring}{sv_fstring}")
+    int_fstring <- glue("{int_fstring}{sv_fstring}")
     rownames(model_batch) <- rownames(int_model)
-    including <- glue("condition{sv_string}")
+    including <- glue("condition{sv_fstring}")
   } else if (class(model_batch)[1] == "numeric" || class(model_batch)[1] == "matrix") {
     if (isTRUE(verbose)) {
       mesg("Including batch estimates from sva/ruv/pca in the model.")
@@ -1064,21 +1064,21 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   } else if (isTRUE(model_cond)) {
     int_model <- cond_int_model
     noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
+    int_fstring <- cond_int_fstring
+    noint_fstring <- cond_noint_fstring
     including <- "condition"
   } else if (isTRUE(model_batch)) {
     int_model <- batch_int_model
     noint_model <- batch_noint_model
-    int_string <- batch_int_string
-    noint_string <- batch_noint_string
+    int_fstring <- batch_int_fstring
+    noint_fstring <- batch_noint_fstring
     including <- "batch"
   } else {
     ## Default to the conditional model
     int_model <- cond_int_model
     noint_model <- cond_noint_model
-    int_string <- cond_int_string
-    noint_string <- cond_noint_string
+    int_fstring <- cond_int_fstring
+    noint_fstring <- cond_noint_fstring
     including <- "condition"
   }
   tmpnames <- colnames(int_model)
@@ -1108,28 +1108,28 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   colnames(noint_model) <- tmpnames
 
   chosen_model <- NULL
-  chosen_string <- NULL
+  chosen_fstring <- NULL
   if (isTRUE(model_intercept)) {
     if (isTRUE(verbose)) {
       mesg("Choosing the intercept containing model.")
     }
     chosen_model <- int_model
-    chosen_string <- int_string
+    chosen_fstring <- int_fstring
   } else {
     if (isTRUE(verbose)) {
       mesg("Choosing the non-intercept containing model.")
     }
     chosen_model <- noint_model
-    chosen_string <- noint_string
+    chosen_fstring <- noint_fstring
   }
 
   retlist <- list(
     "int_model" = int_model,
     "noint_model" = noint_model,
-    "int_string" = int_string,
-    "noint_string" = noint_string,
+    "int_string" = int_fstring,
+    "noint_string" = noint_fstring,
     "chosen_model" = chosen_model,
-    "chosen_string" = chosen_string,
+    "chosen_string" = chosen_fstring,
     "model_batch" = model_batch,
     "model_batch_info" = model_batch_info,
     "including" = including)

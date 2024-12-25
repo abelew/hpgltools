@@ -58,10 +58,10 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
 #' @return List of plots and variance data frames
 #' @seealso [variancePartition] DOI:10.1186/s12859-016-1323-z.
 #' @export
-simple_varpart <- function(expt, predictor = NULL, fstring = "~ condition + batch",
+simple_varpart <- function(expt, fstring = "~ condition + batch",
                            do_fit = FALSE, cor_gene = 1,
-                           cpus = NULL, genes = 40, parallel = TRUE, strict_filter = TRUE,
-                           modify_expt = TRUE) {
+                           cpus = NULL, genes = 40, parallel = TRUE,
+                           strict_filter = TRUE, modify_expt = TRUE) {
   cl <- NULL
   para <- NULL
   lib_result <- sm(requireNamespace("variancePartition"))
