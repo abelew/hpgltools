@@ -1373,33 +1373,33 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
   ## contrast performed
   retlst <- list()
   methods <- c()
-  if (class(results[["limma"]])[1] == "limma_pairwise") {
-    retlst[["limma"]] <- results[["limma"]][["all_tables"]]
-    methods <- c(methods, "limma")
+  if (class(results[["basic"]])[1] == "basic_pairwise") {
+    retlst[["basic"]] <- results[["basic"]][["all_tables"]]
+    methods <- c(methods, "basic")
   }
   if (class(results[["deseq"]])[1] == "deseq_pairwise") {
     retlst[["deseq"]] <- results[["deseq"]][["all_tables"]]
     methods <- c(methods, "deseq")
   }
-  if (class(results[["edger"]])[1] == "edger_pairwise") {
-    retlst[["edger"]] <- results[["edger"]][["all_tables"]]
-    methods <- c(methods, "edger")
+  if (class(results[["dream"]])[1] == "dream_pairwise") {
+    retlst[["dream"]] <- results[["dream"]][["all_tables"]]
+    methods <- c(methods, "dream")
   }
   if (class(results[["ebseq"]])[1] == "ebseq_pairwise") {
     retlst[["ebseq"]] <- results[["ebseq"]][["all_tables"]]
     methods <- c(methods, "ebseq")
   }
-  if (class(results[["basic"]])[1] == "basic_pairwise") {
-    retlst[["basic"]] <- results[["basic"]][["all_tables"]]
-    methods <- c(methods, "basic")
+  if (class(results[["edger"]])[1] == "edger_pairwise") {
+    retlst[["edger"]] <- results[["edger"]][["all_tables"]]
+    methods <- c(methods, "edger")
+  }
+  if (class(results[["limma"]])[1] == "limma_pairwise") {
+    retlst[["limma"]] <- results[["limma"]][["all_tables"]]
+    methods <- c(methods, "limma")
   }
   if (class(results[["noiseq"]])[1] == "noiseq_pairwise") {
     retlst[["noiseq"]] <- results[["noiseq"]][["all_tables"]]
     methods <- c(methods, "noiseq")
-  }
-  if (class(results[["dream"]])[1] == "dream_pairwise") {
-    retlst[["dream"]] <- results[["dream"]][["all_tables"]]
-    methods <- c(methods, "dream")
   }
 
   extra_eval_names <- NULL
@@ -2382,7 +2382,9 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
   ## Remove any rows which are numeric |
   unwanted_idx <- grepl(x = rownames(all_pairwise_contrasts),
                         pattern = "^[[:digit:]]+[[:space:]]*[[:punct:]]+")
-  all_pairwise_contrasts <- all_pairwise_contrasts[!unwanted_idx, ]
+  if (sum(unwanted_idx) > 0) {
+    all_pairwise_contrasts <- all_pairwise_contrasts[!unwanted_idx, ]
+  }
   result <- list(
     "all_pairwise_contrasts" = all_pairwise_contrasts,
     "identities" = identities,

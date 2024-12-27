@@ -157,7 +157,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
 
   fctrs <- get_formula_factors(model_string)
   ## Note, if we want to work like DESEq2, this should not be first, but last.
-  contrast_factor <- fctrs[["factors"]][1]
+  contrast_factor <- fctrs[["contrast"]]
   one_replicate <- FALSE
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
@@ -184,13 +184,15 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     formula = model_formula, data = design, contrasts = contrast_vector)
   fitted_data <- variancePartition::dream(
     exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
-  identity_contrasts <- sm(make_pairwise_contrasts(model = chosen_model, conditions = conditions,
-                                                   contrast_factor = contrast_factor,
-                                                   do_identities = TRUE, do_pairwise = FALSE,
-                                                   keep_underscore = keep_underscore))
+  identity_contrasts <- sm(make_pairwise_contrasts(
+    model = chosen_model, conditions = conditions,
+    contrast_factor = contrast_factor,
+    do_identities = TRUE, do_pairwise = FALSE,
+    keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
   identity_fits <- variancePartition::dream(
     exprObj = voom_result, formula = model_string, data = design, L = identities)
+  ##identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
   message("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
     all_pairwise_comparisons <- fitted_data[["coefficients"]]
@@ -211,10 +213,10 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   all_pairwise_comparisons <- variancePartition::eBayes(fitted_data,
                                                         robust = limma_robust,
                                                         trend = limma_trend)
-  all_identity_comparisons <- variancePartition::eBayes(identity_fits,
-                                                        robust = limma_robust,
-                                                        trend = limma_trend)
-  message("Dream/limma step 6/6: Writing limma outputs.")
+  all_identity_comparisons <- limma::eBayes(identity_fits,
+                                            robust = limma_robust,
+                                            trend = limma_trend)
+  message("Dream/limma step 6/6: Creating tables.")
   ## Make a list of the output, one element for each comparison of the contrast matrix
   pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
                                           adjust = adjust, n = 0, coef = NULL,
@@ -326,7 +328,7 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
     for (c in seq_len(end)) {
       comparison <- coef[c]
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
-      message("Limma step 6/6: ", c, "/", end, ": Creating table: ",
+      message("Varpart/limma step 6/6: ", c, "/", end, ": Creating table: ",
               comp_name, ".  Adjust = ", adjust)
       data_tables[[comp_name]] <- variancePartition::topTable(
         fit, adjust.method = adjust,
