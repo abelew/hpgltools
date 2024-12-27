@@ -185,8 +185,8 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
                                 xcol = NULL, ycol = NULL, text_col = NULL, logfc = 2.0,
                                 identity = FALSE, z = 1.5, z_lines = FALSE,
                                 first = NULL, second = NULL, base_url = NULL,
-                                pretty_colors = TRUE, xlab = NULL, ylab = NULL,
-                                model_type = "lm", add_equation = TRUE, add_rsq = TRUE,
+                                color_weights = TRUE, xlab = NULL, ylab = NULL,
+                                model_type = "robust", add_equation = TRUE, add_rsq = TRUE,
                                 add_cor = TRUE, label_prefix = "Expression of",
                                 color_high = NULL, color_low = NULL, alpha = 0.4, ...) {
   ## At this time, one might expect arglist to contain
@@ -248,6 +248,9 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   linear_model_summary <- summary(linear_model)
   linear_model_rsq <- linear_model_summary[["r.squared"]]
   linear_model_weights <- stats::weights(linear_model, type = "robustness", na.action = NULL)
+  if (is.null(linear_model_weights)) {
+    color_weights = FALSE
+  }
   linear_model_intercept <- stats::coef(linear_model_summary)[1]
   linear_model_slope <- stats::coef(linear_model_summary)[2]
   first_median <- summary(df[[xcol]])[["Median"]]
@@ -324,7 +327,7 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
       ggplot2::geom_point(data = high_df, colour = color_high)
   }
 
-  if (isTRUE(pretty_colors)) {
+  if (isTRUE(color_weights)) {
     first_vs_second <- first_vs_second +
       ggplot2::geom_point(size = size, alpha = alpha,
                           colour = grDevices::hsv(linear_model_weights * (9 / 20),

@@ -194,7 +194,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   message("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
     all_pairwise_comparisons <- fitted_data[["coefficients"]]
-    all_identity_comparisons <- fitted_data[["coefficients"]]
+    all_identity_comparisons <- identity_fits[["coefficients"]]
   }
   ## One might reasonably ask, wtf for the next few lines:
   ## Here is a snippet of the dream documentation:

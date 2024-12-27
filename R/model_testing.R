@@ -270,6 +270,7 @@ get_formula_factors <- function(formula_string = NULL) {
   }
 
   retlist[["factors"]] <- unique(fct_vector)
+  retlist[["contrast"]] <- retlist[["factors"]][1]
   return(retlist)
 }
 setGeneric("get_formula_factors")

@@ -2379,6 +2379,10 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
   names(numerators) <- pairwise_names
   names(denominators) <- pairwise_names
   colnames(all_pairwise_contrasts) <- eval_names
+  ## Remove any rows which are numeric |
+  unwanted_idx <- grepl(x = rownames(all_pairwise_contrasts),
+                        pattern = "^[[:digit:]]+[[:space:]]*[[:punct:]]+")
+  all_pairwise_contrasts <- all_pairwise_contrasts[!unwanted_idx, ]
   result <- list(
     "all_pairwise_contrasts" = all_pairwise_contrasts,
     "identities" = identities,
