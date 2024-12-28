@@ -143,7 +143,12 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     }
   } else {
     model <- alt_model
-    chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
+    ## chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
+    model <- choose_model(san_input, conditions = conditions, batches = batches,
+                          model_batch = model_batch, model_cond = model_cond,
+                          model_intercept = model_intercept, model_sv = model_sv,
+                          keep_underscore = keep_underscore)
+    chosen_model <- model[["chosen_model"]]
     model_string <- alt_model
   }
 
