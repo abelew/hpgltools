@@ -119,6 +119,9 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   batch_table <- table(batches)
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
+  fctrs <- get_formula_factors(model_string)
+  ## Note, if we want to work like DESEq2, this should not be first, but last.
+  contrast_factor <- fctrs[["contrast"]]
 
   message("Dream/limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
@@ -142,13 +145,10 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
   } else {
+    simple_fstring <- glue("~ 0 + {contrast_factor}")
+    chosen_model <- model.matrix(as.formula(simple_fstring), data = design)
     model <- alt_model
     ## chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
-    model <- choose_model(san_input, conditions = conditions, batches = batches,
-                          model_batch = model_batch, model_cond = model_cond,
-                          model_intercept = model_intercept, model_sv = model_sv,
-                          keep_underscore = keep_underscore)
-    chosen_model <- model[["chosen_model"]]
     model_string <- alt_model
   }
 
@@ -160,9 +160,6 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
 
-  fctrs <- get_formula_factors(model_string)
-  ## Note, if we want to work like DESEq2, this should not be first, but last.
-  contrast_factor <- fctrs[["contrast"]]
   one_replicate <- FALSE
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
