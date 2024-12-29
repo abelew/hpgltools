@@ -119,9 +119,6 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   batch_table <- table(batches)
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
-  fctrs <- get_formula_factors(model_string)
-  ## Note, if we want to work like DESEq2, this should not be first, but last.
-  contrast_factor <- fctrs[["contrast"]]
 
   message("Dream/limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
@@ -145,6 +142,8 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
   } else {
+    fctrs <- get_formula_factors(alt_model)
+    contrast_factor <- fctrs[["contrast"]]
     simple_fstring <- glue("~ 0 + {contrast_factor}")
     chosen_model <- model.matrix(as.formula(simple_fstring), data = design)
     model <- alt_model
@@ -152,6 +151,9 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     model_string <- alt_model
   }
 
+  fctrs <- get_formula_factors(model_string)
+  ## Note, if we want to work like DESEq2, this should not be first, but last.
+  contrast_factor <- fctrs[["contrast"]]
   model_formula <- as.formula(model_string)
   voom_plot <- NULL
   message("Dream/limma 2/6: Attempting voomWithDreamWeights.")
