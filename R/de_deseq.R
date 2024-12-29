@@ -242,10 +242,8 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   }
   ## choose_model should now take all of the following into account
   ## Therefore the following 8 or so lines should not be needed any longer.
-  model_string <- NULL
   if (!is.null(alt_model)) {
     mesg("DESeq2 step 1/5: Using a user-supplied model.")
-    model_string <- model_choice[["chosen_string"]]
     if (is.null(model_string)) {
       model_string <- model_choice[["int_string"]]
     }
@@ -259,7 +257,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     ## summarized <- DESeqDataSetFromMatrix(countData = data, colData = pData(input),
     ##                                     design=~ 0 + condition + batch)
     ## conditions and batch in this context is information taken from pData()
-    model_string <- model_choice[["chosen_string"]]
     column_data[["condition"]] <- as.factor(column_data[["condition"]])
     column_data[["batch"]] <- as.factor(column_data[["batch"]])
     summarized <- import_deseq(data, column_data,
@@ -267,7 +264,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
   } else if (isTRUE(model_batch)) {
     mesg("DESeq2 step 1/5: Including only batch in the deseq model.")
-    model_string <- model_choice[["chosen_string"]]
     column_data[["batch"]] <- as.factor(column_data[["batch"]])
     summarized <- import_deseq(data, column_data,
                                model_string,
@@ -275,7 +271,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
   } else if (class(model_batch)[1] == "matrix") {
     mesg("DESeq2 step 1/5: Including a matrix of batch estimates in the deseq model.")
-    model_string <- model_choice[["chosen_string"]]
     column_data[["condition"]] <- as.factor(column_data[["condition"]])
     for (i in seq_along(ncol(data))) {
       data[[i]] <- as.integer(data[[i]])
@@ -288,7 +283,6 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
                                     design = as.formula(model_string))
   } else {
     mesg("DESeq2 step 1/5: Including only condition in the deseq model.")
-    model_string <- model_choice[["chosen_string"]]
     column_data[["condition"]] <- as.factor(column_data[["condition"]])
     summarized <- import_deseq(data, column_data,
                                model_string, tximport = input[["tximport"]][["raw"]])
