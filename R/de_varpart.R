@@ -142,7 +142,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
   } else {
-    fctrs <- get_formula_factors(alt_model)
+    fctrs <- sm(get_formula_factors(alt_model))
     contrast_factor <- fctrs[["contrast"]]
     simple_fstring <- glue("~ 0 + {contrast_factor}")
     chosen_model <- model.matrix(as.formula(simple_fstring), data = design)
@@ -154,6 +154,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   fctrs <- get_formula_factors(model_string)
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["contrast"]]
+  simple_fstring <- glue("~ 0 + {contrast_factor}")
   model_formula <- as.formula(model_string)
   voom_plot <- NULL
   message("Dream/limma 2/6: Attempting voomWithDreamWeights.")
@@ -195,7 +196,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
   identity_fits <- variancePartition::dream(
-    exprObj = voom_result, formula = model_string, data = design, L = identities)
+    exprObj = voom_result, formula = simple_fstring, data = design, L = identities)
   ##identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
   message("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
