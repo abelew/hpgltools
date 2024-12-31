@@ -527,16 +527,12 @@ make_pombe_se <- function(annotation = TRUE) {
 subset_se <- function(se, subset = NULL, ids = NULL,
                       nonzero = NULL, coverage = NULL) {
   starting_se <- se
-  starting_metadata <- pData(se)
+  starting_metadata <- colData(se)
   starting_samples <- sampleNames(se)
 
   if (!is.null(ids)) {
-    string <- ""
-    for (id in ids) {
-      string <- glue("{string}|sampleid=='{id}'")
-    }
-    ## Remove the leading |
-    subset <- substring(string, 2)
+    idx <- starting_samples %in% ids
+    se <- se[, idx]
   }
 
   note_appended <- NULL
@@ -546,7 +542,6 @@ subset_se <- function(se, subset = NULL, ids = NULL,
       subset_design <- starting_metadata
     } else {
       mesg("Using a subset expression.")
-
       r_expression <- glue("subset(starting_metadata, {subset})")
       subset_design <- eval(parse(text = r_expression))
       note_appended <- glue("Subsetted with {subset} on {date()}.
@@ -561,23 +556,24 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     ## Perhaps in a minute I will make this work for strings like '1z' to get the lowest
     ## standard deviation or somesuch...
     mesg("Subsetting given a minimal number of counts/sample.")
-    coverages <- colSums(exprs(se))
+    coverages <- colSums(assay(se))
 
-    if (is.null(pData(se)[["sample_coverage"]])) {
-      pData(se)[["sample_coverage"]] <- coverages
+    if (is.null(colData(se)[["sample_coverage"]])) {
+      colData(se)[["sample_coverage"]] <- coverages
     }
     subset_idx <- coverages >= as.numeric(coverage) ## In case I quote it on accident.
-    subset_design <- starting_metadata[subset_idx, ]
-    subset_design <- as.data.frame(subset_design, stringsAsFactors = FALSE)
+    lost_samples <- sampleNames(se)[!subset_idx]
+    se <- se[, subset_idx]
     message("The samples removed (and read coverage) when filtering samples with less than ",
             coverage, " reads are: ")
-    print(colSums(exprs(se))[!subset_idx])
+    print(lost_samples)
+    print(colData(se)[["sample_coverage"]])
   } else if (is.null(coverage)) {
     ## Remove samples with less than this number of non-zero genes.
-    nonzero_idx <- exprs(se) != 0
+    nonzero_idx <- assay(se) != 0
     num_nonzero <- colSums(nonzero_idx)
     if (is.null(pData(se)[["num_nonzero"]])) {
-      pData(se)[["num_nonzero"]] <- num_nonzero
+      colData(se)[["num_nonzero"]] <- num_nonzero
     }
     remove_idx <- num_nonzero < nonzero
     if (sum(remove_idx) == 0) {
@@ -585,45 +581,23 @@ subset_se <- function(se, subset = NULL, ids = NULL,
       return(se)
     }
     samples_dropped <- num_nonzero[remove_idx]
-    subset_design <- starting_metadata[!remove_idx, ]
-    subset_design <- as.data.frame(subset_design, stringsAsFactors = FALSE)
     message("The samples (and read coverage) removed when filtering ",
             nonzero, " non-zero genes are: ")
     print(colSums(exprs(se))[remove_idx])
     print(num_nonzero[remove_idx])
+    se <- se[, !remove_idx]
   } else {
     stop("Unable to determine what is being subset.")
   }
 
   ## This is to get around stupidity with respect to needing all factors to be
   ## in a DESeqDataSet
-  starting_ids <- rownames(starting_metadata)
-  subset_ids <- rownames(subset_design)
-  subset_positions <- starting_ids %in% subset_ids
-  starting_colors <- se[["colors"]]
-  subset_colors <- starting_colors[subset_positions, drop = TRUE]
-  starting_conditions <- se[["conditions"]]
-  subset_conditions <- starting_conditions[subset_positions, drop = TRUE]
-  starting_batches <- se[["batches"]]
-  subset_batches <- starting_batches[subset_positions, drop = TRUE]
-  current_libsize <- se[["libsize"]]
-  subset_current_libsize <- current_libsize[subset_positions, drop = TRUE]
-  subset_se <- starting_se[, subset_positions]
-
   notes <- se[["notes"]]
   if (!is.null(note_appended)) {
     notes <- glue("{notes}{note_appended}")
   }
 
-  current_pd <- pData(subset_se)
-  for (col in seq_len(ncol(current_pd))) {
-    if (class(current_pd[[col]]) == "factor") {
-      pData(subset_se)[[col]] <- droplevels(
-        pData(subset_se)[[col]])
-    }
-  }
-  ## pData(subset_expressionset) <- subset_design
-  return(subset_se)
+  return(se)
 }
 
 ## EOF

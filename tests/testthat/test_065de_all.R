@@ -2,7 +2,7 @@ start <- as.POSIXlt(Sys.time())
 context("065de_all.R")
 
 ## All of these functions will depend on an expt to play with:
-pombe_expt <- make_pombe_expt(annotation = FALSE)
+pombe_expt <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_expt(
   pombe_expt,
   subset = "minute == 0 | minute == 15 | minute == 30")

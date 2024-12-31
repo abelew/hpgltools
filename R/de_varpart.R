@@ -156,6 +156,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   contrast_factor <- fctrs[["contrast"]]
   simple_fstring <- glue("~ 0 + {contrast_factor}")
   model_formula <- as.formula(model_string)
+  simple_model <- model.matrix(as.formula(simple_fstring), data = design)
   voom_plot <- NULL
   message("Dream/limma 2/6: Attempting voomWithDreamWeights.")
   voom_result <- variancePartition::voomWithDreamWeights(
@@ -174,7 +175,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## Do the lmFit() using this model
   pairwise_fits <- NULL
   identity_fits <- NULL
-  message("Dream/limma step 3/6: running dream.")
+  message("Dream/limma step 3/6: making limma and dream contrasts.")
   contrasts <- make_pairwise_contrasts(
     model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
@@ -187,14 +188,17 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
     formula = model_formula, data = design, contrasts = contrast_vector)
+  message("Dream/limma step 4/6: Running dream.")
   fitted_data <- variancePartition::dream(
     exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
+  message("Dream/limma step 4.2/6: Making identity contrasts.")
   identity_contrasts <- sm(make_pairwise_contrasts(
-    model = chosen_model, conditions = conditions,
+    model = simple_model, conditions = conditions,
     contrast_factor = contrast_factor,
     do_identities = TRUE, do_pairwise = FALSE,
     keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
+  message("Dream/limma step 4.5/6: Running dream for identities.")
   identity_fits <- variancePartition::dream(
     exprObj = voom_result, formula = simple_fstring, data = design, L = identities)
   ##identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
