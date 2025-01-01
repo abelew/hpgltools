@@ -326,7 +326,9 @@ ebseq_two <- function(pair_data, conditions,
   table[["logFC"]] <- log2(table[["ebseq_FC"]])
   table[["ebseq_c1mean"]] <- as.numeric(mean_df[[1]])
   table[["ebseq_c2mean"]] <- as.numeric(mean_df[[2]])
-  table[["ebseq_mean"]] <- as.numeric(meanlist_df[[1]])
+  table <- merge(table, meanlist_df[[1]], by = "row.names", all.x = TRUE)
+  rownames(table) <- table[["Row.names"]]
+  table[["Row.names"]] <- NULL
   table[["ebseq_var"]] <- as.numeric(varlist_df[[1]])
   table[["ebseq_postfc"]] <- fold_changes[["PostFC"]]
   table <- merge(table, p_df, by = "row.names", all.x = TRUE)
