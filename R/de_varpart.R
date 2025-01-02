@@ -120,7 +120,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
 
-  message("Dream/limma step 1/6: choosing model.")
+  mesg("Dream/limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
   if (is.null(alt_model)) {
     model <- choose_model(san_input, conditions = conditions, batches = batches,
@@ -158,12 +158,16 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   model_formula <- as.formula(model_string)
   simple_model <- model.matrix(as.formula(simple_fstring), data = design)
   voom_plot <- NULL
-  message("Dream/limma 2/6: Attempting voomWithDreamWeights.")
+  mesg("Dream/limma 2/6: Attempting voomWithDreamWeights.")
+  tmp_file <- tmpmd5file(pattern = "voom_dream", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   voom_result <- variancePartition::voomWithDreamWeights(
     counts = data, formula = model_string,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
-
+  dev.off()
+  removed <- file.remove(tmp_file)
   one_replicate <- FALSE
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
@@ -175,7 +179,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## Do the lmFit() using this model
   pairwise_fits <- NULL
   identity_fits <- NULL
-  message("Dream/limma step 3/6: making limma and dream contrasts.")
+  mesg("Dream/limma step 3/6: making limma and dream contrasts.")
   contrasts <- make_pairwise_contrasts(
     model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
@@ -188,21 +192,21 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
     formula = model_formula, data = design, contrasts = contrast_vector)
-  message("Dream/limma step 4/6: Running dream.")
+  mesg("Dream/limma step 4/6: Running dream.")
   fitted_data <- variancePartition::dream(
     exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
-  message("Dream/limma step 4.2/6: Making identity contrasts.")
+  mesg("Dream/limma step 4.2/6: Making identity contrasts.")
   identity_contrasts <- sm(make_pairwise_contrasts(
     model = simple_model, conditions = conditions,
     contrast_factor = contrast_factor,
     do_identities = TRUE, do_pairwise = FALSE,
     keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
-  message("Dream/limma step 4.5/6: Running dream for identities.")
+  mesg("Dream/limma step 4.5/6: Running dream for identities.")
   identity_fits <- variancePartition::dream(
     exprObj = voom_result, formula = simple_fstring, data = design, L = identities)
   ##identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
-  message("Dream/limma step 5/6: Running eBayes.")
+  mesg("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
     all_pairwise_comparisons <- fitted_data[["coefficients"]]
     all_identity_comparisons <- identity_fits[["coefficients"]]
@@ -225,7 +229,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   all_identity_comparisons <- limma::eBayes(identity_fits,
                                             robust = limma_robust,
                                             trend = limma_trend)
-  message("Dream/limma step 6/6: Creating tables.")
+  mesg("Dream/limma step 6/6: Creating tables.")
   ## Make a list of the output, one element for each comparison of the contrast matrix
   pairwise_results <- make_varpart_tables(fit = all_pairwise_comparisons,
                                           adjust = adjust, n = 0, coef = NULL,
@@ -337,7 +341,7 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
     for (c in seq_len(end)) {
       comparison <- coef[c]
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
-      message("Varpart/limma step 6/6: ", c, "/", end, ": Creating table: ",
+      mesg("Varpart/limma step 6/6: ", c, "/", end, ": Creating table: ",
               comp_name, ".  Adjust = ", adjust)
       data_tables[[comp_name]] <- variancePartition::topTable(
         fit, adjust.method = adjust,

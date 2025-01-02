@@ -111,7 +111,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               adjp = TRUE, include_limma = TRUE, include_deseq = TRUE,
                               include_edger = TRUE, include_ebseq = TRUE, include_basic = TRUE,
                               include_noiseq = TRUE, include_dream = TRUE,
-                              rownames = TRUE, add_plots = TRUE, loess = FALSE, plot_dim = 6,
+                              add_plots = TRUE, loess = FALSE, plot_dim = 6,
                               compare_plots = TRUE, padj_type = "ihw", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
                               excel_title = "Table SXXX: Combined Differential Expression of YYY",
@@ -2804,11 +2804,11 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
   ## I am changing this logic to have it include the union of table names
   ## rather than just pick up the first set that worked.
   table_names <- list()
-  if (isTRUE(includes[["limma"]])) {
-    legend <- rbind(legend, limma_legend)
-    table_names[["limma"]] <- limma[["contrasts_performed"]]
+  if (isTRUE(includes[["basic"]])) {
+    legend <- rbind(legend, basic_legend)
+    table_names[["basic"]] <- basic[["contrasts_performed"]]
   } else {
-    limma <- NULL
+    basic <- NULL
   }
   if (isTRUE(includes[["deseq"]])) {
     legend <- rbind(legend, deseq_legend)
@@ -2816,11 +2816,11 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
   } else {
     deseq <- NULL
   }
-  if (isTRUE(includes[["edger"]])) {
-    legend <- rbind(legend, edger_legend)
-    table_names[["edger"]] <- edger[["contrasts_performed"]]
+  if (isTRUE(includes[["dream"]])) {
+    legend <- rbind(legend, dream_legend)
+    table_names[["dream"]] <- dream[["contrasts_performed"]]
   } else {
-    edger <- NULL
+    dream <- NULL
   }
   if (isTRUE(includes[["ebseq"]])) {
     legend <- rbind(legend, ebseq_legend)
@@ -2828,24 +2828,25 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
   } else {
     ebseq <- NULL
   }
+  if (isTRUE(includes[["edger"]])) {
+    legend <- rbind(legend, edger_legend)
+    table_names[["edger"]] <- edger[["contrasts_performed"]]
+  } else {
+    edger <- NULL
+  }
+  if (isTRUE(includes[["limma"]])) {
+    legend <- rbind(legend, limma_legend)
+    table_names[["limma"]] <- limma[["contrasts_performed"]]
+  } else {
+    limma <- NULL
+  }
   if (isTRUE(includes[["noiseq"]])) {
     legend <- rbind(legend, noiseq_legend)
     table_names[["noiseq"]] <- noiseq[["contrasts_performed"]]
   } else {
     noiseq <- NULL
   }
-  if (isTRUE(includes[["basic"]])) {
-    legend <- rbind(legend, basic_legend)
-    table_names[["basic"]] <- basic[["contrasts_performed"]]
-  } else {
-    basic <- NULL
-  }
-  if (isTRUE(includes[["dream"]])) {
-    legend <- rbind(legend, dream_legend)
-    table_names[["dream"]] <- dream[["contrasts_performed"]]
-  } else {
-    dream <- NULL
-  }
+
 
   ## Make sure there were no errors and die if things went catastrophically wrong.
   if (sum(unlist(includes)) < 1) {

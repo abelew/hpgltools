@@ -54,7 +54,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   if (!is.null(arglist[["force"]])) {
     batches <- arglist[["force"]]
   }
-  message("Starting basic pairwise comparison.")
+  mesg("Starting basic pairwise comparison.")
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_basic_dataset(input, force = force)
   design <- pData(input)
@@ -70,7 +70,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   median_table <- data.frame()
   variance_table <- data.frame()
   ## First use conditions to rbind a table of medians by condition.
-  message("Basic step 1/3: Creating ", fx, " and variance tables.")
+  mesg("Basic step 1/3: Creating ", fx, " and variance tables.")
   median_colnames <- c()
   for (c in seq_len(num_conds)) {
     condition_name <- types[c]
@@ -111,7 +111,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   column_list <- c()
   total_contrasts <- length(levels(as.factor(conditions)))
   total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
-  message("Basic step 2/3: Performing ", total_contrasts, " comparisons.")
+  mesg("Basic step 2/3: Performing ", total_contrasts, " comparisons.")
 
   model_choice <- sm(choose_model(
       input, conditions = conditions, batches = batches, model_batch = FALSE,
@@ -189,7 +189,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   rownames(pvalues) <- rownames(data)
   all_tables <- list()
 
-  message("Basic step 3/3: Creating faux DE Tables.")
+  mesg("Basic step 3/3: Creating faux DE Tables.")
   for (e in seq_along(colnames(comparisons))) {
     colname <- colnames(comparisons)[[e]]
     fc_column <- comparisons[, e]
@@ -224,7 +224,6 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
     rownames(fc_table) <- rownames(data)
     all_tables[[e]] <- fc_table
   }
-  message("Basic: Returning tables.")
   names(all_tables) <- colnames(comparisons)
 
   retlist <- list(

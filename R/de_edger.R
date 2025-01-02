@@ -65,7 +65,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   if (!is.null(arglist[["edger_test"]])) {
     edger_test <- arglist[["edger_test"]]
   }
-  message("Starting edgeR pairwise comparisons.")
+  mesg("Starting edgeR pairwise comparisons.")
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
@@ -102,21 +102,21 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   ## raw <- edgeR::DGEList(counts = data, group = conditions)
   ## norm <- edgeR::calcNormFactors(raw)
   norm <- import_edger(data, conditions, tximport = input[["tximport"]][["raw"]])
-  message("EdgeR step 1/9: Importing and normalizing data.")
+  mesg("EdgeR step 1/9: Importing and normalizing data.")
   final_norm <- NULL
   if (edger_method == "short") {
-    message("EdgeR steps 2 through 6/9: All in one!")
+    mesg("EdgeR steps 2 through 6/9: All in one!")
     final_norm <- edgeR::estimateDisp(norm, design = model_data)
   } else {
     state <- TRUE
-    message("EdgeR step 2/9: Estimating the common dispersion.")
+    mesg("EdgeR step 2/9: Estimating the common dispersion.")
     disp_norm <- try(edgeR::estimateCommonDisp(norm))
     if (class(disp_norm)[1] == "try-error") {
       warning("estimateCommonDisp() failed.  Trying again with estimateDisp().")
       state <- FALSE
     }
     if (isTRUE(state)) {
-      message("EdgeR step 3/9: Estimating dispersion across genes.")
+      mesg("EdgeR step 3/9: Estimating dispersion across genes.")
       tagdisp_norm <- try(edgeR::estimateTagwiseDisp(disp_norm))
       if (class(tagdisp_norm)[1] == "try-error") {
         warning("estimateTagwiseDisp() failed.  Trying again with estimateDisp().")
@@ -124,7 +124,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
     if (isTRUE(state)) {
-      message("EdgeR step 4/9: Estimating GLM Common dispersion.")
+      mesg("EdgeR step 4/9: Estimating GLM Common dispersion.")
       glm_norm <- try(edgeR::estimateGLMCommonDisp(tagdisp_norm, model_data))
       if (class(glm_norm)[1] == "try-error") {
         warning("estimateGLMCommonDisp() failed.  Trying again with estimateDisp().")
@@ -132,7 +132,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
     if (isTRUE(state)) {
-      message("EdgeR step 5/9: Estimating GLM Trended dispersion.")
+      mesg("EdgeR step 5/9: Estimating GLM Trended dispersion.")
       glm_trended <- try(edgeR::estimateGLMTrendedDisp(glm_norm, model_data))
       if (class(glm_trended)[1] == "try-error") {
         warning("estimateGLMTrendedDisp() failed.  Trying again with estimateDisp().")
@@ -140,7 +140,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
       }
     }
     if (isTRUE(state)) {
-      message("EdgeR step 6/9: Estimating GLM Tagged dispersion.")
+      mesg("EdgeR step 6/9: Estimating GLM Tagged dispersion.")
       final_norm <- try(edgeR::estimateGLMTagwiseDisp(glm_trended, model_data))
       if (class(final_norm)[1] == "try-error") {
         warning("estimateGLMTagwiseDisp() failed.  Trying again with estimateDisp().")
@@ -157,16 +157,16 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   }
   cond_fit <- NULL
   if (edger_test == "lrt") {
-    message("EdgeR step 7/9: Running glmFit, ",
-            "switch to glmQLFit by changing the argument 'edger_test'.")
+    mesg("EdgeR step 7/9: Running glmFit, ",
+         "switch to glmQLFit by changing the argument 'edger_test'.")
     cond_fit <- edgeR::glmFit(final_norm, design = model_data, robust = TRUE)
   } else {
-    message("EdgeR step 7/9: Running glmQLFit, ",
-            "switch to glmFit by changing the argument 'edger_test'.")
+    mesg("EdgeR step 7/9: Running glmQLFit, ",
+         "switch to glmFit by changing the argument 'edger_test'.")
     cond_fit <- edgeR::glmQLFit(final_norm, design = model_data, robust = TRUE)
   }
 
-  message("EdgeR step 8/9: Making pairwise contrasts.")
+  mesg("EdgeR step 8/9: Making pairwise contrasts.")
   apc <- make_pairwise_contrasts(model_data, conditions,
                                  extra_contrasts = extra_contrasts,
                                  do_identities = FALSE, keepers = keepers,

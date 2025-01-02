@@ -667,11 +667,9 @@ choose_binom_dataset <- function(input, verbose = TRUE, force = FALSE, ...) {
         data <- input[["normalized"]][["intermediate_counts"]][["original"]]
       }
     } else {
-      if (isTRUE(verbose)) {
-        message("The data should be suitable for EdgeR/DESeq/EBSeq.\n",
-                "If they freak out, check the state of the count table\n",
-                "and ensure that it is in integer counts.")
-      }
+      mesg("The data should be suitable for EdgeR/DESeq/EBSeq.\n",
+           "If they freak out, check the state of the count table\n",
+           "and ensure that it is in integer counts.")
     }
     ## End testing if normalization has been performed
   } else {
@@ -2254,9 +2252,11 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
   colnames(model) <- tmpnames
   conditions <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = conditions)
   condition_table <- table(conditions)
-  message("The provided conditions are:")
-  print(condition_table)
-  message("Choosing among model matrix columns: ", toString(full_names), ".")
+  if (isTRUE(verbose) && isTRUE(interactive())) {
+    mesg("The provided conditions are:")
+    print(condition_table)
+  }
+  mesg("Choosing among model matrix columns: ", toString(full_names), ".")
   identities <- list()
   contrast_string <- ""
   eval_strings <- list()

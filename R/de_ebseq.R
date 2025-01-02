@@ -43,7 +43,7 @@
 ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
                            batches = NULL, model_cond = NULL, model_intercept = NULL,
                            alt_model = NULL, model_batch = NULL, keepers = NULL,
-                           ng_vector = NULL, rounds = 10, target_fdr = 0.05,
+                           ng_vector = NULL, rounds = 20, target_fdr = 0.05,
                            method = "pairwise_subset", norm = "median",
                            force = FALSE, keep_underscore = TRUE,
                            ...) {
@@ -318,18 +318,25 @@ ebseq_two <- function(pair_data, conditions,
   fold_changes <- EBSeq::PostFC(eb_output)
   eb_result <- EBSeq::GetDEResults(eb_output, FDR = target_fdr)
   mean_df <- as.data.frame(eb_output[["Mean"]])
+  colnames(mean_df) <- c("numerator_mean", "denominator_mean")
   meanlist_df <- as.data.frame(eb_output[["MeanList"]])
+  colnames(meanlist_df) <- c("ebseq_mean")
   varlist_df <- as.data.frame(eb_output[["VarList"]])
+  colnames(varlist_df) <- c("ebseq_var")
   p_df <- as.data.frame(eb_result[["PPMat"]])
   table <- data.frame(row.names = rownames(posteriors))
   table[["ebseq_FC"]] <- fold_changes[["RealFC"]]
   table[["logFC"]] <- log2(table[["ebseq_FC"]])
-  table[["ebseq_c1mean"]] <- as.numeric(mean_df[[1]])
-  table[["ebseq_c2mean"]] <- as.numeric(mean_df[[2]])
-  table <- merge(table, meanlist_df[[1]], by = "row.names", all.x = TRUE)
+  table[["ebseq_c1mean"]] <- as.numeric(mean_df[["numerator_mean"]])
+  table[["ebseq_c2mean"]] <- as.numeric(mean_df[["denominator_mean"]])
+  table <- merge(table, meanlist_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]
   table[["Row.names"]] <- NULL
-  table[["ebseq_var"]] <- as.numeric(varlist_df[[1]])
+  table[["ebseq_mean"]] <- as.numeric(table[["ebseq_mean"]])
+  table <- merge(table, varlist_df, by = "row.names", all.x = TRUE)
+  rownames(table) <- table[["Row.names"]]
+  table[["Row.names"]] <- NULL
+  table[["ebseq_var"]] <- as.numeric(table[["ebseq_var"]])
   table[["ebseq_postfc"]] <- fold_changes[["PostFC"]]
   table <- merge(table, p_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]

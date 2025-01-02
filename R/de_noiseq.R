@@ -38,7 +38,7 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
                             keepers = NULL, keep_underscore = TRUE, ...) {
   arglist <- list(...)
 
-  message("Starting noiseq pairwise comparisons.")
+  mesg("Starting noiseq pairwise comparisons.")
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)

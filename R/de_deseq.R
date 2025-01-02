@@ -343,11 +343,16 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
     deseq_run <- DESeq2::nbinomWaldTest(deseq_disp, betaPrior = chosen_beta, quiet = TRUE)
   }
   normalized_counts <- DESeq2::counts(deseq_disp)
+  tmp_file <- tmpmd5file(pattern = "deseq_disp", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   dispersions <- sm(try(DESeq2::plotDispEsts(deseq_run), silent = TRUE))
   dispersion_plot <- NULL
   if (class(dispersions)[1] != "try-error") {
     dispersion_plot <- grDevices::recordPlot()
   }
+  dev.off()
+  removed <- file.remove(tmp_file)
 
   ## possible options:  betaPrior = TRUE, betaPriorVar, modelMatrix = NULL
   ## modelMatrixType, maxit = 100, useOptim = TRUE useT = FALSE df useQR = TRUE

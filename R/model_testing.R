@@ -221,7 +221,7 @@ get_formula_factors <- function(formula_string = NULL) {
     warning("No formula string was provided, this is an error, but for now this will assume condition+batch.")
     formula_string = "~ 0 + condition + batch"
   }
-  message("Getting factors from: ", formula_string, ".")
+  mesg("Getting factors from: ", formula_string, ".")
   split_result <- strsplit(x = formula_string, split = "[[:punct:]]", perl = TRUE)
   factor_vector <- split_result[[1]]
   retlist <- list(
