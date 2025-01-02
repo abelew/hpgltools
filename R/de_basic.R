@@ -305,7 +305,7 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
     message("Basic step 0/3: Transforming data.")
     ready <- sm(normalize_expt(ready, transform = "log2"))
   }
-  data <- as.data.frame(exprs(ready))
+  data <- exprs(ready)
   libsize <- colSums(data)
   rm(ready)
   retlist <- list(

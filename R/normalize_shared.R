@@ -354,20 +354,20 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   filter_performed <- "none"
   transform_performed <- "none"
 
-  data <- assay(se)
+  count_table <- assay(se)
   meta <- S4Vectors::metadata(se)
   se_state <- state(se)
   current_state <- se_state
   original_libsize <- meta[["libsize"]]
   if (is.null(original_libsize)) {
-    original_libsize <- colSums(data)
+    original_libsize <- colSums(count_table)
   }
   if (is.null(annotations)) {
     annotations <- rowData(se)
   }
 
   design <- colData(se)
-  original_counts <- data
+  original_counts <- count_table
 
   type <- ""
   if (is.null(filter) || isFALSE(filter)) {
@@ -440,18 +440,18 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     warning("Quantile normalization and sva do not always play well together.")
   }
 
-  count_table <- list(
-    "count_table" = data,
+  count_lst <- list(
+    "count_table" = count_table,
     "libsize" = original_libsize)
   current_libsize <- original_libsize
-  current_mtrx <- data
+  current_mtrx <- as.matrix(count_table)
 
   batched_counts <- NULL
   normalized_counts <- NULL
   filtered_counts <- NULL
   sv_df <- NULL
   if (batch_step == 1) {
-    batch_data <- do_batch(count_table, method = batch,
+    batch_data <- do_batch(count_lst, method = batch,
                            current_design = design,
                            ...)
     current_libsize <- batch_data[["libsize"]]
@@ -482,8 +482,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
                            expt_design = meta,
                            current_state = current_state,
                            ...)
-    count_table <- batch_data[["count_table"]]
     current_libsize <- batch_data[["libsize"]]
+    count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
@@ -517,8 +517,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
-
   converted_counts <- count_table
+  convert_performed <- convert
   if (convert == "raw") {
     mesg("Step 3: not converting the data.")
   } else {
@@ -548,7 +548,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     ##                         expt_design = expt_design, current_state = current_state)
   }
 
-  transformed_counts <- count_table
+  transformed_count <- count_table
+  transform_performed <- transform
   if (transform == "raw") {
     mesg("Step 4: not transforming the data.")
   } else {
@@ -582,9 +583,11 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   }
 
   impute <- "raw"
+  imputed_counts <- count_table
   if (!is.null(arglist[["impute"]])) {
     impute <- arglist[["impute"]]
   }
+  impute_performed <- impute
   if (impute != "raw") {
     imputed_counts <- impute_expt(count_table)
     current_libsize <- imputed_counts[["libsize"]]
@@ -614,6 +617,9 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
       "conversion" = converted_counts,  ## and conversion
       "batch" = batched_counts,  ## and batch correction
       "transform" = transformed_counts)  ## and finally, transformation.
+  if (impute != "raw") {
+    intermediate_conts[["impute"]] <- imputed_counts
+  }
 
   meta[["libsize"]] <- current_libsize
   ## meta[["state"]] <- actions_performed
