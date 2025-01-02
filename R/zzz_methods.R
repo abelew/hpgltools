@@ -507,6 +507,7 @@ setMethod(
 #    overlap_groups(new_mtrx, sort = sort)
 #  })
 
+#' @export
 setMethod(
   "normalize_expt", signature = signature(expt = "SummarizedExperiment"),
   definition = function(expt, transform = "raw", norm = "raw", convert = "raw",

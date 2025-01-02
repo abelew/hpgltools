@@ -16,7 +16,7 @@ ebseq_pairwise(
   model_batch = NULL,
   keepers = NULL,
   ng_vector = NULL,
-  rounds = 10,
+  rounds = 20,
   target_fdr = 0.05,
   method = "pairwise_subset",
   norm = "median",

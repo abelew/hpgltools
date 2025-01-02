@@ -6,7 +6,6 @@
 \usage{
 simple_varpart(
   expt,
-  predictor = NULL,
   fstring = "~ condition + batch",
   do_fit = FALSE,
   cor_gene = 1,
@@ -19,9 +18,6 @@ simple_varpart(
 }
 \arguments{
 \item{expt}{Some data}
-
-\item{predictor}{Non-categorical predictor factor with which to begin the
-model.}
 
 \item{do_fit}{Perform a fitting using variancePartition?}
 
@@ -38,6 +34,9 @@ to the first gene.}
 any genes with a 0.}
 
 \item{modify_expt}{Add annotation columns with the variance/factor?}
+
+\item{predictor}{Non-categorical predictor factor with which to begin the
+model.}
 
 \item{factors}{Character list of columns in the experiment design to query}
 

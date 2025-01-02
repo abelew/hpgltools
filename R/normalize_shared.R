@@ -356,17 +356,17 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
 
   data <- assay(se)
   meta <- S4Vectors::metadata(se)
-  se_state <- meta[["state"]]
+  se_state <- state(se)
   current_state <- se_state
   original_libsize <- meta[["libsize"]]
   if (is.null(original_libsize)) {
     original_libsize <- colSums(data)
   }
   if (is.null(annotations)) {
-    annotations <- fData(se)
+    annotations <- rowData(se)
   }
 
-  design <- pData(se)
+  design <- colData(se)
   original_counts <- data
 
   type <- ""
@@ -448,6 +448,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
 
   batched_counts <- NULL
   normalized_counts <- NULL
+  filtered_counts <- NULL
   sv_df <- NULL
   if (batch_step == 1) {
     batch_data <- do_batch(count_table, method = batch,
@@ -467,7 +468,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     mesg("Step 1: not filtering the data.")
   } else {
     mesg("Step 1: filtering the data with ", filter, ".")
-    filtered_counts <- filter_counts(count_table, method = filter, ...)
+    filtered_counts <- filter_counts(count_table, method = filter,
+                                     ...)
     ## filtered_counts <- filter_counts(count_table, method = filter)
     current_libsize <- filtered_counts[["libsize"]]
     count_table <- filtered_counts[["count_table"]]
@@ -629,6 +631,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   metadata(se) <- meta
   return(se)
 }
+setGeneric("normalize_se")
 
 #' Normalize a dataframe/expt, express it, and/or transform it
 #'

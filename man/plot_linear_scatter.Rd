@@ -20,10 +20,10 @@ plot_linear_scatter(
   first = NULL,
   second = NULL,
   base_url = NULL,
-  pretty_colors = TRUE,
+  color_weights = TRUE,
   xlab = NULL,
   ylab = NULL,
-  model_type = "lm",
+  model_type = "robust",
   add_equation = TRUE,
   add_rsq = TRUE,
   add_cor = TRUE,
@@ -63,8 +63,6 @@ plot_linear_scatter(
 
 \item{base_url}{Base url to add to the plot.}
 
-\item{pretty_colors}{Colors!}
-
 \item{xlab}{Alternate x-axis label.}
 
 \item{ylab}{Alternate x-axis label.}
@@ -76,6 +74,8 @@ plot_linear_scatter(
 \item{alpha}{Choose an alpha channel to define how see-through the dots are.}
 
 \item{...}{Extra args likely used for choosing significant genes.}
+
+\item{pretty_colors}{Colors!}
 }
 \value{
 List including a ggplot2 scatter plot and some histograms.  This plot

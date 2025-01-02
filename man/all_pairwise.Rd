@@ -18,7 +18,6 @@ all_pairwise(
   libsize = NULL,
   test_pca = TRUE,
   annot_df = NULL,
-  parallel = TRUE,
   do_basic = TRUE,
   do_deseq = TRUE,
   do_ebseq = TRUE,
@@ -73,8 +72,6 @@ batch effect.}
 
 \item{annot_df}{Annotations to add to the result tables.}
 
-\item{parallel}{Use dopar to run limma, deseq, edger, and basic simultaneously.}
-
 \item{do_basic}{Perform a basic analysis?}
 
 \item{do_deseq}{Perform DESeq2 pairwise?}
@@ -101,6 +98,8 @@ so it can choose).}
 \item{surrogates}{Either a number of surrogates or method to estimate it.}
 
 \item{...}{Picks up extra arguments into arglist.}
+
+\item{parallel}{Use dopar to run limma, deseq, edger, and basic simultaneously.}
 }
 \value{
 A list of limma, deseq, edger results.

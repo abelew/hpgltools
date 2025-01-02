@@ -17,6 +17,7 @@ limma_pairwise(
   extra_contrasts = NULL,
   annot_df = NULL,
   libsize = NULL,
+  adjust = "BH",
   which_voom = "limma",
   limma_method = "ls",
   limma_robust = FALSE,

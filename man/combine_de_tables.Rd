@@ -17,7 +17,6 @@ combine_de_tables(
   include_basic = TRUE,
   include_noiseq = TRUE,
   include_dream = TRUE,
-  rownames = TRUE,
   add_plots = TRUE,
   loess = FALSE,
   plot_dim = 6,
@@ -72,8 +71,6 @@ plotting?}
 
 \item{include_dream}{Include results from the variancePartition 'dream' method?}
 
-\item{rownames}{Add rownames to the xlsx printed table?}
-
 \item{add_plots}{Add plots to the end of the sheets with expression values?}
 
 \item{loess}{Add time intensive loess estimation to plots?}
@@ -124,6 +121,8 @@ plotting.}
 plots.}
 
 \item{z_lines}{Add z-score lines to coefficient plots?}
+
+\item{rownames}{Add rownames to the xlsx printed table?}
 
 \item{de_types}{Used for plotting pvalue/logFC cutoffs.}
 }

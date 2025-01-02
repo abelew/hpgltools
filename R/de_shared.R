@@ -2503,12 +2503,8 @@ sanitize_expt <- function(expt, keep_underscore = TRUE) {
   }
   conditions <- as.factor(conditions)
   batches <- as.factor(batches)
-  expressionset <- expt[["expressionset"]]
-  Biobase::pData(expressionset)[["condition"]] <- conditions
-  Biobase::pData(expressionset)[["batch"]] <- batches
-  expt[["expressionset"]] <- expressionset
-  expt[["conditions"]] <- conditions
-  expt[["batches"]] <- batches
+  pData(expt)[["condition"]] <- conditions
+  pData(expt)[["batch"]] <- batches
   return(expt)
 }
 

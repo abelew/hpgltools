@@ -259,24 +259,25 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
 choose_basic_dataset <- function(input, force = FALSE, ...) {
   ## arglist <- list(...)
   warn_user <- 0
-  conditions <- input[["conditions"]]
-  batches <- input[["batches"]]
+  conditions <- pData(input)[["condition"]]
+  batches <- pData(input)[["batch"]]
   data <- as.data.frame(exprs(input))
-  tran_state <- input[["state"]][["transform"]]
+  state <- state(input)
+  tran_state <- state[["transform"]]
   libsize <- NULL
   if (is.null(tran_state)) {
     tran_state <- "raw"
   }
-  conv_state <- input[["state"]][["conversion"]]
+  conv_state <- state[["conversion"]]
   ## Note that voom takes care of this for us.
   if (is.null(conv_state)) {
     conv_state <- "raw"
   }
-  norm_state <- input[["state"]][["normalization"]]
+  norm_state <- state[["normalization"]]
   if (is.null(norm_state)) {
     norm_state <- "raw"
   }
-  filt_state <- input[["state"]][["filter"]]
+  filt_state <- state[["filter"]]
   if (is.null(filt_state)) {
     filt_state <- "raw"
   }
