@@ -43,7 +43,7 @@
 basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
                            batches = NULL, model_cond = TRUE, model_intercept = FALSE,
                            alt_model = NULL, model_batch = FALSE, force = FALSE,
-                           keepers = NULL, fx = "mean", keep_underscore = FALSE, ...) {
+                           keepers = NULL, fx = "mean", keep_underscore = TRUE, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["input"]])) {
     input <- arglist[["input"]]
@@ -120,9 +120,9 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   model_data <- model_choice[["chosen_model"]]
   ## basic_pairwise() does not support extra contrasts, but they may be passed through via ...
   apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE, do_extras = FALSE,
-                                 keepers = keepers, keep_underscore = keep_underscore, ...)
+                                 keepers = keepers, keep_underscore = keep_underscore,
+                                 ...)
   contrasts_performed <- c()
-  show_progress <- interactive() && is.null(getOption("knitr.in.progress"))
   for (c in seq_along(apc[["names"]])) {
     num_done <- num_done + 1
     name  <- apc[["names"]][[c]]
@@ -147,7 +147,9 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
     t_data <- vector("list", nrow(xdata))
     p_data <- vector("list", nrow(xdata))
     for (j in seq_len(nrow(xdata))) {
-      test_result <- try(t.test(xdata[j, ], ydata[j, ]), silent = TRUE)
+      test_result <- try(wilcox.test(x = as.numeric(xdata[j, ]),
+                                     y = as.numeric(ydata[j, ]), alternative = "two.sided"),
+                         silent = TRUE)
       if (class(test_result) == "htest") {
         t_data[[j]] <- test_result[[1]]
         p_data[[j]] <- test_result[[3]]

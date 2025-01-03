@@ -39,7 +39,7 @@
 extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
                              invert = FALSE, invert_colors = c(),
                              numerator = NULL, denominator = NULL, alpha = 0.4, z = 1.5, n = NULL,
-                             logfc = 1.0, pval = 0.05, adjp = TRUE, found_table = NULL,
+                             lfc_cutoff = 1.0, p_cutoff = 0.05, adjp = TRUE, found_table = NULL,
                              p_type = "adj", color_high = NULL, color_low = NULL, loess = FALSE,
                              z_lines = FALSE, label = 10, label_column = "hgncsymbol") {
 
@@ -82,17 +82,16 @@ extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
     ma_material <- plot_ma_condition_de(
       input = input, table_name = found_table,
       expr_col = expr_col, fc_col = fc_col, p_col = p_col,
-      logfc = logfc, pval = pval, invert = invert,
+      logfc = lfc_cutoff, pval = p_cutoff, invert = invert,
       color_high = color_high, color_low = color_low,
       label = label, label_column = label_column)
     vol_material <- plot_volcano_condition_de(
       input = input, table_name = found_table,
       fc_col = fc_col, p_col = p_col,
       color_high = color_high, color_low = color_low,
-      invert = invert, logfc = logfc, pval = pval,
+      invert = invert, logfc = lfc_cutoff, pval = p_cutoff,
       label = label, label_column = label_column)
   }
-
   retlist <- list(
     "coef" = coef_result,
     "ma" = ma_material,
@@ -219,6 +218,8 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
       return(NULL)
     }
     colnames(coefficient_df) <- c(xname, yname)
+    zero_idx <- coefficient_df == 0
+    coefficient_df[zero_idx] <- 1
     coefficient_df[[1]] <- log2(coefficient_df[[1]])
     coefficient_df[[2]] <- log2(coefficient_df[[2]])
   } else if (type == "edger") {
@@ -248,8 +249,6 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
       return(NULL)
     }
     coefficient_df <- coefficients[, c(xname, yname)]
-    coefficient_df[[1]] <- log2(coefficient_df[[1]])
-    coefficient_df[[2]] <- log2(coefficient_df[[2]])
   }
 
   maxvalue <- max(coefficient_df) + 1.0
@@ -429,7 +428,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   all_tables <- NULL
   if (table_source == "combined_table") {
     if (type == "basic") {
-      expr_col <- "basic_nummed"
+      expr_col <- "basic_num"
     } else if (type == "deseq") {
       expr_col <- "deseq_basemean"
     } else if (type == "dream") {

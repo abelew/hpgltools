@@ -90,6 +90,12 @@ print.aucc_info <- function(x, ...) {
   return(invisible(x))
 }
 
+#' @export
+print.basic_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the Basic pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
 #' Print the results of load_biomart_go().
 #'
 #' @param x List from load_biomart_go() containing the table of data,
@@ -283,6 +289,13 @@ print.density_primers <- function(x, ...) {
   return(invisible(x))
 }
 
+#' @export
+print.deseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the DESeq2 pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Print a summary of the result from dream_pairwise().
 #'
 #' @param x List from dream_pairwise().
@@ -290,6 +303,20 @@ print.density_primers <- function(x, ...) {
 #' @export
 print.dream_pairwise <- function(x, ...) {
   summary_string <- glue("The results from the hybrid variancePartition/limma pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
+#' @export
+print.ebseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the EBSeq pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
+#' @export
+print.edger_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the EdgeR pairwise analysis.")
   message(summary_string)
   return(invisible(x))
 }
@@ -478,6 +505,24 @@ ranging from ", prettyNum(min_value, big.mark = ","),
   return(invisible(x))
 }
 
+#' @export
+print.limma_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the limma pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
+#' Print a linear scatter plot without all the fluff.
+#'
+#' @param x List containing the result of plot_linear_scatter()
+#' @param ... Other args for the generic.
+#' @export
+print.linear_scatter <- function(x, ...) {
+  message("Plot attempting to show the relationship between two columns of data.")
+  print(x[["scatter"]])
+  return(invisible(x))
+}
+
 #' Print a set of mapped keepers from combine_de_tables()
 #'
 #' @param x List full of kept information.
@@ -502,6 +547,13 @@ and traversing metadata factors:
 {toString(x[['factors']])}.")
   message(summary_string)
   plot(x[["ggplot"]])
+  return(invisible(x))
+}
+
+#' @export
+print.noiseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the Noiseq pairwise analysis.")
+  message(summary_string)
   return(invisible(x))
 }
 

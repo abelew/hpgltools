@@ -224,9 +224,9 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     for (x in seq_along(tnames)) {
       tab <- tnames[x]
       numerator <- numerators[x]
-      numerator_name <- numerator[[1]]
+      numerator_name <- as.character(numerator[[1]][1])
       denominator <- denominators[x]
-      denominator_name <- denominator[[1]]
+      denominator_name <- as.character(denominator[[1]][1])
       written_table <- extracted[["data"]][[tab]]
       if (! "data.frame" %in% class(written_table)) {
         message("There is no data for ", tab, ", skipping it.")
@@ -244,7 +244,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                                 x = final_excel_title)
       ## Dump each table to the appropriate excel sheet
       xls_result <- write_xlsx(data = written_table, wb = wb, sheet = tab,
-                               title = final_excel_title, rownames = rownames)
+                               title = final_excel_title, rownames = TRUE)
       ## The function write_xlsx has some logic in it to get around excel name
       ## limitations (30 characters), therefore set the sheetname to what was
       ## returned in case it had to change the sheet's name.
@@ -288,7 +288,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
       xls_result <- write_xlsx(
         wb, data = apr[["original_pvalues"]], sheet = "original_pvalues",
         title = "Original pvalues for all contrasts before sva adjustment.",
-        start_row = 1, rownames = rownames)
+        start_row = 1, rownames = TRUE)
     }
 
     design_result <- write_sample_design(wb, apr)
@@ -376,7 +376,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
 #' @param label Label this number of the top genes.
 #' @param label_column Label the top genes with this column.
 combine_extracted_plots <- function(name, combined, denominator, numerator, plot_inputs,
-                                    loess = FALSE, logfc = 1, pval = 0.05, found_table = NULL,
+                                    loess = FALSE, lfc_cutoff = 1, p_cutoff = 0.05, found_table = NULL,
                                     p_type = "all", plot_colors = NULL, fancy = FALSE,
                                     adjp = TRUE, do_inverse = FALSE, invert_colors = FALSE,
                                     z = 1.5, alpha = 0.4, z_lines = FALSE,
@@ -417,9 +417,14 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
       plot_inputs, combined, type = type,
       invert = FALSE, invert_colors = invert_colors,
       numerator = numerator, denominator = denominator, alpha = alpha, z = z,
-      logfc = logfc, pval = pval, adjp = adjp, found_table = found_table,
+      lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff, adjp = adjp, found_table = found_table,
       p_type = p_type, color_low = color_low, color_high = color_high,
       z_lines = z_lines, label = label, label_column = label_column))
+    ## FIXME: There appears to be an error in how I do the t-statistic for basic.
+    ## Figure that out before re-enabling basic volcano plots.
+    if (type == "basic") {
+      plots[[vol_name]] <- NULL
+    }
     if ("try-error" %in% class(ma_vol_coef)) {
       plots[[scatter_name]] <- NULL
       plots[[vol_name]] <- NULL
@@ -562,10 +567,9 @@ Defaulting to fdr.")
     drdf[["dream_zstd"]] <- 0
   }
 
-  ebdf <- data.frame("ebseq_fc" = 0, "ebseq_logfc" = 0, "ebseq_c1mean" = 0,
+  ebdf <- data.frame("ebseq_logfc" = 0, "ebseq_c1mean" = 0,
                      "ebseq_c2mean" = 0, "ebseq_mean" = 0, "ebseq_var" = 0,
-                     "ebseq_postfc" = 0, "ebseq_ppee" = 0, "ebseq_ppde" = 0,
-                     "ebseq_adjp" = 0)
+                     "ebseq_postfc" = 0, "ebseq_ppde" = 0, "ebseq_adjp" = 0)
   rownames(ebdf) <- "dropme"
 
   eddf <- data.frame("edger_logfc" = 0, "edger_logcpm" = 0, "edger_lr" = 0,
@@ -674,13 +678,12 @@ Defaulting to fdr.")
           eb_lfc_adjp <- data.frame()
         } else {
           ebdf <- entry[[query]][["data"]]
-          colnames(ebdf) <- c("ebseq_fc", "ebseq_logfc", "ebseq_c1mean",
+          colnames(ebdf) <- c("ebseq_logfc", "ebseq_c1mean",
                               "ebseq_c2mean", "ebseq_mean", "ebseq_var",
-                              "ebseq_postfc", "ebseq_ppee", "ebseq_ppde",
-                              "ebseq_adjp")
-          eb_stats <- ebdf[, c("ebseq_fc", "ebseq_c1mean", "ebseq_c2mean",
+                              "ebseq_postfc", "ebseq_ppde", "ebseq_adjp")
+          eb_stats <- ebdf[, c("ebseq_c1mean", "ebseq_c2mean",
                                "ebseq_mean", "ebseq_postfc",
-                               "ebseq_ppee", "ebseq_ppde")]
+                               "ebseq_ppde")]
           eb_lfc_adjp <- ebdf[, c("ebseq_logfc", "ebseq_adjp")]
         }
       }
@@ -1774,8 +1777,8 @@ extract_keepers <- function(extracted, keepers, table_names,
     ## Changing this to a try() for when we have weirdo extra_contrasts.
     extracted[["plots"]][[entry_name]] <- suppressWarnings(combine_extracted_plots(
       entry_name, combined, wanted_denominator, wanted_numerator, plot_inputs,
-      loess = loess, logfc = lfc_cutoff, pval = p_cutoff, adjp = adjp,
-      found_table = found_table, p_type = padj_type,
+      loess = loess, lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
+      adjp = adjp, found_table = found_table, p_type = padj_type,
       plot_colors = plot_colors, fancy = fancy,
       do_inverse = FALSE, invert_colors = invert_colors,
       z = z, alpha = alpha, z_lines = z_lines,
@@ -3201,9 +3204,32 @@ write_plots_de_xlsx <- function(includes, extracted, sheetname, current_row,
                                 plot_rows = 31, plot_columns = 10) {
   ## Now add the coefficients, ma, and volcanoes below the venns.
   ## Text on row 18, plots from 19-49 (30 rows)
-  for (t in seq_along(includes)) {
+  favorites <- c()
+  if (isTRUE(includes[["deseq"]])) {
+    favorites <- c(favorites, "deseq")
+  }
+  if (isTRUE(includes[["edger"]])) {
+    favorites <- c(favorites, "edger")
+  }
+  if (isTRUE(includes[["limma"]])) {
+    favorites <- c(favorites, "limma")
+  }
+  if (isTRUE(includes[["dream"]])) {
+    favorites <- c(favorites, "dream")
+  }
+  if (isTRUE(includes[["ebseq"]])) {
+    favorites <- c(favorites, "ebseq")
+  }
+  if (isTRUE(includes[["noiseq"]])) {
+    favorites <- c(favorites, "noiseq")
+  }
+  if (isTRUE(includes[["basic"]])) {
+    favorites <- c(favorites, "basic")
+  }
+
+  for (t in seq_along(favorites)) {
     num_plotted <- 0
-    type <- includes[t]
+    type <- favorites[t]
     sc <- paste0(type, "_scatter_plots")
     ma <- paste0(type, "_ma_plots")
     vo <- paste0(type, "_vol_plots")

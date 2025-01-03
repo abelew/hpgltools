@@ -301,6 +301,7 @@ ebseq_two <- function(pair_data, conditions,
                       ng_vector = NULL, rounds = 10,
                       target_fdr = 0.05, norm = "median",
                       force = FALSE) {
+  mesg("Using ebseq_size_factors to normalize the data.")
   normalized <- ebseq_size_factors(pair_data, norm = norm)
   mesg("Starting EBTest of ", numerator, " vs. ", denominator, ".")
   ## I think this should be removed in lieu of the imputation functions
@@ -332,19 +333,17 @@ ebseq_two <- function(pair_data, conditions,
   table <- merge(table, meanlist_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]
   table[["Row.names"]] <- NULL
-  table[["ebseq_mean"]] <- as.numeric(table[["ebseq_mean"]])
   table <- merge(table, varlist_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]
   table[["Row.names"]] <- NULL
-  table[["ebseq_var"]] <- as.numeric(table[["ebseq_var"]])
   table[["ebseq_postfc"]] <- fold_changes[["PostFC"]]
   table <- merge(table, p_df, by = "row.names", all.x = TRUE)
   rownames(table) <- table[["Row.names"]]
   table[["Row.names"]] <- NULL
   ## This is incorrect I think, but being used as a placeholder until I figure out how to
   ## properly adjust a set prior probabilities.
-  mesg("Copying ppee values as ajusted p-values until I figure out how to deal with them.")
   table[["ebseq_adjp"]] <- table[["PPEE"]]
+  table[["PPEE"]] <- NULL
 
   ## Finally, make sure the 'direction' matches my conception of numerator/denominator.
   eb_direction <- fold_changes[["Direction"]]
@@ -355,6 +354,7 @@ ebseq_two <- function(pair_data, conditions,
     table[["logFC"]] <- -1 * table[["logFC"]]
     table[["ebseq_postfc"]] <- 1 / table[["ebseq_postfc"]]
   }
+  table[["ebseq_FC"]] <- NULL
   return(table)
 }
 
