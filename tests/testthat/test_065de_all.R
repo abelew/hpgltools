@@ -145,15 +145,19 @@ test_that("choose_model provides expected models?", {
 ## I think I should therefore ensure fully that the conditions of the model
 ## match the conditions in the original design.
 model_df <- as.data.frame(cond_model[["chosen_model"]])
-test_df <- data.frame(row.names = names(pombe_subset[["conditions"]]))
-for (cond in pombe_subset[["conditions"]]) {
+test_df <- data.frame(row.names = rownames(pData(pombe_subset)))
+conditions <- pData(pombe_subset)[["condition"]]
+samples <- rownames(test_df)
+for (cond in conditions) {
   test_df[[cond]] <- 0
 }
-for (c in 1:length(pombe_subset[["conditions"]])) {
-  name <- names(pombe_subset[["conditions"]])[c]
-  value <- as.character(pombe_subset[["conditions"]][c])
+for (c in 1:length(conditions)) {
+  name <- samples[c]
+  value <- as.character(conditions[c])
   test_df[name, value] <- 1
 }
+colnames(test_df) <- paste0("condition", colnames(test_df))
+test_df <- test_df[, colnames(model_df)]
 test_that("choose_model provides a model which matches the design?", {
   expect_equal(model_df, test_df)
 })

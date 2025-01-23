@@ -78,6 +78,7 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   end <- length(apc[["names"]])
   coefficient_df <- data.frame()
   final_coef_colnames <- c()
+  density_theta_plots <- list()
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
     numerator <- apc[["numerators"]][[name]]
@@ -86,10 +87,18 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
     pData(norm_input)[[factor]] <- as.factor(pData(norm_input)[[factor]])
     pData(norm_input)[[factor]] <- relevel(pData(norm_input)[[factor]], numerator)
     ## Noiseq recasts the pData() as a factor and blows away my levels!
+    tmp_file <- tmpmd5file(pattern = "noiseq_density_theta", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
     noiseq_table <- sm(NOISeq::noiseqbio(
       norm_input, k = k, norm = norm, factor = factor, lc = lc,
       r = r, adj = adj, plot = TRUE, a0per = a0per, filter = filter,
       conditions = c(numerator, denominator)))
+    if (class(noiseq_table)[1] != "try-error") {
+      density_theta_plots[[name]] <- grDevices::recordPlot()
+    }
+    dev.off()
+    removed <- file.remove(tmp_file)
     invert <- FALSE
     actual_comparison <- strsplit(noiseq_table@comparison, " - ")[[1]]
     actual_numerator <- actual_comparison[1]
@@ -137,6 +146,7 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
       "contrast_list" = contrast_list,
       "contrasts" = apc,
       "contrasts_performed" = apc[["names"]],
+      "density_theta_plots" = density_theta_plots,
       "input_data" = input,
       "method" = "noiseq",
       "model" = model_data,

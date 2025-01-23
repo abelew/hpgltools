@@ -115,6 +115,17 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
   }
 
   sample_definitions <- as.data.frame(sample_definitions)
+  if (isTRUE(sanitize)) {
+    if (isTRUE(keep_underscore)) {
+      colnames(sample_definitions) <- gsub(pattern = "[^_[:^punct:]]", replacement = "",
+                                 x = colnames(sample_definitions), perl = TRUE)
+    } else {
+      colnames(sample_definitions) <- gsub(pattern = "[[:punct:]]",
+                                           replacement = "",
+                                           x = colnames(sample_definitions))
+    }
+  }
+
   ## Try to ensure that we have a useful ID column by:
   ## 1. Look for data in the id_column column.
   ##  a.  If it is null, look at the rownames
@@ -134,27 +145,12 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
     } else {
       message("Setting the ID column to the first column.")
       id_column <- colnames(sample_definitions)[1]
+      rownames(sample_definitions) <- make.names(sample_definitions[[id_column]], unique = TRUE)
     }
   } else {
     ## 202311: I am not completely certain this logic change is what I want.
     rownames(sample_definitions) <- make.names(sample_definitions[[id_column]], unique = TRUE)
   }
-
-  if (isTRUE(sanitize)) {
-    if (isTRUE(keep_underscore)) {
-      colnames(sample_definitions) <- gsub(pattern = "[^_[:^punct:]]", replacement = "",
-                                 x = colnames(sample_definitions), perl = TRUE)
-    } else {
-      colnames(sample_definitions) <- gsub(pattern = "[[:punct:]]",
-                                           replacement = "",
-                                           x = colnames(sample_definitions))
-    }
-    id_column <- tolower(id_column)
-    id_column <- gsub(pattern = "[[:punct:]]",
-                      replacement = "",
-                      x = id_column)
-  }
-  sample_definitions <- as.data.frame(sample_definitions)
 
   ## Drop empty rows in the sample sheet
   empty_samples <- which(sample_definitions[, id_column] == "" |
@@ -326,9 +322,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   if (is.null(specification)) {
     specification <- make_rnaseq_spec()
   } else if (class(specification)[1] == "list") {
-    if (isTRUE(verbose)) {
-      message("Using provided specification")
-    }
+    mesg("Using provided specification")
   } else if (specification == "rnaseq") {
     specification <- make_rnaseq_spec()
   } else if (specification == "dnaseq") {

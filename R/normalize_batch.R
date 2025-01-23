@@ -61,15 +61,12 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
 
-  if ("expt" %in% class(input)) {
+  if (is.null(design)) {
     ## Gather all the likely pieces we can use
     my_design <- pData(input)
     my_data <- exprs(input)
-    expt_state <- input[["state"]]
-  } else {  ## This is not an expt
-    if (is.null(design)) {
-      stop("If an expt is not passed, then design _must_ be.")
-    }
+    expt_state <- state(input)
+  } else {
     my_design <- design
     my_data <- input
     if (is.null(expt_state)) {

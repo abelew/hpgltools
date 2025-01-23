@@ -234,7 +234,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
       "conditions_table" = table(conditions),
       "conditions" = conditions,
       "contrasts_performed" = contrasts_performed,
-      "input_data" = data,
+      "input_data" = input,
       "medians" = median_table,
       "method" = "basic",
       "variances" = variance_table)

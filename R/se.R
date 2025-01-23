@@ -541,11 +541,15 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     if (is.null(subset)) {
       subset_design <- starting_metadata
     } else {
-      mesg("Using a subset expression.")
+      mesg("Using a subset expression, before subsetting there are: ", nrow(starting_metadata),
+           " samples.")
       r_expression <- glue("subset(starting_metadata, {subset})")
       subset_design <- eval(parse(text = r_expression))
+      subset_idx <- rownames(starting_metadata) %in% rownames(subset_design)
       note_appended <- glue("Subsetted with {subset} on {date()}.
 ")
+      mesg("Following subsetting, there are: ", nrow(subset_design), " samples.")
+      se <- se[, subset_idx]
     }
     if (nrow(subset_design) == 0) {
       stop("When the subset was taken, the resulting design has 0 members.")

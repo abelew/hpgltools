@@ -212,11 +212,16 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     result_list[[name]] <- res
   } ## End for loop
 
+  tmp_file <- tmpmd5file(pattern = "edger_cov", fileext = ".png")
+  this_plot <- png(filename = tmp_file)
+  controlled <- dev.control("enable")
   dispersions <- sm(try(edgeR::plotBCV(y = final_norm), silent = TRUE))
   dispersion_plot <- NULL
   if (class(dispersions)[1] != "try-error") {
     dispersion_plot <- grDevices::recordPlot()
   }
+  dev.off()
+  removed <- file.remove(tmp_file)
 
   retlist <- list(
       "all_tables" = result_list,

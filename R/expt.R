@@ -153,6 +153,19 @@ colors <- function(expt) {
   return(expt)
 }
 
+#' Getter for library sizes in an expt.
+#' @export
+libsize <- function(expt) {
+  expt[["libsize"]]
+}
+
+#' Setter for library sizes in an expt.
+#' @export
+`libsize<-` <- function(expt, value) {
+  expt[["libsize"]] <- value
+  return(expt)
+}
+
 #' Sum the reads/gene for multiple sequencing runs of a single condition/batch.
 #'
 #' On occasion we have multiple technical replicates of a sequencing run.  This
@@ -779,8 +792,6 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
   expt <- list(
     "expressionset" = experiment,
     "annotation" = annotation,
-    "batches" = sample_definitions[["batch"]],
-    "conditions" = sample_definitions[["condition"]],
     "colors" = chosen_colors,
     ## "design" = sample_definitions,
     "feature_type" = feature_type,
@@ -798,17 +809,17 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     "filter" = "raw",
     "normalization" = "raw",
     "transform" = "raw")
-  expt[["state"]] <- starting_state
+  state(expt) <- starting_state
   ## Just in case there are condition names which are not used.
   ## Ditto here, this should not be needed.
   ## expt[["conditions"]] <- droplevels(as.factor(sample_definitions[, "condition"]))
   ## This might be redundant, but it ensures that no all-numeric conditions exist.
   ## expt[["conditions"]] <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = expt[["conditions"]])
-  names(expt[["conditions"]]) <- rownames(sample_definitions)
+  ##names(expt[["conditions"]]) <- rownames(sample_definitions)
   ## Ditto for batches
   ## expt[["batches"]] <- droplevels(as.factor(sample_definitions[, "batch"]))
   ## expt[["batches"]] <- gsub(pattern = "^(\\d+)$", replacement = "b\\1", x = expt[["batches"]])
-  names(expt[["batches"]]) <- rownames(sample_definitions)
+  ## names(expt[["batches"]]) <- rownames(sample_definitions)
   ## Keep a backup of the metadata in case we do semantic filtering or somesuch.
   ## Keep a backup of the library sizes for limma.
   if (sum(expt[["libsize"]] == 0) > 0) {
@@ -1878,7 +1889,7 @@ set_expt_batches <- function(expt, fact, ids = NULL, ...) {
 #' @return List of colors by condition.
 #' @export
 get_expt_colors <- function(expt, keep_underscore = TRUE) {
-  all_colors <- expt[["colors"]]
+  all_colors <- colors(expt)
   condition_fact <- as.character(pData(expt)[["condition"]])
   if (isTRUE(keep_underscore)) {
     condition_fact <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = condition_fact, perl = TRUE)

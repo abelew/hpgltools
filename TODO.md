@@ -1,5 +1,7 @@
 # TODO list
 
+* 202501: Check number of conditions, if > 8, change the default
+  palette from 'Dark2' to something with >=x.
 * 202406: ontology stuff: I want to redo the clusterProfiler run/write
   to make explicit the distinction between the over representation
   analyses (high/low/up/down) vs gene set enrichment (distribution of

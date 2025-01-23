@@ -309,7 +309,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                            annot_df = NULL, libsize = NULL, adjust = "BH",
                            which_voom = "limma", limma_method = "ls",
                            limma_robust = FALSE, voom_norm = "quantile",
-                           limma_trend = FALSE, force = FALSE, keep_underscore = FALSE,
+                           limma_trend = FALSE, force = FALSE, keep_underscore = TRUE,
                            keepers = NULL, ...) {
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.

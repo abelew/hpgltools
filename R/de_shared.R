@@ -46,7 +46,6 @@
 #' @param keepers Limit the pairwise search to a set of specific contrasts.
 #' @param convert Modify the data with a 'conversion' method for PCA?
 #' @param norm Modify the data with a 'normalization' method for PCA?
-#' @param verbose Print extra information while running?
 #' @param surrogates Either a number of surrogates or method to estimate it.
 #' @param ...  Picks up extra arguments into arglist.
 #' @return A list of limma, deseq, edger results.
@@ -67,7 +66,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                          annot_df = NULL, do_basic = TRUE, do_deseq = TRUE,
                          do_ebseq = TRUE, do_edger = TRUE, do_limma = TRUE,
                          do_noiseq = TRUE, do_dream = TRUE, keepers = NULL,
-                         convert = "cpm", norm = "quant", verbose = TRUE,
+                         convert = "cpm", norm = "quant",
                          surrogates = "be", methods = NULL,
                          keep_underscore = TRUE, model_sv = NULL,
                          ...) {
@@ -178,9 +177,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     post_batch <- pre_batch
     if (isTRUE(model_type)) {
       model_type <- "batch in model/limma"
-      if (isTRUE(verbose)) {
-        mesg("Using limma's removeBatchEffect to visualize with(out) batch inclusion.")
-      }
+      mesg("Using limma's removeBatchEffect to visualize with(out) batch inclusion.")
       post_batch <- sm(normalize_expt(input, filter = TRUE, batch = TRUE, transform = "log2"))
     } else if (class(model_type)[1] == "character") {
       mesg("Using ", model_type, " to visualize before/after batch inclusion.")
@@ -208,12 +205,12 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## do_ebseq defaults to NULL, this is so that we can query the number of
   ## conditions and choose accordingly. EBSeq is very slow, so if there are more
   ## than 3 or 4 conditions I do not think I want to wait for it.
-  num_conditions <- 0
   if (is.null(conditions)) {
-    num_conditions <- length(levels(droplevels(as.factor(input[["conditions"]]))))
-  } else {
-    num_conditions <- length(levels(droplevels(as.factor(conditions))))
+    design <- pData(input)
+    conditions <- design[["condition"]]
+    batches <- design[["batch"]]
   }
+  num_conditions <- length(levels(droplevels(as.factor(conditions))))
 
   num_comparisons <- 0
   if (is.null(keepers)) {
@@ -222,16 +219,6 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   } else {
     num_comparisons <- length(keepers)
     mesg("This pairwise function should perform ", num_comparisons, " pairwise comparisons taken from the keepers argument.")
-  }
-
-  if (is.null(do_ebseq)) {
-    if (num_conditions > 4) {
-      do_ebseq <- FALSE
-    } else if (num_conditions < 2) {
-      stop("Unable to find the number of conditions in the data.")
-    } else {
-      do_ebseq <- TRUE
-    }
   }
 
   ## Put a series of empty lists in the final results data structure
@@ -248,9 +235,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   }
 
   for (type in names(results)) {
-    if (isTRUE(verbose)) {
-      mesg("Starting ", type, "_pairwise().")
-    }
+    mesg("Starting ", type, "_pairwise().")
     results[[type]] <- do_pairwise(
       type, input = input, conditions = conditions, batches = batches,
       model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
@@ -300,9 +285,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   class(ret) <- c("all_pairwise", "list")
 
   if (!is.null(arglist[["combined_excel"]])) {
-    if (isTRUE(verbose)) {
-      mesg("Invoking combine_de_tables().")
-    }
+    mesg("Invoking combine_de_tables().")
     combined <- combine_de_tables(ret, excel = arglist[["combined_excel"]], ...)
     ret[["combined"]] <- combined
   }
@@ -455,14 +438,10 @@ sva_modify_pvalues <- function(results) {
   input <- results[["input"]]
   original_pvalues <- data.table::data.table(
     rownames = rownames(results[["edger"]][["all_tables"]][[1]]))
-  if (isTRUE(verbose)) {
-    mesg("Using f.pvalue() to modify the returned p-values of deseq/limma/edger.")
-  }
+  mesg("Using f.pvalue() to modify the returned p-values of deseq/limma/edger.")
   for (it in seq_along(results[["edger"]][["all_tables"]])) {
     name <- names(results[["edger"]][["all_tables"]])[it]
-    if (isTRUE(verbose)) {
-      mesg("Readjusting the p-values for comparison: ", name)
-    }
+    mesg("Readjusting the p-values for comparison: ", name)
     namelst <- strsplit(x = name, split = "_vs_")
     ## something like 'mutant'
     first <- namelst[[1]][[1]]
@@ -589,101 +568,90 @@ sva_modify_pvalues <- function(results) {
 #' Invoked by deseq_pairwise() and edger_pairwise().
 #'
 #' @param input Expressionset containing expt object.
-#' @param verbose Print some information about what is happening?
 #' @param force Ignore every warning and just use this data.
 #' @param ... Extra arguments passed to arglist.
 #' @return dataset suitable for limma analysis
 #' @seealso [DESeq2] [edgeR] [choose_basic_dataset()] [choose_limma_dataset()]
-choose_binom_dataset <- function(input, verbose = TRUE, force = FALSE, ...) {
+choose_binom_dataset <- function(input, force = FALSE, ...) {
   ## arglist <- list(...)
-  input_class <- class(input)
   ## I think I would like to make this function smarter so that it will remove
   ## the log2 from transformed data.
   data <- NULL
-  warn_user <- 0
+  warn_user <- FALSE
   libsize <- NULL
-  if ("expt" %in% input_class) {
-    conditions <- input[["conditions"]]
-    batches <- input[["batches"]]
-    data <- as.data.frame(exprs(input))
-    ## As I understand it, EdgeR fits a binomial distribution
-    ## and expects data as integer counts, not floating point nor a log2
-    ## transformation. Thus, having the 'normalization' state set to something
-    ## other than 'raw' is a likely violation of its stated preferred/demanded
-    ## input.  There are of course ways around this but one should not take them
-    ## lightly, or ever.
-    tran_state <- input[["state"]][["transform"]]
-    if (is.null(tran_state)) {
-      tran_state <- "raw"
-    }
-    conv_state <- input[["state"]][["conversion"]]
-    if (is.null(conv_state)) {
-      conv_state <- "raw"
-    }
-    norm_state <- input[["state"]][["normalization"]]
-    if (is.null(norm_state)) {
-      norm_state <- "raw"
-    }
-    filt_state <- input[["state"]][["filter"]]
-    if (is.null(filt_state)) {
-      filt_state <- "raw"
-    }
-    if (norm_state == "round") {
-      norm_state <- "raw"
-    }
-    libsize <- input[["libsize"]]
-
-    if (isTRUE(force)) {
-      ## Setting force to TRUE allows one to round the data to fool edger/deseq
-      ## into accepting it. This is a pretty terrible thing to do
-      if (isTRUE(verbose)) {
-        message("About to round the data, this is a pretty terrible thing to do. ",
-                "But if you, like me, want to see what happens when you put ",
-                "non-standard data into deseq, then here you go.")
-      }
-      data <- round(data)
-      less_than <- data < 0
-      data[less_than] <- 0
-      na_idx <- is.na(data)
-      data[na_idx] <- 0
-      warn_user <- 1
-    } else if (norm_state != "raw" && tran_state != "raw" && conv_state != "raw") {
-      ## These if statements may be insufficient to check for the appropriate
-      ## input for deseq.
-      backup <- get_backup_expression_data(input)
-      data <- exprs(backup)
-      libsize <- backup[["libsize"]]
-    } else if (norm_state != "raw" || tran_state != "raw") {
-      ## This makes use of the fact that the order of operations in the
-      ## normalization function is
-      ## static. filter->normalization->convert->batch->transform. Thus, if the
-      ## normalized state is not raw, we can look back either to the filtered or
-      ## original data. The same is true for the transformation state.
-      if (isTRUE(verbose)) {
-        message("EdgeR/DESeq expect raw data as input, reverting to count filtered data.")
-      }
-      data <- input[["normalized"]][["intermediate_counts"]][["filter"]][["count_table"]]
-      if (is.null(data)) {
-        data <- input[["normalized"]][["intermediate_counts"]][["original"]]
-      }
-    } else {
-      mesg("The data should be suitable for EdgeR/DESeq/EBSeq.\n",
-           "If they freak out, check the state of the count table\n",
-           "and ensure that it is in integer counts.")
-    }
-    ## End testing if normalization has been performed
-  } else {
-    ## This is another function which would profit from using a method test.
-    data <- as.data.frame(input)
-    libsize <- colSums(data)
+  conditions <- pData(input)[["condition"]]
+  batches <- pData(input)[["batch"]]
+  data <- as.data.frame(exprs(input))
+  state <- state(input)
+  ## As I understand it, EdgeR fits a binomial distribution
+  ## and expects data as integer counts, not floating point nor a log2
+  ## transformation. Thus, having the 'normalization' state set to something
+  ## other than 'raw' is a likely violation of its stated preferred/demanded
+  ## input.  There are of course ways around this but one should not take them
+  ## lightly, or ever.
+  tran_state <- state[["transform"]]
+  if (is.null(tran_state)) {
+    tran_state <- "raw"
   }
+  conv_state <- state[["conversion"]]
+  if (is.null(conv_state)) {
+    conv_state <- "raw"
+  }
+  norm_state <- state[["normalization"]]
+  if (is.null(norm_state)) {
+    norm_state <- "raw"
+  }
+  filt_state <- state[["filter"]]
+  if (is.null(filt_state)) {
+    filt_state <- "raw"
+  }
+  if (norm_state == "round") {
+    norm_state <- "raw"
+  }
+  libsize <- NULL
+
+  if (isTRUE(force)) {
+    ## Setting force to TRUE allows one to round the data to fool edger/deseq
+    ## into accepting it. This is a pretty terrible thing to do
+    mesg("About to round the data, this is a pretty terrible thing to do. ",
+         "But if you, like me, want to see what happens when you put ",
+         "non-standard data into deseq, then here you go.")
+    data <- round(data)
+    less_than <- data < 0
+    data[less_than] <- 0
+    na_idx <- is.na(data)
+    data[na_idx] <- 0
+    warn_user <- TRUE
+  } else if (norm_state != "raw" && tran_state != "raw" && conv_state != "raw") {
+    ## These if statements may be insufficient to check for the appropriate
+    ## input for deseq.
+    backup <- get_backup_expression_data(input)
+    data <- exprs(backup)
+    libsize <- backup[["libsize"]]
+  } else if (norm_state != "raw" || tran_state != "raw") {
+    ## This makes use of the fact that the order of operations in the
+    ## normalization function is
+    ## static. filter->normalization->convert->batch->transform. Thus, if the
+    ## normalized state is not raw, we can look back either to the filtered or
+    ## original data. The same is true for the transformation state.
+    mesg("EdgeR/DESeq expect raw data as input, reverting to count filtered data.")
+    data <- input[["normalized"]][["intermediate_counts"]][["filter"]][["count_table"]]
+    if (is.null(data)) {
+      data <- input[["normalized"]][["intermediate_counts"]][["original"]]
+    }
+  } else {
+    mesg("The data should be suitable for EdgeR/DESeq/EBSeq.\n",
+         "If they freak out, check the state of the count table\n",
+         "and ensure that it is in integer counts.")
+  }
+  ## End testing if normalization has been performed
 
   retlist <- list(
     "libsize" = libsize,
     "conditions" = conditions,
     "batches" = batches,
     "data" = data)
-  if (warn_user == 1) {
+  if (isTRUE(warn_user)) {
     warning("This data was inappropriately forced into integers.")
   }
   return(retlist)
@@ -700,7 +668,6 @@ choose_binom_dataset <- function(input, verbose = TRUE, force = FALSE, ...) {
 #' @param choose_for One of limma, deseq, edger, or basic.  Defines the
 #'  requested data state.
 #' @param force Force non-standard data?
-#' @param verbose Print some information about what is happening?
 #' @param ... More options for future expansion.
 #' @return List the data, conditions, and batches in the data.
 #' @seealso [choose_binom_dataset()] [choose_limma_dataset()] [choose_basic_dataset()]
@@ -713,7 +680,7 @@ choose_binom_dataset <- function(input, verbose = TRUE, force = FALSE, ...) {
 #'  ## return it to a base10 state.
 #' }
 #' @export
-choose_dataset <- function(input, choose_for = "limma", force = FALSE, verbose = TRUE, ...) {
+choose_dataset <- function(input, choose_for = "limma", force = FALSE, ...) {
   ## arglist <- list(...)
   result <- NULL
   if (choose_for == "limma") {
@@ -725,9 +692,7 @@ choose_dataset <- function(input, choose_for = "limma", force = FALSE, verbose =
   } else if (choose_for == "deseq") {
     result <- choose_binom_dataset(input, force = force, ...)
   } else {
-    if (isTRUE(verbose)) {
-      message("Unknown tool for which to choose a data set.")
-    }
+    mesg("Unknown tool for which to choose a data set.")
   }
   return(result)
 }
@@ -741,13 +706,11 @@ choose_dataset <- function(input, choose_for = "limma", force = FALSE, verbose =
 #' @param force Ingore warnings and use the provided data asis.
 #' @param which_voom Choose between limma'svoom, voomWithQualityWeights, or the
 #'  hpgl equivalents.
-#' @param verbose Print some information about what is happening?
 #' @param ... Extra arguments passed to arglist.
 #' @return dataset suitable for limma analysis
 #' @seealso [limma] [choose_dataset()]
-choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", verbose = TRUE, ...) {
+choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...) {
   ## arglist <- list(...)
-  input_class <- class(input)
   data <- NULL
   warn_user <- 0
   libsize <- NULL
@@ -767,60 +730,51 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ver
   ## this, I will add a parameter which allows one to to turn on/off
   ## normalization at the voom() step.
 
-  if ("expt" %in% input_class) {
-    conditions <- input[["conditions"]]
-    batches <- input[["batches"]]
-    libsize <- input[["libsize"]]
-    data <- as.data.frame(exprs(input))
+  conditions <- pData(input)[["condition"]]
+  batches <- pData(input)[["batch"]]
+  libsize <- input[["libsize"]]
+  data <- as.data.frame(exprs(input))
+  state <- state(input)
+  tran_state <- state[["transform"]]
+  ## Note that voom will take care of this for us.
+  if (is.null(tran_state)) {
+    tran_state <- "raw"
+  }
+  conv_state <- state[["conversion"]]
+  ## Note that voom takes care of this for us.
+  if (is.null(conv_state)) {
+    conv_state <- "raw"
+  }
+  norm_state <- state[["normalization"]]
+  if (is.null(norm_state)) {
+    norm_state <- "raw"
+  }
+  filt_state <- state[["filter"]]
+  if (is.null(filt_state)) {
+    filt_state <- "raw"
+  }
 
-    tran_state <- input[["state"]][["transform"]]
-    ## Note that voom will take care of this for us.
-    if (is.null(tran_state)) {
-      tran_state <- "raw"
-    }
-    conv_state <- input[["state"]][["conversion"]]
-    ## Note that voom takes care of this for us.
-    if (is.null(conv_state)) {
-      conv_state <- "raw"
-    }
-    norm_state <- input[["state"]][["normalization"]]
-    if (is.null(norm_state)) {
-      norm_state <- "raw"
-    }
-    filt_state <- input[["state"]][["filter"]]
-    if (is.null(filt_state)) {
-      filt_state <- "raw"
-    }
+  ## ready <- input
+  data <- exprs(input)
+  if (isTRUE(force)) {
+    mesg("Leaving the data alone, regardless of normalization state.")
+    retlist <- list(
+      "libsize" = libsize,
+      "conditions" = conditions,
+      "batches" = batches,
+      "data" = data)
+    return(retlist)
+  }
 
-    ## ready <- input
-    data <- exprs(input)
-    if (isTRUE(force)) {
-      if (isTRUE(verbose)) {
-        mesg("Leaving the data alone, regardless of normalization state.")
-      }
-      retlist <- list(
-        "libsize" = libsize,
-        "conditions" = conditions,
-        "batches" = batches,
-        "data" = data)
-      return(retlist)
+  ## If we are using limma::voom*, then make sure we do things the limma way.
+  ## If we use the hpgltools::hpgl_voom*, let the freak flags fly.
+  if (grepl(pattern = "limma", x = which_voom)) {
+    ## Limma's voom requires we return log2(cpm()) to base 10.
+    ## Otherwise it should accept pretty much anything.
+    if (tran_state == "log2") {
+      mesg("Using limma's voom, returning to base 10.")
+      data <- (2 ^ data) - 1
     }
-
-    ## If we are using limma::voom*, then make sure we do things the limma way.
-    ## If we use the hpgltools::hpgl_voom*, let the freak flags fly.
-    if (grepl(pattern = "limma", x = which_voom)) {
-      ## Limma's voom requires we return log2(cpm()) to base 10.
-      ## Otherwise it should accept pretty much anything.
-      if (tran_state == "log2") {
-        if (isTRUE(verbose)) {
-          mesg("Using limma's voom, returning to base 10.")
-        }
-        data <- (2 ^ data) - 1
-      }
-    }
-  } else {
-    data <- as.data.frame(input)
-    libsize <- colSums(data)
   }
   retlist <- list(
     "libsize" = libsize,
@@ -853,7 +807,6 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ver
 #' @param contr List of contrasts.arg possibilities.
 #' @param surrogates Number of or method used to choose the number of surrogate
 #'  variables.
-#' @param verbose Print some information about what is happening?
 #' @param ... Further options are passed to arglist.
 #' @return List including a model matrix and strings describing cell-means and
 #'  intercept models.
@@ -869,7 +822,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
                          model_cond = TRUE, model_intercept = FALSE, model_sv = NULL,
                          alt_model = NULL, alt_string = NULL,
                          intercept = 0, reverse = FALSE, contr = NULL,
-                         surrogates = "be", verbose = TRUE, keep_underscore = TRUE, ...) {
+                         surrogates = "be", keep_underscore = TRUE, ...) {
   arglist <- list(...)
   design <- NULL
   model_batch_info <- NULL
@@ -985,11 +938,9 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     including <- "condition"
   } else if (isTRUE(model_cond) && isTRUE(model_batch)) {
     if (class(condbatch_int_model)[1] == "try-error") {
-      if (isTRUE(verbose)) {
-        message("The condition+batch model failed. ",
-                "Does your experimental design support both condition and batch? ",
-                "Using only a conditional model.")
-      }
+      mesg("The condition+batch model failed. ",
+           "Does your experimental design support both condition and batch? ",
+           "Using only a conditional model.")
       int_model <- cond_int_model
       noint_model <- cond_noint_model
       int_fstring <- cond_int_fstring
@@ -1010,10 +961,8 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     }
   } else if (class(model_batch)[1] == "character") {
     ## Then calculate the estimates using all_adjusters
-    if (isTRUE(verbose)) {
-      mesg("Extracting surrogate estimates from ", model_batch,
-              " and adding them to the model.")
-    }
+    mesg("Extracting surrogate estimates from ", model_batch,
+         " and adding them to the model.")
     model_batch_info <- all_adjusters(input, estimate_type = model_batch,
                                       surrogates = surrogates)
     ## Changing model_batch from 'sva' to the resulting matrix.
@@ -1037,9 +986,7 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
     rownames(model_batch) <- rownames(int_model)
     including <- glue("condition{sv_fstring}")
   } else if (class(model_batch)[1] == "numeric" || class(model_batch)[1] == "matrix") {
-    if (isTRUE(verbose)) {
-      mesg("Including batch estimates from sva/ruv/pca in the model.")
-    }
+    mesg("Including batch estimates from sva/ruv/pca in the model.")
     int_fstring <- "~ condition"
     noint_fstring <- "~ 0 + condition"
     sv_added <- ""
@@ -1108,15 +1055,11 @@ choose_model <- function(input, conditions = NULL, batches = NULL, model_batch =
   chosen_model <- NULL
   chosen_fstring <- NULL
   if (isTRUE(model_intercept)) {
-    if (isTRUE(verbose)) {
       mesg("Choosing the intercept containing model.")
-    }
     chosen_model <- int_model
     chosen_fstring <- int_fstring
   } else {
-    if (isTRUE(verbose)) {
-      mesg("Choosing the non-intercept containing model.")
-    }
+    mesg("Choosing the non-intercept containing model.")
     chosen_model <- noint_model
     chosen_fstring <- noint_fstring
   }
@@ -1432,7 +1375,7 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
       for (l in seq_len(len)) {
         contr <- names(retlst[[d_name]])[l]
         mesg(glue("Comparing {contr} of {d_name} vs. {e_name}."))
-        if (contr %in% extra_eval_names) {
+        if (!is.null(extra_eval_names) && contr %in% extra_eval_names) {
           next
         }
 
@@ -2252,7 +2195,7 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
   colnames(model) <- tmpnames
   conditions <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = conditions)
   condition_table <- table(conditions)
-  if (isTRUE(verbose) && isTRUE(interactive())) {
+  if (isTRUE(getOption("verbose")) && isTRUE(interactive())) {
     mesg("The provided conditions are:")
     print(condition_table)
   }
