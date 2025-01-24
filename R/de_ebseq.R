@@ -58,6 +58,7 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
   conditions_table <- table(conditions)
   batches_table <- table(batches)
   condition_levels <- levels(as.factor(conditions))
+  numerators <- denominators <- c()
 
   if (method == "pairwise_subset") {
     result <- ebseq_pairwise_subset(input,
@@ -65,6 +66,8 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
                                     target_fdr = target_fdr, norm = norm, force = force,
                                     keep_underscore = keep_underscore,
                                     ...)
+    numerators <- result[["numerators"]]
+    denominators <- result[["denominators"]]
   } else {
     mesg("Starting single EBSeq invocation.")
 
@@ -76,6 +79,8 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
       result <- ebseq_two(input,
                           ng_vector = ng_vector, rounds = rounds,
                           target_fdr = target_fdr, norm = norm)
+      numerators <- result[["numerator"]]
+      denominators <- result[["denominators"]]
     } else if (length(condition_levels) > 5) {
       stop("Beyond 5 conditions generates too many patterns, ",
            "please provide a pattern matrix, or 'all_same'.")
@@ -91,8 +96,9 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
       "all_tables" = result,
       "conditions" = conditions,
       "conditions_table" = conditions_table,
-      "method" = "ebseq"
-  )
+      "denominators" = denominators,
+      "method" = "ebseq",
+      "numerators" = numerators)
   class(retlist) <- c("ebseq_pairwise", "list")
   return(retlist)
 }
@@ -150,6 +156,7 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
                                  keep_underscore = keep_underscore,
                                  ...)
   contrasts_performed <- c()
+  numerators <- denominators <- c()
   retlst <- list()
   for (c in seq_along(apc[["names"]])) {
     name  <- apc[["names"]][[c]]
@@ -168,8 +175,12 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
     a_result <- ebseq_two(pair_data, conditions, numerator = b_name, denominator = a_name,
                           ng_vector = ng_vector, rounds = rounds, target_fdr = target_fdr,
                           norm = norm, force = force)
+    numerators <- c(numerators, a_result[["numerator"]])
+    denominators <- c(denominators, a_result[["denominator"]])
     retlst[[name]] <- a_result
   }
+  retlst[["numerators"]] <- numerators
+  retlst[["denominators"]] <- denominators
   return(retlst)
 }
 
@@ -276,7 +287,9 @@ ebseq_few <- function(data, conditions,
   retlst <- list(
       "all_tables" = table_lst,
       "conditions" = conditions,
-      "method" = "ebseq")
+      "denominator" = denominator,
+      "method" = "ebseq",
+      "numerator" = numerator)
   return(retlst)
 }
 

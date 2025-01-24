@@ -67,7 +67,7 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
 #'  estimate_vs_snps <- plot_batchsv(start, surrogate_estimate, "snpcategory")
 #' }
 #' @export
-plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", factor_type = "factor",
+plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", condition_column = "condition", factor_type = "factor",
                          id_column = "sampleid") {
   meta <- pData(expt)
   chosen <- meta[[batch_column]]
@@ -77,13 +77,14 @@ plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", factor_type 
   if (is.null(samples)) {
     samples <- rownames(meta)
   }
+  expt_colors <- colors(expt)
 
   factor_df <- data.frame(
     "sample" = samples,
     "factor" = as.integer(as.factor(pData(expt)[[batch_column]])),
-    "fill" = expt[["colors"]],
-    "condition" = expt[["conditions"]],
-    "batch" = expt[["batches"]],
+    "fill" = expt_colors,
+    "condition" = pData(expt)[[condition_column]],
+    "batch" = pData(expt)[[batch_column]],
     "color" = "black",
     "svs" = svs[, sv])
   if (num_batches <= 5) {

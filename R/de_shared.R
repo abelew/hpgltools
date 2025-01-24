@@ -326,6 +326,9 @@ binary_pairwise <- function(...) {
 calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp",
                            lx = "deseq_logfc", ly = "edger_logfc", cor_method = "pearson",
                            topn = 0.1) {
+
+  ## FIXME: There is a bug in here whereby using tbl and tbl2 is mis-merging.
+
   ## If the topn argument is an integer, the just ask for that number.
   ## If it is a floating point 0<x<1, then set topn to that proportion
   ## of the number of genes.
@@ -354,7 +357,7 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
       ly <- paste0(ly, ".y")
     }
   }
-
+  scatter <- plot_linear_scatter(tbl[, c(lx, ly)])
   x_df <- tbl[, c(px, lx)]
   x_order <- rownames(x_df)
   y_df <- tbl[x_order, c(py, ly)]
@@ -417,7 +420,8 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
   retlist <- list(
     "aucc" = aucc,
     "cor" = simple_cor,
-    "plot" = intersection_plot)
+    "plot" = intersection_plot,
+    "scatter" = scatter)
   class(retlist) <- "aucc_info"
   return(retlist)
 }

@@ -354,7 +354,7 @@ setMethod(
                         lfc_cutoff = 1.0, p_cutoff = 0.05,
                         format_sig = 4, plot_colors = plot_colors,
                         z = 1.5, alpha = 0.4, z_lines = FALSE,
-                        label = 10, label_column = "hgncsymbol",
+                        label = 10, label_column = "hgnc_symbol",
                         scale_p = FALSE) {
     if (keepers[1] == "all") {
       new_keepers <- list()

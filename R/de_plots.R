@@ -41,7 +41,7 @@ extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
                              numerator = NULL, denominator = NULL, alpha = 0.4, z = 1.5, n = NULL,
                              lfc_cutoff = 1.0, p_cutoff = 0.05, adjp = TRUE, found_table = NULL,
                              p_type = "adj", color_high = NULL, color_low = NULL, loess = FALSE,
-                             z_lines = FALSE, label = 10, label_column = "hgncsymbol") {
+                             z_lines = FALSE, label = 10, label_column = "hgnc_symbol") {
 
   if (is.null(type)) {
     if (grepl(pattern = "pairwise", x = class(pairwise)[1])) {
@@ -866,7 +866,7 @@ plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebs
 plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qvalue",
                        pval = 0.05, alpha = 0.4, logfc = 1.0, label_numbers = TRUE,
                        size = 2, shapes = TRUE, invert = FALSE, label = NULL,
-                       label_column = "hgncsymbol", ...) {
+                       label_column = "hgnc_symbol", ...) {
   ## Set up the data frame which will describe the plot
   arglist <- list(...)
   ## I like dark blue and dark red for significant and insignificant genes respectively.
@@ -1074,7 +1074,7 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
                                  color_high = "red", color_low = "blue",
                                  pval = 0.05, alpha = 0.4, logfc = 1.0, label_numbers = TRUE,
                                  size = 2, shapes = TRUE, invert = FALSE,
-                                 label = 10, label_column = "hgncsymbol", ...) {
+                                 label = 10, label_column = "hgnc_symbol", ...) {
   ## Set up the data frame which will describe the plot
 
   ## Example caller:
@@ -1361,7 +1361,7 @@ plot_volcano_de <- function(table, alpha = 0.5, color_by = "p",
                             p_col = "adj.P.Val", p_name = "-log10 p-value", p = 0.05,
                             shapes_by_state = FALSE, minimum_p = NULL,
                             size = 2, invert = FALSE, label = NULL,
-                            label_column = "hgncsymbol", ...) {
+                            label_column = "hgnc_symbol", ...) {
   arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(p)
@@ -1547,7 +1547,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       shapes_by_state = FALSE, stroke = TRUE, fill = TRUE,
                                       color_high = "darkred", color_low = "darkblue",
                                       size = 2, invert = FALSE, label = NULL, label_type = "text",
-                                      label_column = "hgncsymbol", label_size = 6, ...) {
+                                      label_column = "hgnc_symbol", label_size = 6, ...) {
   arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(pval)

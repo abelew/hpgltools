@@ -1615,7 +1615,7 @@ extract_keepers <- function(extracted, keepers, table_names,
                             lfc_cutoff = 1.0, p_cutoff = 0.05,
                             format_sig = 4, plot_colors = plot_colors,
                             z = 1.5, alpha = 0.4, z_lines = FALSE,
-                            label = 10, label_column = "hgncsymbol",
+                            label = 10, label_column = "hgnc_symbol",
                             wanted_genes = NULL, scale_p = FALSE) {
   ## First check that your set of keepers is in the data
   ## all_keepers is therefore the set of all coefficients in numerators/denominators
@@ -1737,7 +1737,8 @@ extract_keepers <- function(extracted, keepers, table_names,
       numerators[[entry_name]][[method]] <- wanted_numerator
       denominators[[entry_name]][[method]] <- wanted_denominator
       if (isFALSE(internal[["string"]])) {
-        warning("The table for ", entry_name, " does not appear in the pairwise data.")
+        warning("The table for ", entry_name, " using ", method,
+                " does not appear in the pairwise data.")
       }
       if (length(internal[["idx"]]) > 1) {
         warning("There appear to be multiple tables for ", entry_name, " choosing the first.")
