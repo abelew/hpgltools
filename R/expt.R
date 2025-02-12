@@ -158,6 +158,7 @@ colors <- function(expt) {
 libsize <- function(expt) {
   expt[["libsize"]]
 }
+setGeneric("libsize")
 
 #' Setter for library sizes in an expt.
 #' @export
@@ -165,6 +166,7 @@ libsize <- function(expt) {
   expt[["libsize"]] <- value
   return(expt)
 }
+setGeneric("libsize<-")
 
 #' Sum the reads/gene for multiple sequencing runs of a single condition/batch.
 #'

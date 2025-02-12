@@ -5,25 +5,25 @@ context("125model_testing.R")
 
 ## model_test just uses qr() to test that the data for a given statistical model
 ## is of sufficient rank and yells at you if it does not.
-pombe_expt <- make_pombe_expt(annotation = FALSE)
+pombe_expt <- make_pombe_se(annotation = FALSE)
 design <- pData(pombe_expt)
 
-pombe_test <- model_test(design, goal = "condition")
-expected <- 1
+pombe_test <- test_model_rank(design, goal = "condition")
+expected <- TRUE
 actual <- pombe_test[["condition"]]
 test_that("Do we get expected rank comparisons for the pombe experiment (condition only)?", {
   expect_equal(actual, expected)
 })
 
-pombe_test <- model_test(design, goal = "batch", factors = "strain")
-expected <- 1
+pombe_test <- test_model_rank(design, goal = "batch", factors = "strain")
+expected <- TRUE
 actual <- pombe_test[["strain"]]
 test_that("Do we get expected rank comparisons for the pombe experiment (~ 0 + strain + batch)?", {
   expect_equal(actual, expected)
 })
 
-pombe_test <- model_test(design, factors = "minute")
-expected <- 0
+pombe_test <- test_model_rank(design, factors = "minute")
+expected <- FALSE
 actual <- pombe_test[["minute"]]
 test_that("Do we get expected rank comparisons for the pombe experiment (~ 0 + strain + minute)?", {
   expect_equal(actual, expected)

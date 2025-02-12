@@ -12,7 +12,8 @@ gather_preprocessing_metadata(
   new_metadata = NULL,
   species = "*",
   type = "genome",
-  subtype = NULL,
+  subtype = "gene",
+  tag = "ID",
   verbose = FALSE,
   md5 = FALSE,
   ...

@@ -5,12 +5,10 @@
 \title{A sanity check that a given set of data is suitable for methods which assume
 a negative binomial distribution of input.}
 \usage{
-choose_binom_dataset(input, verbose = TRUE, force = FALSE, ...)
+choose_binom_dataset(input, force = FALSE, ...)
 }
 \arguments{
 \item{input}{Expressionset containing expt object.}
-
-\item{verbose}{Print some information about what is happening?}
 
 \item{force}{Ignore every warning and just use this data.}
 

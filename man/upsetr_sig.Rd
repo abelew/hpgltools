@@ -12,6 +12,8 @@ upsetr_sig(
   down = TRUE,
   both = FALSE,
   scale = 2,
+  intersections = "all",
+  num_sets = "all",
   ...
 )
 }

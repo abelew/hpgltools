@@ -5,20 +5,20 @@
 #'
 #' @param count_table The counts in their current state.
 #' @param method Batch/SV method to employ.
-#' @param expt_design Experimental design, requiring columns named 'condition' and 'batch'.
+#' @param design Experimental design, requiring columns named 'condition' and 'batch'.
 #' @param current_state State of the data before messing with it.
 #' @param adjust_method Method to use to modify the counts after finding the surrogates.
 #' @param batch_step Choose when to perform this in the set of normalization tasks.
 #' @param ... Extra arguments passed to sva and friends.
-do_batch <- function(count_table, method = "raw", expt_design = expt_design,
-                     current_state = current_state, adjust_method = adjust_method,
-                     batch_step = 4, ...) {
-  arglist <- list(...)
+do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
+                     current_state = NULL, current_design = NULL, expt_state = NULL,
+                     surrogate_method = "be", surrogates = NULL, low_to_zero = FALSE,
+                     cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv", batch_step = 4) {
   retlist <- list(
-      "result" = NULL,
-      "batched_counts" = count_table,
-      "batch_performed" = "raw",
-      "adjust_performed" = "none")
+    "result" = NULL,
+    "batched_counts" = count_table,
+    "batch_performed" = "raw",
+    "adjust_performed" = "none")
 
   if (is.null(method)) {
     method <- "raw"
@@ -29,13 +29,12 @@ do_batch <- function(count_table, method = "raw", expt_design = expt_design,
     return(retlist)
   } else {
     mesg("Step ", batch_step, ": doing batch correction with ",
-         arglist[["batch"]], ".")
+         method, ".")
     result <- try(batch_counts(count_table, method = method,
-                               expt_design = expt_design, adjust_method = adjust_method,
-                               current_state = current_state,
-                               ...))
+                               design = design, adjust_method = adjust_method,
+                               current_state = current_state, surrogates = surrogates))
     ##new_counts <- batch_counts(count_table, method = method,
-    ##                           expt_design = expt_design, adjust_method = adjust_method,
+    ##                           design = design, adjust_method = adjust_method,
     ##                           current_state = current_state)
     if ("try-error" %in% class(result)) {
       warning("The batch_counts call failed.  Returning non-batch reduced data.")
@@ -112,6 +111,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
                            thresh = 2, min_samples = 2, p = 0.01, A = 1, k = 1,
                            cv_min = 0.01, cv_max = 1000,  ## extra parameters for low-count filtering
                            na_to_zero = FALSE, adjust_method = "ruv", verbose = TRUE,
+                           surrogates = "be",
                            ...) {
   arglist <- list(...)
   expt_state <- state(expt)
@@ -213,7 +213,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
                             fasta = fasta, thresh = thresh, batch_step = batch_step,
                             min_samples = min_samples, p = p, A = A, k = k,
                             cv_min = cv_min, cv_max = cv_max, entry_type = entry_type,
-                            adjust_method = adjust_method,
+                            adjust_method = adjust_method, surrogates = surrogates,
                             ...)
   } else {
     normalized <- sm(hpgl_norm(data, expt_state = expt_state, design = design, transform = transform,
@@ -223,7 +223,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
                                fasta = fasta, thresh = thresh, batch_step = batch_step,
                                min_samples = min_samples, p = p, A = A, k = k,
                                cv_min = cv_min, cv_max = cv_max, entry_type = entry_type,
-                               adjust_method = adjust_method,
+                               adjust_method = adjust_method, surrogates = surrogates,
                                ...))
   }
 
@@ -257,11 +257,11 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   ## I am hoping this will prove a more direct place to access it and provide a
   ## chance to double-check that things match
   new_state <- list(
-      "filter" = normalized[["actions"]][["filter"]],
-      "normalization" = normalized[["actions"]][["normalization"]],
-      "conversion" = normalized[["actions"]][["conversion"]],
-      "batch" = normalized[["actions"]][["batch"]],
-      "transform" = normalized[["actions"]][["transform"]])
+    "filter" = normalized[["actions"]][["filter"]],
+    "normalization" = normalized[["actions"]][["normalization"]],
+    "conversion" = normalized[["actions"]][["conversion"]],
+    "batch" = normalized[["actions"]][["batch"]],
+    "transform" = normalized[["actions"]][["transform"]])
 
   ## Keep in mind that low_to_zero should be ignored if transform_state is not raw.
   if (new_state[["transform"]] == "raw" & isTRUE(low_to_zero)) {
@@ -344,6 +344,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
                          thresh = 2, min_samples = 2, p = 0.01, A = 1, k = 1,
                          cv_min = 0.01, cv_max = 1000,  ## extra parameters for low-count filtering
                          na_to_zero = FALSE, adjust_method = "ruv", verbose = TRUE,
+                         surrogates = "be", surrogate_method = NULL, cpus = 4,
+                         noscale = TRUE,
                          ...) {
   arglist <- list(...)
 
@@ -353,6 +355,11 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   convert_performed <- "none"
   filter_performed <- "none"
   transform_performed <- "none"
+
+  ## A stopgap while I clean up these arguments
+  if (is.null(surrogate_method) && "character" %in% class(surrogates)) {
+    surrogate_method <- surrogates
+  }
 
   count_table <- assay(se)
   meta <- S4Vectors::metadata(se)
@@ -451,9 +458,12 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   filtered_counts <- NULL
   sv_df <- NULL
   if (batch_step == 1) {
-    batch_data <- do_batch(count_lst, method = batch,
-                           current_design = design,
-                           ...)
+    batch_data <- do_batch(
+      count_lst, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = se_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
@@ -478,10 +488,12 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   }
 
   if (batch_step == 2) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = meta,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = se_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
@@ -507,10 +519,12 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   ## cpm and rpkm are both from edgeR
   ## They have nice ways of handling the log2 which I should consider
   if (batch_step == 3) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = meta,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = se_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["count_table"]]
     batched_counts <- count_table
@@ -535,17 +549,20 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   ## Step 4: Transformation
   ## Finally, this considers whether to log2 the data or no
   if (batch_step == 4) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = meta,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = se_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
     ## count_table <- do_batch(count_table, method = batch,
-    ##                         expt_design = expt_design, current_state = current_state)
+    ## design = design, current_state = current_state,
+    ## surrogates = surrogates)
   }
 
   transformed_count <- count_table
@@ -570,16 +587,17 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   }
 
   if (batch_step == 5) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = meta,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = se_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["count_table"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
-    ## count_table <- do_batch(count_table, arglist)
   }
 
   impute <- "raw"
@@ -598,25 +616,26 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   ## This list provides the list of operations performed on the data in order
   ## they were done.
   actions <- list(
-      "filter" = filter_performed,
-      "normalization" = norm_performed,
-      "conversion" = convert_performed,
-      "batch" = batch_performed,
-      "adjust" = adjust_performed,
-      "transform" = transform_performed)
+    "surrogates" = surrogates,
+    "filter" = filter_performed,
+    "normalization" = norm_performed,
+    "conversion" = convert_performed,
+    "batch" = batch_performed,
+    "adjust" = adjust_performed,
+    "transform" = transform_performed)
   ## This list contains the intermediate count tables generated at each step
   ## This may be useful if there is a problem in this process.
   ## Each of them also contains the libsize at that point in the process.
   intermediate_counts <- list(
-      "original" = original_counts, ## The original count table, should never
-      ## change from iteration to iteration
-      "input" = as.matrix(data),  ## The input provided to this function, this may
-      ## diverge from original
-      "filter" = filtered_counts,  ## After filtering
-      "normalization" = normalized_counts,  ## and normalization
-      "conversion" = converted_counts,  ## and conversion
-      "batch" = batched_counts,  ## and batch correction
-      "transform" = transformed_counts)  ## and finally, transformation.
+    "original" = original_counts, ## The original count table, should never
+    ## change from iteration to iteration
+    "input" = as.matrix(data),  ## The input provided to this function, this may
+    ## diverge from original
+    "filter" = filtered_counts,  ## After filtering
+    "normalization" = normalized_counts,  ## and normalization
+    "conversion" = converted_counts,  ## and conversion
+    "batch" = batched_counts,  ## and batch correction
+    "transform" = transformed_counts)  ## and finally, transformation.
   if (impute != "raw") {
     intermediate_conts[["impute"]] <- imputed_counts
   }
@@ -632,8 +651,8 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   annotations <- annotations[kept_genes, ]
 
   se <- SummarizedExperiment(assays = count_table,
-    rowData = annotations,
-    colData = design)
+                             rowData = annotations,
+                             colData = design)
   metadata(se) <- meta
   return(se)
 }
@@ -662,6 +681,8 @@ setGeneric("normalize_se")
 hpgl_norm <- function(data, ...) {
   arglist <- list(...)
   batch <- arglist[["batch"]]
+  surrogates <- arglist[["surrogates"]]
+  adjust_method <- arglist[["adjust_method"]]
   filter_performed <- "raw"
   norm_performed <- "raw"
   convert_performed <- "raw"
@@ -669,37 +690,37 @@ hpgl_norm <- function(data, ...) {
   batch_performed <- "raw"
   adjust_performed <- "none"
   expt_state <- list(
-      "low_filter" = filter_performed,
-      "normalization" = norm_performed,
-      "conversion" = convert_performed,
-      "batch" = batch_performed,
-      "adjust" = adjust_performed,
-      "transform" = transform_performed)
+    "low_filter" = filter_performed,
+    "normalization" = norm_performed,
+    "conversion" = convert_performed,
+    "batch" = batch_performed,
+    "adjust" = adjust_performed,
+    "transform" = transform_performed)
   data_class <- class(data)[1]
   original_counts <- NULL
   original_libsize <- NULL
   annot <- NULL
   counts <- NULL
-  expt_design <- NULL
+  design <- NULL
   ## I never quite realized just how nice data.tables are.  To what extent can I refactor
   ## all of my data frame usage to them?
   if (data_class == "expt") {
     original_counts <- data[["original_counts"]]
     original_libsizes <- data[["original_libsize"]]
-    expt_design <- pData(data)
+    design <- pData(data)
     annot <- fData(data)
     counts <- exprs(data)
     expt_state <- data[["state"]]
   } else if (data_class == "ExpressionSet") {
     counts <- exprs(data)
-    expt_design <- pData(data)
+    design <- pData(data)
     annot <- fData(data)
     if (!is.null(arglist[["expt_state"]])) {
       expt_state <- arglist[["expt_state"]]
     }
   } else if (data_class == "list") {
     counts <- data[["count_table"]]
-    expt_design <- arglist[["design"]]
+    design <- arglist[["design"]]
     if (is.null(data)) {
       stop("The list provided contains no count_table.")
     }
@@ -707,8 +728,8 @@ hpgl_norm <- function(data, ...) {
       expt_state <- arglist[["expt_state"]]
     }
   } else if (data_class == "matrix" ||
-             data_class == "data.frame" ||
-             data_class == "data.table") {
+               data_class == "data.frame" ||
+               data_class == "data.table") {
     counts <- as.data.frame(data)  ## some functions prefer matrix, so I am
     ## keeping this explicit for the moment. In the case of data.tables, even if
     ## you set the rownames, the first column might still be rowname characters
@@ -717,7 +738,7 @@ hpgl_norm <- function(data, ...) {
       rownames(counts) <- make.names(counts[[1]], unique = TRUE)
       counts <- counts[-1]
     }
-    expt_design <- arglist[["design"]]
+    design <- arglist[["design"]]
     if (!is.null(arglist[["expt_state"]])) {
       expt_state <- arglist[["expt_state"]]
     }
@@ -742,21 +763,24 @@ hpgl_norm <- function(data, ...) {
   ## Make changes to this as we go.
   current_state <- expt_state
   batched_counts <- NULL
-  batch_step <- 5
+  batch_step <- 4
   if (!is.null(arglist[["batch_step"]])) {
     batch_step <- arglist[["batch_step"]]
   }
   if (!is.numeric(batch_step)) {
-    batch_step <- 5
+    batch_step <- 4
   } else if (batch_step > 5 | batch_step < 0) {
-    batch_step <- 5
+    batch_step <- 4
   }
 
   sv_df <- NULL
   if (batch_step == 1) {
-    batch_data <- do_batch(count_table, method = batch,
-                           current_design = expt_design,
-                           ...)
+    batch_data <- do_batch(count_table, method = batch, design = design,
+                           batch1 = batch1, current_state = current_state,
+                           expt_state = expt_state, surrogate_method = surrogate_method,
+                           surrogates = surrogates, low_to_zero = low_to_zero,
+                           cpus = cpus, batch2 = batch2, noscale = noscale,
+                           adjust_method = adjust_method)
     count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
@@ -786,10 +810,12 @@ hpgl_norm <- function(data, ...) {
   }
 
   if (batch_step == 2) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = expt_design,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = expt_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     count_table <- batch_data[["count_table"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
@@ -806,7 +832,7 @@ hpgl_norm <- function(data, ...) {
     mesg("Step 2: not normalizing the data.")
   } else {
     mesg("Step 2: normalizing the data with ", norm, ".")
-    if (is.null(expt_design)) {
+    if (is.null(design)) {
       message("The experimental design is null.  Some normalizations will fail.")
       message("If you get an error about 'no dimensions', that is likely why.")
     }
@@ -822,10 +848,12 @@ hpgl_norm <- function(data, ...) {
   ## cpm and rpkm are both from edgeR
   ## They have nice ways of handling the log2 which I should consider
   if (batch_step == 3) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = expt_design,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = expt_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     count_table <- batch_data[["count_table"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
@@ -852,16 +880,18 @@ hpgl_norm <- function(data, ...) {
   ## Step 4: Transformation
   ## Finally, this considers whether to log2 the data or no
   if (batch_step == 4) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = expt_design,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = expt_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     count_table <- batch_data[["batched_counts"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
     ## count_table <- do_batch(count_table, method = batch,
-    ##                         expt_design = expt_design, current_state = current_state)
+    ##                         design = design, current_state = current_state)
   }
   transformed_counts <- NULL
   transform <- "raw"
@@ -887,10 +917,12 @@ hpgl_norm <- function(data, ...) {
   }
 
   if (batch_step == 5) {
-    batch_data <- do_batch(count_table, method = batch,
-                           expt_design = expt_design,
-                           current_state = current_state,
-                           ...)
+    batch_data <- do_batch(
+      count_table, method = batch, design = design, batch1 = batch1,
+      current_state = current_state, expt_state = expt_state,
+      surrogate_method = surrogate_method, surrogates = surrogates,
+      low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
+      adjust_method = adjust_method)
     count_table <- batch_data[["count_table"]]
     batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
@@ -901,33 +933,34 @@ hpgl_norm <- function(data, ...) {
   ## This list provides the list of operations performed on the data in order
   ## they were done.
   actions <- list(
-      "filter" = filter_performed,
-      "normalization" = norm_performed,
-      "conversion" = convert_performed,
-      "batch" = batch_performed,
-      "adjust" = adjust_performed,
-      "transform" = transform_performed)
+    "filter" = filter_performed,
+    "normalization" = norm_performed,
+    "conversion" = convert_performed,
+    "batch" = batch_performed,
+    "adjust" = adjust_performed,
+    "transform" = transform_performed,
+    "surrogates" = surrogates)
   ## This list contains the intermediate count tables generated at each step
   ## This may be useful if there is a problem in this process.
   ## Each of them also contains the libsize at that point in the process.
   intermediate_counts <- list(
-      "original" = original_counts, ## The original count table, should never
-      ## change from iteration to iteration
-      "input" = as.matrix(data),  ## The input provided to this function, this may
-      ## diverge from original
-      "filter" = filtered_counts,  ## After filtering
-      "normalization" = normalized_counts,  ## and normalization
-      "conversion" = converted_counts,  ## and conversion
-      "batch" = batched_counts,  ## and batch correction
-      "transform" = transformed_counts)  ## and finally, transformation.
+    "original" = original_counts, ## The original count table, should never
+    ## change from iteration to iteration
+    "input" = as.matrix(data),  ## The input provided to this function, this may
+    ## diverge from original
+    "filter" = filtered_counts,  ## After filtering
+    "normalization" = normalized_counts,  ## and normalization
+    "conversion" = converted_counts,  ## and conversion
+    "batch" = batched_counts,  ## and batch correction
+    "transform" = transformed_counts)  ## and finally, transformation.
 
   retlist <- list(
-      "actions" = actions,
-      "intermediate_counts" = intermediate_counts,
-      "count_table" = count_table,  ## The final count table
-      "final_state" = current_state,
-      "sv_df" = sv_df,
-      "libsize" = colSums(count_table, na.rm = TRUE)  ## The final libsizes
+    "actions" = actions,
+    "intermediate_counts" = intermediate_counts,
+    "count_table" = count_table,  ## The final count table
+    "final_state" = current_state,
+    "sv_df" = sv_df,
+    "libsize" = colSums(count_table, na.rm = TRUE)  ## The final libsizes
   )
   return(retlist)
 }
@@ -945,12 +978,12 @@ normalize <- function(expt, todo = list()) {
   ## This expects a list like:
   ## list("norm" = "quant", "filter" = c(pofa, "A" = 1))
   possible_methods <- list(
-      "transform" = "transform_counts",
-      "norm" = "normalize_counts",
-      "convert" = "convert_counts",
-      "filter" = "filter_counts",
-      "batch" = "batch_counts",
-      "impute" = "impute_counts")
+    "transform" = "transform_counts",
+    "norm" = "normalize_counts",
+    "convert" = "convert_counts",
+    "filter" = "filter_counts",
+    "batch" = "batch_counts",
+    "impute" = "impute_counts")
   annot <- fData(expt)
   counts <- exprs(expt)
   design <- pData(expt)

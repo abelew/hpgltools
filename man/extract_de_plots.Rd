@@ -15,8 +15,8 @@ extract_de_plots(
   alpha = 0.4,
   z = 1.5,
   n = NULL,
-  logfc = 1,
-  pval = 0.05,
+  lfc_cutoff = 1,
+  p_cutoff = 0.05,
   adjp = TRUE,
   found_table = NULL,
   p_type = "adj",
@@ -25,7 +25,7 @@ extract_de_plots(
   loess = FALSE,
   z_lines = FALSE,
   label = 10,
-  label_column = "hgncsymbol"
+  label_column = "hgnc_symbol"
 )
 }
 \arguments{
@@ -50,10 +50,6 @@ handle other invocations too.}
 
 \item{n}{Choose the top/bottom-n by logFC.}
 
-\item{logfc}{What logFC to use for the MA plot horizontal lines.}
-
-\item{pval}{Cutoff to define 'significant' by p-value.}
-
 \item{adjp}{Use adjusted p-value?}
 
 \item{found_table}{Result from edger to use, left alone it chooses the first.}
@@ -71,6 +67,10 @@ handle other invocations too.}
 \item{label}{Label this number of top-diff genes.}
 
 \item{label_column}{Use this column for labelling genes.}
+
+\item{logfc}{What logFC to use for the MA plot horizontal lines.}
+
+\item{pval}{Cutoff to define 'significant' by p-value.}
 }
 \value{
 a plot!

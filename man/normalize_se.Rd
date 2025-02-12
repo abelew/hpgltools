@@ -29,6 +29,10 @@ normalize_se(
   na_to_zero = FALSE,
   adjust_method = "ruv",
   verbose = TRUE,
+  surrogates = "be",
+  surrogate_method = NULL,
+  cpus = 4,
+  noscale = TRUE,
   ...
 )
 }

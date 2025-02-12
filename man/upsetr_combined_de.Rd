@@ -11,7 +11,9 @@ upsetr_combined_de(
   adjp = 0.05,
   text_scale = 2,
   color_by = NULL,
-  desired_contrasts = NULL
+  desired_contrasts = NULL,
+  intersections = "all",
+  num_sets = "all"
 )
 }
 \arguments{

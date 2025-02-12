@@ -62,6 +62,14 @@ extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
     denominator <- num_den_names[["denominator"]]
   }
   source_info <- get_plot_columns(combined, type, p_type = p_type, adjp = adjp)
+  if (is.null(source_info)) {
+    retlist <- list(
+    "coef" = NULL,
+    "ma" = NULL,
+    "volcano" = NULL)
+    return(retlist)
+  }
+
   input <- source_info[["the_table"]]
   expr_col <- source_info[["expr_col"]]
   fc_col <- source_info[["fc_col"]]
@@ -604,6 +612,14 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
     }
   } else {
     stop("Unable to discern the table requested.")
+  }
+
+  ## Note: If the table is of the form (a/b)/(c/d), then not all
+  ## methods will be available; indeed in many instances
+  ## only edger and limma will be available
+  ## Therefore, let us drop out now if the requisite columns are missing.
+  if (is.null(the_table[[expr_col]])) {
+    return(NULL)
   }
 
   ## DESeq2 returns the median values as base 10, but we are using log2 (or log10?)
@@ -2182,8 +2198,8 @@ overlap_geneids <- function(overlapping_groups, group) {
 #' @export
 upsetr_combined_de <- function(combined, according_to = "deseq",
                                lfc = 1.0, adjp = 0.05, text_scale = 2,
-                               color_by = NULL,
-                               desired_contrasts = NULL) {
+                               color_by = NULL, desired_contrasts = NULL,
+                               intersections = "all", num_sets = "all") {
   ud_list <- list()
   wanted_tables <- names(combined[["data"]])
   possible_colors <- get_expt_colors(combined[["input"]][["input"]])
@@ -2225,10 +2241,17 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     ud_list[[down_name]] <- down_ids
   }
 
+  if (intersections == "all") {
+    intersections <- NA
+  }
+  if (num_sets == "all") {
+    num_sets <- length(ud_list)
+  }
+
   upset_combined <- NULL
   if (length(names_passed) > 1) {
-    upset_combined <- UpSetR::upset(data = UpSetR::fromList(ud_list),
-                                    text.scale = text_scale, nsets = length(ud_list))
+    upset_combined <- UpSetR::upset(data = UpSetR::fromList(ud_list), nsets = num_sets,
+                                    text.scale = text_scale, nintersects = intersections)
   } else {
     message("Only ", names_passed, " has information, cannot create an UpSet.")
   }
@@ -2256,7 +2279,8 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
 #' @param ... Other parameters to pass to upset().
 #' @export
 upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
-                       down = TRUE, both = FALSE, scale = 2, ...) {
+                       down = TRUE, both = FALSE, scale = 2,
+                       intersections = "all", num_sets = "all", ...) {
 
   ## Start by pulling the gene lists from the significant gene sets.
   start <- sig[[according_to]]
@@ -2293,20 +2317,36 @@ upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
     }
   } ## End looking for things to list
 
+  if (intersections == "all") {
+    intersections <- NA
+  }
+
   ## Do the plots.
   retlist <- list()
   if (isTRUE(up)) {
+    if (num_sets == "all") {
+      num_sets <- length(upsetr_up_list)
+    }
     retlist[["up"]] <- UpSetR::upset(UpSetR::fromList(upsetr_up_list),
+                                     nintersects = intersections, nsets = num_sets,
                                      text.scale = scale, ...)
     retlist[["up_groups"]] <- overlap_groups(upsetr_up_list)
   }
   if (isTRUE(down)) {
+    if (num_sets == "all") {
+      num_sets <- length(upsetr_down_list)
+    }
     retlist[["down"]] <- UpSetR::upset(UpSetR::fromList(upsetr_down_list),
+                                       nintersects = intersections, nsets = num_sets,
                                        text.scale = scale, ...)
     retlist[["down_groups"]] <- overlap_groups(upsetr_down_list)
   }
   if (isTRUE(both)) {
+    if (num_sets == "all") {
+      num_sets <- length(upsetr_both_list)
+    }
     retlist[["both"]] <- UpSetR::upset(UpSetR::fromList(upsetr_both_list),
+                                       nintersects = intersections, nsets = num_sets,
                                        text.scale = scale, ...)
     retlist[["both_groups"]] <- overlap_groups(upsetr_both_list)
   }

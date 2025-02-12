@@ -4,7 +4,7 @@
 \alias{choose_dataset}
 \title{Choose a suitable data set for Edger/DESeq}
 \usage{
-choose_dataset(input, choose_for = "limma", force = FALSE, verbose = TRUE, ...)
+choose_dataset(input, choose_for = "limma", force = FALSE, ...)
 }
 \arguments{
 \item{input}{Expt input.}
@@ -13,8 +13,6 @@ choose_dataset(input, choose_for = "limma", force = FALSE, verbose = TRUE, ...)
 requested data state.}
 
 \item{force}{Force non-standard data?}
-
-\item{verbose}{Print some information about what is happening?}
 
 \item{...}{More options for future expansion.}
 }

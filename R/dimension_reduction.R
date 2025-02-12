@@ -242,7 +242,7 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
   colors_chosen <- NULL
   exprs_data <- NULL
   data_class <- class(expt)[1]
-  if (data_class == "expt" || data_class == "Summarized_Experiment") {
+  if (data_class == "expt" || data_class == "SummarizedExperiment") {
     expt_design <- pData(expt)
     colors_chosen <- expt[["colors"]]
     exprs_data <- exprs(expt)

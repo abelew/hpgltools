@@ -7,11 +7,19 @@
 do_batch(
   count_table,
   method = "raw",
-  expt_design = expt_design,
-  current_state = current_state,
-  adjust_method = adjust_method,
-  batch_step = 4,
-  ...
+  design,
+  batch1 = "batch",
+  current_state = NULL,
+  current_design = NULL,
+  expt_state = NULL,
+  surrogate_method = "be",
+  surrogates = NULL,
+  low_to_zero = FALSE,
+  cpus = 4,
+  batch2 = NULL,
+  noscale = TRUE,
+  adjust_method = "ruv",
+  batch_step = 4
 )
 }
 \arguments{
@@ -19,7 +27,7 @@ do_batch(
 
 \item{method}{Batch/SV method to employ.}
 
-\item{expt_design}{Experimental design, requiring columns named 'condition' and 'batch'.}
+\item{design}{Experimental design, requiring columns named 'condition' and 'batch'.}
 
 \item{current_state}{State of the data before messing with it.}
 

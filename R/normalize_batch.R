@@ -607,11 +607,12 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #'  sva_batch <- batch_counts(table, design, batch='sva')
 #' }
 #' @export
-batch_counts <- function(count_table, method = TRUE, expt_design = NULL, batch1 = "batch",
+batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "batch",
                          current_state = NULL, current_design = NULL, expt_state = NULL,
                          surrogate_method = NULL, surrogates = NULL, low_to_zero = FALSE,
-                         cpus = 4, batch2 = NULL, noscale = TRUE, ...) {
-  arglist <- list(...)
+                         cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv") {
+                       ##, ...) {
+  arglist <- list()
   if (!is.null(arglist[["batch"]])) {
     method <- arglist[["batch"]]
   }
@@ -658,13 +659,10 @@ batch_counts <- function(count_table, method = TRUE, expt_design = NULL, batch1 
     mesg("Using the initial state of the expressionset.")
   }
 
-  design <- NULL
-  if (is.null(expt_design) && is.null(current_design)) {
+  if (is.null(design) && is.null(current_design)) {
     stop("I require an experimental design.")
   } else if (!is.null(current_design)) {
     design <- current_design
-  } else {
-    design <- expt_design
   }
 
   ## These droplevels calls are required to avoid errors like 'confounded by batch'

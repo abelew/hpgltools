@@ -26,6 +26,7 @@ simple_clusterprofiler(
   do_david = FALSE,
   do_kegg = FALSE,
   david_id = "ENTREZ_GENE_ID",
+  padj_type = "BH",
   david_user = "unknown@unknown.org"
 )
 }

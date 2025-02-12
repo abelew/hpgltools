@@ -28,7 +28,6 @@ all_pairwise(
   keepers = NULL,
   convert = "cpm",
   norm = "quant",
-  verbose = TRUE,
   surrogates = "be",
   methods = NULL,
   keep_underscore = TRUE,
@@ -92,8 +91,6 @@ so it can choose).}
 \item{convert}{Modify the data with a 'conversion' method for PCA?}
 
 \item{norm}{Modify the data with a 'normalization' method for PCA?}
-
-\item{verbose}{Print extra information while running?}
 
 \item{surrogates}{Either a number of surrogates or method to estimate it.}
 

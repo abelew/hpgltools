@@ -142,7 +142,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    updown = "up", permutations = 1000, min_groupsize = 5,
                                    kegg_prefix = NULL, kegg_organism = NULL, do_gsea = TRUE,
                                    categories = 12, excel = NULL, do_david = FALSE, do_kegg = FALSE,
-                                   david_id = "ENTREZ_GENE_ID",
+                                   david_id = "ENTREZ_GENE_ID", padj_type = "BH",
                                    david_user = "unknown@unknown.org") {
   sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
   sm(requireNamespace(package = "DOSE", quietly = TRUE))
@@ -270,27 +270,27 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   mesg("Calculating enriched GO groups.")
   ego_all_mf <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "MF", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = 1.0)
   ego_sig_mf <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "MF", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = pcutoff)
   ego_all_bp <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = 1.0)
   ego_sig_bp <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = pcutoff)
   ego_all_cc <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "CC", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = 1.0)
   ego_sig_cc <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "CC", keyType = orgdb_to,
-                                          minGSSize = min_groupsize, pAdjustMethod = "BH",
+                                          minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = pcutoff)
   enrich_go <- list(
     "MF_all" = as.data.frame(ego_all_mf, stringsAsFactors = FALSE),

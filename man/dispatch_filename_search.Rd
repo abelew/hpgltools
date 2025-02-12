@@ -10,6 +10,8 @@ dispatch_filename_search(
   verbose = verbose,
   species = "*",
   type = "genome",
+  subtype = "gene",
+  tag = "ID",
   basedir = "preprocessing"
 )
 }

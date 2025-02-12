@@ -17,7 +17,7 @@ plot_ma_de(
   shapes = TRUE,
   invert = FALSE,
   label = NULL,
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   ...
 )
 }

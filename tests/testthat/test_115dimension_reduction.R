@@ -5,7 +5,7 @@ context("115dimension_reduction.R")
 ## pca_information() pca_highscores() pcRes() plot_pca()
 ## plot_pcs() test_pca_methods()
 
-pombe_expt <- make_pombe_expt(annotation = FALSE)
+pombe_expt <- make_pombe_se()
 
 testing <- pca_information(pombe_expt, plot_pcas = TRUE,
                            expt_factors = c("strain", "minute", "replicate"))

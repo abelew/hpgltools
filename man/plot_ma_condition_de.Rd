@@ -20,7 +20,7 @@ plot_ma_condition_de(
   shapes = TRUE,
   invert = FALSE,
   label = 10,
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   ...
 )
 }

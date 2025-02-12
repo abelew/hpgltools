@@ -9,6 +9,7 @@ plot_batchsv(
   svs,
   sv = 1,
   batch_column = "batch",
+  condition_column = "condition",
   factor_type = "factor",
   id_column = "sampleid"
 )

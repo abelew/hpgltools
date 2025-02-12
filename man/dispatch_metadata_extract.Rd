@@ -15,6 +15,8 @@ dispatch_metadata_extract(
   old_spec = NULL,
   species = "*",
   type = "genome",
+  subtype = "gene",
+  tag = "ID",
   ...
 )
 }

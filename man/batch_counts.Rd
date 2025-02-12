@@ -7,7 +7,7 @@
 batch_counts(
   count_table,
   method = TRUE,
-  expt_design = NULL,
+  design = NULL,
   batch1 = "batch",
   current_state = NULL,
   current_design = NULL,
@@ -18,15 +18,13 @@ batch_counts(
   cpus = 4,
   batch2 = NULL,
   noscale = TRUE,
-  ...
+  adjust_method = "ruv"
 )
 }
 \arguments{
 \item{count_table}{Matrix of (pseudo)counts.}
 
 \item{method}{Choose the method for batch/surrogate estimation.}
-
-\item{expt_design}{Model matrix defining the experimental conditions/batches/etc.}
 
 \item{batch1}{String describing the method to try to remove the batch effect
 (or FALSE to leave it alone, TRUE uses limma).}
@@ -52,6 +50,8 @@ remove (only used by limma at the moment).}
 
 \item{noscale}{Used for combatmod, when true it removes the scaling
 parameter from the invocation of the modified combat.}
+
+\item{expt_design}{Model matrix defining the experimental conditions/batches/etc.}
 
 \item{...}{More options for you!}
 }

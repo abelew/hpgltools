@@ -76,6 +76,12 @@ setMethod(
     return(object)
   })
 
+#' @export
+as.data.frame.annotations_biomart <- function(x, row.names = NULL, optional = FALSE, ...) {
+  message("Defauting to the gene annotations.")
+  x[["gene_annotations"]]
+}
+
 #' A getter to pull the assay data from an expt.
 #'
 #' @param x One of my various expressionset analogs, expt,
@@ -156,6 +162,24 @@ setMethod(
     backup <- expt
     S4Vectors::metadata(expt)[["original_se"]] <- backup
     return(expt)
+  })
+
+#' @export
+setMethod(
+  "conditions", signature = signature(object = "SummarizedExperiment"),
+  definition = function(object, ...) {
+    cond <- colData(object)[["condition"]]
+    names(cond) <- sampleNames(object)
+    return(cond)
+  })
+
+#' @export
+setMethod(
+  "conditions<-", signature = signature(object = "SummarizedExperiment"),
+  definition = function(object, ..., value) {
+    colData(se)[["condition"]] <- value
+    se <- set_se_colors(se)
+    return(se)
   })
 
 #' A getter to pull the sample data from an expt.
@@ -490,6 +514,15 @@ setMethod(
   function(object, ...) {
     iDAoutput <- iDA::iDA_core(object, ...)
     return(iDAoutput)
+  })
+
+#' Get the library sizes of a summarized experiment.
+#' @export
+setMethod(
+  "libsize", signature = signature(expt = "SummarizedExperiment"),
+  definition = function(expt) {
+    meta <- S4Vectors::metadata(expt)
+    meta[["libsize"]]
   })
 
 #setMethod(

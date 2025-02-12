@@ -1,3 +1,29 @@
+#' @export
+batches <- function(se) {
+  batches <- colData(se)[["batch"]]
+  names(batches) <- sampleNames(se)
+  return(batches)
+}
+setGeneric("batches")
+
+#' @export
+`batches<-` <- function(se, values) {
+  colData(se)[["batch"]] <- values
+  return(se)
+}
+setGeneric("batches<-")
+
+#' @export
+conditions <- function(se) {
+  return(colData(se)[["condition"]])
+}
+
+#' @export
+`conditions<-` <- function(se, values) {
+  colData(se)[["condition"]] <- values
+  return(se)
+}
+
 #' Create a SummarizedExperiment given some metadata
 #'
 #' This function was taken from create_expt() and repurposed to create SummarizedExperiments.
@@ -26,7 +52,7 @@
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, countdir = NULL, include_type = "all",
+                      notes = NULL, include_type = "all", countdir = NULL,
                       include_gff = NULL, file_column = "file", id_column = NULL,
                       savefile = NULL, low_files = FALSE, annotation = "org.Hs.eg.db",
                       palette = "Dark2", round = FALSE, tx_gene_map = NULL,
@@ -52,15 +78,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## used for naming the type of microarray chip used.
   ## I do not know if any work will need to be done for a SE
 
-  ## Palette for colors when auto-chosen
-  file_suffix <- ".count.gz"
-  if (!is.null(arglist[["file_suffix"]])) {
-    file_suffix <- arglist[["file_suffix"]]
-  }
-  file_prefix <- ""
-  if (!is.null(arglist[["file_prefix"]])) {
-    file_prefix <- arglist[["file_prefix"]]
-  }
   gff_type <- "all"
   if (!is.null(arglist[["include_type"]])) {
     gff_type <- arglist[["include_type"]]
@@ -70,10 +87,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     id_column <- "sampleid"
   } else {
     id_column <- tolower(id_column)
-    id_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = id_column)
+    id_column <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = id_column, perl = TRUE)
   }
-  file_column <- tolower(file_column)
-  file_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = file_column)
   ## Read in the metadata from the provided data frame, csv, or xlsx.
   message("Reading the sample metadata.")
   sample_definitions <- extract_metadata(metadata, id_column = id_column,
@@ -115,6 +130,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     ## If neither of these cases is true, start looking for the files in the
     ## processed_data/ directory
   } else if (is.null(sample_definitions[[file_column]])) {
+    message("This will fail because: ", file_column, " does not exist.")
+    message("Here are the possible columns: ", toString(colnames(sample_definitions)))
     stop("This requires a column containing the input data.")
   }
 
@@ -250,6 +267,12 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     gene_info <- data.table::as.data.table(gene_info, keep.rownames = "rownames")
   }
 
+  geneid_check <- grepl(x = all_count_tables[["rownames"]], pattern = "^gene:")
+  if (sum(geneid_check) > 0) {
+    all_count_tables[["rownames"]] <- gsub(x = all_count_tables[["rownames"]],
+                                           pattern = "^gene:", replacement = "")
+  }
+
   ## It turns out that loading the annotation information from orgdb/etc may not set the
   ## row names. Perhaps I should do that there, but I will add a check here, too.
   found_sum <- sum(gene_info[["rownames"]] %in% all_count_tables[["rownames"]])
@@ -338,7 +361,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   final_kept <- colnames(final_annotations) != "rownames"
   final_annotations <- final_annotations[, final_kept]
 
-  ## There are some shenanigans, Maddy is getting an error on countsdt...
   final_counts <- counts_and_annotations
   kept_columns <- colnames(counts_and_annotations) %in% colnames(all_count_tables) &
     colnames(counts_and_annotations) != "temporary_id_number"
@@ -400,17 +422,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   chosen_colors <- generate_expt_colors(sample_definitions, sample_colors = sample_colors,
                                         chosen_palette = palette)
 
-  ## Fill in incomplete tables.
-  if (is.null(sample_definitions[["condition"]])) {
-    sample_definitions[["condition"]] <- "unknown"
-  }
-  if (is.null(sample_definitions[["batch"]])) {
-    sample_definitions[["batch"]] <- "unknown"
-  }
-  if (is.null(sample_definitions[["file"]])) {
-    sample_definitions[["file"]] <- "null"
-  }
-
   requireNamespace("SummarizedExperiment")
   ## SummarizedExperiments vs. ExpressionSets:
   ## assays() vs. exprs()
@@ -423,7 +434,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Note that metadata() is just a list, so anything may be dumped here.
   se <- SummarizedExperiment(assays = final_counts,
                              rowData = final_annotations,
-                             colData = metadata)
+                             colData = sample_definitions)
   metadata(se)[["notes"]] <- notes
   metadata(se)[["title"]] <- title
   metadata(se)[["annotation"]] <- annotation
@@ -438,10 +449,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   metadata(se)[["state"]] <- starting_state
   se_conditions <- sample_definitions[["condition"]]
   names(se_conditions) <- rownames(sample_definitions)
-  metadata(se)[["conditions"]] <- se_conditions
   se_batches <- sample_definitions[["batch"]]
   names(se_batches) <- rownames(sample_definitions)
-  metadata(se)[["batches"]] <- se_batches
   se_libsizes <- colSums(final_counts)
   names(se_libsizes) <- rownames(sample_definitions)
   metadata(se)[["libsize"]] <- se_libsizes
@@ -460,14 +469,14 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Save an rdata file of the se.
   if (is.null(savefile)) {
     if ("character" %in% class(metadata)) {
-      name <- paste0(gsub(x = basename(metadata), pattern = "^(.*)\\..*",
+      savefile <- paste0(gsub(x = basename(metadata), pattern = "^(.*)\\..*",
                           replacement = "\\1"), ".rda")
     } else {
       message("Saving the summarized experiment to 'se.rda'.")
       savefile <- "se.rda"
     }
   }
-  save_result <- try(save(expt, file = savefile), silent = TRUE)
+  save_result <- try(save(se, file = savefile), silent = TRUE)
   if (class(save_result) == "try-error") {
     warning("Saving the summarized experiment object failed, perhaps you do not have permissions?")
   }
@@ -522,6 +531,283 @@ make_pombe_se <- function(annotation = TRUE) {
                            gene_info = annotations))
   detach("package:fission")
   return(pombe_se)
+}
+
+get_se_colors <- function(se, keep_underscore = TRUE) {
+  all_colors <- colors(se)
+  condition_fact <- as.character(colData(se)[["condition"]])
+  if (isTRUE(keep_underscore)) {
+    condition_fact <- gsub(pattern="[^_[:^punct:]]", replacement = "",
+                           x = condition_fact, perl = TRUE)
+  } else {
+    condition_fact <- gsub(x = condition_fact, pattern = "[[:punct:]]", replacement = "")
+  }
+  names(all_colors) <- condition_fact
+  single_idx <- !duplicated(all_colors)
+  all_colors <- all_colors[single_idx]
+  return(all_colors)
+}
+
+set_se_batches <- function(se, fact, ids = NULL, ...) {
+  arglist <- list(...)
+  original_batches <- colData(se)[["batch"]]
+  original_length <- length(original_batches)
+  if (length(fact) == 1) {
+    ## Assume it is a column in the design
+    if (fact %in% colnames(colData(se))) {
+      fact <- colData(se)[[fact]]
+    } else {
+      stop("The provided factor is not in the design matrix.")
+    }
+  }
+
+  if (length(fact) != original_length) {
+    stop("The new factor of batches is not the same length as the original.")
+  }
+  colData(se)[["batch"]] <- fact
+  message("The number of samples by batch are: ")
+  print(table(colData(se)[["batch"]]))
+  return(se)
+}
+
+set_se_colors <- function(se, colors = TRUE,
+                            chosen_palette = "Dark2", change_by = "condition") {
+  condition_factor <- as.factor(colData(se)[["condition"]])
+
+  ## Since I already have logic for named characters, just convert a list to one...
+  if ("list" %in% class(colors)) {
+    new_colors <- as.character(colors)
+    names(new_colors) <- names(colors)
+    colors <- new_colors
+  }
+
+  num_conditions <- length(levels(condition_factor))
+  design <- colData(se)
+  num_samples <- nrow(design)
+  sample_ids <- design[["sampleid"]]
+  ## chosen_colors <- se[["conditions"]]
+  chosen_colors <- condition_factor
+  chosen_names <- names(chosen_colors)
+  sample_colors <- NULL
+  if (is.null(colors) | isTRUE(colors)) {
+    sample_colors <- sm(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  } else if (class(colors) == "factor") {
+    if (change_by == "condition") {
+      mesg("The new colors are a factor, changing according to condition.")
+      ## In this case, we have every color accounted for in the set of conditions.
+      colors_allocated <- names(colors) %in% levels(colData(se)[["condition"]])
+      if (sum(colors_allocated) < length(colors)) {
+        missing_colors <- colors[!colors_allocated]
+        stop("Colors for the following categories are not being used: ",
+             names(missing_colors), ".")
+      }
+      possible_conditions <- levels(colData(se)[["condition"]])
+      conditions_allocated <- possible_conditions %in% names(colors)
+      if (sum(conditions_allocated) < length(possible_conditions)) {
+        missing_conditions <- possible_conditions[!conditions_allocated]
+        missing_samples <- c()
+        for (cond in missing_conditions) {
+          missing_by_condition <- colData(se)[["condition"]] == cond
+          missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
+          missing_samples <- c(missing_samples, missing_samples_by_cond)
+        }
+        warning("Some conditions do not have a color: ", missing_conditions, ".")
+        warning("These samples are: ", missing_samples, ".")
+      }
+      mapping <- colors
+      chosen_colors <- mapping[as.character(chosen_colors)]
+      names(chosen_colors) <- chosen_names
+    } else if (change_by == "sample") {
+      mesg("The new colors are a factor, changing according to sampleID.")
+      ## This is changing them by sample id.
+      ## In this instance, we are changing specific colors to the provided colors.
+      chosen_colors <- se[["colors"]]
+      for (snum in seq_along(names(colors))) {
+        sampleid <- names(colors)[snum]
+        sample_color <- colors[[snum]]
+        chosen_colors[[sampleid]] <- sample_color
+      }
+    }
+    chosen_idx <- complete.cases(chosen_colors)
+    chosen_colors <- chosen_colors[chosen_idx]
+  } else if (class(colors) == "character") {
+    if (is.null(names(colors))) {
+      names(colors) <- levels(as.factor(se[["conditions"]]))
+    }
+    if (change_by == "condition") {
+      mesg("The new colors are a character, changing according to condition.")
+      ## In this case, we have every color accounted for in the set of conditions.
+      mapping <- colors
+      pd_factor <- as.factor(colData(se)[["condition"]])
+      possible_conditions <- levels(pd_factor)
+      colors_allocated <- names(colors) %in% possible_conditions
+      if (sum(colors_allocated) < length(colors)) {
+        missing_colors <- colors[!colors_allocated]
+        warning("Colors for the following categories are not being used: ",
+                names(missing_colors), ".")
+      }
+      conditions_allocated <- possible_conditions %in% names(colors)
+      if (sum(conditions_allocated) < length(possible_conditions)) {
+        missing_conditions <- possible_conditions[!conditions_allocated]
+        missing_samples <- c()
+        for (cond in missing_conditions) {
+          missing_by_condition <- colData(se)[["condition"]] == cond
+          missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
+          missing_samples <- c(missing_samples, missing_samples_by_cond)
+        }
+        warning("Some conditions do not have a color: ", missing_conditions, ".")
+        warning("These samples are: ", missing_samples, ".")
+      }
+      chosen_colors <- mapping[as.character(chosen_colors)]
+      names(chosen_colors) <- chosen_names
+    } else if (change_by == "sample") {
+      mesg("The new colors are a character, changing according to sampleID.")
+      ## This is changing them by sample id.
+      ## In this instance, we are changing specific colors to the provided colors.
+      chosen_colors <- se[["colors"]]
+      for (snum in seq_along(names(colors))) {
+        sampleid <- names(colors)[snum]
+        sample_color <- colors[[snum]]
+        chosen_colors[[sampleid]] <- sample_color
+      }
+    }
+    chosen_idx <- complete.cases(chosen_colors)
+    chosen_colors <- chosen_colors[chosen_idx]
+  } else if (class(colors) == "list") {
+    if (change_by == "condition") {
+      mesg("The new colors are a list, changing according to condition.")
+      ## In this case, we have every color accounted for in the set of conditions.
+      mapping <- as.character(colors)
+      names(mapping) <- names(colors)
+      chosen_colors <- mapping[chosen_colors]
+    } else if (change_by == "sample") {
+      mesg("The new colors are a list, changing according to sampleID.")
+      ## This is changing them by sample id.
+      ## In this instance, we are changing specific colors to the provided colors.
+      chosen_colors <- se[["colors"]]
+      for (snum in seq_along(names(colors))) {
+        sampleid <- names(colors)[snum]
+        sample_color <- colors[[snum]]
+        chosen_colors[[sampleid]] <- sample_color
+        ## Set the condition for the changed samples to something unique.
+        original_condition <- colData(se)[sampleid, "condition"]
+        changed_condition <- glue("{original_condition}{snum}")
+        ## se[["design"]][sampleid, "condition"] <- changed_condition
+        tmp_pdata <- colData(se)
+        old_levels <- levels(tmp_pdata[["condition"]])
+        new_levels <- c(old_levels, changed_condition)
+        levels(tmp_pdata[["condition"]]) <- new_levels
+        tmp_pdata[sampleid, "condition"] <- changed_condition
+        colData(se[["expressionset"]]) <- tmp_pdata
+      }
+    }
+    chosen_idx <- complete.cases(chosen_colors)
+    chosen_colors <- chosen_colors[chosen_idx]
+  } else if (is.null(colors)) {
+    mesg("Setting colors according to a color ramp.")
+    colors <- sm(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    ## Check that all conditions are named in the color list:
+    mapping <- setNames(colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  } else {
+    warning("Number of colors provided does not match the number of conditions nor samples.")
+    warning("Unsure of what to do, so choosing colors with RColorBrewer.")
+    sample_colors <- suppressWarnings(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  }
+
+  ## Catchall in case I forgot to set the names before now.
+  names(chosen_colors) <- chosen_names
+  metadata(se)[["colors"]] <- chosen_colors
+  return(se)
+}
+
+set_se_conditions <- function(se, fact = NULL, ids = NULL, prefix = NULL,
+                              null_cell = "null", colors = TRUE,
+                              ...) {
+  arglist <- list(...)
+  if (!is.null(arglist[["factor"]])) {
+    warning("I probably should change this argument to factor, but it is 'fact'.")
+    fact <- arglist[["factor"]]
+  }
+  original_conditions <- colData(se)[["condition"]]
+  original_length <- length(original_conditions)
+  original_num_conditions <- length(levels(as.factor(original_conditions)))
+  new_se <- se  ## Explicitly copying se to new_se
+  ## because when I run this as a function call() it seems to be not properly setting
+  ## the conditions and I do not know why.
+  fact_vector <- NULL
+  fact_name <- "condition"
+  if (!is.null(ids)) {
+    ## Change specific id(s) to given condition(s).
+    mesg("Setting condition for ids ", toString(ids), " to ", fact, ".")
+    old_pdata <- colData(se)
+    old_cond <- as.character(old_pdata[["condition"]])
+    names(old_cond) <- rownames(old_pdata)
+    new_cond <- old_cond
+    new_cond[ids] <- fact
+    new_pdata <- old_pdata
+    new_pdata[["condition"]] <- as.factor(new_cond)
+    colData(new_se) <- new_pdata
+  } else if (length(fact) == 1) {
+    fact_name <- fact
+    ## Assume it is a column in the design
+    if (fact %in% colnames(colData(se))) {
+      new_fact <- colData(se)[[fact]]
+      null_ids <- is.na(new_fact) | is.null(new_fact)
+      ## Only do this if there are some null entries.
+      if (sum(null_ids) > 0) {
+        new_fact[null_ids] <- null_cell
+      }
+      if (!is.null(prefix)) {
+        new_fact <- paste0(prefix, new_fact)
+      }
+      fact_vector <- new_fact
+      colData(new_se)[["condition"]] <- new_fact
+      ## new_se[["design"]][["condition"]] <- new_fact
+    } else {
+      stop("The provided factor is not in the design matrix.")
+    }
+  } else if (length(fact) != original_length) {
+    stop("The new factor of conditions is not the same length as the original.")
+  } else {
+    colData(new_se)[["condition"]] <- fact
+    ## new_se[["design"]][["condition"]] <- fact
+    fact_vector <- fact
+  }
+
+  message("The numbers of samples by condition are: ")
+  print(table(colData(new_se)[["condition"]]))
+  condition_states <- levels(as.factor(colData(new_se)[["condition"]]))
+  if (class(colors)[1] == "list") {
+    ## A list of colors may either be a color_choices list or
+    ## a hash of states->color which could/should be a named vector.
+    color_state_names <- names(colors)
+    found_colors <- sum(color_state_names %in% condition_states)
+    found_names <- sum(fact_name %in% color_state_names)
+    ## In this first instance, the choices should be in this element.
+    if (found_names > 0) {
+      mesg("The colors appear to be a list delineated by state name.")
+      colors <- colors[[fact]]
+    } else if (found_colors > 0) {
+      mesg("The colors appear to be a single list delineated by condition.")
+    } else {
+      message("A list of colors was provided, but element ", fact,
+              " is not in it; using defaults")
+      colors <- NULL
+    }
+  }
+  new_se <- set_se_colors(new_se, colors = colors)
+  return(new_se)
 }
 
 subset_se <- function(se, subset = NULL, ids = NULL,

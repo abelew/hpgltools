@@ -12,8 +12,8 @@ create_se(
   sample_colors = NULL,
   title = NULL,
   notes = NULL,
-  countdir = NULL,
   include_type = "all",
+  countdir = NULL,
   include_gff = NULL,
   file_column = "file",
   id_column = NULL,
@@ -41,9 +41,9 @@ create_se(
 
 \item{notes}{Provide arbitrary notes.}
 
-\item{countdir}{(deprecated) Directory containing count tables.}
-
 \item{include_type}{Used to specify types of genes/annotations to use.}
+
+\item{countdir}{(deprecated) Directory containing count tables.}
 
 \item{include_gff}{Keep a copy of the gff with the data?}
 

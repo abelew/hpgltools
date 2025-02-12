@@ -25,7 +25,7 @@ plot_volcano_condition_de(
   invert = FALSE,
   label = NULL,
   label_type = "text",
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   label_size = 6,
   ...
 )

@@ -11,8 +11,8 @@ combine_extracted_plots(
   numerator,
   plot_inputs,
   loess = FALSE,
-  logfc = 1,
-  pval = 0.05,
+  lfc_cutoff = 1,
+  p_cutoff = 0.05,
   found_table = NULL,
   p_type = "all",
   plot_colors = NULL,
@@ -39,10 +39,6 @@ combine_extracted_plots(
 \item{plot_inputs}{The individual outputs from limma etc.}
 
 \item{loess}{Add a loess estimation?}
-
-\item{logfc}{For Volcano/MA plot lines.}
-
-\item{pval}{For Volcano/MA plot lines.}
 
 \item{found_table}{The table name actually used.}
 
@@ -81,6 +77,10 @@ the colors.  I think these invert parameters are not needed anymore.}
 \item{plot_ebseq}{Add ebseq data?}
 
 \item{plot_noiseq}{Add noiseq plots?}
+
+\item{logfc}{For Volcano/MA plot lines.}
+
+\item{pval}{For Volcano/MA plot lines.}
 }
 \description{
 It should be possible to significantly simplify the arguments passed to this

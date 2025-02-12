@@ -26,7 +26,7 @@ extract_keepers(
   alpha = 0.4,
   z_lines = FALSE,
   label = 10,
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   wanted_genes = NULL,
   scale_p = FALSE
 )
@@ -52,7 +52,7 @@ extract_keepers(
   alpha = 0.4,
   z_lines = FALSE,
   label = 10,
-  label_column = "hgncsymbol",
+  label_column = "hgnc_symbol",
   scale_p = FALSE
 )
 }

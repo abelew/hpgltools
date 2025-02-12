@@ -10,7 +10,9 @@ dispatch_sum_column(
   verbose = verbose,
   species = "*",
   basedir = "preprocessing",
-  type = "genome"
+  type = "genome",
+  subtype = "gene",
+  tag = "ID"
 )
 }
 \description{

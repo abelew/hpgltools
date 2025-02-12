@@ -30,6 +30,7 @@ normalize_expt(
   na_to_zero = FALSE,
   adjust_method = "ruv",
   verbose = TRUE,
+  surrogates = "be",
   ...
 )
 }

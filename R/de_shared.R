@@ -1929,7 +1929,7 @@ get_pairwise_gene_abundances <- function(datum, type = "limma", excel = NULL) {
 #' @param mean_column Name of the column of mean values.
 #' @param significance IHW uses this parameter, I don't know why.
 #' @return weight adjusted p-values.
-#' @seealso [IHW]
+#' @seealso [IHW] 10.1038/nmeth.3885
 ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
                        mean_column = "baseMean", significance = 0.05) {
   ## We need to know the method used, because the values returned are not

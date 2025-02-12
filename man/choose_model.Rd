@@ -18,7 +18,6 @@ choose_model(
   reverse = FALSE,
   contr = NULL,
   surrogates = "be",
-  verbose = TRUE,
   keep_underscore = TRUE,
   ...
 )
@@ -49,8 +48,6 @@ matter but I wanted to test.}
 
 \item{surrogates}{Number of or method used to choose the number of surrogate
 variables.}
-
-\item{verbose}{Print some information about what is happening?}
 
 \item{...}{Further options are passed to arglist.}
 }

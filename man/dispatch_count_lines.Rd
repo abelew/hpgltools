@@ -12,6 +12,8 @@ dispatch_count_lines(
   species = "*",
   basedir = "preprocessing",
   type = "genome",
+  subtype = "gene",
+  tag = "ID",
   inverse = FALSE
 )
 }
