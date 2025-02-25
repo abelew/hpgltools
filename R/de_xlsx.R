@@ -3583,4 +3583,64 @@ summarize_combined <- function(comb, up_fc, down_fc, p_cutoff, adjp = TRUE) {
   return(ret)
 }
 
+write_upset_groups <- function(retlist, which = "all", excel = "excel/test.xlsx") {
+  lU_letters <- c(letters, LETTERS)
+  group_name <- paste0(which, "_groups")
+  upsetr_groups <- retlist[[group_name]]
+  list_name <- paste0(which, "_list")
+  upsetr_list <- retlist[[list_name]]
+  sig_name <- paste0(which, "_sig")
+  sig_upsetr <- retlist[[sig_name]]
+  plot_name <- paste0(which, "_plot")
+  upsetr_plot <- retlist[[plot_name]]
+
+  start_names <- names(upsetr_groups)
+  categories <- unique(unlist(strsplit(x = start_names, split = ":")))
+  names(categories) <- lU_letters[1:length(categories)]
+  sheet_names <- start_names
+  sheet_name_df <- data.frame(row.names = sheet_names)
+  for (n in seq_along(categories)) {
+    start <- as.character(categories[n])
+    end <- names(categories)[n]
+    sheet_names <- gsub(x = sheet_names, pattern = start, replacement = end)
+  }
+  sheet_name_df[["short_name"]] <- sheet_names
+  sheet_name_df[["long_name"]] <- as.character(start_names)
+
+  xlsx <- init_xlsx(excel)
+  wb <- xlsx[["wb"]]
+  excel_basename <- xlsx[["basename"]]
+  do_excel <- TRUE
+  if (is.null(wb)) {
+    do_excel <- FALSE
+  }
+  xlsx_result <- write_xlsx(wb, data = sheet_name_df, sheet = "legend", rownames = FALSE,
+                            title = "Names of the sheets and their corresponding contrasts.")
+  try_result <- xlsx_insert_png(start_row = 3, start_col = 12,
+                                width = 10, height = 10,
+                                a_plot = upsetr_plot, wb = wb, sheet = "legend")
+  all_groups <- rownames(sheet_name_df)
+  datum_subsets <- list()
+  for (n in seq_along(all_groups)) {
+    group_name <- all_groups[n]
+    mesg("Working on group: ", group_name, ",", n, "/", length(all_groups), ".")
+    sheet_name <- sheet_names[n]
+    group_pieces <- strsplit(x = group_name, split = ":")[[1]]
+    first_group <- group_pieces[1]
+
+    ## I think something is wrong here
+    ids <- overlap_geneids(upsetr_groups, group_name)
+    datum <- sig_upsetr[[first_group]]
+    datum_subset <- datum[ids, ]
+    datum_subsets[[group_name]] <- datum_subset
+    xlsx_name <- gsub(x = sheet_name, pattern = ":", replacement = "_")
+    xlsx_result <- write_xlsx(wb, data = datum_subset, sheet = xlsx_name,
+                              title = paste0("Genes in group: ", group_name, "."))
+  }
+  save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  return(datum_subsets)
+}
+
+
+
 ## EOF

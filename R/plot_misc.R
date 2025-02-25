@@ -91,8 +91,6 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
     mesg("Do not forget to close the device when you are done.")
     return(invisible(result))
   }
-
-
   mesg("Writing the image to: ", file, " and calling dev.off().")
   if (class(image)[[1]] == "recordedplot") {
     print(image)
@@ -135,6 +133,8 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
                              font_size = 18, node_width = 30,
                              color_choices = NULL,
                              drill_down = TRUE) {
+  ## Recasting to a dataframe in case I pass a SE with a datatable/tibble/etc
+  design <- as.data.frame(design)
   found <- factors %in% colnames(design)
   if (sum(found) < length(factors)) {
     missing <- factors[!found]

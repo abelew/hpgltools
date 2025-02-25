@@ -1563,7 +1563,8 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       shapes_by_state = FALSE, stroke = TRUE, fill = TRUE,
                                       color_high = "darkred", color_low = "darkblue",
                                       size = 2, invert = FALSE, label = NULL, label_type = "text",
-                                      label_column = "hgnc_symbol", label_size = 6, ...) {
+                                      label_column = "hgnc_symbol", label_size = 6,
+                                      nudge_x = 0, nudge_y = 0, ...) {
   arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(pval)
@@ -1640,11 +1641,10 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
       ggplot2::geom_vline(xintercept = logfc, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size = (size / 2)) +
       ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
-
   } else if (line_position == "top") {
     ## points, then lines
     plt <- plt +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha) +
+      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha, shape = 21) +
       ggplot2::geom_hline(yintercept = horiz_line, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = logfc, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size = (size / 2))
@@ -1670,6 +1670,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
       ggplot2::scale_fill_manual(name = "state", values = plot_colors,
                                  guide = "none")
   }
+
   plt <- plt +
     ggplot2::xlab(label = fc_name) +
     ggplot2::ylab(label = p_name) +
@@ -1700,24 +1701,22 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
     }
     if (label_type == "text") {
       plt <- plt +
-        ggrepel::geom_text_repel(data = df_subset,
+        ggrepel::geom_text_repel(data = df_subset, nudge_x = nudge_x, nudge_y = nudge_y,
                                  aes(label = .data[["label"]], y = .data[["logyaxis"]],
                                      x = .data[["xaxis"]]),
                                  colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
                                  point.padding = ggplot2::unit(1.6, "lines"),
                                  size = label_size, max.overlaps = num_labels * 2,
                                  arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
+    } else if (label_type == "normal") {
+      plt <- plt +
+        ggplot2::geom_text(data = df_subset,
+                           nudge_x = nudge_x, nudge_y = nudge_y,
+                           aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
+                               label = .data[["label"]],
+                               angle = 45, size = label_size, vjust = 2))
     } else {
       mesg("Assuming geom_label_repel for labels.")
-      nudge_x <- 0
-      nudge_y <- 0
-      if (!is.null(arglist[["nudge_x"]])) {
-        nudge_x <- arglist[["nudge_x"]]
-      }
-      if (!is.null(arglist[["nudge_y"]])) {
-        nudge_x <- arglist[["nudge_y"]]
-      }
-
       plt <- plt +
         ggrepel::geom_label_repel(data = df_subset,
                                   aes(label = .data[["label"]],
@@ -2130,40 +2129,32 @@ overlap_groups <- function(input, sort = TRUE) {
   input_mtrx <- NULL
   element_names <- NULL
   if ("list" %in% class(input)) {
-    input_mtrx <- UpSetR::fromList(input) == 1
-    element_names <- unlist(input)
+    elements <- unique(unlist(input))
+    data <- unlist(lapply(input, function(x) {
+      x <- as.vector(match(elements, x))
+    }))
+    data[is.na(data)] <- as.integer(0)
+    data[data != 0] <- as.integer(1)
+    data <- data.frame(matrix(data, ncol = length(input), byrow = F))
+    data <- data[which(rowSums(data) != 0), ]
+    names(data) <- names(input)
+    # ... Except now it conserves your original value names!
+    row.names(data) <- elements
+    input_mtrx <- data == 1
   } else if ("upset" %in% class(input)) {
     stop("The upsetR fromList seems to strip out the gene names, don't use it until I figure out what is up.")
   }
-
-  ## lst could look like this:
-  ## $one
-  ## [1] "a" "b" "c" "e" "g" "h" "k" "l" "m"
-  ## $two
-  ## [1] "a" "b" "d" "e" "j"
-  ## $three
-  ## [1] "a" "e" "f" "g" "h" "i" "j" "l" "m"
-
-  ##     one   two three
-  ## a  TRUE  TRUE  TRUE
-  ## b  TRUE  TRUE FALSE
-  ##...
-  ## condensing matrix to unique combinations elements
-  combination_mtrx <- unique(input_mtrx)
+  element_names <- unique(unlist(input))
   groups <- list()
-  num_combinations <- nrow(combination_mtrx)
+  combinations <- unique(input_mtrx)
+  num_combinations <- nrow(combinations)
   ## going through all unique combinations and collect elements for each in a list
   for (i in seq_len(num_combinations)) {
-    combination <- combination_mtrx[i, ]
-    my_elements <- which(apply(input_mtrx, 1, function(x) all(x == combination)))
-    attr(my_elements, "groups") <- combination
-    groups[[paste(colnames(combination_mtrx)[combination], collapse = ":")]] <- my_elements
-    #my_elements
-    ## attr(,"groups")
-    ##   one   two three
-    ## FALSE FALSE  TRUE
-    ##  f  i
-    ## 12 13
+    current_row <- combinations[i, ]
+    my_elements <- which(apply(input_mtrx, 1, function(x) all(x == current_row)))
+    attr(my_elements, "groups") <- current_row
+    new_name <- paste(colnames(combinations)[current_row], collapse = ":")
+    groups[[new_name]] <- my_elements
   }
   if (sort) {
     groups <- groups[order(sapply(groups, function(x) length(x)), decreasing = TRUE)]
@@ -2181,7 +2172,11 @@ overlap_groups <- function(input, sort = TRUE) {
 #' @param group Name of the subset of interest, something like 'a:b' for the union of a:b.
 #' @export
 overlap_geneids <- function(overlapping_groups, group) {
-  gene_ids <- attr(overlapping_groups, "elements")[overlapping_groups[[group]]]
+  portion <- overlapping_groups[[group]]
+  all_elements <- attr(overlapping_groups, "elements")
+  numeric_idx <- unique(as.numeric(portion))
+  gene_ids <- all_elements[numeric_idx]
+  print(gene_ids)
   return(gene_ids)
 }
 
@@ -2278,9 +2273,9 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
 #' @param scale Make the numbers larger and easier to read?
 #' @param ... Other parameters to pass to upset().
 #' @export
-upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
-                       down = TRUE, both = FALSE, scale = 2,
-                       intersections = "all", num_sets = "all", ...) {
+upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE, down = TRUE,
+                       both = TRUE, all = TRUE, scale = 2, intersections = "all", num_sets = "all",
+                       ...) {
 
   ## Start by pulling the gene lists from the significant gene sets.
   start <- sig[[according_to]]
@@ -2302,18 +2297,36 @@ upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
 
   ## Setup the lists of significant genes to plot.
   upsetr_up_list <- list()
+  upsetr_up_sig <- list()
   upsetr_down_list <- list()
+  upsetr_down_sig <- list()
   upsetr_both_list <- list()
+  upsetr_both_sig <- list()
+  upsetr_all_list <- list()
+  upsetr_all_sig <- list()
   for (entry in wanted_contrasts) {
+    up_df <- as.data.frame(ups[[entry]])
+    down_df <- as.data.frame(downs[[entry]])
     if (!is.null(ups)) {
-      upsetr_up_list[[entry]] <- rownames(ups[[entry]])
+      upsetr_up_list[[entry]] <- rownames(up_df)
+      upsetr_up_sig[[entry]] <- up_df
     }
     if (!is.null(downs)) {
-      upsetr_down_list[[entry]] <- rownames(downs[[entry]])
+      upsetr_down_list[[entry]] <- rownames(down_df)
+      upsetr_down_sig[[entry]] <- down_df
     }
     if (isTRUE(both)) {
-      upsetr_both_list[[entry]] <- c(rownames(ups[[entry]]),
-                                     rownames(downs[[entry]]))
+      upsetr_both_list[[entry]] <- c(rownames(up_df),
+                                     rownames(down_df))
+      upsetr_both_sig[[entry]] <- rbind.data.frame(up_df, down_df)
+    }
+    if (isTRUE(all)) {
+      up_name <- paste0("up_", entry)
+      down_name <- paste0("down_", entry)
+      upsetr_all_list[[up_name]] <- rownames(up_df)
+      upsetr_all_sig[[up_name]] <- up_df
+      upsetr_all_list[[down_name]] <- rownames(down_df)
+      upsetr_all_sig[[down_name]] <- down_df
     }
   } ## End looking for things to list
 
@@ -2321,35 +2334,63 @@ upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
     intersections <- NA
   }
 
+  nsets <- NULL
   ## Do the plots.
   retlist <- list()
   if (isTRUE(up)) {
     if (num_sets == "all") {
-      num_sets <- length(upsetr_up_list)
+      nsets <- length(upsetr_up_list)
     }
-    retlist[["up"]] <- UpSetR::upset(UpSetR::fromList(upsetr_up_list),
-                                     nintersects = intersections, nsets = num_sets,
-                                     text.scale = scale, ...)
+    retlist[["up_plot"]] <- UpSetR::upset(UpSetR::fromList(upsetr_up_list),
+                                          nintersects = intersections, nsets = nsets,
+                                     text.scale = scale,
+                                     ...)
     retlist[["up_groups"]] <- overlap_groups(upsetr_up_list)
   }
   if (isTRUE(down)) {
     if (num_sets == "all") {
-      num_sets <- length(upsetr_down_list)
+      nsets <- length(upsetr_down_list)
     }
-    retlist[["down"]] <- UpSetR::upset(UpSetR::fromList(upsetr_down_list),
-                                       nintersects = intersections, nsets = num_sets,
-                                       text.scale = scale, ...)
+    retlist[["down_plot"]] <- UpSetR::upset(UpSetR::fromList(upsetr_down_list),
+                                       nintersects = intersections, nsets = nsets,
+                                       text.scale = scale,
+                                       ...)
     retlist[["down_groups"]] <- overlap_groups(upsetr_down_list)
   }
   if (isTRUE(both)) {
     if (num_sets == "all") {
-      num_sets <- length(upsetr_both_list)
+      nsets <- length(upsetr_both_list)
     }
-    retlist[["both"]] <- UpSetR::upset(UpSetR::fromList(upsetr_both_list),
-                                       nintersects = intersections, nsets = num_sets,
-                                       text.scale = scale, ...)
+    retlist[["both_plot"]] <- UpSetR::upset(UpSetR::fromList(upsetr_both_list),
+                                       nintersects = intersections, nsets = nsets,
+                                       text.scale = scale,
+                                       ...)
     retlist[["both_groups"]] <- overlap_groups(upsetr_both_list)
   }
+  if (isTRUE(all)) {
+    if (num_sets == "all") {
+      nsets <- length(upsetr_all_list)
+    }
+    retlist[["all_plot"]] <- UpSetR::upset(UpSetR::fromList(upsetr_all_list),
+                                      nintersects = intersections, nsets = nsets,
+                                      text.scale = scale,
+                                      ...)
+    retlist[["all_groups"]] <- overlap_groups(upsetr_all_list)
+  }
+  retlist[["up_list"]] <- upsetr_up_list
+  retlist[["down_list"]] <- upsetr_down_list
+  retlist[["both_list"]] <- upsetr_both_list
+  retlist[["all_list"]] <- upsetr_all_list
+  retlist[["up_sig"]] <- upsetr_up_sig
+  retlist[["down_sig"]] <- upsetr_down_sig
+  retlist[["both_sig"]] <- upsetr_both_sig
+  retlist[["all_sig"]] <- upsetr_all_sig
+  retlist[["contrasts"]] <- contrasts
+  retlist[["up"]] <- up
+  retlist[["down"]] <- down
+  retlist[["both"]] <- both
+  retlist[["all"]] <- all
+  retlist[["intersections"]] <- intersections
   class(retlist) <- "sig_de_upset"
   return(retlist)
 }

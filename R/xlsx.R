@@ -501,6 +501,10 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
                             fancy_type = "pdf", start_row = 1, start_col = 1,
                             file_type = "png", units = "in", ...) {
   arglist <- list(...)
+  if (!is.null(arglist[["start_column"]])) {
+    mesg("This argument is actually 'start_col', not 'start_column'.")
+    start_col <- arglist[["start_column"]]
+  }
   if (is.null(a_plot)) {
     return(NULL)
   }

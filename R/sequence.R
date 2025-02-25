@@ -412,6 +412,37 @@ gather_utrs_txdb <- function(bsgenome, fivep_utr = NULL, threep_utr = NULL,
   return(retlist)
 }
 
+#' Given an input gff, create intron/intergenic gff files.
+#'
+#' I was poking around for ways to mix and match gff files and found this:
+#' https://support.bioconductor.org/p/66003/
+#' @export
+get_inter_txdb <- function(input, intron_gff = "introns.gff",
+                           intergenic_gff = "intergenic.gff") {
+  all_introns <- GenomicFeatures::intronicParts(input)
+  exported_introns <- rtracklayer::export.gff(all_introns, intron_gff, version = "3")
+
+  all_exons <- GenomicFeatures::exonsBy(input, "gene")
+  exon_ranges <- range(all_exons)
+  exon_unlist <- unlist(exon_ranges)
+  intergenic <- GenomicRanges::gaps(exon_unlist)
+  S4Vectors::mcols(intergenic)[["ID"]] <- seq_along(intergenic)
+  exported_intergenic <- rtracklayer::export.gff(intergenic, intergenic_gff, version = "3")
+  retlist <- list(
+    "introns" = all_introns,
+    "intergenic" = intergenic)
+  return(retlist)
+}
+setGeneric("get_inter_txdb")
+
+#' @export
+setMethod(
+  "get_inter_txdb", signature = signature(input = "character"),
+  definition = function(input) {
+    txdb <- GenomicFeatures::makeTxDbFromGFF(input)
+    get_inter_txdb(txdb)
+  })
+
 #' Gather some simple sequence attributes.
 #'
 #' This extends the logic of the pattern searching in pattern_count_genome() to

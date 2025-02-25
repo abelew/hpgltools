@@ -13,11 +13,14 @@
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
-                          plot_type = "dotplot", ...) {
+                          plot_type = "dotplot", excel = "all_cp.xlsx", ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
   source <- "significant"
+  xlsx_dir <- dirname(excel)
+  xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
+
   ## Check if this came from extract_significant_genes or extract_abundant_genes.
   fc_col <- paste0(according_to, "_logfc")
   if (!is.null(sig[[according_to]][["ups"]])) {
@@ -66,15 +69,17 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
       }
     }
     if (up_elements > 0) {
+      chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       ret[[retname_up]] <- simple_clusterprofiler(up, table,
-                                                  ...)
+                                                  excel = chosen_up_xlsx, ...)
     } else {
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
       slept <- Sys.sleep(10)
+      chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_clusterprofiler(down, table,
-                                                    ...)
+                                                    excel = chosen_down_xlsx, ...)
       #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
     } else {
       ret[[retname_down]] <- NULL

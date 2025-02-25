@@ -8,11 +8,14 @@
 #' @param ... Arguments to pass to simple_gprofiler().
 #' @export
 all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
-                          sleep = 7, plot_type = "dotplot", ...) {
+                          sleep = 7, plot_type = "dotplot", excel = "all_gp.xlsx",
+                          ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
   source <- "significant"
+  xlsx_dir <- dirname(excel)
+  xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
   ## Check if this came from extract_significant_genes or extract_abundant_genes.
   fc_col <- paste0(according_to, "_logfc")
   if (!is.null(sig[[according_to]][["ups"]])) {
@@ -61,18 +64,20 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       }
     }
     if (up_elements > 0) {
+      chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       ret[[retname_up]] <- simple_gprofiler2(up, first_col = fc_col,
                                              plot_type = plot_type,
-                                             ...)
+                                             excel = chosen_up_xlsx, ...)
       #ret[[retname_up]] <- sm(simple_gprofiler(up, first_col = fc_col))
     } else {
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
       slept <- Sys.sleep(10)
+      chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_gprofiler2(down, first_col = fc_col,
                                                plot_type = plot_type,
-                                               ...)
+                                               excel = chosen_down_xlsx, ...)
       #ret[[retname_down]] <- sm(simple_gprofiler(down, first_col = fc_col))
     } else {
       ret[[retname_down]] <- NULL
