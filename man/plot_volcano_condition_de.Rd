@@ -27,6 +27,8 @@ plot_volcano_condition_de(
   label_type = "text",
   label_column = "hgnc_symbol",
   label_size = 6,
+  nudge_x = 0,
+  nudge_y = 0,
   ...
 )
 }

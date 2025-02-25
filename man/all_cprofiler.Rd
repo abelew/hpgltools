@@ -10,6 +10,7 @@ all_cprofiler(
   according_to = "deseq",
   together = FALSE,
   plot_type = "dotplot",
+  excel = "all_cp.xlsx",
   ...
 )
 }

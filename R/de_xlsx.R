@@ -3623,7 +3623,6 @@ write_upset_groups <- function(retlist, which = "all", excel = "excel/test.xlsx"
   datum_subsets <- list()
   for (n in seq_along(all_groups)) {
     group_name <- all_groups[n]
-    mesg("Working on group: ", group_name, ",", n, "/", length(all_groups), ".")
     sheet_name <- sheet_names[n]
     group_pieces <- strsplit(x = group_name, split = ":")[[1]]
     first_group <- group_pieces[1]

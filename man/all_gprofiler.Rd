@@ -10,6 +10,7 @@ all_gprofiler(
   together = FALSE,
   sleep = 7,
   plot_type = "dotplot",
+  excel = "all_gp.xlsx",
   ...
 )
 }

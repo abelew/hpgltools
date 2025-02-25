@@ -240,7 +240,7 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
       ## longDescription, organism, pubMedIds, urls, contributor, version
       gsl[[cat]] <- GeneSet(setName = cat, geneIds = genes, shortDescription = desc)
     }
-    sig_data <- GeneSetCollection(gsl)
+    sig_data <- GSEABase::GeneSetCollection(gsl)
   } else if (class(signatures)[1] == "character" && grepl(pattern = "\\.xml$", x = signatures)) {
     gsc <- GSEABase::getBroadSets(signatures)
     types <- sapply(gsc, function(elt) GSEABase::bcCategory(GSEABase::collectionType(elt)))

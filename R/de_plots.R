@@ -2176,7 +2176,6 @@ overlap_geneids <- function(overlapping_groups, group) {
   all_elements <- attr(overlapping_groups, "elements")
   numeric_idx <- unique(as.numeric(portion))
   gene_ids <- all_elements[numeric_idx]
-  print(gene_ids)
   return(gene_ids)
 }
 
