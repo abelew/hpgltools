@@ -12,23 +12,30 @@
 #'
 #' @param enrichresult S4 object of type enrichResult.
 plot_enrichresult <- function(enrichresult) {
-  bar <- enrichplot::barplot(enrichresult)
   dot <- enrichplot::dotplot(enrichresult)
   cnet <- enrichplot::cnetplot(enrichresult)
   heat <- enrichplot::heatplot(enrichresult)
-  tree <- enrichplot::treeplot(enrichresult)
-  map <- enrichplot::emapplot(enrichresult)
   up <- enrichplot::upsetplot(enrichresult)
+  go <- enrichplot::goplot(enrichresult)
+
+  termsim <- enrichplot::pairwise_termsim(enrichresult)
+  tree <- try(enrichplot::treeplot(termsim))
+  map <- enrichplot::emapplot(termsim)
+  ss <- enrichplot::ssplot(termsim)
+
+
   ## Used for gsea
   ## gsea <- enrichplot::gseaplot2(enrichresult)
   ## gsea_ridge <- enrichplot::ridgeplot(enrichresult
   retlist <- list(
-    "bar" = bar,
     "dot" = dot,
     "cnet" = cnet,
+    "go" = go,
     "heat" = heat,
-    "tree" = tree,
     "map" = map,
+    "termsim" = termsim,
+    "ss" = ss,
+    "tree" = tree,
     "up" = up)
   return(retlist)
 }

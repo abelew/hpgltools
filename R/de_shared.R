@@ -172,8 +172,11 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     pre_batch <- sm(normalize_expt(input, filter = TRUE, batch = FALSE,
                                    transform = "log2", convert = convert, norm = norm))
     mesg("Plotting a PCA before surrogate/batch inclusion.")
-    pre_pca <- plot_pca(pre_batch, plot_labels = FALSE,
-                        ...)
+    pre_pca <- try(plot_pca(pre_batch, plot_labels = FALSE,
+                             ...))
+    if ("try-error" %in% class(pre_pca)) {
+      pre_pca <- NULL
+    }
     post_batch <- pre_batch
     if (isTRUE(model_type)) {
       model_type <- "batch in model/limma"
@@ -198,8 +201,17 @@ all_pairwise <- function(input = NULL, conditions = NULL,
       model_type <- "none"
       mesg("Assuming no batch in model for testing pca.")
     }
-    post_pca <- plot_pca(post_batch, plot_labels = FALSE,
-                         ...)
+    post_pca <- try(plot_pca(post_batch, plot_labels = FALSE,
+                             ...))
+    ## This is an attempt to get around weird sudden errors:
+    ## error code 1 from Lapack in routine 'dgesdd'
+      pre_pca <- NULL
+    }
+
+    if ("try-error" %in% class(post_pca)) {
+      post_pca <- NULL
+    }
+
   }
 
   ## do_ebseq defaults to NULL, this is so that we can query the number of
