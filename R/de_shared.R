@@ -205,9 +205,6 @@ all_pairwise <- function(input = NULL, conditions = NULL,
                              ...))
     ## This is an attempt to get around weird sudden errors:
     ## error code 1 from Lapack in routine 'dgesdd'
-      pre_pca <- NULL
-    }
-
     if ("try-error" %in% class(post_pca)) {
       post_pca <- NULL
     }
