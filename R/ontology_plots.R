@@ -23,7 +23,6 @@ plot_enrichresult <- function(enrichresult) {
   map <- enrichplot::emapplot(termsim)
   ss <- enrichplot::ssplot(termsim)
 
-
   ## Used for gsea
   ## gsea <- enrichplot::gseaplot2(enrichresult)
   ## gsea_ridge <- enrichplot::ridgeplot(enrichresult
