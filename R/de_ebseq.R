@@ -61,9 +61,9 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
   numerators <- denominators <- c()
 
   if (method == "pairwise_subset") {
-    result <- ebseq_pairwise_subset(input,
-                                    ng_vector = ng_vector, rounds = rounds,
-                                    target_fdr = target_fdr, norm = norm, force = force,
+    result <- ebseq_pairwise_subset(input, ng_vector = ng_vector, rounds = rounds,
+                                    target_fdr = target_fdr, norm = norm,
+                                    keepers = keepers, force = force,
                                     keep_underscore = keep_underscore,
                                     ...)
     numerators <- result[["numerators"]]
@@ -132,19 +132,16 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
 ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_fdr = 0.05,
                                   model_batch = FALSE, model_cond = TRUE,
                                   model_intercept = FALSE, alt_model = NULL, keepers = NULL,
-                                  conditions = NULL, norm = "median", force = FALSE,
+                                  norm = "median", force = FALSE,
                                   keep_underscore = TRUE,
                                   ...) {
   mesg("Starting EBSeq pairwise subset.")
   ## Now that I understand pData a bit more, I should probably remove the
   ## conditions/batches slots from my expt classes.
   design <- pData(input)
-  conditions <- design[["condition"]]
-  batches <- design[["batches"]]
-  data <- exprs(input)
-  conditions_table <- table(conditions)
-  batches_table <- table(batches)
-  condition_levels <- levels(as.factor(conditions))
+  conditions <- droplevels(as.factor(design[["condition"]]))
+  batches <- droplevels(as.factor(design[["batches"]]))
+  condition_levels <- levels(conditions)
 
   model_choice <- choose_model(input, conditions = conditions, batches = batches,
                                model_batch = FALSE, model_cond = model_cond,
@@ -163,7 +160,7 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
     a_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\1", x = name)
     b_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\2", x = name)
     if (! a_name %in% conditions) {
-      message("The contrast ", a_name, " is not in the results.")
+      message("The contrast ", a_name, " is not in the results: ", conditions)
       message("If this is not an extra contrast, then this is an error.")
       next
     }
@@ -171,8 +168,8 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
         expt = input,
         subset = glue("condition=='{b_name}' | condition=='{a_name}'")))
     pair_data <- exprs(pair)
-    conditions <- pair[["conditions"]]
-    a_result <- ebseq_two(pair_data, conditions, numerator = b_name, denominator = a_name,
+    factors <- pData(pair)[["condition"]]
+    a_result <- ebseq_two(pair_data, factors, numerator = b_name, denominator = a_name,
                           ng_vector = ng_vector, rounds = rounds, target_fdr = target_fdr,
                           norm = norm, force = force)
     numerators <- c(numerators, a_result[["numerator"]])
@@ -206,7 +203,8 @@ ebseq_size_factors <- function(data_mtrx, norm = NULL) {
   } else if (norm == "rank") {
     normalized <- EBSeq::RankNorm(data_mtrx)
   } else {
-    normalized <- data_mtrx
+    message("I do not know the norm method: ", norm, ", using quantile.")
+    normalized <- EBSeq::QuantileNorm(data_mtrx)
   }
   return(normalized)
 }
@@ -309,14 +307,12 @@ ebseq_few <- function(data, conditions,
 #' @param force Force inappropriate data into ebseq?
 #' @return EBSeq result table with some extra formatting.
 #' @seealso [ebseq_pairwise()]
-ebseq_two <- function(pair_data, conditions,
+ebseq_two <- function(pair_data, factors,
                       numerator = 2, denominator = 1,
                       ng_vector = NULL, rounds = 10,
                       target_fdr = 0.05, norm = "median",
                       force = FALSE) {
-  mesg("Using ebseq_size_factors to normalize the data.")
   normalized <- ebseq_size_factors(pair_data, norm = norm)
-  mesg("Starting EBTest of ", numerator, " vs. ", denominator, ".")
   ## I think this should be removed in lieu of the imputation functions
   if (isTRUE(force)) {
     mesg("Forcing out NA values by putting in the mean of all data.")
@@ -326,7 +322,7 @@ ebseq_two <- function(pair_data, conditions,
     pair_data[na_idx] <- mean(pair_data, na.rm = TRUE)
   }
   eb_output <- sm(EBSeq::EBTest(
-    Data = pair_data, NgVector = NULL, Conditions = conditions,
+    Data = pair_data, NgVector = NULL, Conditions = factors,
     sizeFactors = normalized, maxround = rounds))
   posteriors <- EBSeq::GetPPMat(eb_output)
   fold_changes <- EBSeq::PostFC(eb_output)

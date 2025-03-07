@@ -565,7 +565,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     ## surrogates = surrogates)
   }
 
-  transformed_count <- count_table
+  transformed_counts <- count_table
   transform_performed <- transform
   if (transform == "raw") {
     mesg("Step 4: not transforming the data.")

@@ -69,13 +69,13 @@ test_that("edgeR performed the expected number of contrasts?", {
 
 test <- testing[["all_tables"]][["wt0_vs_mut0"]]
 actual <- sum(test[["logFC"]] > 2)
-expected <- 61
+expected <- 66
 test_that("edgeR got some expected results (logFC)?", {
   expect_equal(expected, actual)
 })
 
 actual <- sum(as.numeric(test[["PValue"]]) < 0.1)
-expected <- 328
+expected <- 314
 test_that("edgeR got some expected results (adjp)?", {
   expect_equal(expected, actual)
 })
