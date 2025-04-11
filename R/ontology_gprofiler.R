@@ -8,7 +8,7 @@
 #' @param ... Arguments to pass to simple_gprofiler().
 #' @export
 all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
-                          sleep = 7, plot_type = "dotplot", excel = "all_gp.xlsx",
+                          sleep = 7, plot_type = "dotplot", excel = "excel/all_gp.xlsx",
                           ...) {
   ret <- list()
   input_up <- list()
@@ -153,7 +153,7 @@ print.all_gprofiler <- function(x, ...) {
 #' @export
 simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               first_col = "deseq_logfc", second_col = "logfc", do_mf = TRUE,
-                              do_bp = TRUE, do_cc = FALSE, do_kegg = TRUE, do_reactome = TRUE,
+                              do_bp = TRUE, do_cc = TRUE, do_kegg = TRUE, do_reactome = TRUE,
                               do_mi = TRUE, do_tf = TRUE, do_corum = TRUE, do_hp = TRUE,
                               do_hpa = TRUE, do_wp = TRUE, significant = TRUE,
                               exclude_iea = FALSE, do_under = FALSE, evcodes = TRUE,
@@ -475,5 +475,7 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   }
   return(ret)
 }
+
+
 
 ## EOF

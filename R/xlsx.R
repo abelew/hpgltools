@@ -623,7 +623,7 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
   if (class(print_ret)[1] == "try-error") {
     print_ret <- try(suppressWarnings(plot(a_plot, ...)))
   }
-  dev.off()
+  plotted <- dev.off()
 
   ## Check that the worksheet exists and add the plot.
   wb_sheet <- check_xlsx_worksheet(wb, sheet)

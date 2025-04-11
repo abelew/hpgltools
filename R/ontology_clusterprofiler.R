@@ -13,7 +13,7 @@
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
-                          plot_type = "dotplot", excel = "all_cp.xlsx", ...) {
+                          plot_type = "all", excel = "all_cp.xlsx", ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
@@ -143,14 +143,14 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",
                                    go_level = 3, pcutoff = 0.05,
                                    qcutoff = 0.1, fc_column = "logFC",
-                                   second_fc_column = "deseq_logfc",
+                                   second_fc_column = "deseq_logfc", internal = FALSE,
                                    updown = "up", permutations = 1000, min_groupsize = 5,
                                    kegg_prefix = NULL, kegg_organism = NULL, do_gsea = TRUE,
-                                   categories = 12, excel = NULL, do_david = FALSE, do_kegg = FALSE,
+                                   categories = 12, excel = NULL, do_david = FALSE, do_kegg = TRUE,
                                    david_id = "ENTREZ_GENE_ID", padj_type = "BH",
-                                   david_user = "unknown@unknown.org") {
-  sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
-  sm(requireNamespace(package = "DOSE", quietly = TRUE))
+                                   david_user = "abelew@umd.edu") {
+  loaded <- sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
+  loaded <- sm(requireNamespace(package = "DOSE", quietly = TRUE))
   org <- NULL
 
   ## Start off by figuring out what was given, an OrgDb or the name of one.
@@ -405,8 +405,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     kegg_all_ids <- gsub(pattern = glue("{kegg_organism}:"),
                          replacement = "", x = kegg_all_ids)
     names(kegg_genelist) <- kegg_all_ids
+    ## Something changed in bioc 3.20 causing some NAs to creep in here.
+    na_idx <- is.na(names(kegg_genelist))
+    kegg_genelist <- kegg_genelist[!na_idx]
 
-    internal <- FALSE
     gse_all_kegg <- sm(
       clusterProfiler::gseKEGG(geneList = kegg_genelist, organism = kegg_organism,
                                nPerm = permutations, minGSSize = min_groupsize,

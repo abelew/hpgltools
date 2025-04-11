@@ -175,7 +175,7 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
     a_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\1", x = name)
     b_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\2", x = name)
     if (! a_name %in% conditions) {
-      message("The contrast ", a_name, " is not in the results.")
+      message("The contrast ", a_name, " is not in the results: ", conditions)
       message("If this is not an extra contrast, then this is an error.")
       next
     }

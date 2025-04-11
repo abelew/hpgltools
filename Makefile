@@ -51,9 +51,9 @@ covr: install
 
 deps:
 	echo "Invoking dev_package_deps() and BiocManager::install()."
-	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Depends')); needed = all[['diff']] < 0; needed = all[needed, 'packagewww']; BiocManager::install(needed)"
-	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Imports')); needed = all[['diff']] < 0; needed = all[needed, 'packagewww']; BiocManager::install(needed)"
-	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Suggests')); needed = all[['diff']] < 0; needed = all[needed, 'packagewww']; BiocManager::install(needed)"
+	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Depends')); needed = all[['diff']] < 0; needed = all[needed, 'package']; BiocManager::install(needed)"
+	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Imports')); needed = all[['diff']] < 0; needed = all[needed, 'package']; BiocManager::install(needed)"
+	Rscript -e "all = as.data.frame(devtools::dev_package_deps('.', dependencies='Suggests')); needed = all[['diff']] < 0; needed = all[needed, 'package']; BiocManager::install(needed)"
 
 document: roxygen vignette reference
 
