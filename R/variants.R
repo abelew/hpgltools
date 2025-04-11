@@ -193,6 +193,18 @@ classify_variants <- function(metadata, coverage_column = "bedtoolscoveragefile"
   return(retlist)
 }
 
+#' Print the results of classify_snps().
+#'
+#' @param x List containing some fun stats of variants observed.
+#' @param ... Other args to match the generic.
+#' @export
+print.classified_mutations <- function(x, ...) {
+  message("The set of classified mutations observed, including: ")
+  print(x[["mutations_by_sample"]])
+  pheatmap::pheatmap(x[["sample_mutations_norm"]])
+  return(invisible(x))
+}
+
 #' Gather snp information for an expt
 #'
 #' I made some pretty significant changes to the set of data which I
@@ -967,6 +979,23 @@ get_snp_sets <- function(snp_expt, factor = "pathogenstrain",
   return(retlist)
 }
 
+#' Print the result of get_snp_sets().
+#'
+#' @param x List containing the cross references of variants by
+#'  factor, the set of observed variants, the possible combinations of
+#'  the factor, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.snp_sets <- function(x, ...) {
+  summary_string <- glue("A set of variants observed when cross referencing all variants against
+the samples associated with each metadata factor: {x[['factor']]}.  {ncol(x[['values']])}
+categories and {nrow(x[['values']])} variants were observed with {length(x[['intersections']])}
+combinations among them.  {length(x[['chr_data']])} chromosomes/scaffolds were observed with a
+density of variants ranging from {min(x[['density']])} to {max(x[['density']])}.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Take a vector of my peculiarly named variants and turn them into a grange
 #'
 #' @param names A set of things which look like: chr_x_pos_y_ref_a_alt_b
@@ -1241,6 +1270,21 @@ snps_intersections <- function(expt, snp_result,
   return(retlist)
 }
 
+#' Print some information about the result of snp_intersections().
+#'
+#' @param x List containing a datatable of intersections, summaries by
+#'  chromosome and gene.
+#' @param ... Other args to match the generic.
+#' @export
+print.snp_intersections <- function(x, ...) {
+  summary_string <- glue("The combinations of variants, \\
+chromosomes, and genes which are unique to every factor
+and combination of factors in the data.")
+  ## TODO: Decide on something useful to provide here.
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Look for only the variant positions in a subset of genes.
 #'
 #' This was written in response to a query from Nancy and Maria Adelaida who
@@ -1471,6 +1515,24 @@ snps_vs_genes <- function(expt, snp_result, start_col = "start", end_col = "end"
     "summary" = summarized_by_chr)
   class(retlist) <- "snps_genes"
   return(retlist)
+}
+
+#' Print the result of snps_vs_genes().
+#'
+#' @param x List containing granges of variants, variants observed by
+#'  chromosome, gene, and summaries of the result.
+#' @param ... Other args to match the generic.
+#' @export
+print.snps_genes <- function(x, ...) {
+  gt_zero <- sum(x[["count_by_gene"]] > 0)
+  most_num <- max(x[["count_by_gene"]])
+  most_idx <- x[["count_by_gene"]] == most_num
+  most_name <- names(x[["count_by_gene"]])[most_idx]
+  summary_string <- glue("When the variants observed were cross referenced against annotated genes,
+{gt_zero} genes were observed with at least 1 variant.
+{most_name} had the most variants, with {most_num}.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' A copy of the above function with padding for species without defined UTRs

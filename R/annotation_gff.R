@@ -318,6 +318,19 @@ pattern_count_genome <- function(fasta, gff = NULL, pattern = "TA",
   return(num_pattern)
 }
 
+#' Print some information about a pattern counted genome
+#'
+#' @param x Dataframe containing how many instances of the pattern
+#'  were observed in every gene.
+#' @param ... Other args to match the generic.
+#' @export
+print.pattern_counted <- function(x, ...) {
+  summary_string <-
+    glue("The pattern was observed {sum(x[['number']])} times ober {nrow(x)} genes.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Given a data frame of exon counts and annotation information, sum the exons.
 #'
 #' This function will merge a count table to an annotation table by

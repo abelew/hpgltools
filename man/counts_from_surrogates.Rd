@@ -9,8 +9,7 @@ counts_from_surrogates(
   adjust = NULL,
   design = NULL,
   method = "ruv",
-  cond_column = "condition",
-  batch_column = "batch",
+  model_fstring = "~ 0 + condition + batch",
   matrix_scale = "linear",
   return_scale = "linear",
   ...
@@ -25,16 +24,16 @@ counts_from_surrogates(
 
 \item{method}{Which methodology to follow, ideally these agree but that seems untrue.}
 
-\item{cond_column}{design column containing the condition data.}
-
-\item{batch_column}{design column with the batch data, used for
-subtractive methods.}
-
 \item{matrix_scale}{Was the input for the surrogate estimator on a log or linear scale?}
 
 \item{return_scale}{Does one want the output linear or log?}
 
 \item{...}{Arguments passed to downstream functions.}
+
+\item{cond_column}{design column containing the condition data.}
+
+\item{batch_column}{design column with the batch data, used for
+subtractive methods.}
 }
 \value{
 A data frame of adjusted counts.

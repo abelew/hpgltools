@@ -22,7 +22,8 @@
 #'  norm_table = normalize_counts(count_table, design = design, norm='qsmooth')
 #' }
 #' @export
-normalize_counts <- function(data, design = NULL, method = "raw", ...) {
+normalize_counts <- function(data, design = NULL, method = "raw", condition_column = "condition",
+                             ...) {
   arglist <- list(...)
   if (!is.null(arglist[["norm"]])) {
     method <- arglist[["norm"]]
@@ -50,16 +51,17 @@ normalize_counts <- function(data, design = NULL, method = "raw", ...) {
 This works with: expt, ExpressionSet, data.frame, and matrices.
 "))
   }
+  conditions <- design[[condition_column]]
 
   switchret <- switch(
       method,
       "qshrink" = {
-        count_table <- hpgl_qshrink(exprs = count_table, groups = design[["condition"]],
+        count_table <- hpgl_qshrink(exprs = count_table, groups = conditions,
                                     plot = TRUE)
         norm_performed <- "qshrink"
       },
       "qshrink_median" = {
-        count_table <- hpgl_qshrink(exprs = count_table, groups = design[["condition"]],
+        count_table <- hpgl_qshrink(exprs = count_table, groups = conditions,
                                     plot = TRUE, refType = "median",
                                     groupLoc = "median", window = 50)
         norm_performed <- "qshrink_median"
@@ -113,8 +115,10 @@ This works with: expt, ExpressionSet, data.frame, and matrices.
         if (is.null(conds)) {
           conds <- original_cols
         }
+        fstring <- glue("~{condition_column}")
+        form <- as.formula(fstring)
         cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
-                                              colData = design, design = ~condition)
+                                              colData = design, design = form)
         factors <- BiocGenerics::estimateSizeFactors(cds)
         count_table <- BiocGenerics::counts(factors, normalized = TRUE)
         norm_performed <- "sf"
@@ -153,12 +157,9 @@ This works with: expt, ExpressionSet, data.frame, and matrices.
       },
       "vsd" = {
         original_cols <- colnames(count_table)
-        conds <- design[["conditions"]]
+        conds <- design[[condition_column]]
         if (is.null(conds)) {
-          conds <- design[["condition"]]
-          if (is.null(conds)) {
-            conds <- original_cols
-          }
+          conds <- original_cols
         }
         fit_type <- "parametric"
         if (!is.null(arglist[["fit_type"]])) {
@@ -166,8 +167,10 @@ This works with: expt, ExpressionSet, data.frame, and matrices.
         }
         tt <- sm(requireNamespace("locfit"))
         tt <- sm(requireNamespace("DESeq2"))
+        fstring <- glue("~{condition_column}")
+        form <- as.formula(fstring)
         cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
-                                              colData = design, design = ~condition)
+                                              colData = design, design = form)
         cds <- DESeq2::estimateSizeFactors(cds)
         cds <- DESeq2::estimateDispersions(cds, fitType = fit_type)
         count_table <- DESeq2::getVarianceStabilizedData(cds)

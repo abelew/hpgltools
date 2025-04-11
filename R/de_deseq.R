@@ -144,6 +144,17 @@ deseq_pairwise <- function(...) {
   deseq2_pairwise(...)
 }
 
+#' Print the result of running deseq_lrt().
+#'
+#' @param x List containing the DESeq2 result, the associated table,
+#'  clusters from degPatterns, list of associated genes, and dataframes
+#'  of the most significant genes.
+#' @param ... Other args to match the generic.
+#' @export
+print.deseq_lrt <- function(x, ...) {
+  summary_string <- glue("The result from deseq_lrt().")
+}
+
 #' Set up model matrices contrasts and do pairwise comparisons of all conditions using DESeq2.
 #'
 #' Invoking DESeq2 is confusing, this should help.
@@ -191,27 +202,41 @@ deseq_pairwise <- function(...) {
 #'  pretend = deseq2_pairwise(data, conditions, batches)
 #' }
 #' @export
-deseq2_pairwise <- function(input = NULL, conditions = NULL,
-                            batches = NULL, model_cond = TRUE,
-                            model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
-                            alt_model = NULL, extra_contrasts = NULL,
-                            annot_df = NULL, force = FALSE, keepers = NULL,
+deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                            null_fstring = "~", model_svs = NULL, filter = FALSE,
+                            extra_contrasts = NULL, annot_df = NULL,
+                            force = FALSE, keepers = NULL,
                             deseq_method = "long", fittype = "parametric",
-                            keep_underscore = TRUE, ...) {
+                            num_surrogates = "be", keep_underscore = TRUE, ...) {
   arglist <- list(...)
 
   mesg("Starting DESeq2 pairwise comparisons.")
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") &&
+        isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
+  }
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
-  ## Now that I understand pData a bit more, I should probably remove the
-  ## conditions/batches slots from my expt classes.
+
+  count_mtrx <- input_data[["data"]]
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
   design <- pData(input)
-  conditions <- input_data[["conditions"]]
-  batches <- input_data[["batches"]]
-  data <- input_data[["data"]]
-  conditions_table <- table(conditions)
-  batches_table <- table(batches)
-  condition_levels <- levels(as.factor(conditions))
+
+  model_intercept <- FALSE
+  if (!is.null(fctrs[["cellmeans_intercept"]])) {
+    if (fctrs[["cellmeans_intercept"]] > 0) {
+      model_intercept <- TRUE
+      }
+  }
+
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  batches <- as.factor(design[["batch"]])
+  condition_table <- table(conditions)
+  batch_table <- table(batches)
+  condition_levels <- levels(conditions)
 
   ## Make a model matrix which will have one entry for
   ## each of the condition/batches
@@ -220,77 +245,30 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## batch estimation in the model
   deseq_sf <- NULL
 
-  ## A caveat because this is a point of confusion
-  ## choose_model() returns a few models, including intercept and non-intercept versions
-  ## of the same things.  However, if model_batch is passed as something like 'sva', then
-  ## it will gather surrogate estimates from sva and friends and return those estimates.
-  model_choice <- choose_model(input, conditions, batches, model_batch = model_batch,
-                               model_cond = model_cond, model_intercept = model_intercept,
-                               model_sv = model_sv, alt_model = alt_model,
-                               keep_underscore = keep_underscore,
-                               ...)
-  model_data <- model_choice[["chosen_model"]]
-  model_including <- model_choice[["including"]]
-  model_string <- model_choice[["chosen_string"]]
-  ## This is redundant with the definition of design above.
-  column_data <- pData(input)
-  if (class(model_choice[["model_batch"]])[1] == "matrix") {
-    ## The SV matrix from sva/ruv/etc are put into the model batch slot of the return from choose_model.
-    ## Use them here if appropriate
-    model_batch <- model_choice[["model_batch"]]
-    column_data <- cbind(column_data, model_batch)
+  appended_fstring <- model_fstring
+  if ("character" %in% class(model_svs)) {
+    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                                      null_fstring = null_fstring,
+                                      estimate_type = model_svs,
+                                      surrogates = num_surrogates,
+                                      ...)
+    estimate_type <- model_svs
+    model_svs <- model_params[["model_adjust"]]
+    null_model <- model_params[["null_model"]]
+    appended_fstring <- model_params[["appended_fstring"]]
+    design <- pData(model_params[["modified_input"]])
   }
-  ## choose_model should now take all of the following into account
-  ## Therefore the following 8 or so lines should not be needed any longer.
-  if (!is.null(alt_model)) {
-    mesg("DESeq2 step 1/5: Using a user-supplied model.")
-    if (is.null(model_string)) {
-      model_string <- model_choice[["int_string"]]
-    }
-    column_data[["condition"]] <- as.factor(column_data[["condition"]])
-    column_data[["batch"]] <- as.factor(column_data[["batch"]])
-    summarized <- import_deseq(data, column_data,
-                               model_string, tximport = input[["tximport"]][["raw"]])
-    dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
-  } else if (isTRUE(model_batch) && isTRUE(model_cond)) {
-    mesg("DESeq2 step 1/5: Including batch and condition in the deseq model.")
-    ## summarized <- DESeqDataSetFromMatrix(countData = data, colData = pData(input),
-    ##                                     design=~ 0 + condition + batch)
-    ## conditions and batch in this context is information taken from pData()
-    column_data[["condition"]] <- as.factor(column_data[["condition"]])
-    column_data[["batch"]] <- as.factor(column_data[["batch"]])
-    summarized <- import_deseq(data, column_data,
-                               model_string, tximport = input[["tximport"]][["raw"]])
-    dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
-  } else if (isTRUE(model_batch)) {
-    mesg("DESeq2 step 1/5: Including only batch in the deseq model.")
-    column_data[["batch"]] <- as.factor(column_data[["batch"]])
-    summarized <- import_deseq(data, column_data,
-                               model_string,
-                               tximport = input[["tximport"]][["raw"]])
-    dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
-  } else if (class(model_batch)[1] == "matrix") {
-    mesg("DESeq2 step 1/5: Including a matrix of batch estimates in the deseq model.")
-    column_data[["condition"]] <- as.factor(column_data[["condition"]])
-    for (i in seq_along(ncol(data))) {
-      data[[i]] <- as.integer(data[[i]])
-    }
-    summarized <- import_deseq(data, column_data,
-                               model_string,
-                               tximport = input[["tximport"]][["raw"]])
-
-    dataset <- DESeq2::DESeqDataSet(se = summarized,
-                                    design = as.formula(model_string))
-  } else {
-    mesg("DESeq2 step 1/5: Including only condition in the deseq model.")
-    column_data[["condition"]] <- as.factor(column_data[["condition"]])
-    summarized <- import_deseq(data, column_data,
-                               model_string, tximport = input[["tximport"]][["raw"]])
-    dataset <- DESeq2::DESeqDataSet(se = summarized, design = as.formula(model_string))
-  }
-
-  fctrs <- get_formula_factors(model_string)
-  contrast_factor <- fctrs[["factors"]][1]
+  model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
+  summarized <- NULL
+  deseq_sf <- NULL
+  mesg("DESeq2 step 1/5: Creating DESeqDataset.")
+  ## summarized <- DESeqDataSetFromMatrix(countData = data, colData = pData(input),
+  ##                                     design=~ 0 + condition + batch)
+  ## conditions and batch in this context is information taken from pData()
+  ##summarized <- import_deseq(data, design, model_fstring, tximport = input[["tximport"]][["raw"]])
+  summarized <- import_deseq(count_mtrx, design, model_fstring)
+  dataset <- DESeq2::DESeqDataSet(se = summarized,
+                                  design = as.formula(appended_fstring))
   normalized_counts <- NULL ## When performing the 'long' analysis, I pull
   ## out the normalized counts so that we can compare against other analyses (e.g. with Julieth)
   deseq_run <- NULL
@@ -351,7 +329,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   if (class(dispersions)[1] != "try-error") {
     dispersion_plot <- grDevices::recordPlot()
   }
-  dev.off()
+  plotted <- dev.off()
   removed <- file.remove(tmp_file)
 
   ## possible options:  betaPrior = TRUE, betaPriorVar, modelMatrix = NULL
@@ -376,8 +354,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   ## Therefore, I will invoke make_pairwise_contrasts() here
   ## rather than make all the contrasts myself, then use that ordering
   ## to handle DESeq's contrast method.
-  apc <- make_pairwise_contrasts(model_data, conditions,
-                                 contrast_factor = contrast_factor,
+  apc <- make_pairwise_contrasts(model_mtrx, conditions,
                                  extra_contrasts = extra_contrasts,
                                  do_identities = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,
@@ -548,21 +525,21 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   retlist <- list(
       "all_tables" = result_list,
       "batches" = batches,
-      "batches_table" = batches_table,
+      "batches_table" = batch_table,
       "coefficients" = coefficient_df,
       "conditions" = conditions,
-      "conditions_table" = conditions_table,
+      "conditions_table" = condition_table,
       "contrasts_full" = contrasts_full,
       "contrasts_performed" = contrasts,
       "denominators" = denominators,
+      "deseq_dataset" = dataset,
       "dispersion_plot" = dispersion_plot,
       "input_data" = input,
       "method" = "deseq",
-      "model" = model_data,
-      "model_string" = model_string,
+      "model" = model_mtrx,
+      "model_string" = model_fstring,
       "normalized_counts" = normalized_counts,
       "numerators" = numerators,
-      "deseq_dataset" = dataset,
       "run" = deseq_run)
   class(retlist) <- c("deseq_result", "list")
   if (!is.null(arglist[["deseq_excel"]])) {
@@ -570,6 +547,13 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
   }
   class(retlist) <- c("deseq_pairwise", "list")
   return(retlist)
+}
+
+#' @export
+print.deseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the DESeq2 pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Given a set of surrogate variables from sva and friends, try adding them to a DESeqDataSet.
@@ -584,7 +568,7 @@ deseq2_pairwise <- function(input = NULL, conditions = NULL,
 #' @param svs Surrogates from sva and friends to test out.
 #' @param num_sv Optionally, provide the number of SVs, primarily used if
 #'  recursing in the hunt for a valid number of surrogates.
-#' @seealso [sva] [RUVSeq] [all_adjusters()] [normalize_batch()]
+#' @seealso [sva] [RUVSeq] [all_adjusters()] [normalize()]
 #' @return DESeqDataSet with at least some of the SVs appended to the model.
 deseq_try_sv <- function(data, summarized, svs, num_sv = NULL) {
   counts <- DESeq2::counts(data)

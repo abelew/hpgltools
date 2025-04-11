@@ -3,6 +3,639 @@
 ## surrogate estimators and batch correction methods.  These functions attempt
 ## to make that possible.
 
+adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
+                                 null_fstring = NULL,
+                                 estimate_type = "limma", batch1 = "batch",
+                                 batch2 = NULL, surrogates = "be", low_to_zero = FALSE,
+                                 cpus = 4, na_to_zero = TRUE, confounders = NULL,
+                                 adjust_method = "ruv", filter = "raw", thresh = 1,
+                                 noscale = FALSE, prior_plots = FALSE, control_type = "norm") {
+  lib_result <- sm(requireNamespace("ruv"))
+  att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
+  ## In one test, this seems to have been enough, but in another, perhaps not.
+  ## Gather all the likely pieces we can use
+  my_design <- pData(input)
+  my_data <- exprs(input)
+  expt_state <- state(input)
+
+  ## Once again this is a place where my new stance vis a vis NAs is relevant.
+  if (isTRUE(na_to_zero)) {
+    na_idx <- is.na(my_data)
+    my_data[na_idx] <- 0
+  }
+
+  ## Different tools expect different inputs
+  linear_mtrx <- NULL
+  ## So here I will be creating separate matrices on the linear and log scales.
+  log2_mtrx <- NULL
+  ## I also want to record this along with the type of output returned by each method.
+  input_scale <- NULL
+  output_scale <- "linear"
+  if (expt_state[["transform"]] == "linear" || expt_state[["transform"]] == "raw") {
+    linear_mtrx <- as.matrix(my_data)
+    log2_mtrx <- as.matrix(log2(linear_mtrx + 1.0))
+    input_scale <- "linear"
+  } else if (expt_state[["transform"]] == "log2") {
+    log2_mtrx <- as.matrix(my_data)
+    linear_mtrx <- as.matrix((2 ^ my_data) - 1.0)
+    input_scale <- "log2"
+  } else if (expt_state[["transform"]] == "log") {
+    warning("Unexpected call for base e data.")
+    log2_mtrx <- as.matrix(my_data / log(2))
+    linear_mtrx <- as.matrix(exp(my_data) - 1.0)
+    input_scale <- "loge"
+  }
+
+  zero_rows <- rowSums(linear_mtrx, na.rm = TRUE) == 0
+  num_zero_rows <- sum(zero_rows, na.rm = TRUE)
+  if (num_zero_rows > 0) {
+    mesg("batch_counts: Before batch/surrogate estimation, ",
+         zero_rows, " rows are 0.")
+  }
+
+  elements <- nrow(linear_mtrx) * ncol(linear_mtrx)
+  num_normal <- sum(linear_mtrx > 1, na.rm = TRUE)
+  normal_pct <- scales::percent(num_normal / elements)
+  mesg("batch_counts: Before batch/surrogate estimation, ",
+       num_normal, " entries are x>1: ", normal_pct, ".")
+  num_zero <- sum(linear_mtrx == 0, na.rm = TRUE)
+  zero_pct <- scales::percent(num_zero / elements)
+  mesg("batch_counts: Before batch/surrogate estimation, ",
+       num_zero, " entries are x==0: ", zero_pct, ".")
+  num_low <- sum(linear_mtrx < 1 & linear_mtrx > 0, na.rm = TRUE)
+  low_pct <- scales::percent(num_low / elements)
+  if (is.null(num_low)) {
+    num_low <- 0
+  }
+  if (num_low > 0) {
+    mesg("batch_counts: Before batch/surrogate estimation, ",
+         num_low, " entries are 0<x<1: ", low_pct, ".")
+  }
+  num_neg <- sum(linear_mtrx < 0, na.rm = TRUE)
+  if (num_neg > 0) {
+    neg_pct <- scales::percent(num_neg / elements)
+    message("batch_counts: Before batch/surrogate estimation, ",
+            num_zero, " entries are x<0: ", neg_pct, ".")
+  }
+
+  fctrs <- get_formula_factors(model_fstring)
+  contrast_fctr <- fctrs[["factors"]][1]
+
+  conditional_formula <- as.formula(model_fstring)
+  conditional_model <- model.matrix(conditional_formula, data = my_design)
+  if (is.null(null_fstring)) {
+    null_model <- conditional_model[, 1]
+  } else {
+    null_formula <- as.formula(null_fstring)
+    null_model <- model.matrix(null_formula, data = my_design)
+  }
+
+  batches <- my_design[[batch1]]
+
+  ## Everything in this switch should directly return a new matrix of count-like data
+  switchret <- switch(
+    estimate_type,
+    "combat" = {
+      ## This peculiar syntax should match combat and combat_noscale
+      ## to the same result.
+      mesg("batch_counts: Using combat with a prior, no scaling, and a null model.")
+      new_counts <- sm(sva::ComBat(linear_mtrx, batches, mod = NULL,
+                                   par.prior = TRUE, prior.plots = prior_plots,
+                                   mean.only = TRUE))
+    },
+    "combat_noprior" = {
+      mesg("batch_counts: Using combat without a prior and no scaling.")
+      mesg("This takes a long time!")
+      new_counts <- sm(sva::ComBat(linear_mtrx, batches, mod = conditions,
+                                   par.prior = FALSE, prior.plots = prior_plots,
+                                   mean.only = TRUE))
+    },
+    "combat_noprior_scale" = {
+      mesg("batch_counts: Using combat without a prior and with scaling.")
+      new_counts <- sm(sva::ComBat(linear_mtrx, batches, mod = conditions,
+                                   par.prior = FALSE, prior.plots = prior_plots,
+                                   mean.only = FALSE))
+    },
+    "combat_notnull" = {
+      mesg("batch_counts: Using combat with a prior, no scaling, and a conditional model.")
+      new_counts <- sm(sva::ComBat(linear_mtrx, batches, mod = conditions,
+                                   par.prior = TRUE, prior.plots = prior_plots,
+                                   mean.only = TRUE))
+    },
+    "combat_scale" = {
+      mesg("batch_counts: Using combat with a prior and with scaling.")
+      new_counts <- sm(sva::ComBat(linear_mtrx, batches, mod = conditions,
+                                   par.prior = TRUE, prior.plots = prior_plots,
+                                   mean.only = FALSE))
+    },
+    "limma" = {
+      if (is.null(batch2)) {
+        mesg("batch_counts: Using limma's removeBatchEffect to remove batch effect.")
+        new_counts <- limma::removeBatchEffect(log2_mtrx, batch = batches)
+      } else {
+        batches2 <- as.factor(design[[batch2]])
+        new_counts <- limma::removeBatchEffect(log2_mtrx, batch = batches, batch2 = batches2)
+      }
+      message(strwrap(prefix = " ", initial = "", "If you receive a warning: 'NANs produced', one
+ potential reason is that the data was quantile normalized."))
+      if (expt_state[["transform"]] == "raw") {
+        new_counts <- (2 ^ new_counts) - 1
+      }
+    },
+    "limmaresid" = {
+      ## ok a caveat:  voom really does require input on the base 10 scale and returns
+      ## log2 scale data.  Therefore we need to make sure that the input is
+      ## provided appropriately.
+      mesg("batch_counts: Using residuals of limma's lmfit to remove batch effect.")
+      batch_model <- model.matrix(~batches)
+      batch_voom <- limma::voom(linear_mtrx, batch_model,
+                                normalize.method = "quantile",
+                                plot = FALSE)
+      batch_fit <- limma::lmFit(batch_voom, design = batch_model)
+      new_counts <- residuals(batch_fit, batch_voom[["E"]])
+      ## This is still fubar!
+      ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
+      if (expt_state[["transform"]] == "raw") {
+        new_counts <- (2 ^ new_counts) - 1
+      }
+    },
+    "varpart" = {
+      mesg("Taking residuals from a linear mixed model as suggested by variancePartition.")
+      cl <- parallel::makeCluster(cpus)
+      doParallel::registerDoParallel(cl)
+      batch_model <- as.formula("~ (1|batch)")
+      mesg("The function fitvarPartModel may take excessive memory, you have been warned.")
+      batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, design)
+      new_counts <- residuals(batch_fit)
+      rm(batch_fit)
+      parallel::stopCluster(cl)
+    },
+    {
+      svs <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                               null_fstring = null_fstring, estimate_type = estimate_type,
+                               batch1 = batch1, batch2 = batch2, surrogates = surrogates,
+                               low_to_zero = low_to_zero, cpus = cpus,
+                               na_to_zero = na_to_zero, confounders = confounders,
+                               adjust_method = adjust_method, filter = filter,
+                               thresh = thresh, control_type = control_type)
+      model_adjust <- svs[["model_adjust"]]
+      output_scale <- svs[["output_scale"]]
+      mesg("Adjusting counts with method: ", adjust_method, ".")
+      new_counts <- counts_from_surrogates(data = surrogate_input, adjust = model_adjust,
+                                           method = adjust_method, design = my_design)
+      if (output_scale == "log2") {
+        new_counts <- (2 ^ new_counts) - 1
+      }
+    })
+  return(new_counts)
+}
+
+#' Search for SVs in an expressionset-like object.
+#'
+#' @export
+adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
+                              null_fstring = NULL,
+                              model_svs = "sva", batch1 = "batch",
+                              batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = NULL,
+                              na_to_zero = TRUE, confounders = NULL,
+                              filter = "raw", thresh = 1,
+                              noscale = FALSE, prior_plots = FALSE,
+                              control_type = "norm") {
+  ## Gather all the likely pieces we can use
+  ## Without the following requireNamespace(ruv)
+  ## we get an error 'unable to find an inherited method for function RUVr'
+  ## ruv_loaded <- try(require(package = "ruv", quietly = TRUE))
+  lib_result <- sm(requireNamespace("ruv"))
+  att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
+  ## In one test, this seems to have been enough, but in another, perhaps not.
+
+  ## Gather all the likely pieces we can use
+  my_design <- pData(input)
+  sample_names <- rownames(my_design)
+  my_data <- exprs(input)
+  expt_state <- state(input)
+  ## Once again this is a place where my new stance vis a vis NAs is relevant.
+  if (isTRUE(na_to_zero)) {
+    na_idx <- is.na(my_data)
+    my_data[na_idx] <- 0
+  }
+
+  ## Different tools expect different inputs
+  linear_mtrx <- NULL
+  ## So here I will be creating separate matrices on the linear and log scales.
+  log2_mtrx <- NULL
+  ## I also want to record this along with the type of output returned by each method.
+  input_scale <- NULL
+  output_scale <- "linear"
+  if (expt_state[["transform"]] == "linear" || expt_state[["transform"]] == "raw") {
+    linear_mtrx <- as.matrix(my_data)
+    log2_mtrx <- as.matrix(log2(linear_mtrx + 1.0))
+    input_scale <- "linear"
+  } else if (expt_state[["transform"]] == "log2") {
+    log2_mtrx <- as.matrix(my_data)
+    linear_mtrx <- as.matrix((2 ^ my_data) - 1.0)
+    input_scale <- "log2"
+  } else if (expt_state[["transform"]] == "log") {
+    warning("Unexpected call for base e data.")
+    log2_mtrx <- as.matrix(my_data / log(2))
+    linear_mtrx <- as.matrix(exp(my_data) - 1.0)
+    input_scale <- "loge"
+  }
+
+  zero_rows <- rowSums(linear_mtrx, na.rm = TRUE) == 0
+  num_zero_rows <- sum(zero_rows, na.rm = TRUE)
+  if (num_zero_rows > 0) {
+    mesg("batch_counts: Before batch/surrogate estimation, ",
+         zero_rows, " rows are 0.")
+  }
+
+  elements <- nrow(linear_mtrx) * ncol(linear_mtrx)
+  num_normal <- sum(linear_mtrx > 1, na.rm = TRUE)
+  normal_pct <- scales::percent(num_normal / elements)
+  mesg("batch_counts: Before batch/surrogate estimation, ",
+       num_normal, " entries are x>1: ", normal_pct, ".")
+  num_zero <- sum(linear_mtrx == 0, na.rm = TRUE)
+  zero_pct <- scales::percent(num_zero / elements)
+  mesg("batch_counts: Before batch/surrogate estimation, ",
+       num_zero, " entries are x==0: ", zero_pct, ".")
+  num_low <- sum(linear_mtrx < 1 & linear_mtrx > 0, na.rm = TRUE)
+  low_pct <- scales::percent(num_low / elements)
+  if (is.null(num_low)) {
+    num_low <- 0
+  }
+  if (num_low > 0) {
+    mesg("batch_counts: Before batch/surrogate estimation, ",
+         num_low, " entries are 0<x<1: ", low_pct, ".")
+  }
+  num_neg <- sum(linear_mtrx < 0, na.rm = TRUE)
+  if (num_neg > 0) {
+    neg_pct <- scales::percent(num_neg / elements)
+    message("batch_counts: Before batch/surrogate estimation, ",
+            num_zero, " entries are x<0: ", neg_pct, ".")
+  }
+
+  fctrs <- get_formula_factors(model_fstring)
+  contrast_fctr <- fctrs[["factors"]][1]
+  noint_fstring <- "~"
+  noint_null <- "~ 1"
+  for (f in fctrs[["factors"]]) {
+    noint_fstring <- glue("{noint_fstring} {f} +")
+    ## Add a check that the levels are ok.
+    dropped_fctr <- droplevels(as.factor(my_design[[f]]))
+    dropped_levels <- sort(levels(dropped_fctr))
+    current_levels <- sort(levels(as.factor(my_design[[f]])))
+    test_levels <- try(expect_equal(dropped_levels, current_levels))
+    if ("try-error" %in% class(test_levels)) {
+      warning("The dropped levels and existing levels are not equivalent for: ", f)
+      warning("You can expect things to fail shortly.")
+    }
+  }
+  noint_fstring <- gsub(x = noint_fstring, pattern = "\\+$", replacement = "")
+
+  conditional_formula <- as.formula(noint_fstring)
+  conditional_model <- model.matrix(conditional_formula, data = my_design)
+  if (is.null(null_fstring)) {
+    null_model <- conditional_model[, 1]
+  } else {
+    null_formula <- as.formula(noint_null)
+    null_model <- model.matrix(null_formula, data = my_design)
+  }
+
+  chosen_surrogates <- 1
+  vword <- "variable"
+  if (is.null(num_surrogates)) {
+    chosen_surrogates <- 1
+    message("No estimate nor method to find surrogates was provided. ",
+            "Assuming you want 1 surrogate variable.")
+  } else if ("character" %in% class(num_surrogates)) {
+    chosen_surrogates <- guess_num_surrogates(my_design, linear_mtrx, log2_mtrx,
+                                              model_svs = model_svs,
+                                              conditional_fstring = noint_fstring,
+                                              guess_type = num_surrogates)
+    if (chosen_surrogates > 1) {
+      vword <- "variables"
+    }
+  mesg("The ", num_surrogates, " method chose ",
+       chosen_surrogates, " surrogate ", vword, ".")
+  } else if (class(num_surrogates) == "numeric") {
+    mesg("A specific number of surrogate variables was chosen: ", surrogates, ".")
+    chosen_surrogates <- num_surrogates
+  }
+
+  if (chosen_surrogates < 1) {
+    warning("One must have greater than 0 surrogates, setting chosen_surrogates to 1.")
+    chosen_surrogates <- 1
+  }
+  vword <- "variable"
+  if (chosen_surrogates > 1) {
+    vword <- "variables"
+  }
+
+  if (is.null(cpus)) {
+    cpus <- parallel::detectCores() - 2
+  }
+  if (cpus < 0) {
+    cpus <- 1
+  }
+
+  if (isTRUE(prior_plots)) {
+    message("When using ComBat, using prior.plots may result in an error due to infinite ylim.")
+  }
+
+  ## empirical controls can take either log or base 10 scale depending on 'control_type'
+  control_likelihoods <- NULL
+  if (control_type == "norm") {
+    control_likelihoods <- try(sm(sva::empirical.controls(
+      dat = log2_mtrx, mod = conditional_model, mod0 = null_model,
+      n.sv = chosen_surrogates, type = control_type)))
+  } else {
+    control_likelihoods <- try(sm(sva::empirical.controls(
+      dat = linear_mtrx, mod = conditional_model, mod0 = null_model,
+      n.sv = chosen_surrogates, type = control_type)))
+  }
+  if (class(control_likelihoods) == "try-error") {
+    mesg("The most likely error in sva::empirical.controls() ",
+         "is a call to density in irwsva.build. ",
+         "Setting control_likelihoods to zero and using unsupervised sva.")
+    warning("It is highly likely that the underlying reason for this ",
+            "error is too many 0's in the dataset, ",
+            "please try doing a filtering of the data and retry.")
+    control_likelihoods <- 0
+  }
+  if (sum(control_likelihoods) == 0) {
+    if (model_svs == "sva_supervised") {
+      message("Unable to perform supervised estimations, changing to unsupervised_sva.")
+      model_svs <- "sva_unsupervised"
+    } else if (model_svs == "ruv_supervised") {
+      message("Unable to perform supervised estimations, changing to empirical_ruv.")
+      model_svs <- "ruv_empirical"
+    }
+  }
+
+  if (is.null(model_svs)) {
+    model_svs <- "svaseq"
+  }
+  ## I use 'sva' as shorthand fairly often
+  if (model_svs == "sva") {
+    model_svs <- "sva_unsupervised"
+    mesg("Estimate type 'sva' is shorthand for 'sva_unsupervised'.")
+    mesg("Other sva options include: sva_supervised and svaseq.")
+  }
+  if (model_svs == "ruv") {
+    model_svs <- "ruv_empirical"
+    mesg("Estimate type 'ruv' is shorthand for 'ruv_empirical'.")
+    mesg("Other ruv options include: ruv_residual and ruv_supervised.")
+  }
+
+  surrogate_result <- NULL
+  model_adjust <- NULL
+  adjusted_counts <- NULL
+  type_color <- NULL
+  source_counts <- NULL
+  new_counts <- NULL
+  matrx_scale <- "linear"
+  sword <- "surrogate"
+  if (chosen_surrogates > 1) {
+    sword <- "surrogates"
+  }
+  surrogate_input <- linear_mtrx
+  switchret <- switch(
+    model_svs,
+    "fsva" = {
+      ## Ok, I have a question:
+      ## If we perform fsva using log2(data) and get back SVs on a scale of ~ -1
+      ## to 1, then why are these valid for changing and visualizing the linear
+      ## data.  That does not really make sense to me.
+      mesg("Attempting fsva surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      sva_object <- sm(sva::sva(log2_mtrx, conditional_model,
+                                null_model, n.sv = chosen_surrogates))
+      surrogate_result <- sva::fsva(log2_mtrx, conditional_model,
+                                    sva_object, newdat = as.matrix(log2_mtrx),
+                                    method = "exact")
+      model_adjust <- as.matrix(surrogate_result[["newsv"]])
+      source_counts <- surrogate_result[["new"]]
+    },
+    "isva" = {
+      mesg("Attempting isva surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      warning("isva, in my estimation, performs incredibly poorly, or I misread the documentation.")
+      condition_vector <- as.numeric(conditions)
+      batch_vector <- as.numeric(batches)
+
+      confounder_lst <- list()
+      if (is.null(confounders)) {
+        confounder_lst[["batch"]] <- as.numeric(batches)
+      } else {
+        for (c in seq_along(confounders)) {
+          name <- confounders[c]
+          confounder_lst[[name]] <- as.numeric(my_design[[name]])
+        }
+      }
+      confounder_mtrx <- matrix(data = confounder_lst[[1]], ncol = 1)
+      colnames(confounder_mtrx) <- names(confounder_lst)[1]
+      if (length(confounder_lst) > 1) {
+        for (i in seq(from = 2, to = length(confounder_lst))) {
+          confounder_mtrx <- cbind(confounder_mtrx, confounder_lst[[i]])
+          names(confounder_mtrx)[i] <- names(confounder_lst)[i]
+        }
+      }
+      mesg("Attempting isva surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      surrogate_result <- my_isva(data.m = log2_mtrx, pheno.v = condition_vector,
+                                  ncomp = chosen_surrogates,
+                                  icamethod = "JADE")
+      model_adjust <- as.matrix(surrogate_result[["isv"]])
+      output_scale <- "log2"
+    },
+    "pca" = {
+      mesg("Attempting pca surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      data_vs_means <- as.matrix(log2_mtrx - rowMeans(log2_mtrx))
+      surrogate_result <- corpcor::fast.svd(data_vs_means)
+      model_adjust <- as.matrix(surrogate_result[["v"]][, 1:chosen_surrogates])
+    },
+    "ruvg" = {
+      mesg("Using RUVSeq and edgeR for batch correction (similar to lmfit residuals.)")
+      ## Adapted from: http://jtleek.com/svaseq/simulateData.html -- but not quite correct yet
+      ruv_input <- edgeR::DGEList(counts = linear_mtrx, group = conditions)
+      ruv_input_norm <- ruv_input
+      if (expt_state[["normalization"]] == "raw") {
+        ruv_input_norm <- edgeR::calcNormFactors(ruv_input, method = "upperquartile")
+      }
+      ruv_input_glm <- edgeR::estimateGLMCommonDisp(ruv_input_norm, conditional_model)
+      ruv_input_tag <- edgeR::estimateGLMTagwiseDisp(ruv_input_glm, conditional_model)
+      ruv_fit <- edgeR::glmFit(ruv_input_tag, conditional_model)
+      ## Use RUVSeq with empirical controls
+      ## The previous instance of ruv_input should work here, and the ruv_input_norm
+      ## Ditto for _glm and _tag, and indeed ruv_fit
+      ## Thus repeat the first 7 lines of the previous RUVSeq before anything changes.
+      ruv_lrt <- edgeR::glmLRT(ruv_fit, coef = 2)
+      ruv_control_table <- ruv_lrt[["table"]]
+      ranked <- as.numeric(rank(ruv_control_table[["LR"]]))
+      bottom_third <- (summary(ranked)[[2]] + summary(ranked)[[3]]) / 2
+      ruv_controls <- ranked <= bottom_third  ## what is going on here?!
+      ## ruv_controls = rank(ruv_control_table$LR) <= 400  ## some data sets
+      ## fail with 400 hard-set
+      surrogate_result <- RUVSeq::RUVg(linear_mtrx, ruv_controls, k = chosen_surrogates)
+      model_adjust <- surrogate_result[["W"]]
+      source_counts <- surrogate_result[["normalizedCounts"]]
+    },
+    "ruv_empirical" = {
+      mesg("Attempting ruvseq empirical surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      ruv_input <- edgeR::DGEList(counts = linear_mtrx, group = conditions)
+      ruv_input_norm <- edgeR::calcNormFactors(ruv_input, method = "upperquartile")
+      ruv_input_glm <- edgeR::estimateGLMCommonDisp(ruv_input_norm, conditional_model)
+      ruv_input_tag <- edgeR::estimateGLMTagwiseDisp(ruv_input_glm, conditional_model)
+      ruv_fit <- edgeR::glmFit(ruv_input_tag, conditional_model)
+      ## Use RUVSeq with empirical controls
+      ## The previous instance of ruv_input should work here, and the ruv_input_norm
+      ## Ditto for _glm and _tag, and indeed ruv_fit
+      ## Thus repeat the first 7 lines of the previous RUVSeq before anything changes.
+      ruv_lrt <- edgeR::glmLRT(ruv_fit, coef = 2)
+      ruv_control_table <- ruv_lrt[["table"]]
+      ranked <- as.numeric(rank(ruv_control_table[["LR"]]))
+      bottom_third <- (summary(ranked)[[2]] + summary(ranked)[[3]]) / 2
+      ruv_controls <- ranked <= bottom_third  ## what is going on here?!
+      ## ruv_controls = rank(ruv_control_table$LR) <= 400  ## some data sets
+      ## fail with 400 hard-set
+      surrogate_result <- RUVSeq::RUVg(round(linear_mtrx), ruv_controls, k = chosen_surrogates)
+      model_adjust <- as.matrix(surrogate_result[["W"]])
+      source_counts <- surrogate_result[["normalizedCounts"]]
+    },
+    "ruv_residuals" = {
+      mesg("Attempting ruvseq residual surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      ## Use RUVSeq and residuals
+      ruv_input <- edgeR::DGEList(counts = linear_mtrx, group = conditions)
+      norm <- edgeR::calcNormFactors(ruv_input)
+      ruv_input <- try(edgeR::estimateDisp(norm, design = conditional_model, robust = TRUE))
+      ruv_fit <- edgeR::glmFit(ruv_input, conditional_model)
+      ruv_res <- residuals(ruv_fit, type = "deviance")
+      ruv_normalized <- EDASeq::betweenLaneNormalization(linear_mtrx, which = "upper")
+      ## This also gets mad if you pass it a df and not matrix
+      controls <- rep(TRUE, dim(linear_mtrx)[1])
+      surrogate_result <- RUVSeq::RUVr(ruv_normalized, controls, k = chosen_surrogates, ruv_res)
+      model_adjust <- as.matrix(surrogate_result[["W"]])
+      source_counts <- as.matrix(surrogate_result[["normalizedCounts"]])
+    },
+    "ruv_supervised" = {
+      mesg("Attempting ruvseq supervised surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      ## Re-calculating the numer of surrogates with this modified data.
+      surrogate_estimate <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model))
+      if (min(rowSums(linear_mtrx)) == 0) {
+        warning("empirical.controls will likely fail because some rows are all 0.")
+      }
+      control_likelihoods <- sm(sva::empirical.controls(
+        dat = log2_mtrx, mod = conditional_model, mod0 = null_model,
+        n.sv = surrogate_estimate))
+      surrogate_result <- RUVSeq::RUVg(round(linear_mtrx), k = surrogate_estimate,
+                                       cIdx = as.logical(control_likelihoods))
+      model_adjust <- as.matrix(surrogate_result[["W"]])
+      source_counts <- surrogate_result[["normalizedCounts"]]
+    },
+    "smartsva" = {
+      mesg("Attempting svaseq estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      surrogate_result <- SmartSVA::smartsva.cpp(
+        dat = linear_mtrx, mod = conditional_model, mod0 = null_model, n.sv = chosen_surrogates)
+      model_adjust <- as.matrix(surrogate_result[["sv"]])
+    },
+    "svaseq" = {
+      mesg("Attempting svaseq estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      surrogate_result <- sm(sva::svaseq(
+        dat = linear_mtrx, n.sv = chosen_surrogates, mod = conditional_model, mod0 = null_model))
+      model_adjust <- as.matrix(surrogate_result[["sv"]])
+    },
+    "sva_supervised" = {
+      mesg("Attempting sva supervised surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      surrogate_result <- sm(sva::ssva(dat = log2_mtrx, controls = control_likelihoods,
+                                       n.sv = chosen_surrogates))
+      model_adjust <- as.matrix(surrogate_result[["sv"]])
+    },
+    "sva_unsupervised" = {
+      mesg("Attempting sva unsupervised surrogate estimation with ",
+           chosen_surrogates, " ", sword, ".")
+      if (min(rowSums(linear_mtrx)) == 0) {
+        warning("sva will likely fail because some rowSums are 0.")
+      }
+      surrogate_result <- sm(sva::sva(
+        dat = log2_mtrx, mod = conditional_model, mod0 = null_model, n.sv = chosen_surrogates))
+      model_adjust <- as.matrix(surrogate_result[["sv"]])
+    },
+    {
+      ## If given nothing to work with, use supervised sva
+      mesg("Did not understand ", model_svs, ", assuming supervised sva.")
+      surrogate_result <- sva::svaseq(
+        dat = linear_mtrx, mod = conditional_model, mod0 = null_model,
+        n.sv = chosen_surrogates, controls = control_likelihoods)
+      model_adjust <- as.matrix(surrogate_result[["sv"]])
+    }) ## End of the switch.
+
+  appended_fstring <- model_fstring
+  surrogate_plots <- NULL
+  if (!is.null(model_adjust)) {
+    rownames(model_adjust) <- sample_names
+    sv_names <- glue("{model_svs}_{1:ncol(model_adjust)}")
+    colnames(model_adjust) <- sv_names
+    for (s in seq_along(sv_names)) {
+      sv <- sv_names[s]
+      appended_fstring <- glue("{appended_fstring} + {sv}")
+      pData(input)[[sv]] <- as.numeric(model_adjust[, s])
+    }
+    surrogate_plots <- plot_batchsv(input, model_adjust)
+  }
+
+  ret <- list(
+    "appended_fstring" = appended_fstring,
+    "factor_svs" = surrogate_plots[["factor_svs"]],
+    "model_adjust" = model_adjust,
+    "modified_input" = input,
+    "null_model" = null_model,
+    "output_scale" = output_scale,
+    "sample_factor" = surrogate_plots[["sample_factor"]],
+    "source_counts" = source_counts,
+    "starting_fstring" = model_fstring,
+    "surrogate_result" = surrogate_result,
+    "svs_sample" = surrogate_plots[["svs_sample"]])
+  return(ret)
+}
+
+#' Use methods from sva/RUVseq to guesstimate the number of surrogates.
+#'
+#' @export
+guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
+                                 model_svs = "svaseq",
+                                 conditional_fstring = "~ condition",
+                                 guess_type = "be") {
+  if (is.null(model_svs) && is.null(guess_type)) {
+    message("Neither an estimate type nor guess was provided, assuming 1.")
+    return(1)
+  }
+  conditional_model <- model.matrix(as.formula(conditional_fstring), data = design)
+  if (model_svs == "smartsva") {
+    full_fstring <- glue("t(linear_mtrx) {conditional_fstring}")
+    test_rslt <- lm(as.formula(full_fstring), data = design)
+    sv_estimate_data <- t(resid(lm_rslt))
+    estimated_dimensions <- isva::EstDimRMT(sv_estimate_data, FALSE)
+    chosen_surrogates <- estimated_dimensions[["dim"]] + 1
+  } else if (model_svs == "isva") {
+    estimated_dimensions <- isva::EstDimRMT(log2_mtrx)
+    chosen_surrogates <- estimated_dimensions[["dim"]] + 1
+  } else if (guess_type != "be" && guess_type != "leek") {
+    message("A guess type was chosen, but it is neither be nor leek, assuming be.")
+    chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model))
+  } else {
+    chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model,
+                                       method = guess_type))
+  }
+  return(chosen_surrogates)
+}
+
 #' Combine all surrogate estimators and batch correctors into one function.
 #'
 #' For a long time, I have mostly kept my surrogate estimators and batch correctors
@@ -1107,32 +1740,38 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
 #' @seealso [sva] [RUVSeq] [crossprod()] [tcrossprod()] [solve()]
 #' @export
 counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = "ruv",
-                                   cond_column = "condition", batch_column = "batch",
+                                   model_fstring = "~ 0 + condition + batch",
                                    matrix_scale = "linear", return_scale = "linear", ...) {
   arglist <- list(...)
   data_mtrx <- NULL
   my_design <- NULL
   conditions <- NULL
   batches <- NULL
-  if (class(data)[1] == "expt") {
+  expr <- sum(c("expt", "ExpressionSet", "SummarizedExperiment") %in% class(data))
+  if (expr) {
     my_design <- pData(data)
-    conditions <- droplevels(as.factor(pData(data)[[cond_column]]))
-    batches <- droplevels(as.factor(pData(data)[[batch_column]]))
-    data_mtrx <- exprs(data)
-  } else if (class(data)[1] == "ExpressionSet") {
-    my_design <- pData(data)
-    conditions <- droplevels(as.factor(pData(data)[[cond_column]]))
-    batches <- droplevels(as.factor(pData(data)[[batch_column]]))
     data_mtrx <- exprs(data)
   } else {
     my_design <- design
-    conditions <- droplevels(as.factor(design[[cond_column]]))
-    batches <- droplevels(as.factor(design[[batch_column]]))
     data_mtrx <- as.matrix(data)
   }
-  conditional_model <- model.matrix(~ conditions, data = my_design)
 
-  new_model <- conditional_model
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
+  batch_column <- fctrs[["factors"]][2]
+  conditions <- droplevels(as.factor(my_design[[condition_column]]))
+  batches <- droplevels(as.factor(my_design[["batch"]]))
+  conditions_table <- table(conditions)
+  batches_table <- table(batches)
+  condition_levels <- levels(conditions)
+
+  condition_fstring <- glue("~ {condition_column}")
+  conditional_model <- model.matrix(as.formula(condition_fstring),
+                                    data = my_design)
+  batch_fstring <- glue("~ {batch_column}")
+  batch_model <- model.matrix(as.formula(batch_fstring),
+                              data = my_design)
+   new_model <- conditional_model
   ## Explicitly append columns of the adjust matrix to the conditional model.
   ## In the previous code, this was: 'X <- cbind(conditional_model, sva$sv)'
   ## new_model <- cbind(conditional_model, adjust)
@@ -1143,20 +1782,12 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
     adjust[["SV1"]] <- 1
   }
   adjust_mtrx <- as.matrix(adjust)
-  full_models <- sm(choose_model(data, conditions = conditions, batches = batches,
-                                 model_batch = adjust_mtrx))
-  full_model <- full_models[["noint_model"]]
-  ## FIXME: Reverse this, it looks weird.
-  batch_model <- full_models[["model_batch"]]
-  cond_model <- sm(choose_model(data, conditions = conditions,
-                                batches = batches)[["noint_model"]])
-
   switchret <- switch(
     method,
     "cbcb_add" = {
       ## we also have conditional_model which may make this easier
       new_counts <- cbcb_batch(data_mtrx, full_model,
-                               conditional_model = cond_model,
+                               conditional_model = conditional_model,
                                batch_model = batch_model,
                                method = "add",
                                matrix_scale = matrix_scale,
@@ -1168,7 +1799,7 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
       ##                         matrix_scale = matrix_scale, return_scale = return_scale,
       ##                         ...)
       new_counts <- cbcb_batch(data_mtrx, new_model,
-                               conditional_model = cond_model,
+                               conditional_model = conditional_model,
                                batch_model = batch_model,
                                method = "subtract",
                                matrix_scale = matrix_scale, return_scale = return_scale,

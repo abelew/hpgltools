@@ -4,7 +4,7 @@
 \alias{make_pombe_se}
 \title{Analagous function to make_pombe_expt()}
 \usage{
-make_pombe_se(annotation = TRUE)
+make_pombe_se(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 }
 \arguments{
 \item{annotation}{Include annotations?}

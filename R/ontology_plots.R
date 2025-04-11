@@ -187,6 +187,47 @@ plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
 }
 setGeneric("plot_topn_gsea")
 
+
+#' Plot topn GSEA results given the result from all_cprofiler
+#' @export
+setMethod(
+  "plot_topn_gsea", signature = signature(gse = "all_cprofiler"),
+  definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
+    ## Yank out the data
+    retlist <- list()
+    for (sig in names(gse)) {
+      message("Starting: ", sig, ".")
+      input_go <- gse[[sig]][["enrich_objects"]][["gse"]]
+      ret_name_go <- paste0("GO_", sig)
+      input_kegg <- gse[[sig]][["enrich_objects"]][["gse_all_kegg"]]
+      ret_name_kegg <- paste0("KEGG_", sig)
+      retlist[[ret_name_go]] <- NULL
+      if (!is.null(input_go)) {
+        retlist[[ret_name_go]] <- plot_topn_gsea(input_go, topn = topn, id = id, add_score = add_score)
+      }
+      retlist[[ret_name_kegg]] <- NULL
+      if (!is.null(input_kegg)) {
+        retlist[[ret_name_kegg]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
+      }
+    }
+    return(retlist)
+  })
+
+#' Plot topn GSEA results given the result from simple_clusterprofiler
+#' @export
+setMethod(
+  "plot_topn_gsea", signature = signature(gse = "clusterprofiler_result"),
+  definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
+    ## Yank out the data
+    retlist <- list()
+    input_go <- gse[["enrich_objects"]][["gse"]]
+    input_kegg <- gse[["enrich_objects"]][["gse_all_kegg"]]
+    retlist[["GO"]] <- plot_topn_gsea(input_go, topn = topn, id = id, add_score = add_score)
+    retlist[["KEGG"]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
+    return(retlist)
+  })
+
+
 #' Make a pvalue plot from goseq data.
 #'
 #' With minor changes, it is possible to push the goseq results into a

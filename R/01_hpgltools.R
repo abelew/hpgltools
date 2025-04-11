@@ -112,8 +112,9 @@ NULL
 #' \code{browseVignettes(package = 'hpgltools')}
 #'
 #' @name hpgltools
-#' @importFrom Biobase exprs pData fData notes sampleNames
-#' @importFrom SummarizedExperiment assay colData rowData rowData<-
+#' @import SummarizedExperiment
+#' @import Biobase
+#' @import BiocGenerics
 #' @importFrom data.table data.table
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
@@ -127,6 +128,7 @@ NULL
 #'  model.matrix na.omit order.dendrogram p.adjust p.adjust.methods pnorm
 #'  princomp quantile relevel reorder resid residuals rnbinom sd setNames
 #'  t.test var
+#' @import data.table
 #' @import graphics
 #' @import grDevices
 #' @import methods

@@ -374,12 +374,10 @@ perhaps change gff_type to make the merge work.")
 
   pvalue_plots <- try(plot_gostats_pval(retlist))
   retlist[["pvalue_plots"]] <- pvalue_plots
-
   if (!is.null(excel)) {
     message("Writing data to: ", excel, ".")
     excel_ret <- sm(try(write_gostats_data(retlist, excel = excel)))
   }
-
   enrich_results <- list()
   for (ont in c("bp", "mf", "cc")) {
     message("Getting enrichResult for ontology: ", ont, ".")
@@ -387,8 +385,24 @@ perhaps change gff_type to make the merge work.")
                                             cutoff_column = "Pvalue")
   }
   retlist[["enrich_results"]] <- enrich_results
-
   return(retlist)
+}
+
+#' Print a gostats over representation search.
+#'
+#' @param x List containing the various gostats results, plots,
+#'  significant subsets, enrichResult coercions, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.gostats_result <- function(x, ...) {
+  bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
+  mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
+  cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])
+  summary_string <- glue("topgo found {bp_entries} BP categories, {mf_entries} MF categories, and \\
+{cc_entries} CC categories.")
+  message(summary_string)
+  enrichplot::dotplot(x[["enrich_results"]][["bp"]])
+  return(invisible(x))
 }
 
 ## EOF

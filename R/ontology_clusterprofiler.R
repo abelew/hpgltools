@@ -621,6 +621,18 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   return(retlist)
 }
 
+#' Print a clusterprofiler over representation search.
+#'
+#' @param x Monstrous list of the various results, including but not
+#'  limited to plots, go-gene mappings, enrichmed, kegg, david, GO
+#'  analyses.
+#' @param ... Other args to match the generic.
+#' @export
+print.clusterprofiler_result <- function(x, ...) {
+  message("A set of ontologies produced by clusterprofiler.")
+  return(invisible(x))
+}
+
 #' Set up appropriate option sets for clusterProfiler
 #'
 #' This hard-sets some defaults for orgdb/kegg databases when using

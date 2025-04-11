@@ -33,6 +33,24 @@ plot_corheat <- function(expt_data, expt_colors = NULL, expt_design = NULL,
   return(map_list)
 }
 
+#' Print the result of plot_corheat().
+#'
+#' @param x List containing the correlations observed and a recorded heatmap.3().
+#' @param ... Other args to match the generic.
+#' @export
+print.correlation_heatmap <- function(x, ...) {
+  min_cor <- min(x[["data"]])
+  non_one_idx <- x[["data"]] == 1
+  non_one <- as.data.frame(x[["data"]])
+  non_one[non_one_idx] <- 0
+  max_cor <- max(non_one)
+  summary_string <- glue("A heatmap of pairwise sample correlations ranging from: \
+{min_cor} to {max_cor}.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
+}
+
 #' Make a heatmap.3 of the distances (euclidean by default) between samples.
 #'
 #' Given a set of count tables and design, this will calculate the pairwise
@@ -64,6 +82,24 @@ plot_disheat <- function(expt_data, expt_colors = NULL, expt_design = NULL,
                            label_chars = label_chars, ...)
   class(map_list) <- "distance_heatmap"
   return(map_list)
+}
+
+#' Print the result of plot_disheat().
+#'
+#' @param x List containing the distances observed and a recorded heatmap.3().
+#' @param ... Other args to match the generic.
+#' @export
+print.distance_heatmap <- function(x, ...) {
+  max_distance <- max(x[["data"]])
+  non_zero_idx <- x[["data"]] == 0
+  non_zero <- as.data.frame(x[["data"]])
+  non_zero[non_zero_idx] <- Inf
+  min_distance <- min(non_zero)
+  summary_string <- glue("A heatmap of pairwise sample distances ranging from: \
+{min_distance} to {max_distance}.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
 }
 
 #' Make a heatmap.3 plot, does the work for plot_disheat and plot_corheat.
@@ -207,6 +243,89 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
   return(retlist)
 }
 setGeneric("plot_heatmap")
+
+#' Run plot_heatmap with an expt as input.
+#' @export
+setMethod(
+  "plot_heatmap", signature = signature(expt_data = "expt"),
+  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
+                        expt_names = NULL, type = "correlation", batch_row = "batch",
+                        plot_title = NULL, label_chars = 10, ...) {
+    expt_design <- pData(expt_data)
+    expt_colors <- expt_data[["colors"]]
+    expt_names <- expt_data[["expt_names"]]
+    expt_data <- exprs(expt_data)
+    ## If plot_title is NULL, print nothing, if it is TRUE
+    ## Then give some information about what happened to the data to make the plot.
+    ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
+    ## my expt containing the normalization state of the data.
+    if (isTRUE(plot_title)) {
+      plot_title <- what_happened(expt_data)
+    } else if (!is.null(plot_title)) {
+      data_title <- what_happened(expt_data)
+      plot_title <- glue("{plot_title}; {data_title}")
+    } else {
+      ## Leave the title blank.
+    }
+    plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
+      method = method, expt_names = expt_names, type = type,
+      batch_row = batch_row, plot_title = plot_title,
+      label_chars = label_chars, ...)
+  })
+
+#' Run plot_heatmap with a SummarizedExperiment as input.
+#' @export
+setMethod(
+  "plot_heatmap", signature = signature(expt_data = "SummarizedExperiment"),
+  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
+                        expt_names = NULL, type = "correlation", batch_row = "batch",
+                        plot_title = NULL, label_chars = 10, ...) {
+    expt_design <- pData(expt_data)
+    expt_colors <- S4Vectors::metadata(expt_data)[["colors"]]
+    expt_names <- S4Vectors::metadata(expt_data)[["expt_names"]]
+    expt_data <- exprs(expt_data)
+    if (isTRUE(plot_title)) {
+      plot_title <- what_happened(expt_data)
+    } else if (!is.null(plot_title)) {
+      data_title <- what_happened(expt_data)
+      plot_title <- glue("{plot_title}; {data_title}")
+    } else {
+      ## Leave the title blank.
+    }
+    plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
+      method = method, expt_names = expt_names, type = type,
+      batch_row = batch_row, plot_title = plot_title,
+      label_chars = label_chars, ...)
+  })
+
+#' Run plot_heatmap with a dataframe as input.
+#' @export
+setMethod(
+  "plot_heatmap", signature = signature(expt_data = "data.frame"),
+  definition = function(expt_data, expt_colors = NULL, expt_design = NULL,
+                        method = "pearson", expt_names = NULL, type = "correlation",
+                        batch_row = "batch", plot_title = NULL, label_chars = 10, ...) {
+    expt_mtrx <- as.matrix(expt_data)
+    plot_heatmap(expt_mtrx, expt_colors = expt_colors, expt_design = expt_design,
+                 method = method, expt_names = expt_names, type = type,
+                 batch_row = batch_row, plot_title = plot_title,
+                 label_chars = label_chars, ...)
+  })
+
+#' Run plot_heatmap with an ExpressionSet as input.
+#' @export
+setMethod(
+  "plot_heatmap", signature = signature(expt_data = "ExpressionSet"),
+  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
+                        expt_names = NULL, type = "correlation", batch_row = "batch",
+                        plot_title = NULL, label_chars = 10, ...) {
+    expt_design <- pData(expt_data)
+    expt_mtrx <- exprs(expt_data)
+    plot_heatmap(expt_mtrx, expt_colors = expt_colors, expt_design = expt_design,
+      method = method, expt_names = expt_names, type = type,
+      batch_row = batch_row, plot_title = plot_title,
+      label_chars = label_chars, ...)
+  })
 
 #' Potential replacement for heatmap.2 based plots.
 #'
@@ -372,6 +491,61 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   return(hpgl_heatmap_plot)
 }
 setGeneric("plot_sample_heatmap")
+
+
+#' Plot the sample heatmap of an expt.
+#' @export
+setMethod(
+  "plot_sample_heatmap", signature = signature(data = "expt"),
+  definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
+                        expt_names = NULL, dendrogram = "column",
+                        row_label = NA, plot_title = NULL, Rowv = TRUE,
+                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+    expt_design <- pData(data)
+    expt_colors <- data[["colors"]]
+    expt_names <- data[["expt_names"]]
+    expt_data <- exprs(data)
+    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
+      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+      row_label = row_label, plot_title = plot_title, Rowv = Rowv,
+      Colv = Colv, label_chars = label_chars, filter = filter, ...)
+  })
+
+#' Plot a sample heatmap of an ExpressionSet.
+#' @export
+setMethod(
+  "plot_sample_heatmap", signature = (data = "ExpressionSet"),
+  definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
+                        expt_names = NULL, dendrogram = "column",
+                        row_label = NA, plot_title = NULL, Rowv = TRUE,
+                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+    expt_design <- pData(data)
+    expt_names <- colnames(expt_design)
+    expt_data <- exprs(data)
+    expt_colors <- colors(data)
+    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
+      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+      row_label = row_label, plot_title = plot_title, Rowv = Rowv,
+      Colv = Colv, label_chars = label_chars, filter = filter, ...)
+  })
+
+#' Plot a sample heatmap with a SummarizedExperiment.
+#' @export
+setMethod(
+  "plot_sample_heatmap", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
+                        expt_names = NULL, dendrogram = "column",
+                        row_label = NA, plot_title = NULL, Rowv = TRUE,
+                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+    expt_design <- pData(data)
+    expt_colors <- S4Vectors::metadata(data)[["colors"]]
+    expt_names <- S4Vectors::metadata(data)[["expt_names"]]
+    expt_data <- exprs(data)
+    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
+      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+      row_label = row_label, plot_title = plot_title, Rowv = Rowv,
+      Colv = Colv, label_chars = label_chars, filter = filter, ...)
+  })
 
 #' An experiment to see if I can visualize the genes with the highest variance.
 #'

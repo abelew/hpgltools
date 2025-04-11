@@ -1,7 +1,6 @@
 start <- as.POSIXlt(Sys.time())
 context("060expt.R")
 
-## make_pombe_expt() invokes create_expt()
 pombe_expt <- make_pombe_expt()
 chosen_genes <- c("SPAC212.11", "SPAC212.09c", "SPNCRNA.70",
                   "SPAC212.12", "SPAC212.04c", "SPAC212.03",
@@ -29,7 +28,7 @@ high_expt
 
 testing <- pData(pombe_expt)
 actual <- dim(testing)
-expected <- c(36, 9)
+expected <- c(36, 8)
 test_that("Do we get experimental metadata from our expt?", {
   expect_equal(actual[1], expected[1])
   expect_equal(actual[2], expected[2])
@@ -56,7 +55,7 @@ test_that("Do we get expression from our expt?", {
 
 test_expt <- concatenate_runs(expt = pombe_expt, column = "minute")
 actual <- dim(pData(test_expt))
-expected <- c(6, 9)
+expected <- c(6, 8)
 test_that("Do we get a reasonable samples if we collapse by time?", {
   expect_equal(actual[1], expected[1], tolerance = 0.001)
   expect_equal(actual[2], expected[2], tolerance = 0.001)
@@ -89,7 +88,6 @@ test_that("Do we get expected features greater than some cutoffs?", {
   expect_equal(as.numeric(testing_100000[["number"]][1]), 5)
 })
 
-## median_by_factor()
 ## I changed the output of this function!
 medians <- median_by_factor(pombe_expt)[["medians"]]
 actual <- medians[chosen_genes, 1]
@@ -149,8 +147,6 @@ test_that("Will an expt tell us what happened to it?", {
   expect_equal(expected, actual)
 })
 
-## Using aes(size) to define line width is deprecated now; I will need to
-## hunt for the function(s) doing this.
 testing <- write_expt(pombe_expt, excel = "testing_write_expt.xlsx")
 test_that("Did write_expt() work?", {
   expect_true(file.exists("testing_write_expt.xlsx"))

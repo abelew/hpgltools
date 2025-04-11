@@ -2,18 +2,10 @@
 % Please edit documentation in R/normalize_shared.R
 \name{normalize}
 \alias{normalize}
-\title{Simplified and ideally improved normalization function}
+\title{Normalization dispatcher.}
 \usage{
-normalize(expt, todo = list())
-}
-\arguments{
-\item{expt}{Input data}
-
-\item{todo}{List of tasks to perform.}
+normalize(input, ...)
 }
 \description{
-This function is ideally should provide a simpler and more capable
-version of normalize_expt. I also want to move everything to using
-summarizedExperiments and this simpler method provides an
-opportunity.
+Normalization dispatcher.
 }

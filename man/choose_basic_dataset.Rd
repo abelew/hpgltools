@@ -25,5 +25,5 @@ basic_pairwise() assumes log2 data as input, use this to ensure that is true.
 }
 }
 \seealso{
-[Biobase] [choose_dataset()] [normalize_expt()]
+[Biobase] [choose_dataset()] [normalize()]
 }

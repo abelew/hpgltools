@@ -6,37 +6,23 @@
 \usage{
 deseq2_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_batch = TRUE,
-  model_sv = NULL,
-  model_intercept = FALSE,
-  alt_model = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
+  filter = FALSE,
   extra_contrasts = NULL,
   annot_df = NULL,
   force = FALSE,
   keepers = NULL,
   deseq_method = "long",
   fittype = "parametric",
+  num_surrogates = "be",
   keep_underscore = TRUE,
   ...
 )
 }
 \arguments{
 \item{input}{Dataframe/vector or expt class containing data, normalization state, etc.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Is condition in the experimental model?}
-
-\item{model_batch}{Is batch in the experimental model?}
-
-\item{model_intercept}{Use an intercept model?}
-
-\item{alt_model}{Provide an arbitrary model here.}
 
 \item{extra_contrasts}{Provide extra contrasts here.}
 
@@ -52,6 +38,18 @@ deseq2_pairwise(
 \item{fittype}{Method to fir the data.}
 
 \item{...}{Triple dots!  Options are passed to arglist.}
+
+\item{conditions}{Factor of conditions in the experiment.}
+
+\item{batches}{Factor of batches in the experiment.}
+
+\item{model_cond}{Is condition in the experimental model?}
+
+\item{model_batch}{Is batch in the experimental model?}
+
+\item{model_intercept}{Use an intercept model?}
+
+\item{alt_model}{Provide an arbitrary model here.}
 }
 \value{
 List including the following information:

@@ -259,6 +259,8 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
     coefficient_df <- coefficients[, c(xname, yname)]
   }
 
+  na_idx <- is.na(coefficient_df)
+  coefficient_df[na_idx] <- 0
   maxvalue <- max(coefficient_df) + 1.0
   minvalue <- min(coefficient_df) - 1.0
   plot <- plot_linear_scatter(df = coefficient_df, loess = loess, first = xname, second = yname,
@@ -2115,6 +2117,21 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
   return(retlist)
 }
 
+#' Mostly as a reminder of how to get the gene IDs from a specific group in an upset plot.
+#'
+#' Given a set of groups from upsetr, extract the elements from one of them.
+#' @param overlapping_groups Result from overlap_groups, which just makes an indexed
+#'  version of the genes by venn/upset group.
+#' @param group Name of the subset of interest, something like 'a:b' for the union of a:b.
+#' @export
+overlap_geneids <- function(overlapping_groups, group) {
+  portion <- overlapping_groups[[group]]
+  all_elements <- attr(overlapping_groups, "elements")
+  numeric_idx <- unique(as.numeric(portion))
+  gene_ids <- all_elements[numeric_idx]
+  return(gene_ids)
+}
+
 #' Extract overlapping groups from an upset
 #'
 #' Taken from: https://github.com/hms-dbmi/UpSetR/issues/85
@@ -2164,20 +2181,20 @@ overlap_groups <- function(input, sort = TRUE) {
   ## save element list to facilitate access using an index in case rownames are not named
 }
 
-#' Mostly as a reminder of how to get the gene IDs from a specific group in an upset plot.
-#'
-#' Given a set of groups from upsetr, extract the elements from one of them.
-#' @param overlapping_groups Result from overlap_groups, which just makes an indexed
-#'  version of the genes by venn/upset group.
-#' @param group Name of the subset of interest, something like 'a:b' for the union of a:b.
-#' @export
-overlap_geneids <- function(overlapping_groups, group) {
-  portion <- overlapping_groups[[group]]
-  all_elements <- attr(overlapping_groups, "elements")
-  numeric_idx <- unique(as.numeric(portion))
-  gene_ids <- all_elements[numeric_idx]
-  return(gene_ids)
-}
+#setMethod(
+#  "overlap_groups", signature = signature(input_mtrx = "upset", sort = "logical"),
+#  definition = function(input_mtrx, sort = sort) {
+#    new_mtrx <- input_mtrx == 1
+#    overlap_groups(new_mtrx, sort = sort)
+#  })
+#
+#setMethod(
+#  "overlap_groups", signature = signature(input_mtrx = "list", sort = "logical"),
+#  definition = function(input_mtrx, sort = sort) {
+#    input_upset <- UpSetR::fromList(input_mtrx)
+#    new_mtrx <- input_upset == 1
+#    overlap_groups(new_mtrx, sort = sort)
+#  })
 
 #' Make an upset plot of all up/down genes in a set of contrasts.
 #'
@@ -2259,6 +2276,18 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     "plot" = upset_combined)
   class(retlist) <- "combined_de_upset"
   return(retlist)
+}
+
+#' Print a summary from combine_de_upset
+#'
+#' @param x List produced by combined_de_upset
+#' @param ... Other args for the generic.
+#' @export
+print.combined_de_upset <- function(x, ...) {
+  summary_string <- glue("Plot describing unique/shared genes in a differential expression table.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
 }
 
 #' Use UpSetR to compare significant gene lists.

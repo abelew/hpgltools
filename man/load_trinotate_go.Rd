@@ -7,7 +7,7 @@
 load_trinotate_go(
   trinotate = "reference/trinotate.csv",
   blast2go_column = "gene_ontology_BLASTX",
-  pfam_column = "gene_ontology_Pfam",
+  pfam_column = "gene_ontology_pfam",
   length_column = "transcript",
   fill = 1500,
   collapse = TRUE,

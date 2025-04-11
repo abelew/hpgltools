@@ -52,24 +52,23 @@ Suggests:
   WGCNA,
   xCell, xml2
 Imports:
+  Biobase, BiocGenerics, broom,
   data.table, DOSE, dplyr,
   forcats, foreach,
   GenomicFeatures, ggplot2, glue, GSEABase,
   IRanges,
   knitr,
-  magrittr, methods,
+  magrittr, Matrix, methods,
   plotly,
   rlang, RSQLite,
-  shiny, sva,
+  S4Vectors, shiny, SummarizedExperiment, sva,
   tidyselect,
   varhandle, variancePartition
-Depends:
-  Biobase, SummarizedExperiment, S4Vectors, glue, Matrix
 VignetteBuilder: knitr
 ByteCompile: true
 biocViews: DifferentialExpression
 Encoding: UTF-8
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Collate:
   '01_hpgltools.R'
   'alt_splicing.R'
@@ -82,7 +81,9 @@ Collate:
   'annotation_txt.R'
   'annotation_uniprot.R'
   'annotation_shared.R'
+  'attributes.R'
   'classify.R'
+  'counts.R'
   'de_shared.R'
   'de_basic.R'
   'de_edger.R'
@@ -95,6 +96,7 @@ Collate:
   'de_varpart.R'
   'dimension_reduction.R'
   'expt.R'
+  'genes.R'
   'gene_sets.R'
   'gsva.R'
   'helpers_misc.R'
@@ -135,6 +137,7 @@ Collate:
   'plot_misc.R'
   'power_estimation.R'
   'proteomics.R'
+  'sanitize.R'
   'se.R'
   'sequence.R'
   'shiny.R'
@@ -143,6 +146,4 @@ Collate:
   'tnseq.R'
   'variants.R'
   'xlsx.R'
-  'zzz_methods.R'
-  'zzz_print.R'
   'zzz_subset.R'

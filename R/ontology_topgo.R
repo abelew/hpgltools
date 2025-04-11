@@ -253,6 +253,30 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
 }
 setGeneric("simple_topgo")
 
+#' Coerce simple_topgo to accept a vector of gene IDs instead of a real dataframe of significance.
+#'
+#' Doing this voids the topgo warantee.
+setMethod(
+  "simple_topgo", signature = signature(sig_genes = "character"),
+  definition = function(sig_genes, goid_map = "id2go.map", go_db = NULL,
+                        pvals = NULL, limitby = "fisher", limit = 0.1,
+                        signodes = 100, sigforall = TRUE, numchar = 300,
+                        selector = "topDiffGenes", pval_column = "deseq_adjp",
+                        overwrite = FALSE, densities = FALSE,
+                        pval_plots = TRUE, excel = NULL, ...) {
+    fake_df <- data.frame(row.names = sig_genes)
+    fake_df[["ID"]] <- rownames(fake_df)
+    fake_df[[pval_column]] <- 0.01
+    warning("Faking a dataframe with significance of every gene as 0.01 because this was given a vector of gene IDs.")
+    simple_topgo(fake_df, goid_map = goid_map, go_db = go_db,
+                 pvals = pvals, limitby = limitby, limit = limit,
+                 signodes = signodes, sigforall = sigforall,
+                 numchar = numchar, selector = selector,
+                 pval_column = pval_column, overwrite = overwrite,
+                 densities = densities, pval_plots = pval_plots, excel = excel,
+                 ...)
+  })
+
 #' An attempt to make topgo invocations a bit more standard.
 #'
 #' My function 'simple_topgo()' was excessively long and a morass of copy/pasted
@@ -369,6 +393,23 @@ do_topgo <- function(type, go_map = NULL, fisher_genes = NULL, ks_genes = NULL,
   ##retlist[["pdists"]] <- try(plot_histogram(retlist[["test_result"]]@score, bins = 20))
   class(retlist) <- c("topgo_result", "list")
   return(retlist)
+}
+
+#' Print a topgo over representation search.
+#'
+#' @param x List of the various over/under representation analyses
+#'  provided by topGO, the associated plots, and coerced enrichResults.
+#' @param ... Other args to match the generic.
+#' @export
+print.topgo_result <- function(x, ...) {
+  bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
+  mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
+  cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])
+  summary_string <- glue("topgo found {bp_entries} BP categories, {mf_entries} MF categories, and \\
+{cc_entries} CC categories.")
+  message(summary_string)
+  enrichplot::dotplot(x[["enrich_results"]][["bp"]])
+  return(invisible(x))
 }
 
 #' Make pretty tables out of topGO data
