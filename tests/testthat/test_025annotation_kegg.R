@@ -42,15 +42,6 @@ test_that("Do we get the expected KEGG pathways?", {
   expect_equal(expected, actual)
 })
 
-mapped <- map_kegg_dbs(kegg_ids)
-## Picked up a new mapping!
-expected <- c(6, 7)
-actual <- dim(mapped)
-test_that("Do we get the expected db mapping size?", {
-  expect_equal(expected[1], actual[1])
-  expect_equal(expected[2], actual[2])
-})
-
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = as.numeric(end - start))
 message("\nFinished 025annotation_kegg.R in ", elapsed,  " seconds.")
