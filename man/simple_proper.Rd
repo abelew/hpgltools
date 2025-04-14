@@ -6,6 +6,8 @@
 \usage{
 simple_proper(
   de_tables,
+  de = NULL,
+  mtrx = NULL,
   p = 0.05,
   experiment = "cheung",
   nsims = 20,

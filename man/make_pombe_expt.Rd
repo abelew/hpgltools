@@ -4,7 +4,7 @@
 \alias{make_pombe_expt}
 \title{Create a Schizosaccharomyces cerevisiae expt.}
 \usage{
-make_pombe_expt(annotation = TRUE)
+make_pombe_expt(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 }
 \arguments{
 \item{annotation}{Add annotation data?}

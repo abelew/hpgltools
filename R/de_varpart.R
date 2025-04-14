@@ -55,11 +55,10 @@
 #'  pretend <- dream_pairwise(expt)
 #' }
 #' @export
-dream_pairwise <- function(input = NULL, conditions = NULL,
-                           batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
-                           alt_model = NULL, extra_contrasts = NULL,
-                           annot_df = NULL, libsize = NULL,
+dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                           null_fstring = "~", model_svs = NULL,
+                           extra_contrasts = NULL, annot_df = NULL,
+                           libsize = NULL, filter = TRUE,
                            limma_method = "ls", limma_robust = FALSE, voom_norm = "none",
                            limma_trend = FALSE, force = FALSE, keepers = NULL,
                            keep_underscore = TRUE, adjust = "BH", ...) {
@@ -67,19 +66,28 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
 
-  san_input <- sanitize_expt(input, keep_underscore = keep_underscore)
-  input_data <- choose_limma_dataset(san_input, force = force)
-  design <- pData(san_input)
-  if (is.null(conditions)) {
-    conditions <- design[["condition"]]
+  mesg("Starting dream pairwise comparisons.")
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") && isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
   }
-  if (is.null(batches)) {
-    batches <- design[["batch"]]
-  }
+
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  input_data <- choose_binom_dataset(input, force = force)
+  count_mtrx <- input_data[["data"]]
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
+  design <- pData(input)
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  batches <- droplevels(as.factor(design[["batch"]]))
+  condition_table <- table(conditions)
+  batch_table <- table(batches)
+  condition_levels <- levels(conditions)
 
   ## The following small piece of logic is intended to handle situations where we use
   ## tximport for limma (kallisto/sailfish/salmon).
-  if (is.null(san_input[["tximport"]])) {
+  if (is.null(input[["tximport"]])) {
     ## Adding an explicit as.data.frame() because otherwise this gets cast as an EList
     ## and fails the function 'varianceParition::filterObj' or whatever
     ## matrices are always class("matrix", "array") which when queried
@@ -89,73 +97,37 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     ## and gets passed through properly, which is a stupid solution to a stupid problem.
     data <- as.data.frame(input_data[["data"]])
   } else {
-    data <- edgeR::DGEList(san_input[["tximport"]][["scaled"]][["counts"]])
+    data <- edgeR::DGEList(input[["tximport"]][["scaled"]][["counts"]])
     data <- edgeR::calcNormFactors(data)
   }
 
   if (is.null(libsize)) {
-    message("libsize was not specified, this parameter has profound effects on limma's result.")
-    if (!is.null(san_input[["best_libsize"]])) {
-      message("Using the libsize from expt$best_libsize.")
-      libsize <- san_input[["best_libsize"]]
-    } else if (!is.null(input[["libsize"]])) {
-      message("Using the libsize from expt$libsize.")
-      libsize <- san_input[["libsize"]]
-    } else if (!is.null(
-      san_input[["normalized"]][["intermediate_counts"]][["normalization"]][["libsize"]])) {
-      libsize <- colSums(data, na.rm = TRUE)
-    } else {
-      message("Using the libsize from expt$normalized$intermediate_counts$normalization$libsize")
-      libsize <- san_input[["normalized"]][["intermediate_counts"]][["normalization"]][["libsize"]]
-    }
-  } else {
-    message("libsize was specified.  This parameter has profound effects on limma's result.")
+    libsize <- libsize(input)
   }
-
-  if (is.null(libsize)) {
-    libsize <- colSums(data, na.rm = TRUE)
-  }
-  condition_table <- table(conditions)
-  batch_table <- table(batches)
-  conditions <- as.factor(conditions)
-  batches <- as.factor(batches)
 
   mesg("Dream/limma step 1/6: choosing model.")
   ## for the moment, if someone choose an alt model, force it through.
-  if (is.null(alt_model)) {
-    model <- choose_model(san_input, conditions = conditions, batches = batches,
-                          model_batch = model_batch, model_cond = model_cond,
-                          model_intercept = model_intercept, model_sv = model_sv,
-                          alt_model = alt_model, keep_underscore = keep_underscore,
-                          ...)
-    ##model <- choose_model(input, conditions, batches,
-    ##                      model_batch = model_batch,
-    ##                      model_cond = model_cond,
-    ##                      model_intercept = model_intercept,
-    ##                      alt_model = alt_model)
-    chosen_model <- model[["chosen_model"]]
-    model_string <- model[["chosen_string"]]
-    if (sum(c("data.frame", "matrix") %in% class(model[["model_batch"]])) > 0) {
-      batch_df <- as.data.frame(model[["model_batch"]])
-      for (sv in colnames(model[["model_batch"]])) {
-          design[[sv]] <- batch_df[[sv]]
-      }
-    }
-  } else {
-    fctrs <- sm(get_formula_factors(alt_model))
-    contrast_factor <- fctrs[["contrast"]]
-    simple_fstring <- glue("~ 0 + {contrast_factor}")
-    chosen_model <- model.matrix(as.formula(simple_fstring), data = design)
-    model <- alt_model
-    ## chosen_model <- model.matrix(as.formula(alt_model), data = pData(san_input))
-    model_string <- alt_model
+  appended_fstring <- model_fstring
+  if ("character" %in% class(model_svs)) {
+    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                                      null_fstring = null_fstring,
+                                      estimate_type = model_svs,
+                                      surrogates = surrogates,
+                                      ...)
+    estimate_type <- model_svs
+    model_svs <- model_params[["model_adjust"]]
+    null_model <- model_params[["null_model"]]
+    appended_fstring <- model_params[["appended_fstring"]]
+    design <- pData(model_params[["modified_input"]])
   }
+  model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
 
-  fctrs <- get_formula_factors(model_string)
+
+  fctrs <- get_formula_factors(model_fstring)
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["contrast"]]
   simple_fstring <- glue("~ 0 + {contrast_factor}")
-  model_formula <- as.formula(model_string)
+  model_formula <- as.formula(model_fstring)
   simple_model <- model.matrix(as.formula(simple_fstring), data = design)
   voom_plot <- NULL
   mesg("Dream/limma 2/6: Attempting voomWithDreamWeights.")
@@ -163,10 +135,10 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
   voom_result <- variancePartition::voomWithDreamWeights(
-    counts = data, formula = model_string,
+    counts = data, formula = model_fstring,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
-  dev.off()
+  plotted <- dev.off()
   removed <- file.remove(tmp_file)
   one_replicate <- FALSE
   if (is.null(voom_result)) {
@@ -181,7 +153,7 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
   identity_fits <- NULL
   mesg("Dream/limma step 3/6: making limma and dream contrasts.")
   contrasts <- make_pairwise_contrasts(
-    model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
+    model = model_mtrx, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
     do_identities = FALSE)
   all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
@@ -191,10 +163,10 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
        contrast_vector <- c(contrast_vector, dream_contrast)
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
-    formula = model_formula, data = design, contrasts = contrast_vector)
+    formula = as.formula(appended_fstring), data = design, contrasts = contrast_vector)
   mesg("Dream/limma step 4/6: Running dream.")
   fitted_data <- variancePartition::dream(
-    exprObj = voom_result, formula = model_string, data = design, L = varpart_contrasts)
+    exprObj = voom_result, formula = model_fstring, data = design, L = varpart_contrasts)
   mesg("Dream/limma step 4.2/6: Making identity contrasts.")
   identity_contrasts <- sm(make_pairwise_contrasts(
     model = simple_model, conditions = conditions,
@@ -244,9 +216,9 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     "all_pairwise" = all_pairwise,
     "all_tables" = varpart_tables,
     "batches" = batches,
-    "batches_table" = batch_table,
+    "batch_table" = batch_table,
     "conditions" = conditions,
-    "conditions_table" = condition_table,
+    "condition_table" = condition_table,
     "contrast_string" = contrast_vector,
     "contrasts_performed" = contrasts_performed,
     "design" = design,
@@ -257,8 +229,8 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     "identity_comparisons" = all_identity_comparisons,
     "input_data" = input,
     "method" = "varpart",
-    "model" = model,
-    "model_string" = model_string,
+    "model" = model_mtrx,
+    "model_string" = model_fstring,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
     "voom_result" = voom_result)
@@ -267,6 +239,17 @@ dream_pairwise <- function(input = NULL, conditions = NULL,
     retlist[["dream_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])
   }
   return(retlist)
+}
+
+#' Print a summary of the result from dream_pairwise().
+#'
+#' @param x List from dream_pairwise().
+#' @param ... Other args for the generic.
+#' @export
+print.dream_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the hybrid variancePartition/limma pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Writes out the results of a limma search using toptable().
@@ -383,10 +366,9 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
 #'  data_list = write_limma(finished_comparison)
 #' }
 #' @export
-write_varpart <- function(data, ...) {
-  result <- write_de_table(data, type = "varpart", ...)
+write_dream <- function(data, ...) {
+  result <- write_de_table(data, type = "dream", ...)
   return(result)
 }
-
 
 ## EOF

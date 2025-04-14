@@ -6,14 +6,10 @@
 \usage{
 basic_pairwise(
   input = NULL,
-  design = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_intercept = FALSE,
-  alt_model = NULL,
-  model_batch = FALSE,
-  force = FALSE,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
+  annot_df = NULL,
   keepers = NULL,
   fx = "mean",
   keep_underscore = TRUE,
@@ -22,6 +18,12 @@ basic_pairwise(
 }
 \arguments{
 \item{input}{Count table by sample.}
+
+\item{keepers}{Set of specific contrasts to perform instead of all.}
+
+\item{fx}{What function to use for mean/median?}
+
+\item{...}{Extra options passed to arglist.}
 
 \item{design}{Data frame of samples and conditions.}
 
@@ -38,12 +40,6 @@ basic_pairwise(
 \item{model_batch}{Not currently used, but passed from all_pairwise()}
 
 \item{force}{Force as input non-normalized data?}
-
-\item{keepers}{Set of specific contrasts to perform instead of all.}
-
-\item{fx}{What function to use for mean/median?}
-
-\item{...}{Extra options passed to arglist.}
 }
 \value{
 Df of pseudo-logFC, p-values, numerators, and denominators.

@@ -750,6 +750,17 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   return(retlist)
 }
 
+#' Print the results of snp_cds_primers().
+#'
+#' @param x List currently only containing the dataframe of putative primers.
+#' @param ... Other args to match the generic.
+#' @export
+print.cds_variant_primers <- function(x, ...) {
+  summary_string <- glue("A set of potential primers explicitly overlapping known CDS.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Create a density function given a variant output and some metadata
 #'
 #' It is hoped that this will point out regions of a genome which
@@ -1008,6 +1019,17 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     "favorites" = sequence_df)
   class(retlist) <- "density_primers"
   return(retlist)
+}
+
+#' Print a summary of putative PCR primers based on variant density.
+#'
+#' @param x List from snp_density_primers()
+#' @param ... Other args for the generic.
+#' @export
+print.density_primers <- function(x, ...) {
+  summary_string <- glue("A set of putative PCR primers to distinguish strain variants.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Write out a set of primers for testing.

@@ -1044,6 +1044,23 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   return(excel_ret)
 }
 
+
+#setMethod(
+#  "write_gprofiler_data", signature = signature(gprofiler_result = "all_gprofiler",
+#                                                contrast = "NULL"),
+#  definition = function(gprofiler_result, contrast, wb = NULL, excel = "excel/profiler_result.xlsx",
+#                        order_by = "recall", add_plots = TRUE, height = 15, width = 10, decreasing = FALSE, ...) {
+#    outputs <- list()
+#    for (contrast in names(gprofiler_result)) {
+#      excel = glue("excel/gprofiler_{contrast}.xlsx")
+#      input <- gprofiler_result[[contrast]]
+#      outputs[[contrast]] <- write_gprofiler_data(input, excel = excel, order_by = order_by,
+#                                                  add_plots = add_plots, height = height,
+#                                                  width = width, decreasing = decreasing, ...)
+#    }
+#    return(outputs)
+#  })
+
 #' Make a pretty table of topgo data in excel.
 #'
 #' It is my intention to make a function like this for each ontology tool in my

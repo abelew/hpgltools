@@ -541,4 +541,39 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
   return(retlist)
 }
 
+#' Print a goseq over representation search.
+#'
+#' @param x List containing the various goseq results, plots,
+#'  significant subsets, enrichResult coercions, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.goseq_result <- function(x, ...) {
+  hit_string <- glue("Ontologies observed by goseq using {x[['num_genes']]} genes
+with significance cutoff {x[['threshold']]}.
+There are {nrow(x[['mf_interesting']])} MF hits, {nrow(x[['bp_interesting']])}, \\
+BP hits, and {nrow(x[['cc_interesting']])} CC hits.")
+  message(hit_string)
+  most <- NULL
+  most_num <- 0
+  tries <- c("mf", "bp", "cc")
+  for (t in tries) {
+    key <- paste0(t, "p_plot_over")
+    if (is.null(x[["pvalue_plots"]][[key]])) {
+      next
+    }
+    this_num <- nrow(x[["pvalue_plots"]][[key]][["data"]])
+    if (this_num > most_num) {
+      most_num <- this_num
+      most <- key
+    }
+  }
+  if (is.null(most)) {
+    message("No categories were deemed worth plotting.")
+  } else {
+    message("Category ", most, " is the most populated with ", most_num, " hits.")
+    plot(x[["pvalue_plots"]][[most]])
+  }
+  return(invisible(x))
+}
+
 ## EOF

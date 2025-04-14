@@ -28,49 +28,56 @@
 #' @return List similar to deseq_pairwise/edger_pairwise/etc.
 #' @seealso DOI:10.1093/nar/gkv711
 #' @export
-noiseq_pairwise <- function(input = NULL, conditions = NULL,
-                            batches = NULL, model_cond = TRUE,
-                            model_batch = TRUE, model_sv = NULL,
-                            model_intercept = FALSE, alt_model = NULL,
-                            annot_df = NULL,
-                            k = 0.5, norm = "tmm", factor = "condition",
-                            lc = 1, r = 20, adj = 1.5, a0per = 0.9, filter = 1,
-                            keepers = NULL, keep_underscore = TRUE, ...) {
+noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                            null_fstring = "~", model_svs = NULL,
+                            extra_contrasts = NULL, annot_df = NULL,
+                            force = FALSE, keepers = NULL, batch = FALSE,
+                            logtransf = FALSE, k = 0.5, norm = "tmm",
+                            factor = NULL, lc = 1, r = 20, adj = 1.5,
+                            a0per = 0.9, filter = 1,
+                            keep_underscore = TRUE, ...) {
   arglist <- list(...)
+  if (isTRUE(filter)) {
+    filter <- 1
+  }
 
   mesg("Starting noiseq pairwise comparisons.")
-  input <- sanitize_expt(input, keep_underscore = keep_underscore)
-  input_data <- choose_binom_dataset(input, force = force)
-  design <- pData(input)
-  conditions <- design[["condition"]]
-  conditions_table <- table(conditions)
-  batches <- design[["batch"]]
-  batches_table <- table(batches)
-  data <- input_data[["data"]]
-  conditions <- droplevels(as.factor(conditions))
-  batches <- droplevels(as.factor(batches))
-
-  noiseq_input <- NOISeq::readData(input_data[["data"]], factors = pData(input))
-  norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = "condition", batch = FALSE,
-                                 norm = norm, logtransf = FALSE)
-
-  ## Yes I know NOISeq doesn't use models in the same way as other
-  ## methods I have applied, but this will make it easier to set up
-  ## the contrasts.
-  model_choice <- choose_model(norm_input, conditions = conditions, batches = batches,
-                               model_batch = model_batch, model_cond = model_cond,
-                               model_intercept = model_intercept, model_sv = model_sv,
-                               alt_model = alt_model, keep_underscore = keep_underscore,
-                               ...)
-  model_including <- model_choice[["including"]]
-  if (class(model_choice[["model_batch"]])[1] == "matrix") {
-    model_batch <- model_choice[["model_batch"]]
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") &&
+        isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
   }
-  model_data <- model_choice[["chosen_model"]]
-  model_string <- model_choice[["chosen_string"]]
-  apc <- make_pairwise_contrasts(model_data, conditions, keepers = keepers,
+  fctrs <- get_formula_factors(model_fstring)
+  factors <- fctrs[["factors"]]
+  condition_column <- factors[1]
+  if (is.null(factor)) {
+    factor <- condition_column
+  }
+  input <- sanitize_expt(input, keep_underscore = keep_underscore, factors = factors)
+  input_data <- choose_binom_dataset(input, force = force)
+  count_mtrx <- input_data[["data"]]
+  design <- pData(input)
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  batches <- droplevels(as.factor(design[["batch"]]))
+  condition_table <- table(conditions)
+  batch_table <- table(batches)
+  condition_levels <- levels(conditions)
+  design[[condition_column]] <- conditions
+  design[["batch"]] <- batches
+  mesg("This noiseq pairwise comparison should compare across:")
+  print(condition_table)
+  noiseq_input <- NOISeq::readData(input_data[["data"]], factors = design)
+  if (is.null(design[["batch"]])) {
+    norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = NULL, batch = batch,
+                                   norm = norm, logtransf = logtransf)
+  } else {
+    norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = "batch", batch = TRUE,
+                                   norm = norm, logtransf = FALSE)
+  }
+  model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
+  apc <- make_pairwise_contrasts(model_mtrx, conditions, keepers = keepers,
                                  keep_underscore = keep_underscore)
-
   contrast_list <- list()
   result_list <- list()
   lrt_list <- list()
@@ -83,21 +90,17 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
     name <- apc[["names"]][[con]]
     numerator <- apc[["numerators"]][[name]]
     denominator <- apc[["denominators"]][[name]]
-    ## Noiseq uses the levels of the factor to define numerator/denominator.
-    pData(norm_input)[[factor]] <- as.factor(pData(norm_input)[[factor]])
-    pData(norm_input)[[factor]] <- relevel(pData(norm_input)[[factor]], numerator)
-    ## Noiseq recasts the pData() as a factor and blows away my levels!
     tmp_file <- tmpmd5file(pattern = "noiseq_density_theta", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
     noiseq_table <- sm(NOISeq::noiseqbio(
-      norm_input, k = k, norm = norm, factor = factor, lc = lc,
-      r = r, adj = adj, plot = TRUE, a0per = a0per, filter = filter,
+      norm_input, k = k, norm = norm, factor = condition_column, lc = lc,
+      r = r, adj = adj, plot = TRUE, a0per = a0per,
       conditions = c(numerator, denominator)))
     if (class(noiseq_table)[1] != "try-error") {
       density_theta_plots[[name]] <- grDevices::recordPlot()
     }
-    dev.off()
+    plotted <- dev.off()
     removed <- file.remove(tmp_file)
     invert <- FALSE
     actual_comparison <- strsplit(noiseq_table@comparison, " - ")[[1]]
@@ -107,7 +110,8 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
       invert <- TRUE
     }
     noiseq_result <- noiseq_table@results[[1]]
-    ## It looks to me like noiseq flips the logFC compared to other methods.
+    rename_col <- colnames(noiseq_result) == "log2FC"
+    colnames(noiseq_result)[rename_col] <- "logFC"
     noiseq_result[["p"]] <- 1.0 - noiseq_result[["prob"]]
     noiseq_result[["adjp"]] <- p.adjust(noiseq_result[["p"]])
     coefficient_names <- colnames(noiseq_result)[c(1, 2)]
@@ -139,21 +143,34 @@ noiseq_pairwise <- function(input = NULL, conditions = NULL,
   retlist <- list(
       "all_tables" = result_list,
       "batches" = batches,
-      "batches_table" = batches_table,
+      "batch_table" = batch_table,
       "coefficients" = coefficient_df,
       "conditions" = conditions,
-      "conditions_table" = conditions_table,
+      "condition_table" = condition_table,
       "contrast_list" = contrast_list,
       "contrasts" = apc,
       "contrasts_performed" = apc[["names"]],
       "density_theta_plots" = density_theta_plots,
       "input_data" = input,
       "method" = "noiseq",
-      "model" = model_data,
-      "model_string" = model_string,
+      "model" = model_mtrx,
+      "model_fstring" = model_fstring,
       "norm_input" = norm_input)
   class(retlist) <- c("noiseq_pairwise", "list")
   return(retlist)
+}
+
+#' @export
+print.noiseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the Noiseq pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
+#' @export
+write_noiseq <- function(data, ...) {
+  result <- write_de_table(data, type = "noiseq", ...)
+  return(result)
 }
 
 ## EOF

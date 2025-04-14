@@ -172,11 +172,12 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #' @return List containin the various tables and plots returned by PROPER.
 #' @seealso [PROPER] DOI:10.1093/bioinformatics/btu640
 #' @export
-simple_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 20,
-                          reps = c(3, 5, 7, 10), de_method = "edger", alpha_type = "fdr",
-                          alpha = 0.1, stratify = "expr", target = "lfc", mean_or_median = "mean",
-                          filter = "none", delta = 1.0, add_coverage = TRUE, target_power = 0.8,
-                          mean_gene_length = 2000, nt_per_read = 200, describe_samples = 5) {
+simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experiment = "cheung",
+                          nsims = 20, reps = c(3, 5, 7, 10), de_method = "edger",
+                          alpha_type = "fdr", alpha = 0.1, stratify = "expr", target = "lfc",
+                          mean_or_median = "mean", filter = "none", delta = 1.0,
+                          add_coverage = TRUE, target_power = 0.8, mean_gene_length = 2000,
+                          nt_per_read = 200, describe_samples = 5) {
   DEmethod <- "edgeR"
   if (de_method == "edger") {
     DEmethod <- "edgeR"
@@ -185,7 +186,20 @@ simple_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 20
   } else {
     stop("This accepts only 'edger' or 'deseq'.")
   }
-  exprs_mtrx <- exprs(de_tables[["input"]][["input"]])
+  ## FIXME: Do this via dispatch
+  exprs_mtrx <- matrix()
+  if (is.null(mtrx)) {
+    exprs_mtrx <- exprs(de_tables[["input"]][["input"]])
+  } else {
+    exprs_mtrx <- exprs(mtrx)
+  }
+  datum <- NULL
+  if (is.null(de)) {
+    datum <- de_tables[["input"]][[de_method]]
+  } else {
+    datum <- de[[de_method]]
+  }
+
   genes <- nrow(de_tables[["data"]][[1]])
   contrasts <- as.character(de_tables[["table_names"]])
   result_list <- list()
@@ -199,7 +213,6 @@ simple_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 20
     if (isTRUE(invertedp)) {
       invert_con <- gsub(x = short, pattern = "^(\\w+)_vs_(\\w+)", replacement = "\\2_vs_\\1")
     }
-    datum <- de_tables[["input"]][[de_method]]
     count <- count + 1
     samples <- datum[["contrast_list"]][[short]]
     if (is.null(samples)) {
@@ -396,7 +409,22 @@ treatment group."
   return(result_list)
 }
 
-## Use my cheater infix ::: to handle some unexported stuff from PROPER.
+#' Print the result from simple_proper().
+#'
+#' @param x List including the various plots from PROPER, the
+#'  associated tables, simulation options, and example text for a
+#'  paper/grant.
+#' @param ... Other args to match the generic.
+#' @export
+print.proper_estimate <- function(x, ...) {
+  message(x[[1]][["interpolated_text"]])
+  print(x[[1]][["power_plot"]])
+  return(invisible(x))
+}
+
+#' Use my cheater infix ::: to handle some unexported stuff from PROPER.
+#'
+#' @export
 update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 run.edgeR <- "PROPER" %:::% "run.edgeR"
 run.DSS <- "PROPER" %:::% "run.DSS"

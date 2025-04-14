@@ -40,45 +40,40 @@
 #'  basic_tables <- combine_de_tables(basic_de)
 #' }
 #' @export
-basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
-                           batches = NULL, model_cond = TRUE, model_intercept = FALSE,
-                           alt_model = NULL, model_batch = FALSE, force = FALSE,
-                           keepers = NULL, fx = "mean", keep_underscore = TRUE, ...) {
+basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                           null_fstring = "~", model_svs = NULL,
+                           annot_df = NULL, keepers = NULL,
+                           fx = "mean", keep_underscore = TRUE, ...) {
   arglist <- list(...)
-  if (!is.null(arglist[["input"]])) {
-    input <- arglist[["input"]]
-  }
-  if (!is.null(arglist[["design"]])) {
-    conditions <- arglist[["design"]]
-  }
-  if (!is.null(arglist[["force"]])) {
-    batches <- arglist[["force"]]
-  }
-  mesg("Starting basic pairwise comparison.")
+  mesg("Starting basic pairwise comparisons.")
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  fctrs <- get_formula_factors(model_fstring)
+  contrast_factor <- fctrs[["factors"]][1]
   input_data <- choose_basic_dataset(input, force = force)
   design <- pData(input)
-  conditions <- input_data[["conditions"]]
-  batches <- input_data[["batches"]]
-  data <- input_data[["data"]]
 
-  conditions <- gsub(pattern = "^(\\d+)$", replacement = "c\\1", x = conditions)
-  batches <- gsub(pattern = "^(\\d+)$", replacement = "b\\1", x = batches)
-  types <- levels(as.factor(conditions))
-  num_conds <- length(types)
+  conditions <- droplevels(as.factor(design[[contrast_factor]]))
+  batches <- droplevels(as.factor(design[["batch"]]))
+  data <- as.matrix(input_data[["data"]])
+  conditions_table <- table(conditions)
+  batches_table <- table(batches)
+  condition_levels <- levels(conditions)
+  model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
+  num_conds <- length(condition_levels)
   ## These will be filled with num_conds columns and numRows(input) rows.
   median_table <- data.frame()
   variance_table <- data.frame()
   ## First use conditions to rbind a table of medians by condition.
   mesg("Basic step 1/3: Creating ", fx, " and variance tables.")
   median_colnames <- c()
-  for (c in seq_len(num_conds)) {
-    condition_name <- types[c]
+  for (d in seq_len(num_conds)) {
+    condition_name <- condition_levels[d]
     median_colnames <- append(median_colnames, condition_name)
     columns <- which(conditions == condition_name)
     if (length(columns) == 1) {
       med <- data.frame(data[, columns], stringsAsFactors = FALSE)
-      var <- as.data.frame(matrix(NA, ncol = 1, nrow = nrow(med)), stringsAsFactors = FALSE)
+      var <- as.data.frame(matrix(NA, ncol = 1, nrow = nrow(med)),
+                           stringsAsFactors = FALSE)
     } else {
       med_input <- as.matrix(data[, columns])
       if (fx == "mean") {
@@ -90,7 +85,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
       var <- as.data.frame(genefilter::rowVars(as.matrix(med_input)))
       colnames(var) <- c(condition_name)
     }
-    if (c == 1) {
+    if (d == 1) {
       median_table <- med
       variance_table <- var
     } else {
@@ -112,20 +107,14 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   total_contrasts <- length(levels(as.factor(conditions)))
   total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
   mesg("Basic step 2/3: Performing ", total_contrasts, " comparisons.")
-
-  model_choice <- sm(choose_model(
-      input, conditions = conditions, batches = batches, model_batch = FALSE,
-      model_cond = TRUE, model_intercept = FALSE, alt_model = NULL,
-      ...))
-  model_data <- model_choice[["chosen_model"]]
-  ## basic_pairwise() does not support extra contrasts, but they may be passed through via ...
-  apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE, do_extras = FALSE,
+  apc <- make_pairwise_contrasts(model_mtrx, conditions, contrast_factor = contrast_factor,
+                                 do_identities = FALSE, do_extras = FALSE,
                                  keepers = keepers, keep_underscore = keep_underscore,
                                  ...)
   contrasts_performed <- c()
-  for (c in seq_along(apc[["names"]])) {
+  for (d in seq_along(apc[["names"]])) {
     num_done <- num_done + 1
-    name  <- apc[["names"]][[c]]
+    name  <- apc[["names"]][[d]]
     c_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\1", x = name)
     d_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\2", x = name)
     contrasts_performed <- append(name, contrasts_performed)
@@ -159,7 +148,7 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
       }
     } ## Done calculating cheapo p-values
 
-    if (c == 1) {
+    if (d == 1) {
       comparisons <- division
       tvalues <- t_data
       pvalues <- p_data
@@ -245,6 +234,13 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
   return(retlist)
 }
 
+#' @export
+print.basic_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the Basic pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Attempt to ensure that input data to basic_pairwise() is suitable.
 #'
 #' basic_pairwise() assumes log2 data as input, use this to ensure that is true.
@@ -253,16 +249,15 @@ basic_pairwise <- function(input = NULL, design = NULL, conditions = NULL,
 #' @param force If we want to try out other distributed data sets, force it in using me.
 #' @param ... future options, I think currently unused.
 #' @return data ready for basic_pairwise()
-#' @seealso [Biobase] [choose_dataset()] [normalize_expt()]
+#' @seealso [Biobase] [choose_dataset()] [normalize()]
 #' @examples
 #' \dontrun{
 #'  ready <- choose_basic_dataset(expt)
 #' }
 choose_basic_dataset <- function(input, force = FALSE, ...) {
   ## arglist <- list(...)
-  warn_user <- 0
-  conditions <- pData(input)[["condition"]]
-  batches <- pData(input)[["batch"]]
+  conditions <- conditions(input)
+  batches <- batches(input)
   data <- as.data.frame(exprs(input))
   state <- state(input)
   tran_state <- state[["transform"]]
@@ -290,23 +285,25 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
   } else {
     if (filt_state == "raw") {
       message("Basic step 0/3: Filtering data.")
-      ready <- sm(normalize_expt(ready, filter = TRUE))
+      ready <- sm(normalize(ready, filter = TRUE))
     }
     if (norm_state == "raw") {
       message("Basic step 0/3: Normalizing data.")
-      ready <- sm(normalize_expt(ready, norm = "quant"))
+      ready <- sm(normalize(ready, norm = "quant"))
     }
     if (conv_state == "raw") {
       message("Basic step 0/3: Converting data.")
-      ready <- sm(normalize_expt(ready, convert = "cbcbcpm"))
+      ready <- sm(normalize(ready, convert = "cbcbcpm"))
     }
 
   }
   ## No matter what we do, it must be logged.
+  message("I think this is failing? ", class(ready))
   if (tran_state == "raw") {
     message("Basic step 0/3: Transforming data.")
-    ready <- sm(normalize_expt(ready, transform = "log2"))
+    ready <- normalize(ready, transform = "log2")
   }
+  message("Passed?")
   data <- exprs(ready)
   libsize <- colSums(data)
   rm(ready)

@@ -288,6 +288,20 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   return(retlist)
 }
 
+#' Print gsva categories deemed 'significant'.
+#'
+#' @param x List of scored GSVA results, including some plots,
+#'  likelihood tables, subsets of significant categories, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.gsva_sig <- function(x, ...) {
+  summary_string <- glue("The set of GSVA categories deemed significantly higher than the
+distribution of all scores.  It comprises {nrow(x[['subset_table']])} gene sets.")
+  message(summary_string)
+  print(x[["subset_plot"]])
+  return(invisible(x))
+}
+
 #' Take a result from simple_gsva(), a list of gene IDs, and intersect them.
 #'
 #' Najib is curious about the relationship of genes in sets, the sets, and the
@@ -725,6 +739,21 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
       "fdata" = fdata_df)
   class(retlist) <- "gsva_result"
   return(retlist)
+}
+
+#' Print a gsva category search.
+#'
+#' @param x List containing signature annotations, the result from
+#'  GSVA, a modified expressionset, the signatures used, and method.
+#' @param ... Other args to match the generic.
+#' @export
+print.gsva_result <- function(x, ...) {
+  summary_string <- glue("GSVA result using method: {x[['method']]} against the \\
+{x[['signature_category']]} dataset.
+Scores range from: {prettyNum(min(exprs(x[['expt']])))} \\
+to: {prettyNum(max(exprs(x[['expt']])))}.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Invoke xCell and pretty-ify the result.

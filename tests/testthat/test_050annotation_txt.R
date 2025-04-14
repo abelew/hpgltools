@@ -1,7 +1,5 @@
 start <- as.POSIXlt(Sys.time())
 context("050annotation_txt.R")
-## 2017-12, exported functions in annotation_txt:
-## load_trinotate_annotations() load_trinotate_go()
 
 tmp <- system.file("share/sb/trinotate_head.csv.xz", package = "hpgldata")
 testing <- load_trinotate_annotations(trinotate = tmp)

@@ -2,6 +2,13 @@
 ## from biomart. Most of our projects use Ensembl gene IDs, thus having
 ## consistent access to the ensembl annotations is quite useful.
 
+#' @export
+as.data.frame.annotations_biomart <- function(x, row.names = NULL, optional = FALSE, ...) {
+  message("Defauting to the gene annotations.")
+  x[["gene_annotations"]]
+}
+
+
 #' Search a mart for a usable dataset.
 #'
 #' @param mart Biomart instance to poke at in an attempt to find a dataset.
@@ -389,7 +396,6 @@ load_biomart_annotations <- function(
                                  all.x = TRUE)
   }
 
-
   ## rownames(biomart_annotations) <- make.names(biomart_annotations[,
   ## "transcriptID"], unique = TRUE) It is not valid to arbitrarily set it to
   ## 'transcriptID' because we cannot guarantee that will be the column name,
@@ -473,6 +479,20 @@ load_biomart_annotations <- function(
     "species" = species)
   class(retlist) <- "annotations_biomart"
   return(retlist)
+}
+
+#' Print function for a set of annotations downloaded from biomart.
+#'
+#' @param x List containing the relevant information gathered from ensembl's biomart.
+#' @param ... Other args to match the generic.
+#' @export
+print.annotations_biomart <- function(x, ...) {
+  num_genes <- nrow(x[["annotation"]])
+  num_annot <- ncol(x[["annotation"]])
+  summary_string <- glue("{num_annot} annotation types for {prettyNum(num_genes, big.mark = ',')} \\
+genes/transcripts downloaded from {x[['host']]}.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Extract gene ontology information from biomart.
@@ -588,6 +608,19 @@ load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = T
     "species" = species)
   class(retlist) <- "biomart_go"
   return(retlist)
+}
+
+#' Print the results of load_biomart_go().
+#'
+#' @param x List from load_biomart_go() containing the table of data,
+#'  mart used, host used, name of the mart, and attributes.
+#' @param ... Other args to match the generic.
+#' @export
+print.biomart_go <- function(x, ...) {
+  summary_string <- glue("The GO annotations from biomart host {x[['host']]} \\
+for species {x[['species']]} provided {prettyNum(nrow(x[['go']]), big.mark = ',')} rows.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Use biomart to get orthologs between supported species.

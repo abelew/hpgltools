@@ -34,6 +34,16 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
   return(retlist)
 }
 
+#' Print the result of a reordered variance partition analysis.
+#'
+#' @param x List of a resorted variance partition analysis and its plot.
+#' @param ... Other args to match the generic.
+#' @export
+print.reordered_varpart <- function(x, ...) {
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
 #' Use variancePartition to try and understand where the variance lies in a data set.
 #'
 #' The arguments and usage of variancePartition are a bit opaque.  This function
@@ -58,10 +68,10 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
 #' @return List of plots and variance data frames
 #' @seealso [variancePartition] DOI:10.1186/s12859-016-1323-z.
 #' @export
-simple_varpart <- function(expt, fstring = "~ condition + batch",
+simple_varpart <- function(input, fstring = "~ condition + batch",
                            do_fit = FALSE, cor_gene = 1,
                            cpus = NULL, genes = 40, parallel = TRUE,
-                           strict_filter = TRUE, modify_expt = TRUE) {
+                           strict_filter = TRUE, modify_input = TRUE) {
   cl <- NULL
   para <- NULL
   lib_result <- sm(requireNamespace("variancePartition"))
@@ -82,8 +92,8 @@ simple_varpart <- function(expt, fstring = "~ condition + batch",
     para <- doParallel::registerDoParallel(cl)
     ## multi <- BiocParallel::MulticoreParam()
   }
-  design <- pData(expt)
-  rank_test <- test_design_model_rank(expt, fstring)
+  design <- pData(input)
+  rank_test <- test_design_model_rank(design, fstring)
   fctrs <- rank_test[["factors"]]
   condition_fctr <- rank_test[["factors"]][1]
   for (f in rank_test[["factors"]]) {
@@ -93,7 +103,7 @@ simple_varpart <- function(expt, fstring = "~ condition + batch",
   test_formula <- as.formula(fstring)
   ## I think the simple filter is insufficient and I need there to be
   ## no genes with 0 counts in any one condition.
-  norm <- sm(normalize_expt(expt, filter = "simple"))
+  norm <- sm(normalize(input, filter = "simple"))
   if (isTRUE(strict_filter)) {
     test <- sm(median_by_factor(norm, fact = condition_fctr, fun = "mean"))
     all_condition_gt_zero_idx <- rowSums(test[["medians"]] == 0) == 0
@@ -174,9 +184,9 @@ which are shared among multiple samples.")
     "fitting" = fitting,
     "stratify_batch_plot" = stratify_batch_plot,
     "stratify_condition_plot" = stratify_condition_plot)
-  if (isTRUE(modify_expt) && nrow(fData(expt)) > 0) {
-    new_expt <- expt
-    tmp_annot <- fData(new_expt)
+  if (isTRUE(modify_input) && nrow(fData(input)) > 0) {
+    new_input <- input
+    tmp_annot <- fData(new_input)
     tmp_annot[["Row.names"]] <- NULL
     added_data <- sorted_fit
     colnames(added_data) <- glue("variance_{colnames(added_data)}")
@@ -185,15 +195,30 @@ which are shared among multiple samples.")
     tmp_annot <- merge(tmp_annot, added_data, by = "row.names", all.x = TRUE)
     rownames(tmp_annot) <- tmp_annot[["Row.names"]]
     tmp_annot[["Row.names"]] <- NULL
-    annot_order <- rownames(exprs(new_expt))
+    annot_order <- rownames(exprs(new_input))
     tmp_annot <- tmp_annot[annot_order, ]
     ## Make it possible to use a generic expressionset, though maybe this is
     ## impossible for this function.
-    fData(new_expt) <- tmp_annot
-    ret[["modified_expt"]] <- new_expt
+    fData(new_input) <- tmp_annot
+    ret[["modified_input"]] <- new_input
   }
   class(ret) <- "varpart"
   return(ret)
+}
+
+#' Print variance partition results.
+#'
+#' @param x List of results from variancePartition including the model
+#'  information, percent/partition plots, dataframes of the
+#'  fitted/sorted data by variance, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.varpart <- function(x, ...) {
+  summary_string <- glue("The result of using variancePartition with the model:
+{x[['model_string']]}")
+  message(summary_string)
+  plot(x[["partition_plot"]])
+  return(invisible(x))
 }
 
 #' Attempt to use variancePartition's fitVarPartModel() function.

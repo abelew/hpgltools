@@ -768,8 +768,15 @@ sm <- function(...) {
 #' @export
 tmpmd5file <- function(pattern = "", suffix = "", digits = 6,
                        body = NULL, fileext = "") {
-  if (fileext != "" && !grepl(pattern = "^\\.", x = fileext)) {
-    fileext <- paste0(".", fileext)
+  ## This seems like it is insufficient to avoid tempfile problems with knitr.
+  ## so perhaps I will add an explicit set.seed(Sys.time())
+  ## here (where it is redundant), in tempfile(), and perhaps in knitr
+  ## in the hopes that I can stop it -- though if I do it elsewhere I should be certain
+  ## to also check for .Random.seed first and put it back?
+  starting_seed <- get0(".Random.seed")
+  set.seed(NULL)
+  if (!grepl(pattern = "^\\.", x = fileext)) {
+    pattern <- paste0(".", pattern)
   }
   op <- options(digits.secs = digits)
   body_string <- digest::digest(Sys.time())
@@ -780,6 +787,9 @@ tmpmd5file <- function(pattern = "", suffix = "", digits = 6,
   }
   file_string <- paste0(pattern, body_string, suffix, fileext)
   file_path <- file.path(outdir, file_string)
+  if (!is.null(starting_seed)) {
+    .Random.seed <- starting_seed
+  }
   return(file_path)
 }
 
@@ -799,7 +809,16 @@ tmpmd5file <- function(pattern = "", suffix = "", digits = 6,
 #' @param fileext suffix.
 #' @export
 tempfile <- function(pattern = "file", tmpdir = tempdir(), fileext = "") {
-  .Internal(tempfile(paste0("pid", Sys.getpid(), pattern), tmpdir, fileext))
+  starting_seed <- get0(".Random.seed")
+  set.seed(NULL)
+  result <- .Internal(tempfile(paste0("pid", Sys.getpid(), pattern), tmpdir, fileext))
+  if (!is.null(starting_seed)) {
+    ## I wonder if I need to specify the global environment here?
+    ## Also, what does assign return? I have never considered that...
+    set <- assign(".Random.seed", starting_seed, envir = globalenv())
+    ## hmm, it seems like it should do something wacky like options()
+  }
+  return(result)
 }
 
 #' Remove the AsIs attribute from some data structure.

@@ -123,8 +123,7 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
   if (!is.null(label_chars) && is.numeric(label_chars)) {
     colnames(mtrx) <- abbreviate(colnames(mtrx), minlength = label_chars)
   }
-
-  libsize_df <- data.frame("id" = as.character(colnames(mtrx)),
+  libsize_df <- data.table("id" = as.character(colnames(mtrx)),
                            "sum" = colSums(mtrx),
                            "condition" = condition,
                            "colors" = as.character(colors))
@@ -148,6 +147,95 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
   return(retlist)
 }
 setGeneric("plot_libsize")
+
+#' Send a SummarizedExperiment to plot_libsize().
+#'
+#' @param data SummarizedExperiment presumably created by create_se().
+#' @param condition Set of conditions observed in the metadata, overriding
+#'  the metadata in the SE.
+#' @param colors Set of colors for the plot, overriding the SE metadata.
+#' @param text Print text with the counts/sample observed at the top of the bars?
+#' @param order Optionally redefine the order of the bars of the plot.
+#' @param plot_title Plot title!
+#' @param yscale Explicitly set the scale on the log or base10 scale.
+#' @param expt_names Optionally change the names of the bars.
+#' @param label_chars If the names of the bars are larger than this, abbreviate them.
+#' @param ... Additonal arbitrary arguments.
+#' @return Plot of library sizes and a couple tables describing the data.
+#' @export
+setMethod(
+  "plot_libsize", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, condition = NULL, colors = NULL, text = TRUE,
+                        order = NULL, plot_title = NULL, yscale = NULL,
+                        expt_names = NULL, label_chars = 10, ...) {
+    mtrx <- as.matrix(assay(data))
+    condition <- conditions(data)
+    colors <- colors(data)
+    plot_libsize(mtrx, condition = condition, colors = colors, text = text,
+                 order = order, plot_title = plot_title, yscale = yscale,
+                 expt_names = expt_names, label_chars = label_chars,
+                 ...)
+  })
+
+#' Run plot_libsize() with a dataframe as input.
+#' @export
+setMethod(
+  "plot_libsize", signature = signature(data = "data.frame", condition = "factor",
+                                        colors = "character"),
+  definition = function(data, condition, colors, text = TRUE,
+                        order = NULL, plot_title = NULL, yscale = NULL,
+                        expt_names = NULL, label_chars = 10, ...) {
+    data <- as.matrix(data)
+    plot_libsize(data, condition = condition, colors = colors,
+                 text = text, order = order, plot_title = plot_title, yscale = yscale,
+                 expt_names = expt_names, label_chars = label_chars, ...) # , ...)
+  })
+
+#' Run plot_libsize() with an expt as input.
+#' @export
+setMethod(
+  "plot_libsize", signature = signature(data = "expt"),
+  definition = function(data, condition = NULL, colors = NULL, text = TRUE,
+                        order = NULL, plot_title = NULL, yscale = NULL,
+                        expt_names = NULL, label_chars = 10, ...) {
+    mtrx <- exprs(data)
+    condition <- pData(data)[["condition"]]
+    colors = data[["colors"]]
+    plot_libsize(mtrx, condition = condition, colors = colors, text = text,
+                 order = order, plot_title = plot_title, yscale = yscale,
+                 expt_names = expt_names, label_chars = label_chars, ...)
+  })
+
+#' Run plot_libsize() with an ExpressionSet as input.
+#' @export
+setMethod(
+  "plot_libsize", signature = signature(data = "ExpressionSet"),
+  definition = function(data, condition = NULL, colors = NULL, text = TRUE,
+                        order = NULL, plot_title = NULL, yscale = NULL,
+                        expt_names = NULL, label_chars = 10, ...) {
+    mtrx <- exprs(data)
+    condition <- pData(data)[["condition"]]
+    plot_libsize(mtrx, condition = condition, colors = colors,
+                 text = text, order = order, plot_title = plot_title,
+                 yscale = yscale, expt_names = expt_names, label_chars = label_chars,
+                 ...)
+  })
+
+#' Print the library sizes from an experiment.
+#'
+#' @param x List containing a summary of the library sizes, the plot,
+#'  and table.
+#' @param ... Other args to match the generic.
+#' @export
+print.libsize_plot <- function(x, ...) {
+  min_value <- min(x[["table"]][["sum"]])
+  max_value <- max(x[["table"]][["sum"]])
+  message("Library sizes of ", nrow(x[["table"]]), " samples, \
+ranging from ", prettyNum(min_value, big.mark = ","),
+" to ", prettyNum(max_value, big.mark = ","), ".")
+  plot(x[["plot"]])
+  return(invisible(x))
+}
 
 #' Visualize genes observed before/after filtering.
 #'
@@ -246,6 +334,26 @@ labeled by counts/genes removed.")
     "lowgene_plot" = low_columns)
   class(retlist) <- "prepost_filter"
   return(retlist)
+}
+
+#' Print a representation of the pre vs. post filtered data.
+#'
+#' @param x List containing the information before/after filtering,
+#'  the plots, and summary information.
+#' @param ... Other args to match the generic.
+#' @export
+print.prepost_filter <- function(x, ...) {
+  na_idx <- is.na(x[["table"]][["sub_low"]])
+  x[["table"]][na_idx, "sub_low"] <- 0
+  changed_idx <- x[["table"]][["sub_low"]] > 0
+  changed <- x[["table"]][changed_idx, "sub_low"]
+  min_range <- min(changed)
+  max_range <- max(changed)
+  summary_string <- glue("A comparison of the counts before and after filtering.
+The number of genes with low coverage changes by {min_range}-{max_range} genes.")
+  message(summary_string)
+  plot(x[["lowgene_plot"]])
+  return(invisible(x))
 }
 
 #' Make a ggplot graph of the percentage/number of reads kept/removed.

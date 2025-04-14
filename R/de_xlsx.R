@@ -341,6 +341,23 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   return(ret)
 }
 
+#' Print a combined differential expression analysis.
+#'
+#' @param x List containing the dataframes for each contrast, the
+#'  various plots, the set of wanted contrasts, models used, and
+#'  summaries of the data.
+#' @param ... Other args to match the generic.
+#' @export
+print.combined_de <- function(x, ...) {
+  message("A set of combined differential expression results.")
+  summary_table <- x[["de_summary"]][, c("table", "deseq_sigup", "deseq_sigdown",
+                                         "edger_sigup", "edger_sigdown",
+                                         "limma_sigup", "limma_sigdown")]
+  print(summary_table)
+  print(upsetr_combined_de(x))
+  return(invisible(x))
+}
+
 #' Gather data required to make MA/Volcano plots for pairwise comparisons.
 #'
 #' It should be possible to significantly simplify the arguments passed to this
@@ -619,7 +636,7 @@ Defaulting to fdr.")
           mesg("Method ", query, " does not have this contrast.")
           badf <- data.frame()
           ba_stats <- data.frame()
-          ba_lfc_adjp <- data.fram()
+          ba_lfc_adjp <- data.frame()
         } else {
           badf <- entry[[query]][["data"]]
           ## I recently changed basic to optionally do means or medians.  I need to take that into
@@ -933,7 +950,7 @@ Defaulting to fdr.")
   if (isTRUE(includes[["limma"]]) &&
         isTRUE(includes[["deseq"]]) &&
         isTRUE(includes[["edger"]])) {
-    temp_fc <- cbind(as.numeric(comb[["limma_logfc"]]),
+    temp_helpfc <- cbind(as.numeric(comb[["limma_logfc"]]),
                      as.numeric(comb[["edger_logfc"]]),
                      as.numeric(comb[["deseq_logfc"]]))
     temp_fc <- preprocessCore::normalize.quantiles(as.matrix(temp_fc))
@@ -1010,6 +1027,17 @@ Defaulting to fdr.")
     "summary" = summary_lst)
   class(ret) <- c("combined_table", "list")
   return(ret)
+}
+
+#' Print a single combined DE result.
+#'
+#' @param x Data table of combined differential expression results.
+#' @param ... Other args to match the generic.
+#' @export
+print.combined_table <- function(x, ...) {
+  message("A combined differential expression table.")
+  message("Comprising ", nrow(x[["comb"]]), " genes and including ", x[["includes"]], ".")
+  return(invisible(x))
 }
 
 exclude_genes_from_combined_list <- function(comb, excludes) {
@@ -1575,6 +1603,17 @@ map_keepers <- function(keepers, table_names, datum) {
   return(keeper_table_map)
 }
 
+#' Print a set of mapped keepers from combine_de_tables()
+#'
+#' @param x List full of kept information.
+#' @param ... Other args to match the generic.
+#' @export
+print.mapped_keepers <- function(x, ...) {
+  message("The set of mappings between the wanted data and available data in a pairwise comparison.")
+  print(names(x))
+  return(invisible(x))
+}
+
 #' When a list of 'keeper' contrasts is specified, extract it from the data.
 #'
 #' This is the most interesting of the extract_keeper functions.  It must check
@@ -1776,7 +1815,7 @@ extract_keepers <- function(extracted, keepers, table_names,
     }
 
     ## Changing this to a try() for when we have weirdo extra_contrasts.
-    extracted[["plots"]][[entry_name]] <- suppressWarnings(combine_extracted_plots(
+    some_plots <- suppressWarnings(combine_extracted_plots(
       entry_name, combined, wanted_denominator, wanted_numerator, plot_inputs,
       loess = loess, lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
       adjp = adjp, found_table = found_table, p_type = padj_type,
@@ -1784,6 +1823,8 @@ extract_keepers <- function(extracted, keepers, table_names,
       do_inverse = FALSE, invert_colors = invert_colors,
       z = z, alpha = alpha, z_lines = z_lines,
       label = label, label_column = label_column))
+    extracted[["plots"]][[entry_name]] <- some_plots
+
     extracted[["summaries"]] <- rbind(extracted[["summaries"]],
                                       as.data.frame(combined[["summary"]]))
   } ## Ending the for loop of elements in the keepers list.
@@ -1792,6 +1833,60 @@ extract_keepers <- function(extracted, keepers, table_names,
   return(extracted)
 }
 setGeneric("extract_keepers")
+
+#' @describeIn extract_keepers Use a character vector instead of a list.
+#' @export
+setMethod(
+  "extract_keepers", signature = signature(extracted = "list", keepers = "character"),
+  definition = function(extracted, keepers, table_names,
+                        all_coefficients, apr,
+                        adjp, annot_df, includes,
+                        excludes, padj_type,
+                        fancy = FALSE, loess = FALSE,
+                        lfc_cutoff = 1.0, p_cutoff = 0.05,
+                        format_sig = 4, plot_colors = plot_colors,
+                        z = 1.5, alpha = 0.4, z_lines = FALSE,
+                        label = 10, label_column = "hgnc_symbol",
+                        scale_p = FALSE) {
+    if (keepers[1] == "all") {
+      new_keepers <- list()
+      numerators <- denominators <- c()
+      ## Note, I changed table_names to be sorted by method.  I can
+      ## either iterate over every method, take the union of all, or
+      ## arbitrarily choose a method...
+      possible_names <- c()
+      ## Limma and edger are the most likely to have extra contrasts,
+      ## so check one of them first.
+      if (!is.null(table_names[["limma"]])) {
+        possible_names <- table_names[["limma"]]
+      } else {
+        possible_names <- table_names[[1]]
+      }
+      for (a in seq_along(possible_names)) {
+        name <- possible_names[[a]]
+        splitted <- strsplit(x = name, split = "_vs_")
+        denominator <- splitted[[1]][2]
+        numerator <- splitted[[1]][1]
+        new_keepers[[name]] <- c(numerator, denominator)
+      }
+    } else {
+      splitted <- strsplit(x = keepers, split = "_vs_")
+      numerator <- splitted[[1]][1]
+      denominator <- splitted[[1]][2]
+      new_keepers <- list(splitted = c(numerator, denominator))
+    }
+    extract_keepers(extracted, new_keepers, table_names,
+                    all_coefficients, apr,
+                    adjp, annot_df, includes,
+                    excludes, padj_type,
+                    fancy = fancy, loess = loess,
+                    lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
+                    format_sig = format_sig, plot_colors = plot_colors,
+                    z = z, alpha = alpha, z_lines = z_lines,
+                    label = label, label_column = label_column,
+                    scale_p = scale_p)
+  })
+
 
 #' Extract the sets of genes which are significantly more abundant than the rest.
 #'
@@ -2313,6 +2408,36 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   return(ret)
 }
 
+#' Print some significantly differentially expressed genes.
+#'
+#' @param x List containing the parameters used, gene subset tables,
+#'  plots, xlsx output file, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.sig_genes <- function(x, ...) {
+  message("A set of genes deemed significant according to ", toString(x[["according"]]), ".")
+  params <- ""
+  if (!is.null(x[["lfc"]])) {
+    params <- glue("LFC cutoff: {x[['lfc']]}")
+  }
+  if (!is.null(x[["p"]])) {
+    params <- glue("{params} {x[['p_type']]} P cutoff: {x[['p']]}")
+  }
+  if (!is.null(x[["z"]])) {
+    params <- glue("{params} Z cutoff: {x[['z']]}")
+  }
+  if (!is.null(x[["n"]])) {
+    params <- glue("{params} topN: {x[['n']]}")
+  }
+  message("The parameters defining significant were:")
+  message(params)
+  print(x[["summary_df"]])
+  if (sum(rowSums(x[["summary_df"]])) > 0) {
+    plot(x[["sig_bar_plots"]][["deseq"]])
+  }
+  return(invisible(x))
+}
+
 #' Create a summary table of the ranges of fold-change values of potential interest.
 #'
 #' The columns have names with explicit lfc values, but the numbers which get put in them
@@ -2562,6 +2687,18 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
   class(lst) <- c("sig_intersect", "list")
   return(lst)
 }
+
+#' Print the intersection of significant genes from multiple analyses.
+#'
+#' @param x List containing some venn diagrams, summaries of
+#'  intersections, subsets of the intersections, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.sig_intersect <- function(x, ...) {
+  message("A set of genes deemed significant by multiple methods.")
+  return(invisible(x))
+}
+
 
 #' Reprint the output from extract_significant_genes().
 #'

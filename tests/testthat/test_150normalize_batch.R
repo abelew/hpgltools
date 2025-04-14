@@ -104,6 +104,13 @@ test_that("ruvg batch modification provides expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
 
+## I think the difference above is due to a problem in how expt was filtering.  Let us test.
+test_expt <- normalize_expt(pombe_expt, filter = TRUE, thresh = 1)
+test_se <- normalize_se(pombe_se, filter = TRUE, thresh = 1)
+test_that("filtering se and expt produces the same matrix?", {
+  expect_equal(exprs(test_expt), assay(test_se))
+})
+
 testing <-  normalize_se(pombe_se, filter = TRUE, batch = "ruv")
 test_counts <- exprs(testing)
 actual <- as.numeric(test_counts[1:10, 1])

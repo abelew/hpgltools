@@ -20,6 +20,19 @@ count_nmer <- function(genome, pattern = "ATG", mismatch = 0) {
 }
 setGeneric("count_nmer")
 
+#' Count nmers given a filename instead of genome object.
+#'
+#' @param genome filename of the genome in question
+#' @param pattern Pattern for which to search.
+#' @param mismatch Number of mismatches allowed.
+#' @export
+setMethod(
+  "count_nmer", signature = signature(genome = "character"),
+  definition = function(genome, pattern = "ATG", mismatch = 0) {
+    new_genome <- Rsamtools::FaFile(genome)
+    count_nmer(new_genome, pattern = pattern, mismatch = mismatch)
+  })
+
 #' Given an eupathdb species lacking UTR boundaries, extract an arbitrary region
 #' before/after each gene.
 #'

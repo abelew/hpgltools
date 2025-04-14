@@ -15,7 +15,6 @@ normalize_expt(
   annotations = NULL,
   fasta = NULL,
   entry_type = "gene",
-  use_original = FALSE,
   batch1 = "batch",
   batch2 = NULL,
   batch_step = 4,
@@ -53,8 +52,6 @@ normalize_expt(
 
 \item{entry_type}{For getting genelengths by feature type (rpkm or cp_seq_m).}
 
-\item{use_original}{Use the backup data in the expt class?}
-
 \item{batch1}{Experimental factor to extract first.}
 
 \item{batch2}{Second factor to remove (only with limma's removebatcheffect()).}
@@ -85,6 +82,8 @@ normalize_expt(
 I am not sure why, but I think they should be 0.}
 
 \item{...}{more options}
+
+\item{use_original}{Use the backup data in the expt class?}
 }
 \value{
 Expt object with normalized data and the original data saved as

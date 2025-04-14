@@ -14,27 +14,19 @@
 #'
 #' @param input Dataframe/vector or expt class containing count tables,
 #'  normalization state, etc.
-#' @param conditions Factor of conditions in the experiment.
-#' @param batches Factor of batches in the experiment.
-#' @param model_cond Include condition in the model?  This is likely always true.
 #' @param modify_p Depending on how it is used, sva may require a modification
 #'  of the p-values.
-#' @param model_batch Include batch in the model?  This may be true/false/"sva"
-#'  or other methods supported by all_adjusters().
 #' @param filter Added because I am tired of needing to filter the data before
 #'  invoking all_pairwise().
-#' @param model_intercept Use an intercept model instead of cell means?
 #' @param extra_contrasts Optional extra contrasts beyone the pairwise
 #'  comparisons.  This can be pretty neat, lets say one has conditions
 #'  A,B,C,D,E and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
 #'  with a string like:
 #'   "c_vs_b_ctrla = (C-B)-A, e_vs_d_ctrla = (E-D)-A, de_vs_cb = (E-D)-(C-B)".
-#' @param alt_model Alternate model to use rather than just condition/batch.
 #' @param libsize Library size of the original data to help voom().
 #' @param test_pca Perform some tests of the data before/after applying a given
 #'  batch effect.
 #' @param annot_df Annotations to add to the result tables.
-#' @param parallel Use dopar to run limma, deseq, edger, and basic simultaneously.
 #' @param do_basic Perform a basic analysis?
 #' @param do_deseq Perform DESeq2 pairwise?
 #' @param do_ebseq Perform EBSeq (caveat, this is NULL as opposed to TRUE/FALSE
@@ -46,6 +38,7 @@
 #' @param keepers Limit the pairwise search to a set of specific contrasts.
 #' @param convert Modify the data with a 'conversion' method for PCA?
 #' @param norm Modify the data with a 'normalization' method for PCA?
+#' @param verbose Print extra information while running?
 #' @param surrogates Either a number of surrogates or method to estimate it.
 #' @param ...  Picks up extra arguments into arglist.
 #' @return A list of limma, deseq, edger results.
@@ -58,29 +51,22 @@
 #'  ## limma, edger, deseq, basic results; plots; and summaries.
 #' }
 #' @export
-all_pairwise <- function(input = NULL, conditions = NULL,
-                         batches = NULL, model_cond = TRUE,
-                         modify_p = FALSE, model_batch = TRUE, filter = NULL,
-                         model_intercept = FALSE, extra_contrasts = NULL,
-                         alt_model = NULL, libsize = NULL, test_pca = TRUE,
+all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                         null_fstring = "~", model_svs = NULL,
+                         modify_p = FALSE, filter = NULL,
+                         extra_contrasts = NULL, libsize = NULL, test_pca = TRUE,
                          annot_df = NULL, do_basic = TRUE, do_deseq = TRUE,
                          do_ebseq = TRUE, do_edger = TRUE, do_limma = TRUE,
                          do_noiseq = TRUE, do_dream = TRUE, keepers = NULL,
-                         convert = "cpm", norm = "quant",
-                         surrogates = "be", methods = NULL,
-                         keep_underscore = TRUE, model_sv = NULL,
+                         convert = "cpm", norm = "quant", verbose = TRUE,
+                         num_surrogates = "be", methods = NULL,
+                         keep_underscore = TRUE, dream_model = NULL,
                          ...) {
   arglist <- list(...)
-  if (is.null(model_cond)) {
-    model_cond <- TRUE
+  svs_method <- "Existing surrogate matrix"
+  if (!is.null(model_svs) && isFALSE(filter)) {
+    message("model_svs is on and filter is off.")
   }
-  if (is.null(model_batch)) {
-    model_batch <- FALSE
-  }
-  if (is.null(model_intercept)) {
-    model_intercept <- FALSE
-  }
-
   if (!is.null(methods)) {
     if (!is.null(methods[["basic"]])) {
       do_basic <- methods[["basic"]]
@@ -105,10 +91,6 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     }
   }
 
-  ## I am soon going to separate the model_batch and surrogate estimate variables.
-  ## But for now, just put that here.
-  model_sv <- model_batch
-
   ## EBSeq made an incompatible change in its most recent release.
   ## I unthinkingly changed my code to match it without considering the old
   ## bioconductor release.
@@ -116,55 +98,67 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     warning("I changed ebseq_pairwise for the new bioc release, it needs >= 3.18.")
     do_ebseq <- FALSE
   }
+  fctrs <- get_formula_factors(model_fstring)
+  assumed_batch <- fctrs[["assumed_batch"]]
+  factors <- fctrs[["factors"]]
+  model_type <- fctrs[["type"]]
+  for (f in factors) {
+    if (is.null(pData(input)[[f]])) {
+      stop("The column: ", f, " is not in the metadata.")
+    }
+  }
+  ## Use the fctrs to sanitize the data.
+  input <- sanitize_expt(input, factors = factors)
+  meta <- pData(input)
 
-  if (isTRUE(model_cond)) {
-    if (is.null(keepers)) {
-      mesg("This DE analysis will perform all pairwise comparisons among:")
-    } else {
-      mesg("This DE analysis will perform the subset of comparisons provided.")
-    }
-    print(table(pData(input)[["condition"]]))
-    if (isTRUE(model_batch)) {
-      mesg("This analysis will include a batch factor in the model comprised of:")
-      print(table(pData(input)[["batch"]]))
-    } else if ("character" %in% class(model_batch)) {
-      mesg("This analysis will include surrogate estimates from: ", model_batch, ".")
-    } else if ("matrix" %in% class(model_batch)) {
-      mesg("This analysis will include a matrix of surrogate estimates.")
-    }
-    if (!is.null(filter)) {
-      mesg("This will pre-filter the input data using normalize_expt's: ",
-           filter, " argument.")
-    }
+  ## Unlink DESeq2, I use the first factor as the contrast by default.
+  contrast_col <- factors[1]
+  if (is.null(keepers)) {
+    mesg("This DE analysis will perform all pairwise comparisons among:")
   } else {
-    mesg("This analysis is not using the condition factor from the data.")
+    mesg("This DE analysis will perform the subset of comparisons provided.")
+  }
+  conditions <- droplevels(as.factor(meta[[contrast_col]]))
+  print(summary(conditions))
+  num_factors <- length(factors)
+  if (num_factors > 1) {
+    mesg("Other elements in the model include:")
+    for (f in seq(2, num_factors)) {
+      column_name <- factors[f]
+      mesg("The column: ", column_name, ".")
+      col_data <- meta[[column_name]]
+      if (class(col_data)[1] == "character") {
+        col_data <- droplevels(as.factor(col_data))
+      }
+      print(summary(col_data))
+    }
   }
 
-  if (!is.null(filter)) {
-    input <- sm(normalize_expt(input, filter = filter))
+  sankey <- NULL
+  if (num_factors > 1) {
+    sankey <- plot_meta_sankey(meta, factors = factors)
   }
-  null_model <- NULL
-  ## Going to use this test until we cleanly separate model_batch from estimate_type.
-  if ("character" %in% class(model_batch)) {
-    model_sv <- model_batch
-  }
-  model_type <- model_batch
 
-  if (class(model_batch)[1] == "character") {
-    model_params <- try(all_adjusters(input, estimate_type = model_type, surrogates = surrogates))
-    if ("try-error" %in% class(model_params)) {
-      message("Unable to estimate surrogate variables via: ", model_type, ".")
-    } else {
-      model_sv <- model_params[["model_adjust"]]
-      ## Remove the following line once we separate model_batch and model_sv
-      model_batch <- model_sv
-      null_model <- model_params[["null_model"]]
-      ## Add the SVs to the expressionset.
-      for (sv in seq_len(ncol(model_sv))) {
-        name <- glue("{model_type}_SV{sv}")
-        if (is.null(pData(input)[[name]])) {
-          pData(input)[[name]] <- model_sv[, sv]
-        }
+  if (!is.null(filter) && class(filter)[1] != "function") {
+    mesg("This will pre-filter the input data using normalize's: ",
+         filter, " argument.")
+    input <- normalize(input, filter = filter)
+  }
+  if (class(model_svs)[1] == "character") {
+    svs_method <- model_svs
+    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                                      null_fstring = null_fstring,
+                                      model_svs = model_svs,
+                                      num_surrogates = num_surrogates,
+                                      ... )
+    estimate_type <- model_svs
+    model_svs <- model_params[["model_adjust"]]
+    null_model <- model_params[["null_model"]]
+    ## Add the SVs to the expressionset.
+    for (sv in seq_len(ncol(model_svs))) {
+      name <- glue("{estimate_type}_SV{sv}")
+      if (is.null(pData(input)[[name]])) {
+        pData(input)[[name]] <- model_svs[, sv]
       }
     }
   }
@@ -173,7 +167,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   pre_pca <- NULL
   post_pca <- NULL
   if (isTRUE(test_pca)) {
-    pre_batch <- sm(normalize_expt(input, filter = TRUE, batch = FALSE,
+    pre_batch <- sm(normalize(input, filter = TRUE, batch = FALSE,
                                    transform = "log2", convert = convert, norm = norm))
     mesg("Plotting a PCA before surrogate/batch inclusion.")
     pre_pca <- try(plot_pca(pre_batch, plot_labels = FALSE,
@@ -182,12 +176,8 @@ all_pairwise <- function(input = NULL, conditions = NULL,
       pre_pca <- NULL
     }
     post_batch <- pre_batch
-    if (isTRUE(model_type)) {
-      model_type <- "batch in model/limma"
-      mesg("Using limma's removeBatchEffect to visualize with(out) batch inclusion.")
-      post_batch <- sm(normalize_expt(input, filter = TRUE, batch = TRUE, transform = "log2"))
-    } else if (class(model_type)[1] == "character") {
-      mesg("Using ", model_type, " to visualize before/after batch inclusion.")
+    if (class(model_svs)[1] == "character") {
+      mesg("Using ", svs_method, " to visualize before/after batch inclusion.")
       test_norm <- "quant"
       if (model_type != "TRUE" && model_type != FALSE) {
         ## Then it is probably some sort of sva which will have a hard time with quantile.
@@ -195,9 +185,22 @@ all_pairwise <- function(input = NULL, conditions = NULL,
       }
       mesg("Performing a test normalization with: ", test_norm)
       if (!isFALSE(model_batch)) {
-        post_batch <- sm(try(normalize_expt(input, filter = TRUE, batch = model_type,
+        post_batch <- sm(try(normalize(input, filter = TRUE, batch = model_svs,
                                             transform = "log2", convert = "cpm",
                                             norm = test_norm, surrogates = surrogates)))
+      }
+    } else if ("batch" %in% fctrs[["factors"]]) {
+      model_type <- "batch in model/limma"
+      if (isTRUE(verbose)) {
+        mesg("Using limma's removeBatchEffect to visualize with(out) batch inclusion.")
+      }
+      post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
+    } else if (!is.null(assumed_batch)) {
+      if (batches(input) != assumed_batch) {
+        message("Assuming an intended batch factor of: ", assumed_batch, ".")
+        input <- set_expt_batches(input, assumed_batch)
+        post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
+
       } else {
         post_batch <- NULL
       }
@@ -218,20 +221,15 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## do_ebseq defaults to NULL, this is so that we can query the number of
   ## conditions and choose accordingly. EBSeq is very slow, so if there are more
   ## than 3 or 4 conditions I do not think I want to wait for it.
-  if (is.null(conditions)) {
-    design <- pData(input)
-    conditions <- design[["condition"]]
-    batches <- design[["batch"]]
-  }
-  num_conditions <- length(levels(droplevels(as.factor(conditions))))
-
+  num_conditions <- length(conditions)
   num_comparisons <- 0
   if (is.null(keepers)) {
     num_comparisons <- choose(num_conditions, k = 2)
     mesg("This pairwise function should perform ", num_comparisons, " pairwise comparisons.")
   } else {
     num_comparisons <- length(keepers)
-    mesg("This pairwise function should perform ", num_comparisons, " pairwise comparisons taken from the keepers argument.")
+    mesg("This pairwise function should perform ", num_comparisons,
+         " pairwise comparisons taken from the keepers argument.")
   }
 
   ## Put a series of empty lists in the final results data structure
@@ -250,11 +248,11 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   for (type in names(results)) {
     mesg("Starting ", type, "_pairwise().")
     results[[type]] <- do_pairwise(
-      type, input = input, conditions = conditions, batches = batches,
-      model_cond = model_cond, model_batch = model_batch, model_intercept = model_intercept,
-      extra_contrasts = extra_contrasts, alt_model = alt_model, libsize = libsize,
-      annot_df = annot_df, surrogates = surrogates, keepers = keepers,
-      keep_underscore = keep_underscore, model_sv = model_sv,
+      type, input = input, model_fstring = model_fstring, null_fstring = null_fstring,
+      modify_p = modify_p, model_svs = model_svs, filter = filter,
+      extra_contrasts = extra_contrasts, libsize = libsize,
+      annot_df = annot_df, num_surrogates = num_surrogates, keepers = keepers,
+      keep_underscore = keep_underscore, dream_model = dream_model,
       ...)
   }
 
@@ -266,7 +264,7 @@ all_pairwise <- function(input = NULL, conditions = NULL,
   ## function.
   ## Thus we will use modified_data to note the data was modified by sva.
   modified_data <- FALSE
-  if (is.null(model_sv) && isTRUE(modified_data)) {
+  if (is.null(model_svs) && isTRUE(modified_data)) {
     ret <- sva_modify_pvalues(results)
     results <- ret[["results"]]
     original_pvalues <- ret[["original_pvalues"]]
@@ -289,9 +287,9 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     "comparison" = result_comparison,
     "extra_contrasts" = extra_contrasts,
     "input" = input,
-    "model_cond" = model_cond,
-    "model_batch" = model_batch,
-    "model_sv" = model_sv,
+    "model_fstring" = model_fstring,
+    "model_factors" = fctrs,
+    "model_svs" = model_svs,
     "original_pvalues" = original_pvalues,
     "pre_batch" = pre_pca,
     "post_batch" = post_pca)
@@ -303,6 +301,33 @@ all_pairwise <- function(input = NULL, conditions = NULL,
     ret[["combined"]] <- combined
   }
   return(ret)
+}
+
+#' Print function for a pairwise differential expression result.
+#'
+#' @param x List containing basic, deseq, edger, ebseq, limma, and
+#'  noiseq pairwise comparisons as well as some information about the
+#'  contrasts and models used.
+#' @param ... Other args to match the generic.
+#' @export
+print.all_pairwise <- function(x, ...) {
+  included <- c()
+  for (b in c("basic", "deseq", "ebseq", "edger", "limma", "noiseq")) {
+    if (!is.null(x[[b]])) {
+      included <- c(included, b)
+    }
+  }
+  message("A pairwise differential expression with results from: ",
+          toString(included), ".")
+  message("This used a surrogate/batch estimate from: ", x[["batch_type"]], ".")
+  message("The primary analysis performed ", nrow(x[["comparison"]][["comp"]]), " comparisons.")
+  if (is.null(x[["comparison"]][["heat"]])) {
+    message("The logFC agreement among the methods follows:")
+    print(x[["comparison"]][["comp"]])
+  } else {
+    print(x[["comparison"]][["heat"]])
+  }
+  return(invisible(x))
 }
 
 #' Perform all_pairwise only using deseq/edger.
@@ -437,6 +462,21 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
     "scatter" = scatter)
   class(retlist) <- "aucc_info"
   return(retlist)
+}
+
+#' Print the result from calculate_aucc().
+#'
+#' @param x List containing the AUCC, correlation, and a plot
+#'  describing the AUCC.
+#' @param ... Other args to match the generic.
+#' @export
+print.aucc_info <- function(x, ...) {
+  summary_string <- glue("These two tables have an aucc value of: \\
+{x[['aucc']]} and correlation: ")
+  message(summary_string)
+  print(x[["cor"]])
+  plot(x[["plot"]])
+  return(invisible(x))
 }
 
 #' Use sva's f.pvalue to adjust p-values for data adjusted by combat.
@@ -642,9 +682,7 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
   } else if (norm_state != "raw" && tran_state != "raw" && conv_state != "raw") {
     ## These if statements may be insufficient to check for the appropriate
     ## input for deseq.
-    backup <- get_backup_expression_data(input)
-    data <- exprs(backup)
-    libsize <- backup[["libsize"]]
+    stop("This requires raw data.")
   } else if (norm_state != "raw" || tran_state != "raw") {
     ## This makes use of the fact that the order of operations in the
     ## normalization function is
@@ -691,7 +729,7 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
 #' @examples
 #' \dontrun{
 #'  starting_data <- create_expt(metadata)
-#'  modified_data <- normalize_expt(starting_data, transform = "log2", norm = "quant")
+#'  modified_data <- normalize(starting_data, transform = "log2", norm = "quant")
 #'  a_dataset <- choose_dataset(modified_data, choose_for = "deseq")
 #'  ## choose_dataset should see that log2 data is inappropriate for DESeq2 and
 #'  ## return it to a base10 state.
@@ -729,7 +767,6 @@ choose_dataset <- function(input, choose_for = "limma", force = FALSE, ...) {
 choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...) {
   ## arglist <- list(...)
   data <- NULL
-  warn_user <- 0
   libsize <- NULL
   ## It turns out, a more careful examination of how normalization affects the
   ## results, the above seems only to be true if the following are true:
@@ -798,299 +835,6 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...
     "conditions" = conditions,
     "batches" = batches,
     "data" = data)
-  return(retlist)
-}
-
-#' Try out a few experimental models and return a likely working option.
-#'
-#' The _pairwise family of functions all demand an experimental model.  This
-#' tries to choose a consistent and useful model for all for them.  This does
-#' not try to do multi-factor, interacting, nor dependent variable models, if
-#' you want those do them yourself and pass them off as alt_model.
-#'
-#' Invoked by the _pairwise() functions.
-#'
-#' @param input Input data used to make the model.
-#' @param conditions Factor of conditions in the putative model.
-#' @param batches Factor of batches in the putative model.
-#' @param model_batch Try to include batch in the model?
-#' @param model_cond Try to include condition in the model? (Yes!)
-#' @param model_intercept Use an intercept model instead of cell-means?
-#' @param alt_model Use your own model.
-#' @param alt_string String describing an alternate model.
-#' @param intercept Choose an intercept for the model as opposed to 0.
-#' @param reverse Reverse condition/batch in the model?  This shouldn't/doesn't
-#'  matter but I wanted to test.
-#' @param contr List of contrasts.arg possibilities.
-#' @param surrogates Number of or method used to choose the number of surrogate
-#'  variables.
-#' @param ... Further options are passed to arglist.
-#' @return List including a model matrix and strings describing cell-means and
-#'  intercept models.
-#' @seealso [stats::model.matrix()]
-#' @examples
-#' \dontrun{
-#'  a_model <- choose_model(expt, model_batch = TRUE, model_intercept = FALSE)
-#'  a_model$chosen_model
-#'  ## ~ 0 + condition + batch
-#' }
-#' @export
-choose_model <- function(input, conditions = NULL, batches = NULL, model_batch = TRUE,
-                         model_cond = TRUE, model_intercept = FALSE, model_sv = NULL,
-                         alt_model = NULL, alt_string = NULL,
-                         intercept = 0, reverse = FALSE, contr = NULL,
-                         surrogates = "be", keep_underscore = TRUE, ...) {
-  arglist <- list(...)
-  design <- NULL
-  model_batch_info <- NULL
-  if (class(input)[1] != "matrix" && class(input)[1] != "data.frame") {
-    design <- pData(input)
-  }
-  if (is.null(design)) {
-    conditions <- as.factor(conditions)
-    batches <- as.factor(batches)
-    design <- data.frame("condition" = conditions,
-                         "batch" = batches,
-                         stringsAsFactors = TRUE)
-  }
-  ## Make a model matrix which will have one entry for
-  ## each of the condition/batches
-  ## It would be much smarter to generate the models in the following if() {} blocks
-  ## But I have it in my head to eventually compare results using different models.
-
-  ## The previous iteration of this had an explicit contrasts.arg set, like this:
-  ## contrasts.arg = list(condition = "contr.treatment"))
-  ## Which looked like this for a full invocation:
-  ## condbatch_int_model <- try(stats::model.matrix(~ 0 + conditions + batches,
-  ##                                   contrasts.arg = list(condition = "contr.treatment",
-  ##                                                      batch = "contr.treatment")),
-  ## The contrasts.arg has been removed because it seems to result in the same model.
-
-  clist <- list("condition" = "contr.treatment")
-  blist <- list("batch" = "contr.treatment")
-  cblist <- list("condition" = "contr.treatment", "batch" = "contr.treatment")
-  if (!is.null(contr)) {
-    if (!is.null(contr[["condition"]]) && !is.null(contr[["batch"]])) {
-      cblist <- list("condition" = contr[["condition"]], "batch" = contr[["batch"]])
-    } else if (!is.null(contr[["condition"]])) {
-      clist <- list("condition" = contr[["condition"]])
-      cblist[["condition"]] <- contr[["condition"]]
-    } else if (!is.null(contr[["batch"]])) {
-      blist <- list("batch" = contr[["batch"]])
-      cblist[["batch"]] <- contr[["batch"]]
-    }
-  }
-
-  cond_noint_fstring <- "~ 0 + condition"
-  cond_noint_model <- try(stats::model.matrix(
-    object = as.formula(cond_noint_fstring),
-    contrasts.arg = clist,
-    data = design), silent = TRUE)
-
-  batch_noint_fstring <- "~ 0 + batch"
-  batch_noint_model <- try(stats::model.matrix(
-    object = as.formula(batch_noint_fstring),
-    contrasts.arg = blist,
-    data = design), silent = TRUE)
-
-  condbatch_noint_fstring <- "~ 0 + condition + batch"
-  condbatch_noint_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_noint_fstring),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  batchcond_noint_fstring <- "~ 0 + batch + condition"
-  batchcond_noint_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_noint_fstring),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  cond_int_fstring <- "~ condition"
-  cond_int_model <- try(stats::model.matrix(
-    object = as.formula(cond_int_fstring),
-    contrasts.arg = clist,
-    data = design), silent = TRUE)
-
-  batch_int_fstring <- "~ batch"
-  batch_int_model <- try(stats::model.matrix(
-    object = as.formula(batch_int_fstring),
-    contrasts.arg = blist,
-    data = design), silent = TRUE)
-
-  condbatch_int_fstring <- "~ condition + batch"
-  condbatch_int_model <- try(stats::model.matrix(
-    object = as.formula(condbatch_int_fstring),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  batchcond_int_fstring <- "~ batch + condition"
-  batchcond_int_model <- try(stats::model.matrix(
-    object = as.formula(batchcond_int_fstring),
-    contrasts.arg = cblist,
-    data = design), silent = TRUE)
-
-  noint_model <- NULL
-  int_model <- NULL
-  noint_fstring <- NULL
-  int_fstring <- NULL
-  including <- NULL
-  if (!is.null(alt_model)) {
-    chosen_model <- stats::model.matrix(object = as.formula(alt_model),
-                                        data = design)
-    if (!is.null(contr)) {
-      chosen_model <- stats::model.matrix(object = as.formula(alt_model),
-                                          contrasts.arg = contr,
-                                          data = design)
-    }
-    int_model <- chosen_model
-    noint_model <- chosen_model
-    int_fstring <- alt_model
-    notint_fstring <- alt_model
-    including <- "alt"
-  } else if (is.null(model_batch)) {
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_fstring <- cond_int_fstring
-    noint_fstring <- cond_noint_fstring
-    including <- "condition"
-  } else if (isTRUE(model_cond) && isTRUE(model_batch)) {
-    if (class(condbatch_int_model)[1] == "try-error") {
-      mesg("The condition+batch model failed. ",
-           "Does your experimental design support both condition and batch? ",
-           "Using only a conditional model.")
-      int_model <- cond_int_model
-      noint_model <- cond_noint_model
-      int_fstring <- cond_int_fstring
-      noint_fstring <- cond_noint_fstring
-      including <- "condition"
-    } else if (isTRUE(reverse)) {
-      int_model <- batchcond_int_model
-      noint_model <- batchcond_noint_model
-      int_fstring <- batchcond_int_fstring
-      noint_fstring <- batchcond_noint_fstring
-      including <- "batch+condition"
-    } else {
-      int_model <- condbatch_int_model
-      noint_model <- condbatch_noint_model
-      int_fstring <- condbatch_int_fstring
-      noint_fstring <- condbatch_noint_fstring
-      including <- "condition+batch"
-    }
-  } else if (class(model_batch)[1] == "character") {
-    ## Then calculate the estimates using all_adjusters
-    mesg("Extracting surrogate estimates from ", model_batch,
-         " and adding them to the model.")
-    model_batch_info <- all_adjusters(input, estimate_type = model_batch,
-                                      surrogates = surrogates)
-    ## Changing model_batch from 'sva' to the resulting matrix.
-    ## Hopefully this will simplify things later for me.
-    model_batch <- model_batch_info[["model_adjust"]]
-    int_model <- stats::model.matrix(~ condition + model_batch,
-                                     contrasts.arg = clist,
-                                     data = design)
-    noint_model <- stats::model.matrix(~ 0 + condition + model_batch,
-                                       contrasts.arg = clist,
-                                       data = design)
-    sv_names <- glue("SV{1:ncol(model_batch)}")
-    noint_fstring <- cond_noint_fstring
-    int_fstring <- cond_int_fstring
-    sv_fstring <- ""
-    for (sv in sv_names) {
-      sv_fstring <- glue("{sv_fstring} + {sv}")
-    }
-    noint_fstring <- glue("{noint_fstring}{sv_fstring}")
-    int_fstring <- glue("{int_fstring}{sv_fstring}")
-    rownames(model_batch) <- rownames(int_model)
-    including <- glue("condition{sv_fstring}")
-  } else if (class(model_batch)[1] == "numeric" || class(model_batch)[1] == "matrix") {
-    mesg("Including batch estimates from sva/ruv/pca in the model.")
-    int_fstring <- "~ condition"
-    noint_fstring <- "~ 0 + condition"
-    sv_added <- ""
-    for (sv in colnames(model_batch)) {
-      sv_added <- glue("{sv_added} + {sv}")
-    }
-    int_fstring <- glue("{int_fstring}{sv_added}")
-    noint_fstring <- glue("{noint_fstring}{sv_added}")
-    int_formula <- as.formula(int_fstring)
-    noint_formula <- as.formula(noint_fstring)
-    design <- cbind.data.frame(design, model_batch)
-
-    int_model <- stats::model.matrix(int_formula,
-                                     contrasts.arg = clist,
-                                     data = design)
-    noint_model <- stats::model.matrix(noint_formula,
-                                       contrasts.arg = clist,
-                                       data = design)
-    including <- glue("condition{sv_added}")
-  } else if (isTRUE(model_cond)) {
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_fstring <- cond_int_fstring
-    noint_fstring <- cond_noint_fstring
-    including <- "condition"
-  } else if (isTRUE(model_batch)) {
-    int_model <- batch_int_model
-    noint_model <- batch_noint_model
-    int_fstring <- batch_int_fstring
-    noint_fstring <- batch_noint_fstring
-    including <- "batch"
-  } else {
-    ## Default to the conditional model
-    int_model <- cond_int_model
-    noint_model <- cond_noint_model
-    int_fstring <- cond_int_fstring
-    noint_fstring <- cond_noint_fstring
-    including <- "condition"
-  }
-  tmpnames <- colnames(int_model)
-  if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
-  } else {
-    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
-  }
-  tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  ## The next lines ensure that conditions/batches which are all numeric will
-  ## not cause weird errors for contrasts. Ergo, if a condition is something
-  ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  colnames(int_model) <- tmpnames
-
-  tmpnames <- colnames(noint_model)
-  if (isTRUE(keep_underscore)) {
-    tmpnames <- gsub(pattern = "data[^_[:^punct:]]", replacement = "", x = tmpnames, perl = TRUE)
-  } else {
-    tmpnames <- gsub(pattern = "data[[:punct:]]", replacement = "", x = tmpnames)
-  }
-  tmpnames <- gsub(pattern = "-", replacement = "", x = tmpnames)
-  tmpnames <- gsub(pattern = "+", replacement = "", x = tmpnames)
-  ## The next lines ensure that conditions/batches which are all numeric will
-  ## not cause weird errors for contrasts. Ergo, if a condition is something
-  ## like '111', now it will be 'c111' Similarly, a batch '01' will be 'b01'
-  colnames(noint_model) <- tmpnames
-
-  chosen_model <- NULL
-  chosen_fstring <- NULL
-  if (isTRUE(model_intercept)) {
-      mesg("Choosing the intercept containing model.")
-    chosen_model <- int_model
-    chosen_fstring <- int_fstring
-  } else {
-    mesg("Choosing the non-intercept containing model.")
-    chosen_model <- noint_model
-    chosen_fstring <- noint_fstring
-  }
-
-  retlist <- list(
-    "int_model" = int_model,
-    "noint_model" = noint_model,
-    "int_string" = int_fstring,
-    "noint_string" = noint_fstring,
-    "chosen_model" = chosen_model,
-    "chosen_string" = chosen_fstring,
-    "model_batch" = model_batch,
-    "model_batch_info" = model_batch_info,
-    "including" = including)
   return(retlist)
 }
 
@@ -1303,6 +1047,22 @@ compare_de_tables <- function(first, second, fcx = "deseq_logfc", px = "deseq_ad
   return(scatter)
 }
 
+#' Print a representation of compare_de_tables().
+#' Note I think I want to have that function return slightly different types
+#' depending on how the function call was set up.
+#'
+#' @param x List provided by plot_linear_scatter() containing
+#'  correlations, plots, linear model.
+#' @param ... Other args to match the generic.
+#' @export
+print.cross_table_comparison <- function(x, ...) {
+  summary_string <- glue("Comparison of the {x[['fcx_column']]} vs {x[['fcy_column']]}
+of two DE tables.")
+  message(summary_string)
+  plot(x[["scatter"]])
+  return(invisible(x))
+}
+
 #' See how similar are results from limma/deseq/edger/ebseq.
 #'
 #' limma, DEseq2, and EdgeR all make somewhat different assumptions.
@@ -1391,11 +1151,21 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
       method_comp_name <- glue("{d_name}_vs_{e_name}")
       for (l in seq_len(len)) {
         contr <- names(retlst[[d_name]])[l]
-        mesg(glue("Comparing {contr} of {d_name} vs. {e_name}."))
         if (!is.null(extra_eval_names) && contr %in% extra_eval_names) {
           next
         }
-
+        if (is.null(contr)) {
+          message("This contrast is null.")
+          next
+        }
+        if (length(contr) < 1) {
+          message("This contrast has zero length: ", contr)
+          next
+        }
+        if (!grepl(x = contr, pattern = "_vs_")) {
+          message("This contrast has no _vs_: ", contr, ".")
+          next
+        }
         ## assume all three have the same names() -- note that limma has more
         ## than the other two though
         num_den_names <- strsplit(x = contr, split = "_vs_")[[1]]
@@ -1829,6 +1599,17 @@ get_abundant_genes <- function(datum, type = "limma", n = NULL, z = NULL,
   }
   class(abundant_list) <- c("abundant_genes", "list")
   return(abundant_list)
+}
+
+#' Print a summary of a set of abundant genes.
+#'
+#' @param x Abundant gene list comprising an element 'high' and 'low'
+#'  for the most and least abundant genes observed.
+#' @param ... Other args to match the generic.
+#' @export
+print.abundant_genes <- function(x, ...) {
+  message("A set of genes deemed abundant.")
+  return(invisible(x))
 }
 
 #' A companion function for get_abundant_genes()
@@ -2433,39 +2214,6 @@ mymakeContrasts <- function(..., contrasts = NULL, levels) {
     cm[, j] <- ej
   }
   cm
-}
-
-#' Get rid of characters which will mess up contrast making and such before
-#' playing with an expt.
-#'
-#' @param expt An expt object to clean.
-#' @param keep_underscore Sanitize underscores too?
-sanitize_expt <- function(expt, keep_underscore = TRUE) {
-  design <- pData(expt)
-  conditions <- gsub(
-    pattern = "^(\\d+)$", replacement = "c\\1", x = as.character(design[["condition"]]))
-  batches <- gsub(
-    pattern = "^(\\d+)$", replacement = "b\\1", x = as.character(design[["batch"]]))
-  ## To be honest, there is absolutely no way I would have thought of this
-  ## regular expression:
-  ## https://stackoverflow.com/questions/30945993
-  ## In theory I am pretty good with regexes, but this is devious to me!
-  conditions <- gsub(pattern = "[^\\PP_]", replacement = "", x = conditions, perl = TRUE)
-  batches <- gsub(pattern = "[^\\PP_]", replacement = "", x = batches, perl = TRUE)
-  conditions <- gsub(pattern = "[[:blank:]]", replacement = "", x = conditions)
-  batches <- gsub(pattern = "[[:blank:]]", replacement = "", x = batches)
-  if (isTRUE(keep_underscore)) {
-    conditions <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = conditions, perl = TRUE)
-    batches <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = batches, perl = TRUE)
-  } else {
-    conditions <- gsub(pattern="[[:punct:]]", replacement = "", x = conditions)
-    batches <- gsub(pattern="[[:punct:]]", replacement = "", x = batches)
-  }
-  conditions <- as.factor(conditions)
-  batches <- as.factor(batches)
-  pData(expt)[["condition"]] <- conditions
-  pData(expt)[["batch"]] <- batches
-  return(expt)
 }
 
 #' Extract multicopy genes from up/down gene expression lists.

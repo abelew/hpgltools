@@ -43,23 +43,18 @@ transform_counts <- function(count_table, design = NULL, method = "raw",
       },
       "voom" = {
         libsize <- colSums(count_table)
-        model_choice <- choose_model(count_table,
-                                     conditions = design[["condition"]],
-                                     batches = design[["batch"]], ...)
-        fun_model <- model_choice[["chosen_model"]]
-        voomed <- limma::voom(counts = count_table, design = fun_model)
+        model_mtrx <- model.matrix(model_fstring, data = design)
+        voomed <- limma::voom(counts = count_table, design = model_mtrx)
         counts <- list(count_table = voomed[["E"]], libsize = libsize)
         return(counts)
       },
       "voomweight" = {
         libsize <- colSums(count_table)
-        model_choice <- choose_model(count_table, design[["condition"]],
-                                     design[["batch"]])
-        fun_model <- model_choice[["chosen_model"]]
-        voomed <- try(limma::voomWithQualityWeights(counts = count_table, design = fun_model))
+        model_mtrx <- model.matrix(model_fstring, data = design)
+        voomed <- try(limma::voomWithQualityWeights(counts = count_table, design = model_mtrx))
         if (class(voomed) == "try-error") {
           warning("voomwithqualityweights failed.  Falling back to voom.")
-          voomed <- limma::voom(counts = count_table, design = fun_model)
+          voomed <- limma::voom(counts = count_table, design = model_mtrx)
         }
         counts <- list(count_table = voomed[["E"]], libsize = libsize)
         return(counts)

@@ -352,6 +352,19 @@ graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
   return(ret_data)
 }
 
+#' Print a message about the results from graph_metrics().
+#'
+#' @param x List containing a large number of plots and some tables.
+#' @param ... Other args to match the generic.
+#' @export
+print.graphed_metrics <- function(x, ...) {
+  summary_string <- glue("A large number of plots produced by graph_metrics(), \
+here are the elements:")
+  message(summary_string)
+  print(names(x))
+  return(invisible(x))
+}
+
 #' Scab the legend from a PCA plot and print it alone
 #'
 #' This way I can have a legend object to move about.
@@ -389,6 +402,19 @@ plot_legend <- function(stuff) {
     "plot" = legend_plot)
   class(ret) <- "legend_plot"
   return(ret)
+}
+
+#' Print a legend of an expressionset.
+#'
+#' @param x List containing the condition factor, colors used, and plot.
+#' @param ... Other args to match the generic.
+#' @export
+print.legend_plot <- function(x, ...) {
+  summary_string <- glue("The colors used in the expressionset are: \\
+{toString(x[['color_fact']])}.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
 }
 
 ## I thought multiplot() was a part of ggplot(), but no, weird:

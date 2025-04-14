@@ -6,38 +6,24 @@
 \usage{
 edger_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_batch = TRUE,
-  model_sv = NULL,
-  model_intercept = FALSE,
-  alt_model = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
   extra_contrasts = NULL,
   annot_df = NULL,
   force = FALSE,
   keepers = NULL,
+  filter = FALSE,
   edger_method = "long",
+  edger_test = "lrt",
   keep_underscore = FALSE,
+  num_surrogates = "be",
   ...
 )
 }
 \arguments{
 \item{input}{Dataframe/vector or expt class containing data, normalization
 state, etc.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the experimental model?}
-
-\item{model_batch}{Include batch in the model?  In most cases this is a good
-thing(tm).}
-
-\item{model_intercept}{Use an intercept containing model?}
-
-\item{alt_model}{Alternate experimental model to use?}
 
 \item{extra_contrasts}{Add some extra contrasts to add to the list of
 pairwise contrasts. This can be pretty neat, lets say one has conditions
@@ -55,6 +41,19 @@ de_vs_cb = (E-D)-(C-B),"}
 choose with this.}
 
 \item{...}{The elipsis parameter is fed to write_edger() at the end.}
+
+\item{conditions}{Factor of conditions in the experiment.}
+
+\item{batches}{Factor of batches in the experiment.}
+
+\item{model_cond}{Include condition in the experimental model?}
+
+\item{model_batch}{Include batch in the model?  In most cases this is a good
+thing(tm).}
+
+\item{model_intercept}{Use an intercept containing model?}
+
+\item{alt_model}{Alternate experimental model to use?}
 }
 \value{
 List including the following information:
