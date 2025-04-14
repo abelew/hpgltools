@@ -85,6 +85,11 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
     na_idx <- is.na(my_data)
     my_data[na_idx] <- 0
   }
+  if (length(expt_state[["transform"]]) == 0) {
+    warning("The transformation state has length 0: ", expt_state[["transform"]])
+    expt_state[["transform"]] <- "raw"
+    warning("Setting transformation state to raw.")
+  }
 
   ## Different tools expect different inputs
   linear_mtrx <- NULL

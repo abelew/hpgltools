@@ -680,6 +680,8 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
 
   gsva_result <- NULL
   if (isTRUE(verbose)) {
+    #gsvapar <- GSVA::gsvaParam(eset[["expressionset"]], NULL)
+    #gsva_es <- gsva(gsvapar)
     gsva_result <- GSVA::gsva(eset[["expressionset"]], signature_data, verbose = TRUE,
                               method = method, min.sz = min_catsize, kcdf = kcdf,
                               abs.ranking = ranking, parallel.sz = cores, mx.diff = mx_diff)

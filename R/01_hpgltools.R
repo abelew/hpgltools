@@ -174,7 +174,7 @@ table_style <- "TableStyleMedium9"
   get(fun, envir = asNamespace(pkg), inherits = FALSE)
 }
 
-#getMaintainer <- "GenomicFeatures" %:::% ".getMaintainer"
+## getMaintainer <- "GenomicFeatures" %:::% ".getMaintainer"
 #getTxDbVersion <- "GenomicFeatures" %:::% ".getTxDbVersion"
 sortCols <- "variancePartition" %:::% ".sortCols"
 aprior <- "sva" %:::% "aprior"

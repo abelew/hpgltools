@@ -6,7 +6,7 @@
 \usage{
 ebseq_two(
   pair_data,
-  conditions,
+  factors,
   numerator = 2,
   denominator = 1,
   ng_vector = NULL,
@@ -19,8 +19,6 @@ ebseq_two(
 \arguments{
 \item{pair_data}{Matrix containing the samples comprising two experimental
 factors of interest.}
-
-\item{conditions}{Factor of conditions in the data.}
 
 \item{numerator}{Which factor has the numerator in the data.}
 
@@ -35,6 +33,8 @@ factors of interest.}
 \item{norm}{Normalization method of ebseq to apply.}
 
 \item{force}{Force inappropriate data into ebseq?}
+
+\item{conditions}{Factor of conditions in the data.}
 }
 \value{
 EBSeq result table with some extra formatting.

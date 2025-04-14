@@ -74,6 +74,7 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
                      units = "in", res = res, ...)
     }) ## End of the switch
   ## Find the new device for closing later.
+  controlled <- dev.control("enable")
   now_dev <- dev.list()
   new_dev_idx <- ! names(now_dev) %in% names(start_dev)
   new_dev <- now_dev[new_dev_idx]

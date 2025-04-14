@@ -2445,7 +2445,7 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
       controlled <- dev.control("enable")
       plt <- Vennerable::plot(sets, doWeights = FALSE)
       rec <- grDevices::recordPlot()
-      dev.off()
+      plotted <- dev.off()
       removed <- file.remove(tmp_file)
       lst[[dir]][[table]][["sets"]] <- sets
       lst[[dir]][[table]][["intersections"]] <- intersections

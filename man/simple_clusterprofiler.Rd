@@ -15,6 +15,7 @@ simple_clusterprofiler(
   qcutoff = 0.1,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
+  internal = FALSE,
   updown = "up",
   permutations = 1000,
   min_groupsize = 5,
@@ -24,10 +25,10 @@ simple_clusterprofiler(
   categories = 12,
   excel = NULL,
   do_david = FALSE,
-  do_kegg = FALSE,
+  do_kegg = TRUE,
   david_id = "ENTREZ_GENE_ID",
   padj_type = "BH",
-  david_user = "unknown@unknown.org"
+  david_user = "abelew@umd.edu"
 )
 }
 \arguments{

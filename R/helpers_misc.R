@@ -768,8 +768,8 @@ sm <- function(...) {
 #' @export
 tmpmd5file <- function(pattern = "", suffix = "", digits = 6,
                        body = NULL, fileext = "") {
-  if (!grepl(pattern = "^\\.", x = fileext)) {
-    pattern <- paste0(".", pattern)
+  if (fileext != "" && !grepl(pattern = "^\\.", x = fileext)) {
+    fileext <- paste0(".", fileext)
   }
   op <- options(digits.secs = digits)
   body_string <- digest::digest(Sys.time())

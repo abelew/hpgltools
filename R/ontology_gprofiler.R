@@ -31,7 +31,6 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 
   sig_names <- names(input_up)
   for (i in seq_along(sig_names)) {
-    slept <- Sys.sleep(sleep)
     name <- sig_names[i]
     retname_up <- paste0(name, "_up")
     retname_down <- paste0(name, "_down")
@@ -73,7 +72,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
-      slept <- Sys.sleep(10)
+      slept <- Sys.sleep(3)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_gprofiler2(down, first_col = fc_col,
                                                plot_type = plot_type,
