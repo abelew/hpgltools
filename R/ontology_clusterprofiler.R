@@ -13,7 +13,8 @@
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
-                          plot_type = "all", excel = "all_cp.xlsx", ...) {
+                          plot_type = "all", excel = "all_cp.xlsx",
+                          orgdb_from = NULL, orgdb_to = NULL, ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
@@ -71,7 +72,12 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     if (up_elements > 0) {
       chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       ret[[retname_up]] <- simple_clusterprofiler(up, table,
-                                                  excel = chosen_up_xlsx, ...)
+                                                  excel = chosen_up_xlsx,
+                                                  orgdb_from = orgdb_from,
+                                                  orgdb_to = orgdb_to,
+                                                  ...)
+      orgdb_from <- ret[[retname_up]][["orgdb_from"]]
+      orgdb_to <- ret[[retname_up]][["orgdb_to"]]
     } else {
       ret[[retname_up]] <- NULL
     }
@@ -79,7 +85,12 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
       slept <- Sys.sleep(10)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_clusterprofiler(down, table,
-                                                    excel = chosen_down_xlsx, ...)
+                                                    excel = chosen_down_xlsx,
+                                                    orgdb_from = orgdb_from,
+                                                    orgdb_to = orgdb_to,
+                                                    ...)
+      orgdb_from <- ret[[retname_down]][["orgdb_from"]]
+      orgdb_to <- ret[[retname_down]][["orgdb_to"]]
       #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
     } else {
       ret[[retname_down]] <- NULL
@@ -603,15 +614,17 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   retlist <- list(
     "all_mappings" = de_table_namedf,
-    "sig_mappings" = sig_genes_namedf,
-    "group_go" = group_go,
+    "david_data" = david_data,
     "enrich_go" = enrich_go,
     "enrich_objects" = enrich_objects,
+    "group_go" = group_go,
     "gse_go" = gse_go,
     "kegg_data" = kegg_data,
-    "david_data" = david_data,
+    "orgdb_from" = orgdb_from,
+    "orgdb_to" = orgdb_to,
     "plots" = plotlist,
-    "pvalue_plots" = plotlist)
+    "pvalue_plots" = plotlist,
+    "sig_mappings" = sig_genes_namedf)
   class(retlist) <- c("clusterprofiler_result", "list")
   if (!is.null(excel)) {
     mesg("Writing data to: ", excel, ".")

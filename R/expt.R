@@ -443,7 +443,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     ## in the sample definitions to get them.
     filenames <- as.character(sample_definitions[[file_column]])
     sample_ids <- rownames(sample_definitions)
-    count_data <- read_counts_expt(sample_ids, filenames, countdir = countdir,
+    count_data <- read_counts(sample_ids, filenames, countdir = countdir,
                                    tx_gene_map = tx_gene_map, file_type = file_type,
                                    ignore_tx_version = ignore_tx_version,
                                    ...)
@@ -1516,10 +1516,10 @@ make_pombe_expt <- function(annotation = TRUE) {
 #'  count_tables <- hpgl_read_files(as.character(sample_ids), as.character(count_filenames))
 #' }
 #' @export
-read_counts_expt <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
-                             all.x = TRUE, all.y = FALSE, merge_type = "merge",
-                             suffix = NULL, countdir = NULL, tx_gene_map = NULL,
-                             file_type = NULL, ignore_tx_version = TRUE, ...) {
+read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
+                        all.x = TRUE, all.y = FALSE, merge_type = "merge",
+                        suffix = NULL, countdir = NULL, tx_gene_map = NULL,
+                        file_type = NULL, ignore_tx_version = TRUE, ...) {
   ## load first sample
   arglist <- list(...)
   retlist <- list()
@@ -1579,6 +1579,8 @@ If this is not correctly performed, very few genes will be observed")
       file_type <- "rsem"
     } else if (grepl(pattern = "\\.sf", x = files[1])) {
       file_type <- "salmon"
+    } else if (grepl(pattern = "\\.fcounts", x = files[1])) {
+      file_type <- "featureCounts"
     } else {
       file_type <- "table"
     }
@@ -1680,10 +1682,11 @@ If this is not correctly performed, very few genes will be observed")
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
-  } else {
-    mesg("Reading count files with read.table().")
+  } else if (file_type == "featureCounts") {
+    mesg("Reading featureCounts with read.table().")
     ## Use this codepath when we are working with htseq
-    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE)
+    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE, skip = 2)
+    count_table <- count_table[, c(1, 7)]
     colnames(count_table) <- c("rownames", ids[1])
     ## We are going to immediately check for NA, so I think we can suppress warnings.
     count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))
@@ -1711,7 +1714,8 @@ If this is not correctly performed, very few genes will be observed")
       if (file.exists(tolower(table))) {
         table <- tolower(table)
       }
-      tmp_count <- try(read.table(table, header = header))
+      tmp_count <- try(read.table(table, header = header, skip = 2))
+      tmp_count <- tmp_count[, c(1, 7)]
       ## Drop the rows with NAs before coercing to numeric.
       keepers_idx <- tmp_count[[1]] != na_rownames
       tmp_count <- tmp_count[keepers_idx, ]

@@ -52,8 +52,8 @@ conditions <- function(se) {
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, include_type = "all", countdir = NULL,
-                      include_gff = NULL, file_column = "file", id_column = NULL,
+                      notes = NULL, include_type = "all", count_source = "htseq",
+                      countdir = NULL, include_gff = NULL, file_column = "file", file_type = NULL,
                       savefile = NULL, low_files = FALSE, annotation = "org.Hs.eg.db",
                       palette = "Dark2", round = FALSE, tx_gene_map = NULL,
                       ...) {
@@ -149,8 +149,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     ## in the sample definitions to get them.
     filenames <- as.character(sample_definitions[[file_column]])
     sample_ids <- rownames(sample_definitions)
-    count_data <- read_counts_expt(sample_ids, filenames, countdir = countdir,
-                                   ...)
+    count_data <- read_counts(sample_ids, filenames, countdir = countdir,
+                              file_type = file_type,
+                              ...)
     if (count_data[["source"]] == "tximport") {
       tximport_data <- list("raw" = count_data[["tximport"]],
                             "scaled" = count_data[["tximport_scaled"]])

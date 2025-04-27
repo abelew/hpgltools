@@ -14,7 +14,6 @@ ebseq_pairwise_subset(
   model_intercept = FALSE,
   alt_model = NULL,
   keepers = NULL,
-  conditions = NULL,
   norm = "median",
   force = FALSE,
   keep_underscore = TRUE,
@@ -43,14 +42,14 @@ factor, this would be the place to do it.  It is currently ignored.}
 
 \item{keepers}{Specify a set of contrasts to perform here.}
 
-\item{conditions}{Factor of conditions in the data, used to define the
-contrasts.}
-
 \item{norm}{EBseq normalization method to apply to the data.}
 
 \item{force}{Flag used to force inappropriate data into the various methods.}
 
 \item{...}{Extra arguments passed downstream, noably to choose_model()}
+
+\item{conditions}{Factor of conditions in the data, used to define the
+contrasts.}
 }
 \value{
 A pairwise comparison of the various conditions in the data.
