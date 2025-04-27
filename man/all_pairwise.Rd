@@ -6,15 +6,12 @@
 \usage{
 all_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
   modify_p = FALSE,
-  model_batch = TRUE,
   filter = NULL,
-  model_intercept = FALSE,
   extra_contrasts = NULL,
-  alt_model = NULL,
   libsize = NULL,
   test_pca = TRUE,
   annot_df = NULL,
@@ -28,10 +25,11 @@ all_pairwise(
   keepers = NULL,
   convert = "cpm",
   norm = "quant",
-  surrogates = "be",
+  verbose = TRUE,
+  num_surrogates = "be",
   methods = NULL,
   keep_underscore = TRUE,
-  model_sv = NULL,
+  dream_model = NULL,
   ...
 )
 }
@@ -39,30 +37,17 @@ all_pairwise(
 \item{input}{Dataframe/vector or expt class containing count tables,
 normalization state, etc.}
 
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the model?  This is likely always true.}
-
 \item{modify_p}{Depending on how it is used, sva may require a modification
 of the p-values.}
 
-\item{model_batch}{Include batch in the model?  This may be true/false/"sva"
-or other methods supported by all_adjusters().}
-
 \item{filter}{Added because I am tired of needing to filter the data before
 invoking all_pairwise().}
-
-\item{model_intercept}{Use an intercept model instead of cell means?}
 
 \item{extra_contrasts}{Optional extra contrasts beyone the pairwise
 comparisons.  This can be pretty neat, lets say one has conditions
 A,B,C,D,E and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
 with a string like:
  "c_vs_b_ctrla = (C-B)-A, e_vs_d_ctrla = (E-D)-A, de_vs_cb = (E-D)-(C-B)".}
-
-\item{alt_model}{Alternate model to use rather than just condition/batch.}
 
 \item{libsize}{Library size of the original data to help voom().}
 
@@ -92,11 +77,11 @@ so it can choose).}
 
 \item{norm}{Modify the data with a 'normalization' method for PCA?}
 
-\item{surrogates}{Either a number of surrogates or method to estimate it.}
+\item{verbose}{Print extra information while running?}
 
 \item{...}{Picks up extra arguments into arglist.}
 
-\item{parallel}{Use dopar to run limma, deseq, edger, and basic simultaneously.}
+\item{surrogates}{Either a number of surrogates or method to estimate it.}
 }
 \value{
 A list of limma, deseq, edger results.

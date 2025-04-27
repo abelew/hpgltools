@@ -327,6 +327,19 @@ plot_density <- function(data, colors = NULL, expt_names = NULL, position = "ide
   return(retlist)
 }
 
+#' Print the result from plot_density().
+#'
+#' @param x List containing the plot, summary of the
+#'  conditions/batches/samples, and the melted table of reads/gene.
+#' @param ... Other args to match the generic.
+#' @export
+print.density_plot <- function(x, ...) {
+  summary_string <- glue("Density plot describing {nrow(x[['sample_summary']])} samples.")
+  message(summary_string)
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
 #' Quantile/quantile comparison of the mean of all samples vs. each sample.
 #'
 #' This allows one to visualize all individual data columns against the mean of
@@ -668,6 +681,18 @@ plot_topn <- function(data, plot_title = NULL, num = 100, expt_names = NULL,
   return(retlist)
 }
 
+#' Print a result from plot_topn().
+#'
+#' @param x List with the topn plot and summary table.
+#' @param ... Other args to match the generic.
+#' @export
+print.topn_plot <- function(x, ...) {
+  summary_string <- glue("Plot describing the top-n genes from every sample of a dataset.")
+  message(summary_string)
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
 #' Look at the (biological)coefficient of variation/quartile coefficient of dispersion
 #' with respect to an experimental factor.
 #'
@@ -809,5 +834,56 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
   return(retlst)
 }
 setGeneric("plot_variance_coefficients")
+
+#' Print a result from plot_variance_coefficients().
+#'
+#' @param x List containing the coefficient of variance plot and summary.
+#' @param ... Other args to match the generic.
+#' @export
+print.varcoef_plot <- function(x, ...) {
+  summary_string <- glue("Plot describing the observed variance coefficients on a per-gene basis.")
+  message(summary_string)
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
+#' Plot the coefficient of variance values of a SummarizedExperiment.
+#' @export
+setMethod(
+  "plot_variance_coefficients", signature = signature(data = "expt"),
+  definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
+                        plot_title = NULL, ...) {
+    design <- pData(data)
+    colors <- colors(data)
+    mtrx <- exprs(data)
+    plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
+                               colors = colors, plot_title = plot_title, ...)
+  })
+
+#' Plot the coefficient of variance values of a SummarizedExperiment.
+#' @export
+setMethod(
+  "plot_variance_coefficients", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
+                        plot_title = NULL, ...) {
+    design <- pData(data)
+    colors <- colors(data)
+    mtrx <- exprs(data)
+    plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
+                               colors = colors, plot_title = plot_title, ...)
+  })
+
+#' Plot the coefficient of variance values of an ExpressionSet.
+#' @export
+setMethod(
+  "plot_variance_coefficients", signature = signature(data = "ExpressionSet"),
+  definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
+                        plot_title = NULL, ...) {
+    design <- pData(data)
+    mtrx <- exprs(data)
+    plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
+                               colors = colors, plot_title = plot_title, ...)
+  })
+
 
 ## EOF

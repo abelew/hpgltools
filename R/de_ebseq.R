@@ -40,44 +40,50 @@
 #'   ebseq_de <- ebseq_pairwise(input = expt)
 #' }
 #' @export
-ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
-                           batches = NULL, model_cond = NULL, model_intercept = NULL,
-                           alt_model = NULL, model_batch = NULL, keepers = NULL,
-                           ng_vector = NULL, rounds = 20, target_fdr = 0.05,
-                           method = "pairwise_subset", norm = "median",
-                           force = FALSE, keep_underscore = TRUE,
+ebseq_pairwise <- function(input = NULL, patterns = NULL, model_fstring = "~ 0 + condition + batch",
+                           null_fstring = "~", model_svs = NULL,
+                           keepers = NULL, ng_vector = NULL, rounds = 20,
+                           target_fdr = 0.05, method = "pairwise_subset",
+                           norm = "median", force = FALSE, keep_underscore = TRUE,
                            ...) {
   arglist <- list(...)
 
-  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  mesg("Starting EBSeq pairwise comparisons.")
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") &&
+        isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
+  }
+  fctrs <- get_formula_factors(model_fstring)
+  factors <- fctrs[["factors"]]
+  condition_column <- factors[1]
+  input <- sanitize_expt(input, keep_underscore = keep_underscore, factors = factors)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
-  conditions <- pData(input)[["condition"]]
-  batches <- pData(input)[["batches"]]
+  conditions <- droplevels(as.factor(design[[condition_column]]))
   data <- as.matrix(input_data[["data"]])
-  conditions_table <- table(conditions)
-  batches_table <- table(batches)
-  condition_levels <- levels(as.factor(conditions))
-  numerators <- denominators <- c()
+  condition_table <- table(conditions)
+  condition_levels <- levels(conditions)
+  numerators <- denominators <- contrasts_performed <- c()
 
   if (method == "pairwise_subset") {
-    result <- ebseq_pairwise_subset(input, ng_vector = ng_vector, rounds = rounds,
-                                    target_fdr = target_fdr, norm = norm,
-                                    keepers = keepers, force = force,
-                                    keep_underscore = keep_underscore,
+    result <- ebseq_pairwise_subset(input, model_fstring = model_fstring,
+                                    ng_vector = ng_vector, rounds = rounds,
+                                    target_fdr = target_fdr, norm = norm, force = force,
+                                    keepers = keepers, keep_underscore = keep_underscore,
                                     ...)
     numerators <- result[["numerators"]]
     denominators <- result[["denominators"]]
+    contrasts_performed <- result[["contrasts_performed"]]
   } else {
     mesg("Starting single EBSeq invocation.")
-
     multi <- FALSE
     if (length(condition_levels) < 2) {
       stop("You have fewer than 2 conditions.")
     } else if (length(condition_levels) == 2) {
       mesg("Invoking ebseq with 2-condition parameters.")
-      result <- ebseq_two(input,
-                          ng_vector = ng_vector, rounds = rounds,
+      result <- ebseq_two(input, ng_vector = ng_vector, rounds = rounds,
                           target_fdr = target_fdr, norm = norm)
       numerators <- result[["numerator"]]
       denominators <- result[["denominators"]]
@@ -86,7 +92,8 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
            "please provide a pattern matrix, or 'all_same'.")
     } else {
       mesg("Invoking ebseq with parameters suitable for a few conditions.")
-      result <- ebseq_few(data, conditions, patterns = patterns,
+      result <- ebseq_few(input, model_fstring = model_fstring,
+                          conditions, patterns = patterns,
                           ng_vector = ng_vector, rounds = rounds,
                           target_fdr = target_fdr, norm = norm)
     }
@@ -95,12 +102,20 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
   retlist <- list(
       "all_tables" = result,
       "conditions" = conditions,
-      "conditions_table" = conditions_table,
+      "conditions_table" = condition_table,
+      "contrasts_performed" = contrasts_performed,
       "denominators" = denominators,
       "method" = "ebseq",
       "numerators" = numerators)
   class(retlist) <- c("ebseq_pairwise", "list")
   return(retlist)
+}
+
+#' @export
+print.ebseq_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the EBSeq pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Perform pairwise comparisons with ebseq, one at a time.
@@ -126,29 +141,28 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL, conditions = NULL,
 #'  contrasts.
 #' @param norm EBseq normalization method to apply to the data.
 #' @param force Flag used to force inappropriate data into the various methods.
-#' @param ... Extra arguments passed downstream, noably to choose_model()
+#' @param ... Extra arguments passed downstream.
 #' @return A pairwise comparison of the various conditions in the data.
 #' @seealso [ebseq_pairwise()]
-ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_fdr = 0.05,
-                                  model_batch = FALSE, model_cond = TRUE,
-                                  model_intercept = FALSE, alt_model = NULL, keepers = NULL,
-                                  norm = "median", force = FALSE,
-                                  keep_underscore = TRUE,
+ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batch",
+                                  ng_vector = NULL, rounds = 10, target_fdr = 0.05,
+                                  keepers = NULL, conditions = NULL, norm = "median",
+                                  force = FALSE, keep_underscore = TRUE,
                                   ...) {
   mesg("Starting EBSeq pairwise subset.")
   ## Now that I understand pData a bit more, I should probably remove the
   ## conditions/batches slots from my expt classes.
   design <- pData(input)
-  conditions <- droplevels(as.factor(design[["condition"]]))
-  batches <- droplevels(as.factor(design[["batches"]]))
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
+  design <- pData(input)
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  data <- exprs(input)
+  condition_table <- table(conditions)
   condition_levels <- levels(conditions)
 
-  model_choice <- choose_model(input, conditions = conditions, batches = batches,
-                               model_batch = FALSE, model_cond = model_cond,
-                               model_intercept = FALSE, model_sv = NULL,
-                               alt_model = NULL, keep_underscore = keep_underscore)
-  model_data <- model_choice[["chosen_model"]]
-  apc <- make_pairwise_contrasts(model_data, conditions, do_identities = FALSE,
+  model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
+  apc <- make_pairwise_contrasts(model_mtrx, conditions, do_identities = FALSE,
                                  do_extras = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,
                                  ...)
@@ -157,6 +171,7 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
   retlst <- list()
   for (c in seq_along(apc[["names"]])) {
     name  <- apc[["names"]][[c]]
+    contrasts_performed <- c(name, contrasts_performed)
     a_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\1", x = name)
     b_name <- gsub(pattern = "^(.*)_vs_(.*)$", replacement = "\\2", x = name)
     if (! a_name %in% conditions) {
@@ -164,20 +179,20 @@ ebseq_pairwise_subset <- function(input, ng_vector = NULL, rounds = 10, target_f
       message("If this is not an extra contrast, then this is an error.")
       next
     }
-    pair <- sm(subset_expt(
-        expt = input,
-        subset = glue("condition=='{b_name}' | condition=='{a_name}'")))
+    idx <- conditions == b_name | conditions == a_name
+    pair <- input[, idx]
     pair_data <- exprs(pair)
-    factors <- pData(pair)[["condition"]]
-    a_result <- ebseq_two(pair_data, factors, numerator = b_name, denominator = a_name,
+    pair_conditions <- droplevels(conditions[idx])
+    a_result <- ebseq_two(pair_data, pair_conditions, numerator = b_name, denominator = a_name,
                           ng_vector = ng_vector, rounds = rounds, target_fdr = target_fdr,
                           norm = norm, force = force)
-    numerators <- c(numerators, a_result[["numerator"]])
-    denominators <- c(denominators, a_result[["denominator"]])
+    numerators <- c(numerators, b_name)
+    denominators <- c(denominators, a_name)
     retlst[[name]] <- a_result
   }
   retlst[["numerators"]] <- numerators
   retlst[["denominators"]] <- denominators
+  retlst[["contrasts_performed"]] <- contrasts_performed
   return(retlst)
 }
 
@@ -203,8 +218,8 @@ ebseq_size_factors <- function(data_mtrx, norm = NULL) {
   } else if (norm == "rank") {
     normalized <- EBSeq::RankNorm(data_mtrx)
   } else {
-    message("I do not know the norm method: ", norm, ", using quantile.")
-    normalized <- EBSeq::QuantileNorm(data_mtrx)
+    message("I do not know the norm method: ", norm, ", using median.")
+    normalized <- EBSeq::MedianNorm(data_mtrx, alternative = TRUE)
   }
   return(normalized)
 }
@@ -222,7 +237,7 @@ ebseq_size_factors <- function(data_mtrx, norm = NULL) {
 #' @param target_fdr Passed to ebseq.
 #' @param norm Normalization method to apply to the data.
 #' @seealso [ebseq_pairwise()]
-ebseq_few <- function(data, conditions,
+ebseq_few <- function(data, conditions, model_fstring = "~ 0 + condition + batch",
                       patterns = NULL, ng_vector = NULL, rounds = 10,
                       target_fdr = 0.05, norm = "median") {
 
@@ -307,9 +322,12 @@ ebseq_few <- function(data, conditions,
 #' @param force Force inappropriate data into ebseq?
 #' @return EBSeq result table with some extra formatting.
 #' @seealso [ebseq_pairwise()]
-ebseq_two <- function(pair_data, factors,
-                      numerator = 2, denominator = 1,
-                      ng_vector = NULL, rounds = 10,
+ebseq_two <- function(pair_data, conditions,
+                      numerator = 2, denominator = 1, fast = TRUE,
+                      ng_vector = NULL, rounds = 20, Alpha = NULL,
+                      Beta = NULL, Qtrm = 1, QtrmCut = 0, step1 = 1e-06,
+                      step2 = 0.01, thre = log(2), sthre = 0,
+                      filter = 10, stopthre = 1e-04,
                       target_fdr = 0.05, norm = "median",
                       force = FALSE) {
   normalized <- ebseq_size_factors(pair_data, norm = norm)
@@ -322,8 +340,10 @@ ebseq_two <- function(pair_data, factors,
     pair_data[na_idx] <- mean(pair_data, na.rm = TRUE)
   }
   eb_output <- sm(EBSeq::EBTest(
-    Data = pair_data, NgVector = NULL, Conditions = factors,
-    sizeFactors = normalized, maxround = rounds))
+    Data = pair_data, NgVector = NULL, Conditions = conditions,
+    sizeFactors = normalized, maxround = rounds, fast = fast,
+    Alpha = Alpha, Beta = Beta, Qtrm = Qtrm, QtrmCut = QtrmCut, step1 = step1,
+    step2 = step2, thre = thre, sthre = sthre, filter = filter, stopthre = stopthre))
   posteriors <- EBSeq::GetPPMat(eb_output)
   fold_changes <- EBSeq::PostFC(eb_output)
   eb_result <- EBSeq::GetDEResults(eb_output, FDR = target_fdr)

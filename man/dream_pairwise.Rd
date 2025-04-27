@@ -7,16 +7,13 @@ voom/limma.}
 \usage{
 dream_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_batch = TRUE,
-  model_sv = NULL,
-  model_intercept = FALSE,
-  alt_model = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
   extra_contrasts = NULL,
   annot_df = NULL,
   libsize = NULL,
+  filter = TRUE,
   limma_method = "ls",
   limma_robust = FALSE,
   voom_norm = "none",
@@ -31,22 +28,6 @@ dream_pairwise(
 \arguments{
 \item{input}{Dataframe/vector or expt class containing count tables,
 normalization state, etc.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the model?}
-
-\item{model_batch}{Include batch in the model?  If this is a character
-instead of a logical, then it is passed to all_adjusers() to attempt to find
-model parameters which describe surrogate variables in the data.}
-
-\item{model_intercept}{Perform a cell-means or intercept model? A little more
-difficult for me to understand.  I have tested and get the same answer
-either way.}
-
-\item{alt_model}{Specify another model.}
 
 \item{extra_contrasts}{Some extra contrasts to add to the list.
 This can be pretty neat, lets say one has conditions A,B,C,D,E
@@ -72,6 +53,22 @@ than I previously realized.  Play with it here.}
 \item{keepers}{Perform an explicit set of contrasts instead of all.}
 
 \item{...}{Use the elipsis parameter to feed options to write_limma().}
+
+\item{conditions}{Factor of conditions in the experiment.}
+
+\item{batches}{Factor of batches in the experiment.}
+
+\item{model_cond}{Include condition in the model?}
+
+\item{model_batch}{Include batch in the model?  If this is a character
+instead of a logical, then it is passed to all_adjusers() to attempt to find
+model parameters which describe surrogate variables in the data.}
+
+\item{model_intercept}{Perform a cell-means or intercept model? A little more
+difficult for me to understand.  I have tested and get the same answer
+either way.}
+
+\item{alt_model}{Specify another model.}
 }
 \value{
 List including the following information:

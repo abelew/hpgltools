@@ -22,7 +22,7 @@
 #'  converted_table = convert_counts(count_table, method='cbcbcpm')
 #' }
 #' @export
-convert_counts <- function(count_table, method = "raw", ...) {
+convert_counts <- function(count_table, method = "raw", annotations = NULL, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["convert"]])) {
     method <- arglist[["convert"]]

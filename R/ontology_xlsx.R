@@ -452,6 +452,99 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   return(res)
 }
 
+write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
+                                add_trees = TRUE, order_by = "qvalue", pval = 0.1, add_plots = TRUE,
+                                height = 15, width = 10, decreasing = FALSE, primary_key = 1,
+                                ...) {
+  arglist <- list(...)
+  image_list <- c()
+  if (!is.null(arglist[["table_style"]])) {
+    table_style <- arglist[["table_style"]]
+  }
+  excel_basename <- NULL
+  wb <- NULL
+  if ("character" %in% class(excel)) {
+    ## This this is a filename
+    xlsx <- init_xlsx(excel)
+    wb <- xlsx[["wb"]]
+    excel_basename <- xlsx[["basename"]]
+  } else {
+    wb <- excel
+  }
+
+  enrich_df <- as.data.frame(enricher_result)
+  if (nrow(enrich_df) == 0) {
+    return(NULL)
+  }
+  enrich_plots <- plot_enrichresult(enricher_result)
+  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                               textDecoration = "bold", border = "Bottom", fontSize = "30")
+
+  if (!is.null(wb)) {
+    message("Writing a sheet containing the legend.")
+    legend <- data.frame(rbind(
+      c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
+      c("Category", "Gene ontology Identifier."),
+      c("Term", "Short definition of the category."),
+      c("Over p-value", "Estimate of cp over-representation in the category."),
+      c("Q-value", "False discovery rate correction of the p-value."),
+      c("DE genes in cat", "What genes provided are in this specific category?"),
+      c("All genes in cat", "The full set of annotations included in this category."),
+      c("Num. de", "The number of genes in column 'F'."),
+      c("Num. in cat", "The number of genes in column 'G'."),
+      c("Look right", " for more plots!")
+    ))
+    colnames(legend) <- c("column name", "column definition")
+    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+                             title = "Columns used in the following tables.")
+    summary_row <- nrow(legend) + 5
+    summary_df <- data.frame(rbind(
+      c("Significant gene sets", nrow(enrich_df))))
+    colnames(summary_df) <- c("Ontology type", "Number found")
+    xls_result <- write_xlsx(wb, data = summary_df, sheet = "legend", rownames = FALSE,
+                             title = "Summary of the cp search.", start_row = 1, start_col = 4)
+
+    new_row <- 1
+    message("Writing enricher data.")
+    sheet <- "enrich"
+    dfwrite <- write_xlsx(data = enrich_df, wb = wb, sheet = sheet,
+                          title = "Enrichment REsults.", start_row = new_row)
+    ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
+    if (isTRUE(add_plots)) {
+      a_plot <- enrich_plots[["dot"]]
+      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
+                                  start_col = ncol(enrich_df) + 2, start_row = new_row,
+                                  plotname = "en_dot_plot", savedir = excel_basename)
+      if (! "try-error" %in% class(plot_try)) {
+        image_list <- c(image_list, plot_try[["filename"]])
+      }
+      upset <- enrich_plots[["up"]]
+      plot_try <- xlsx_insert_png(
+        upset, wb = wb, sheet = sheet, width = 12, height = 12,
+        start_col = ncol(cp_bp) + 12, start_row = 80,
+        plotname = "BP_upset", savedir = excel_basename)
+      if (! "try-error" %in% class(plot_try)) {
+        image_list <- c(image_list, plot_try[["filename"]])
+      }
+    }
+    width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
+                     silent = TRUE)
+  }
+  res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
+  message("Finished writing excel file.")
+  for (img in image_list) {
+    removed <- file.remove(img)
+  }
+  class(res) <- "written_enricher"
+  return(res)
+}
+
+
+
+
+
+
+
 #' Make a pretty table of goseq data in excel.
 #'
 #' It is my intention to make a function like this for each ontology tool in my repetoire
@@ -950,6 +1043,23 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   class(excel_ret) <- "written_gprofiler"
   return(excel_ret)
 }
+
+
+#setMethod(
+#  "write_gprofiler_data", signature = signature(gprofiler_result = "all_gprofiler",
+#                                                contrast = "NULL"),
+#  definition = function(gprofiler_result, contrast, wb = NULL, excel = "excel/profiler_result.xlsx",
+#                        order_by = "recall", add_plots = TRUE, height = 15, width = 10, decreasing = FALSE, ...) {
+#    outputs <- list()
+#    for (contrast in names(gprofiler_result)) {
+#      excel = glue("excel/gprofiler_{contrast}.xlsx")
+#      input <- gprofiler_result[[contrast]]
+#      outputs[[contrast]] <- write_gprofiler_data(input, excel = excel, order_by = order_by,
+#                                                  add_plots = add_plots, height = height,
+#                                                  width = width, decreasing = decreasing, ...)
+#    }
+#    return(outputs)
+#  })
 
 #' Make a pretty table of topgo data in excel.
 #'

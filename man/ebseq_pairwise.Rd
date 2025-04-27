@@ -8,12 +8,9 @@ using EBSeq.}
 ebseq_pairwise(
   input = NULL,
   patterns = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = NULL,
-  model_intercept = NULL,
-  alt_model = NULL,
-  model_batch = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
   keepers = NULL,
   ng_vector = NULL,
   rounds = 20,
@@ -30,18 +27,6 @@ ebseq_pairwise(
 state, etc.}
 
 \item{patterns}{Set of expression patterns to query.}
-
-\item{conditions}{Not currently used, but passed from all_pairwise()}
-
-\item{batches}{Not currently used, but passed from all_pairwise()}
-
-\item{model_cond}{Not currently used, but passed from all_pairwise()}
-
-\item{model_intercept}{Not currently used, but passed from all_pairwise()}
-
-\item{alt_model}{Not currently used, but passed from all_pairwise()}
-
-\item{model_batch}{Not currently used, but passed from all_pairwise()}
 
 \item{keepers}{Perform a specific set of contrasts instead of all?}
 
@@ -62,6 +47,18 @@ data into pairs of conditions.}
 \item{force}{Force ebseq to accept bad data (notably NA containing stuff from proteomics.}
 
 \item{...}{Extra arguments currently unused.}
+
+\item{conditions}{Not currently used, but passed from all_pairwise()}
+
+\item{batches}{Not currently used, but passed from all_pairwise()}
+
+\item{model_cond}{Not currently used, but passed from all_pairwise()}
+
+\item{model_intercept}{Not currently used, but passed from all_pairwise()}
+
+\item{alt_model}{Not currently used, but passed from all_pairwise()}
+
+\item{model_batch}{Not currently used, but passed from all_pairwise()}
 }
 \value{
 List containing tables from ebseq, the conditions tested, and the

@@ -464,6 +464,53 @@ write_xlsx <- function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
 }
 setGeneric("write_xlsx")
 
+#' Print the result from write_xlsx.
+#'
+#' @param x List containing some information about the xlsx file.
+#' @param ... Other args for the generic.
+#' @export
+print.written_xlsx <- function(x, ...) {
+  result_string <- glue("write_xlsx() wrote {x[['file']]}.
+ The cursor is on sheet {x[['sheet']]}, row: {x[['end_row']]} column: {x[['end_col']]}.")
+  message(result_string)
+  return(invisible(x))
+}
+
+#' Write an xlsx file given the result of an existing xlsx write.
+#' @export
+setMethod(
+  "write_xlsx", signature = signature(excel = "written_xlsx"),
+  definition = function(data = NULL, wb = NULL, sheet = NULL, excel,
+                        rownames = TRUE, start_row = 1, start_col = 1,
+                        title = NULL, number_format = "0.000", data_table = TRUE,
+                        freeze_first_row = TRUE, freeze_first_column = TRUE,
+                        column_width = "heuristic", ...) {
+    current_wb <- excel[["workbook"]]
+    current_sheet <- excel[["sheet"]]
+    current_row <- excel[["end_row"]]
+    current_col <- excel[["end_col"]]
+    current_excel <- excel[["file"]]
+    if (is.null(sheet)) {
+      sheet <- current_sheet
+      ## You cannot have > 1 frozen first sheet, so if you are reusing the sheet,
+      ## make sure freeze is off
+      freeze_first_row <- FALSE
+      freeze_first_column <- FALSE
+      column_width <- NULL
+      if (is.null(start_row)) {
+        start_row <- current_row + 1
+      }
+      if (is.null(start_col)) {
+        start_col <- 1
+      }
+    }
+    write_xlsx(data = data, wb = current_wb, sheet = sheet, excel = current_excel,
+               rownames = rownames, start_row = start_row, start_col = start_col,
+               title = title, number_format = number_format, data_table = data_table,
+               freeze_first_row = freeze_first_row, freeze_first_column = freeze_first_column,
+               column_width = column_width, ...)
+  })
+
 #' An attempt to improve the behaivor of openxlsx's plot inserter.
 #'
 #' The functions provided by openxlsx for adding plots to xlsx files are quite

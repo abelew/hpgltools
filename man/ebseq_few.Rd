@@ -7,6 +7,7 @@
 ebseq_few(
   data,
   conditions,
+  model_fstring = "~ 0 + condition + batch",
   patterns = NULL,
   ng_vector = NULL,
   rounds = 10,

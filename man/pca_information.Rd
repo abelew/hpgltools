@@ -8,6 +8,8 @@ pca_information(
   expt,
   expt_design = NULL,
   expt_factors = c("condition", "batch"),
+  colors_chosen = NULL,
+  expt_state = NULL,
   num_components = NULL,
   plot_pcas = FALSE,
   ...

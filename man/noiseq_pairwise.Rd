@@ -6,23 +6,23 @@
 \usage{
 noiseq_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_batch = TRUE,
-  model_sv = NULL,
-  model_intercept = FALSE,
-  alt_model = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
+  extra_contrasts = NULL,
   annot_df = NULL,
+  force = FALSE,
+  keepers = NULL,
+  batch = FALSE,
+  logtransf = FALSE,
   k = 0.5,
   norm = "tmm",
-  factor = "condition",
+  factor = NULL,
   lc = 1,
   r = 20,
   adj = 1.5,
   a0per = 0.9,
   filter = 1,
-  keepers = NULL,
   keep_underscore = TRUE,
   ...
 )
@@ -30,16 +30,9 @@ noiseq_pairwise(
 \arguments{
 \item{input}{Expressionset to compare.}
 
-\item{conditions}{Set of conditions to query}
-
-\item{batches}{known batches in the data, or a surrogate estimator.}
-
-\item{model_cond}{Add condition to the model?}
-
-\item{model_batch}{Add batch to the model, noiseq has its own combat-like method,
-so maybe not necessary?}
-
 \item{annot_df}{Extra annotations.}
+
+\item{keepers}{Perform the comparison only over these specific contrasts instead of all.}
 
 \item{k}{Taken from the noiseq docs.}
 
@@ -57,9 +50,16 @@ so maybe not necessary?}
 
 \item{filter}{Filter the data?}
 
-\item{keepers}{Perform the comparison only over these specific contrasts instead of all.}
-
 \item{...}{Extra arguments.}
+
+\item{conditions}{Set of conditions to query}
+
+\item{batches}{known batches in the data, or a surrogate estimator.}
+
+\item{model_cond}{Add condition to the model?}
+
+\item{model_batch}{Add batch to the model, noiseq has its own combat-like method,
+so maybe not necessary?}
 }
 \value{
 List similar to deseq_pairwise/edger_pairwise/etc.

@@ -7,6 +7,7 @@
 plot_pca(
   data,
   design = NULL,
+  state = NULL,
   plot_colors = NULL,
   plot_title = TRUE,
   plot_size = 5,

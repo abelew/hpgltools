@@ -6,7 +6,7 @@ context("125model_testing.R")
 ## model_test just uses qr() to test that the data for a given statistical model
 ## is of sufficient rank and yells at you if it does not.
 pombe_expt <- make_pombe_se(annotation = FALSE)
-design <- pData(pombe_expt)
+design <- colData(pombe_expt)
 
 pombe_test <- test_model_rank(design, goal = "condition")
 expected <- TRUE

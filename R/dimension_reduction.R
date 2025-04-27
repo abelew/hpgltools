@@ -118,6 +118,29 @@ get_res <- function(svd_result, design, factors = c("condition", "batch"),
   return(res_df)
 }
 
+#' Generic method to input data to iDA
+#'
+#' @param object The object to run iDA on
+#' @param ... Additonal arguments passed to object constructors
+#' @return iDA output with clustering, gene weights, and cell weights
+#' @export
+setGeneric("iDA", signature = c("object"),
+           function(object, ...) standardGeneric("iDA"))
+
+#' Set method for matrix to input data to iDA
+#'
+#' @param object The object to run iDA on
+#' @param ... Additonal arguments passed to object constructors
+#' @return iDA output with clustering, gene weights, and cell weights
+#' @export
+setMethod(
+  "iDA", signature = signature(object = "matrix"),
+  function(object, ...) {
+    iDAoutput <- iDA::iDA_core(object, ...)
+    return(iDAoutput)
+
+  })
+
 #' A sister function to sv_fstatistics()
 #'
 #' TODO: Use this to yank a bunch of code out of pca_information and simplify.
@@ -237,24 +260,8 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
 #' }
 #' @export
 pca_information <- function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
-                            num_components = NULL, plot_pcas = FALSE, ...) {
+                            colors_chosen = NULL, expt_state = NULL, num_components = NULL, plot_pcas = FALSE, ...) {
   ## Start out with some sanity tests
-  colors_chosen <- NULL
-  exprs_data <- NULL
-  data_class <- class(expt)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    expt_design <- pData(expt)
-    colors_chosen <- expt[["colors"]]
-    exprs_data <- exprs(expt)
-  } else if (data_class == "ExpressionSet") {
-    exprs_data <- exprs(expt)
-    expt_design <- pData(expt)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    exprs_data <- as.matrix(expt)
-  } else {
-    stop("This understands types: expt, ExpressionSet, data.frame, and matrix.")
-  }
-
   ## Make sure colors get chosen.
   if (is.null(colors_chosen)) {
     colors_chosen <- as.numeric(as.factor(expt_design[["condition"]]))
@@ -263,7 +270,8 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
     names(colors_chosen) <- rownames(expt_design)
   }
 
-  initial_pca <- plot_pca(expt)
+  initial_pca <- plot_pca(data = expt, design = expt_design, state = expt_state, plot_colors = colors_chosen,
+                          ...)
   v <- initial_pca[["result"]][["v"]]
   u <- initial_pca[["result"]][["u"]]
   d <- initial_pca[["result"]][["d"]]
@@ -485,6 +493,66 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
     "pca_plots" = pca_plots)
   return(pca_list)
 }
+setGeneric("pca_information")
+
+#' @export
+setMethod(
+  "pca_information", signature = signature(expt = "data.frame"),
+  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+                        colors_chosen = NULL, num_components = NULL,
+                        plot_pcas = FALSE, ...) {
+    expt <- as.matrix(expt)
+    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
+                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+                    num_components = num_components,
+                    plot_pcas = plot_pcas, ...)
+  })
+
+#' @export
+setMethod(
+  "pca_information", signature = signature(expt = "expt"),
+  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+                        colors_chosen = NULL, num_components = NULL,
+                        plot_pcas = FALSE, ...) {
+    colors_chosen <- colors(expt)
+    expt_design <- pData(expt)
+    expt_state <- state(expt)
+    expt <- exprs(expt)
+    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
+                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+                    num_components = num_components,
+                    plot_pcas = plot_pcas, ...)
+  })
+
+    #' @export
+setMethod(
+  "pca_information", signature = signature(expt = "ExpressionSet"),
+  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+                        colors_chosen = NULL, num_components = NULL,
+                        plot_pcas = FALSE, ...) {
+    colors_chosen <- colors(expt)
+    expt_design <- pData(expt)
+    expt_state <- state(expt)
+    expt <- exprs(expt)
+    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
+                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+                    num_components = num_components,
+                    plot_pcas = plot_pcas, ...)
+  })
+
+#' @export
+setMethod(
+  "pca_information", signature = signature(expt = "SummarizedExperiment"),
+  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+                        colors_chosen = NULL, num_components = NULL,
+                        plot_pcas = FALSE, ...) {
+    colors_chosen <- colors(expt)
+    expt_design <- colData(expt)
+    expt <- assay(expt)
+    pca_information(expt, expt_design = expt_design, expt_factors = expt_factors,
+                    colors_chosen = colors_chosen, num_components = num_components,
+                    plot_pcas = plot_pcas, ...)
+  })
 
 #' Get the highest/lowest scoring genes for every principle component.
 #'
@@ -644,7 +712,7 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
 #'  pca_plot
 #' }
 #' @export
-plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
+plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
                      plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
                      pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
                      num_pc = NULL, expt_names = NULL, label_chars = 10,
@@ -663,16 +731,6 @@ plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
     base_size <<- arglist[["base_size"]]
   }
 
-  if (!is.null(arglist[["transform"]]) || !is.null(arglist[["convert"]]) ||
-        !is.null(arglist[["filter"]]) || !is.null(arglist[["norm"]]) ||
-          !is.null(arglist[["batch"]])) {
-    data <- normalize_expt(data, transform = arglist[["transform"]],
-                           convert = arglist[["convert"]],
-                           filter = arglist[["filter"]],
-                           batch = arglist[["batch"]],
-                           norm = arglist[["norm"]])
-  }
-
   ## The following if() series is used to check the type of data provided and
   ## extract the available metadata from it.  Since I commonly use my
   ## ExpressionSet wrapper (expt), most of the material is specific to that.
@@ -680,30 +738,7 @@ plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
   ## that is not true. The primary things this particular function is seeking to
   ## acquire are: design, colors, counts. The only thing it absolutely requires
   ## to function is counts, it will make up the rest if it cannot find them.
-  data_class <- class(data)[1]
-  mtrx <- NULL
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
-    if (cond_column == "condition") {
-      plot_colors <- data[["colors"]]
-    } else {
-      plot_colors <- NULL
-    }
-    mtrx <- exprs(data)
-  } else if (data_class == "ExpressionSet") {
-    mtrx <- exprs(data)
-    design <- pData(data)
-  } else if (data_class == "list") {
-    mtrx <- data[["count_table"]]
-    if (is.null(data)) {
-      stop("The list provided contains no count_table element.")
-    }
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-    mtrx <- as.data.frame(data)
-  } else {
-    stop("This understands classes of type: expt, ExpressionSet, data.frame, and matrix.")
-  }
+  mtrx <- as.matrix(data)
 
   ## Get rid of NAs, this is relevant because of recent changes in how I handle
   ## proteomic data with missing values.
@@ -1095,10 +1130,14 @@ plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
   ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
   ## my expt containing the normalization state of the data.
   if (isTRUE(plot_title)) {
-    data_title <- what_happened(expt = data)
+    data_title <- what_happened(transform = state[["transform"]], convert = state[["convert"]],
+                                norm = state[["norm"]], filter = state[["filter"]],
+                                batch = state[["batch"]])
     comp_plot <- comp_plot + ggplot2::ggtitle(data_title)
   } else if (!is.null(plot_title)) {
-    data_title <- what_happened(expt = data)
+    data_title <- what_happened(transform = state[["transform"]], convert = state[["convert"]],
+                                norm = state[["norm"]], filter = state[["filter"]],
+                                batch = state[["batch"]])
     plot_title <- glue::glue("{plot_title}
 {data_title}")
     comp_plot <- comp_plot + ggplot2::ggtitle(plot_title)
@@ -1121,6 +1160,90 @@ plot_pca <- function(data, design = NULL, plot_colors = NULL, plot_title = TRUE,
     "design" = design)
   class(pca_return) <- "pca_result"
   return(pca_return)
+}
+setGeneric("plot_pca")
+
+#' @export
+setMethod(
+  "plot_pca", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
+                        plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
+                        pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
+                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        cond_column = "condition", batch_column = "batch",
+                        ...) {
+    state <- state(data)
+    design <- colData(data)
+    plot_colors <- colors(data)
+    mtrx <- assay(data)
+    plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
+             plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
+             plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
+             x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
+             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+             batch_column = batch_column, ...)
+  })
+
+#' @export
+setMethod(
+  "plot_pca", signature = signature(data = "expt"),
+  definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
+                        plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
+                        pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
+                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        cond_column = "condition", batch_column = "batch",
+                        ...) {
+    state <- state(data)
+    design <- pData(data)
+    plot_colors <- colors(data)
+    mtrx <- exprs(data)
+    plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
+             plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
+             plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
+             x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
+             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+             batch_column = batch_column, ...)
+  })
+
+#' @export
+setMethod(
+  "plot_pca", signature = signature(data = "ExpressionSet"),
+  definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
+                        plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
+                        pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
+                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        cond_column = "condition", batch_column = "batch",
+                        ...) {
+    state <- state(data)
+    design <- pData(data)
+    plot_colors <- colors(data)
+    mtrx <- exprs(data)
+    plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
+             plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
+             plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
+             x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
+             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+             batch_column = batch_column, ...)
+  })
+
+#' Print the result from one of the various dimension reductions.
+#'
+#' @param x List comprised of the residuals, variance summary, tables,
+#'  the PCA-esque plot, experimental design, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.pca_result <- function(x, ...) {
+  cond_column <- x[["cond_column"]]
+  batch_column <- x[["batch_column"]]
+
+  color_levels <- toString(levels(as.factor(x[["design"]][[cond_column]])))
+  batch_levels <- toString(levels(as.factor(x[["design"]][[batch_column]])))
+  message("The result of performing a ", x[["pc_method"]], " dimension reduction.
+The x-axis is PC", x[["x_pc"]], " and the y-axis is PC", x[["y_pc"]], "
+Colors are defined by ", color_levels, "
+Shapes are defined by ", batch_levels, ".")
+  plot(x[["plot"]])
+  return(invisible(x))
 }
 
 #' Make a PC plot describing the gene' clustering.
@@ -1947,7 +2070,6 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
     ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
                    legend.position = legend_position,
                    legend.key.size = grid::unit(0.5, "cm"))
-
   return(pca_plot)
 }
 

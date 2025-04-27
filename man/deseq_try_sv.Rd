@@ -26,5 +26,5 @@ buying and tell the user if the sva model additions are valid according to
 DESeq.
 }
 \seealso{
-[sva] [RUVSeq] [all_adjusters()] [normalize_batch()]
+[sva] [RUVSeq] [all_adjusters()] [normalize()]
 }

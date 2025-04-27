@@ -4,7 +4,7 @@
 \alias{convert_counts}
 \title{Perform a cpm/rpkm/whatever transformation of a count table.}
 \usage{
-convert_counts(count_table, method = "raw", ...)
+convert_counts(count_table, method = "raw", annotations = NULL, ...)
 }
 \arguments{
 \item{count_table}{Matrix of count data.}

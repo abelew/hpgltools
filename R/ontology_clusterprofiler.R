@@ -13,8 +13,14 @@
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
-                          plot_type = "all", excel = "all_cp.xlsx",
-                          orgdb_from = NULL, orgdb_to = NULL, ...) {
+                          orgdb = "org.Hs.eg.db", orgdb_from = NULL, orgdb_to = "ENTREZID",
+                          go_level = 3, pcutoff = 0.05, qcutoff = 0.2, fc_column = "logFC",
+                          second_fc_column = "deseq_logfc", internal = FALSE, updown = "up",
+                          permutations = 1000, min_groupsize = 5, kegg_prefix = NULL,
+                          kegg_organism = NULL, do_gsea = TRUE, categories = 12, do_david = FALSE,
+                          do_kegg = TRUE, padj_type = "BH", plot_type = "all",
+                          do_reactome = TRUE,
+                          excel = "excel/all_cp.xlsx", ...) {
   ret <- list()
   input_up <- list()
   input_down <- list()
@@ -37,7 +43,6 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
 
   sig_names <- names(input_up)
   for (i in seq_along(sig_names)) {
-    slept <- Sys.sleep(3)
     name <- sig_names[i]
     table <- tables[["data"]][[name]]
     mesg("Starting ", name, ".")
@@ -71,11 +76,16 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     }
     if (up_elements > 0) {
       chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
-      ret[[retname_up]] <- simple_clusterprofiler(up, table,
-                                                  excel = chosen_up_xlsx,
-                                                  orgdb_from = orgdb_from,
-                                                  orgdb_to = orgdb_to,
-                                                  ...)
+      ret[[retname_up]] <- simple_clusterprofiler(
+        up, table,
+        orgdb = orgdb, orgdb_from = orgdb_from, orgdb_to = orgdb_to, go_level = go_level,
+        pcutoff = pcutoff, qcutoff = qcutoff, fc_column = fc_column,
+        second_fc_column = second_fc_column, internal = internal, updown = updown,
+        permutations = permutations, min_groupsize = min_groupsize, kegg_prefix = kegg_prefix,
+        kegg_organism = kegg_organism, do_gsea = do_gsea, categories = categories,
+        do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
+        do_reactome = do_reactome, excel = chosen_up_xlsx,
+        ...)
       orgdb_from <- ret[[retname_up]][["orgdb_from"]]
       orgdb_to <- ret[[retname_up]][["orgdb_to"]]
     } else {
@@ -84,11 +94,16 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     if (down_elements > 0) {
       slept <- Sys.sleep(10)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
-      ret[[retname_down]] <- simple_clusterprofiler(down, table,
-                                                    excel = chosen_down_xlsx,
-                                                    orgdb_from = orgdb_from,
-                                                    orgdb_to = orgdb_to,
-                                                    ...)
+      ret[[retname_down]] <- simple_clusterprofiler(
+        down, table,
+        orgdb = orgdb, orgdb_from = orgdb_from, orgdb_to = orgdb_to, go_level = go_level,
+        pcutoff = pcutoff, qcutoff = qcutoff, fc_column = fc_column,
+        second_fc_column = second_fc_column, internal = internal, updown = updown,
+        permutations = permutations, min_groupsize = min_groupsize, kegg_prefix = kegg_prefix,
+        kegg_organism = kegg_organism, do_gsea = do_gsea, categories = categories,
+        do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
+        do_reactome = do_reactome, excel = chosen_down_xlsx,
+        ...)
       orgdb_from <- ret[[retname_down]][["orgdb_from"]]
       orgdb_to <- ret[[retname_down]][["orgdb_to"]]
       #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
@@ -98,6 +113,63 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
   }
   class(ret) <- "all_cprofiler"
   return(ret)
+}
+
+guess_bitr_keytype <- function(org, from, sig_genes = NULL, to = "ENTREZ",
+                               possible_keys = NULL, universe = NULL) {
+  if (is.null(universe)) {
+    universe <- AnnotationDbi::keys(org)
+  }
+  if (is.null(possible_keys)) {
+    possible_keys <- AnnotationDbi::keytypes(org)
+  }
+  from <- NULL
+  chosen_gene_df <- data.frame()
+  chosen_sig_df <- data.frame()
+  test_genes_df <- data.frame()
+  test_sig_df <- data.frame()
+  num_sig <- 0
+  num_hits <- 0
+  orgdb_sig_from <- orgdb_from
+  for (k in seq_along(possible_keys)) {
+    key <- possible_keys[k]
+    test_genes_df <- sm(try(clusterProfiler::bitr(universe, fromType = key,
+                                                  toType = to, OrgDb = org), silent = TRUE))
+    if (class(test_genes_df) == "try-error") {
+      test_genes_df <- data.frame()
+    }
+    if (!is.null(sig_genes)) {
+      test_sig_df <- sm(try(clusterProfiler::bitr(sig_genes, fromType = key,
+                                                  toType = to, OrgDb = org), silent = TRUE))
+      if (class(test_sig_df) == "try-error") {
+        test_sig_df <- data.frame()
+      }
+    }
+    test_num_hits <- nrow(test_genes_df)
+    if (test_num_hits > num_hits) {
+      from <- key
+      num_hits <- test_num_hits
+      chosen_gene_df <- test_genes_df
+    }
+    test_sig_hits <- nrow(test_sig_df)
+    if (test_sig_hits > num_sig) {
+      orgdb_sig_from <- key
+      num_sig <- test_sig_hits
+      chosen_sig_df <- test_sig_df
+    }
+  }
+  mesg("Chose keytype: ", from, " for all genes because it had ", num_hits,
+       " out of ", length(universe), " genes.")
+  if (!is.null(sig_genes)) {
+    mesg("Chose keytype: ", orgdb_sig_from, " for sig genes because it had ", num_sig,
+         " out of ", length(sig_genes), " genes.")
+  }
+  retlist <- list(
+    "gene_df" = chosen_gene_df,
+    "sig_df" = chosen_sig_df,
+    "universe_from" = from,
+    "sig_from" = orgdb_sig_from)
+  return(retlist)
 }
 
 #' I cannot be trusted to type 'cluster'
@@ -152,18 +224,20 @@ simple_cprofiler <- function(...) {
 #' @export
 simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.eg.db",
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",
-                                   go_level = 3, pcutoff = 0.05,
-                                   qcutoff = 0.1, fc_column = "logFC",
+                                   go_level = 3, pcutoff = 0.05, organism = "human",
+                                   qcutoff = 0.2, fc_column = "logFC",
                                    second_fc_column = "deseq_logfc", internal = FALSE,
                                    updown = "up", permutations = 1000, min_groupsize = 5,
-                                   kegg_prefix = NULL, kegg_organism = NULL, do_gsea = TRUE,
-                                   categories = 12, excel = NULL, do_david = FALSE, do_kegg = TRUE,
-                                   david_id = "ENTREZ_GENE_ID", padj_type = "BH",
-                                   david_user = "abelew@umd.edu") {
+                                   max_groupsize = 500, kegg_prefix = NULL, kegg_organism = NULL,
+                                   do_gsea = TRUE, categories = 12, excel = NULL, do_david = FALSE,
+                                   do_kegg = TRUE, david_id = "ENTREZ_GENE_ID", padj_type = "BH",
+                                   david_user = "abelew@umd.edu", do_reactome = TRUE,
+                                   do_dose = FALSE, do_mesh = FALSE, do_msigdb = FALSE,
+                                   mesh_category = "C", mesh_dbname = "gendoo",
+                                   msigdb_category = "C2", msig_db = NULL) {
   loaded <- sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
   loaded <- sm(requireNamespace(package = "DOSE", quietly = TRUE))
   org <- NULL
-
   ## Start off by figuring out what was given, an OrgDb or the name of one.
   if (class(orgdb)[[1]] == "OrgDb") {
     org <- orgdb
@@ -227,6 +301,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
          " out of ", length(all_genenames), " genes.")
     mesg("Chose keytype: ", orgdb_sig_from, " for sig genes because it had ", num_sig,
          " out of ", length(sig_genenames), " genes.")
+    ## I want to replace this blob with the following function.
+    ##comparison <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genenames, to = orgdb_to,
+    ##                                 possible_keys = mapper_keys, universe = all_genenames)
+
   } else { ## If we do have a column for the OrgDB
     de_table_namedf <- sm(try(clusterProfiler::bitr(all_genenames, fromType = orgdb_from,
                                                     toType = orgdb_to, OrgDb = org), silent = TRUE))
@@ -274,7 +352,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   ggo_cc <- sm(clusterProfiler::groupGO(gene = sig_gene_list, OrgDb = org,
                                         keyType = orgdb_to,
                                         ont = "CC", level = go_level))
-
+  ## Recast those groups as dataframes to send back to the user.
   group_go <- list(
     "MF" = as.data.frame(ggo_mf, stringsAsFactors = FALSE),
     "BP" = as.data.frame(ggo_bp, stringsAsFactors = FALSE),
@@ -282,7 +360,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   mesg("Found ", nrow(group_go[["MF"]]),
        " MF, ", nrow(group_go[["BP"]]),
        " BP, and ", nrow(group_go[["CC"]]), " CC hits.")
-
   mesg("Calculating enriched GO groups.")
   ego_all_mf <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "MF", keyType = orgdb_to,
@@ -296,6 +373,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = 1.0)
+  ## Now extract the p-value significant categories.
+  ## This is at least a little bit redundant and should perhaps be revisited/removed.
   ego_sig_bp <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
@@ -308,6 +387,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                           OrgDb = org, ont = "CC", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = pcutoff)
+  ## Once again, recast the results for the user.
   enrich_go <- list(
     "MF_all" = as.data.frame(ego_all_mf, stringsAsFactors = FALSE),
     "MF_sig" = as.data.frame(ego_sig_mf, stringsAsFactors = FALSE),
@@ -318,7 +398,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   mesg("Found ", nrow(enrich_go[["MF_sig"]]),
        " MF, ", nrow(enrich_go[["BP_sig"]]),
        " BP, and ", nrow(enrich_go[["CC_sig"]]), " CC enriched hits.")
-
+  ## Set up to do GSEA
   gse_go <- list()
   de_table_merged <- NULL
   gse <- list()
@@ -333,12 +413,17 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
       new_order <- order(de_table_merged[[gsea_fc_column]], decreasing = FALSE)
       de_table_merged <- de_table_merged[new_order, ]
     }
-
     ## Hmm this is odd, in the previous calls, I used orgdb_to, but in this set
     ## I am using orgdb_from...
     mesg("Performing GSE analyses of gene lists (this is slow).")
     genelist <- as.vector(de_table_merged[[gsea_fc_column]])
     names(genelist) <- de_table_merged[[orgdb_to]]
+    duplicated_names <- duplicated(names(genelist))
+    num_duplicates <- sum(duplicated_names)
+    if (num_duplicates > 0) {
+      mesg("There are ", num_duplicates, " duplicated gene IDs, dropping them.")
+      genelist <- genelist[!duplicated_names]
+    }
     ## 2020 04: Adding a pvalue cutoff argument causes an error, I do not know why.
     ## Arguments used by gseGO of interest: exponent, minGSSize/maxGSSize, eps, by(fgsea)
     ## Also, apparently the nperm argument is deprecated.
@@ -351,13 +436,12 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     genelist <- as.vector(sig_genes[[fc_column]])
     names(genelist) <- rownames(sig_genes)
   }
-
+  ## Set up to do kegg
   ## Now extract the kegg organism/gene IDs.
   if (is.null(kegg_organism)) {
     org_meta <- AnnotationDbi::metadata(org)
     org_row <- org_meta[["name"]] == "ORGANISM"
     organism <- org_meta[org_row, "value"]
-
     ## Only grab the first of potentially multiple outputs.
     kegg_organism <- get_kegg_orgn(species = organism)
     do_kegg <- TRUE
@@ -368,7 +452,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
       kegg_organism <- NULL
     }
   }
-
   all_kegg <- enrich_kegg <- NULL
   if (isTRUE(do_kegg)) {
     kegg_universe <- KEGGREST::keggConv(kegg_organism, "ncbi-geneid")
@@ -384,7 +467,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
       ##kegg_sig_ids <- unique(as.character(kegg_universe[kegg_sig_intersect]))
       kegg_sig_ids <- gsub(pattern = glue("{kegg_organism}:"),
                            replacement = "", x = kegg_sig_ids)
-
       mesg("Performing KEGG analyses.")
       all_kegg <- clusterProfiler::enrichKEGG(kegg_sig_ids, organism = kegg_organism,
                                               keyType = "kegg",
@@ -451,10 +533,81 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     mesg("Found ", nrow(david_data), " DAVID hits.")
   }
 
-  mesg("Plotting results.")
-  map_sig_mf <- try(clusterProfiler::emapplot(ego_sig_mf), silent = TRUE)
-  map_sig_bp <- try(clusterProfiler::emapplot(ego_sig_bp), silent = TRUE)
-  map_sig_cc <- try(clusterProfiler::emapplot(ego_sig_cc), silent = TRUE)
+  reactome_data <- NULL
+  reactome_organism <- "human"
+  if (isTRUE(do_reactome)) {
+    library(ReactomePA)
+    if (orgdb == "org.Mm.eg.db") {
+      reactome_organism <- "mouse"
+    }
+    reactome_data <- ReactomePA::enrichPathway(
+      gene = sig_gene_list, pvalueCutoff = pcutoff, readable = TRUE,
+      pAdjustMethod = padj_type, qvalueCutoff = qcutoff, universe = universe_to,
+      organism = reactome_organism,
+      minGSSize = min_groupsize, maxGSSize = max_groupsize)
+  }
+
+  dose_data <- NULL
+  orgn <- "hsa"
+  do_db <- "HDO"
+  if (isTRUE(do_dose)) {
+    if (organism == "human") {
+      loaded <- sm(requireNamespace(package = "HDO.db", quietly = TRUE))
+    } else if (organism == "mouse") {
+      orgn <- "mm"
+      do_db <- "MPO"
+      loaded <- sm(requireNamespace(package = "MPO.db", quietly = TRUE))
+    } else {
+      warning("I do not know this DOSE organism, leaving it as human.")
+    }
+    dose_data <- DOSE::enrichDO(
+      gene = sig_gene_list, ont = do_db, organism = orgn,
+      pvalueCutoff = pcutoff, pAdjustMethod = padj_type, universe = universe_to,
+      minGSSize = min_groupsize, maxGSSize = max_groupsize,
+      qvalueCutoff = qcutoff, readable = TRUE)
+  }
+
+  mesh_data <- NULL
+  mesh_org <- "Homo sapiens"
+  mesh_category <- "C"
+  mesh_dbname <- "gendoo"
+  if (isTRUE(do_mesh)) {
+    ah <- AnnotationHub::AnnotationHub()
+    loaded <- sm(requireNamespace(package = "meshes", quietly = TRUE))
+    if (organism == "human") {
+      loaded <- sm(requireNamespace(package = "MeSH.Hsa.eg.db", quietly = TRUE))
+    } else if (organism == "mouse") {
+      loaded <- sm(requireNamespace(package = "MeSH.Mm.eg.db", quietly = TRUE))
+      mesh_org <- "Mus musculus"
+    } else {
+      warning("I do not know this mesh organism, leaving it as human.")
+    }
+    ah_data <- AnnotationHub::query(ah, c("MeSHDb", mesh_org))
+    orgn_db <- ah_data[[1]]
+    mesh_db <- MeSHDbi::MeSHDb(orgn_db)
+
+    mesh_data <- try(meshes::enrichMeSH(
+      gene = sig_gene_list, MeSHDb = mesh_db, database = mesh_dbname,
+      pvalueCutoff = pcutoff, pAdjustMethod = padj_type, universe = universe_to,
+      minGSSize = min_groupsize, maxGSSize = max_groupsize,
+      qvalueCutoff = qcutoff))
+    if ("try-error" %in% class(mesh_data)) {
+      mesh_data <- data.frame()
+    }
+  }
+
+  msigdb_data <- NULL
+  if (isTRUE(do_msigdb)) {
+    ## Currently my msigdb converter only does gene symbols...
+    signature_data <- load_gmt_signatures(
+      signatures = msig_db, signature_category = msigdb_category, id_type = "entrez")
+    signature_df <- signatures_to_df(signature_df)
+    test_sig_df <- sm(try(clusterProfiler::bitr(sig_gene_list, fromType = "ENTREZID",
+                                                toType = "SYMBOL", OrgDb = org), silent = TRUE))
+    msigdb_data <- clusterProfiler::enricher(test_sig_df[["SYMBOL"]], TERM2GENE = signature_df)
+  }
+
+  mesg("Plotting results, removing most of this.")
   net_sig_mf <- try(
     clusterProfiler::cnetplot(ego_sig_mf, categorySize = "pvalue",
                               color.params = list(foldChange = genelist)), silent = TRUE)
@@ -464,141 +617,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   net_sig_cc <- try(
     clusterProfiler::cnetplot(ego_sig_cc, categorySize = "pvalue",
                               color.params = list(foldChange = genelist)), silent = TRUE)
-
-  tree_sig_mf <- tree_sig_bp <- tree_sig_cc <- NULL
-  tmp_file <- tmpmd5file(pattern = "mftree", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  tree_mf <- sm(try(clusterProfiler::plotGOgraph(ego_sig_mf), silent = TRUE))
-  if (class(tree_mf)[[1]] != "try-error") {
-    tree_sig_mf <- recordPlot()
-  }
-  dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
-
-  tmp_file <- tmpmd5file(pattern = "bptree", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  tree_bp <- sm(try(clusterProfiler::plotGOgraph(ego_sig_bp), silent = TRUE))
-  if (class(tree_bp)[[1]] != "try-error") {
-    tree_sig_bp <- recordPlot()
-  }
-  dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
-  tmp_file <- tmpmd5file(pattern = "cctree", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  tree_cc <- sm(try(clusterProfiler::plotGOgraph(ego_sig_cc), silent = TRUE))
-  if (class(tree_cc)[[1]] != "try-error") {
-    tree_sig_cc <- recordPlot()
-  }
-  dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
-
-  ggo_mf_bar <- try(barplot(ggo_mf, drop = TRUE,
-                            showCategory = categories), silent = TRUE)
-  if (class(ggo_mf_bar)[[1]] == "try-error") {
-    ggo_mf_bar <- NULL
-  }
-  ggo_bp_bar <- try(barplot(ggo_bp, drop = TRUE,
-                            showCategory = categories), silent = TRUE)
-  if (class(ggo_bp_bar)[[1]] == "try-error") {
-    ggo_bp_bar <- NULL
-  }
-  ggo_cc_bar <- try(barplot(ggo_cc, drop = TRUE,
-                            showCategory = categories), silent = TRUE)
-  if (class(ggo_cc_bar)[[1]] == "try-error") {
-    ggo_cc_bar <- NULL
-  }
-  ego_all_mf_bar <- try(barplot(ego_all_mf,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_all_mf)[[1]] == "try-error") {
-    ego_all_mf <- NULL
-  }
-  ego_all_bp_bar <- try(barplot(ego_all_bp,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_all_bp)[[1]] == "try-error") {
-    ego_all_bp <- NULL
-  }
-  ego_all_cc_bar <- try(barplot(ego_all_cc,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_all_cc)[[1]] == "try-error") {
-    ego_all_cc <- NULL
-  }
-  ego_sig_mf_bar <- try(barplot(ego_sig_mf,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_sig_mf)[[1]] == "try-error") {
-    ego_sig_mf <- NULL
-  }
-  ego_sig_bp_bar <- try(barplot(ego_sig_bp,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_sig_bp)[[1]] == "try-error") {
-    ego_sig_bp <- NULL
-  }
-  ego_sig_cc_bar <- try(barplot(ego_sig_cc,
-                                showCategory = categories, drop = TRUE),
-                        silent = TRUE)
-  if (class(ego_sig_cc)[[1]] == "try-error") {
-    ego_sig_cc <- NULL
-  }
-  dot_all_mf <- sm(try(clusterProfiler::dotplot(ego_all_mf), silent = TRUE))
-  if (class(dot_all_mf)[[1]] == "try-error") {
-    dot_all_mf <- NULL
-  }
-  dot_all_bp <- try(clusterProfiler::dotplot(ego_all_bp), silent = TRUE)
-  if (class(dot_all_bp)[[1]] == "try-error") {
-    dot_all_bp <- NULL
-  }
-  dot_all_cc <- try(clusterProfiler::dotplot(ego_all_cc), silent = TRUE)
-  if (class(dot_all_cc)[[1]] == "try-error") {
-    dot_all_cc <- NULL
-  }
-  dot_sig_mf <- try(clusterProfiler::dotplot(ego_sig_mf), silent = TRUE)
-  if (class(dot_sig_mf)[[1]] == "try-error") {
-    dot_sig_mf <- NULL
-  }
-  dot_sig_bp <- try(clusterProfiler::dotplot(ego_sig_bp), silent = TRUE)
-  if (class(dot_sig_bp)[[1]] == "try-error") {
-    dot_sig_bp <- NULL
-  }
-  dot_sig_cc <- try(clusterProfiler::dotplot(ego_sig_cc), silent = TRUE)
-  if (class(dot_sig_cc)[[1]] == "try-error") {
-    dot_sig_cc <- NULL
-  }
-
   plotlist <- list(
-    "ggo_mf_bar" = ggo_mf_bar,
-    "ggo_bp_bar" = ggo_bp_bar,
-    "ggo_cc_bar" = ggo_cc_bar,
-    "ego_all_mf" = ego_all_mf_bar,
-    "ego_all_bp" = ego_all_bp_bar,
-    "ego_all_cc" = ego_all_cc_bar,
-    "ego_sig_mf" = ego_sig_mf_bar,
-    "ego_sig_bp" = ego_sig_bp_bar,
-    "ego_sig_cc" = ego_sig_cc_bar,
-    "dot_all_mf" = dot_all_mf,
-    "dot_all_bp" = dot_all_bp,
-    "dot_all_cc" = dot_all_cc,
-    "dot_sig_mf" = dot_sig_mf,
-    "dot_sig_bp" = dot_sig_bp,
-    "dot_sig_cc" = dot_sig_cc,
-    "map_sig_mf" = map_sig_mf,
-    "map_sig_bp" = map_sig_bp,
-    "map_sig_cc" = map_sig_cc,
     "net_sig_mf" = net_sig_mf,
     "net_sig_bp" = net_sig_bp,
-    "net_sig_cc" = net_sig_cc,
-    "tree_sig_mf" = tree_sig_mf,
-    "tree_sig_bp" = tree_sig_bp,
-    "tree_sig_cc" = tree_sig_cc)
+    "net_sig_cc" = net_sig_cc)
   enrich_objects <- list(
     "MF_all" = ego_all_mf,
     "MF_sig" = ego_sig_mf,
@@ -611,7 +633,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     "enrich_kegg" = enrich_kegg,
     "gse_all_kegg" = gse_all_kegg,
     "gse_enrich_kegg" = gse_sig_kegg)
-
   retlist <- list(
     "all_mappings" = de_table_namedf,
     "david_data" = david_data,
@@ -622,6 +643,11 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     "kegg_data" = kegg_data,
     "orgdb_from" = orgdb_from,
     "orgdb_to" = orgdb_to,
+    "reactome_data" = reactome_data,
+    "dose_data" = dose_data,
+    "mesh_data" = mesh_data,
+    "msigdb_data" = msigdb_data,
+    "david_data" = david_data,
     "plots" = plotlist,
     "pvalue_plots" = plotlist,
     "sig_mappings" = sig_genes_namedf)
@@ -634,6 +660,18 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     }
   }
   return(retlist)
+}
+
+#' Print a clusterprofiler over representation search.
+#'
+#' @param x Monstrous list of the various results, including but not
+#'  limited to plots, go-gene mappings, enrichmed, kegg, david, GO
+#'  analyses.
+#' @param ... Other args to match the generic.
+#' @export
+print.clusterprofiler_result <- function(x, ...) {
+  message("A set of ontologies produced by clusterprofiler.")
+  return(invisible(x))
 }
 
 #' Set up appropriate option sets for clusterProfiler

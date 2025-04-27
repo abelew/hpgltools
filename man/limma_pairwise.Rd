@@ -7,13 +7,10 @@ voom/limma.}
 \usage{
 limma_pairwise(
   input = NULL,
-  conditions = NULL,
-  batches = NULL,
-  model_cond = TRUE,
-  model_batch = TRUE,
-  model_sv = NULL,
-  model_intercept = FALSE,
-  alt_model = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  null_fstring = "~",
+  model_svs = NULL,
+  filter = FALSE,
   extra_contrasts = NULL,
   annot_df = NULL,
   libsize = NULL,
@@ -22,9 +19,10 @@ limma_pairwise(
   limma_method = "ls",
   limma_robust = FALSE,
   voom_norm = "quantile",
-  limma_trend = FALSE,
+  limma_trend = TRUE,
   force = FALSE,
   keep_underscore = TRUE,
+  num_surrogates = "be",
   keepers = NULL,
   ...
 )
@@ -32,22 +30,6 @@ limma_pairwise(
 \arguments{
 \item{input}{Dataframe/vector or expt class containing count tables,
 normalization state, etc.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the model?}
-
-\item{model_batch}{Include batch in the model?  If this is a character
-instead of a logical, then it is passed to all_adjusers() to attempt to find
-model parameters which describe surrogate variables in the data.}
-
-\item{model_intercept}{Perform a cell-means or intercept model? A little more
-difficult for me to understand.  I have tested and get the same answer
-either way.}
-
-\item{alt_model}{Separate model matrix instead of the normal condition/batch.}
 
 \item{extra_contrasts}{Some extra contrasts to add to the list.
 This can be pretty neat, lets say one has conditions A,B,C,D,E
@@ -75,6 +57,22 @@ than I previously realized.  Play with it here.}
 \item{keepers}{Choose a set of contrasts instead of all.}
 
 \item{...}{Use the elipsis parameter to feed options to write_limma().}
+
+\item{conditions}{Factor of conditions in the experiment.}
+
+\item{batches}{Factor of batches in the experiment.}
+
+\item{model_cond}{Include condition in the model?}
+
+\item{model_batch}{Include batch in the model?  If this is a character
+instead of a logical, then it is passed to all_adjusers() to attempt to find
+model parameters which describe surrogate variables in the data.}
+
+\item{model_intercept}{Perform a cell-means or intercept model? A little more
+difficult for me to understand.  I have tested and get the same answer
+either way.}
+
+\item{alt_model}{Separate model matrix instead of the normal condition/batch.}
 }
 \value{
 List including the following information:
