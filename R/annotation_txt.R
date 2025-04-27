@@ -176,6 +176,7 @@ load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", co
 #' @return List of the extracted GO data, a table of it, length data, and the
 #'  resulting length table.
 #' @seealso [load_trinotate_annotations()]
+#' @import data.table
 #' @examples
 #'  sb_annot <- get_sbetaceum_data()[["annot"]]
 #'  trinotate_go <- load_trinotate_go(trinotate = sb_annot)
@@ -184,7 +185,7 @@ load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", co
 #' @export
 load_trinotate_go <- function(trinotate = "reference/trinotate.csv",
                               blast2go_column = "gene_ontology_BLASTX",
-                              pfam_column = "gene_ontology_Pfam",
+                              pfam_column = "gene_ontology_pfam",
                               length_column = "transcript", fill = 1500,
                               collapse = TRUE, id_column = "#gene_id") {
   big_table <- data.table::as.data.table(sm(readr::read_tsv(trinotate)))
@@ -209,13 +210,24 @@ load_trinotate_go <- function(trinotate = "reference/trinotate.csv",
     big_table[missing, "length"] <- fill
   }
 
-  wanted <- c("#gene_id", "transcript_id", blast2go_column, pfam_column, "length")
+  wanted_names <- c("gene_id", "transcript_id")
+  wanted <- c("#gene_id", "transcript_id")
+  if (blast2go_column %in% colnames(big_table)) {
+    wanted_names <- c(wanted_names, "go_blast")
+    wanted <- c(wanted, blast2go_column)
+  }
+  if (pfam_column %in% colnames(big_table)) {
+    wanted_names <- c(wanted_names, "go_pfam")
+    wanted <- c(wanted, pfam_column)
+  }
+  wanted_names <- c(wanted_names, "length")
+  wanted <- c(wanted, "length")
   go_data <- as.data.frame(big_table)
   go_data <- go_data[, wanted]
-  colnames(go_data) <- c("gene_id", "transcript_id", "go_blast", "go_pfam", "length")
   dots <- go_data == "."
   go_data[dots] <- ""
   .data <- NULL  ## Shush, R CMD check
+  colnames(go_data) <- wanted_names
 
   mesg("Expanding encoded GO columns, this takes some time.")
   expanded <- go_data %>%
@@ -243,6 +255,7 @@ load_trinotate_go <- function(trinotate = "reference/trinotate.csv",
   ## The expression ‘.()‘ is a shorthand alias to list(); they both mean the same.
   ## length_table <- length_table[, .(mean_gene_length = mean(length)), by=.(gene_id)]
   length <- gene_id <- NULL
+  ## This suddenly seems only to work when evaluated manually?
   length_table <- length_table[, list(mean_gene_length = mean(length)), by = list(gene_id)]
   colnames(length_table) <- c("ID", "length")
 

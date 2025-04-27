@@ -161,48 +161,4 @@ load_kegg_annotations <- function(species = "coli", abbreviation = NULL, flatten
   return(result)
 }
 
-#' Maps KEGG identifiers to ENSEMBL gene ids.
-#'
-#' Takes a list of KEGG gene identifiers and returns a list of ENSEMBL
-#' ids corresponding to those genes.
-#'
-#' @param kegg_ids List of KEGG identifiers to be mapped.
-#' @return Ensembl IDs as a character list.
-#' @seealso [KEGGREST::keggGet()]
-#' @examples
-#'  kegg_df <- load_kegg_annotations(species = "coli")
-#'  kegg_ids <- head(kegg_df[["kegg_geneid"]])
-#'  mapped <- map_kegg_dbs(kegg_ids)
-#'  mapped
-#' @export
-map_kegg_dbs <- function(kegg_ids) {
-  ## query gene ids 10 at a time (max allowed)
-  result <- data.frame()
-  split_kegg <- split(kegg_ids, ceiling(seq_along(kegg_ids) / 3))
-  count <- 0
-  for (x in split_kegg) {
-    x <- as.character(unlist(x))
-    query <- KEGGREST::keggGet(x)
-    for (d in seq_along(query)) {
-      count <- count + 1
-      item <- query[d]
-      dblinks <- item[[1]][["DBLINKS"]]
-      row_names <- gsub(pattern = "^(.*): (.*)$", replacement = "\\1", x = dblinks)
-      row_values <- gsub(pattern = "^(.*): (.*)$", replacement = "\\2", x = dblinks)
-      column <- as.data.frame(row_values)
-      rownames(column) <- row_names
-      colnames(column) <- kegg_ids[count]
-      if (count == 1) {
-        result <- column
-      } else {
-        result <- merge(result, column, by = "row.names", all = TRUE)
-        rownames(result) <- result[["Row.names"]]
-        result <- result[, -1]
-      }
-    }
-  }
-  result <- t(result)
-  return(result)
-}
-
 ## EOF

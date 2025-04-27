@@ -14,6 +14,7 @@ dispatch_count_lines(
   type = "genome",
   subtype = "gene",
   tag = "ID",
+  new_spec = NULL,
   inverse = FALSE
 )
 }

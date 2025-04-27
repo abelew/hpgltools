@@ -4,7 +4,33 @@
 \alias{hpgl_norm}
 \title{Normalize a dataframe/expt, express it, and/or transform it}
 \usage{
-hpgl_norm(data, ...)
+hpgl_norm(
+  data,
+  expt_state = NULL,
+  design = NULL,
+  transform = "raw",
+  norm = "raw",
+  convert = "raw",
+  batch = "raw",
+  batch1 = "batch",
+  batch2 = NULL,
+  low_to_zero = TRUE,
+  filter = "raw",
+  annotations = NULL,
+  fasta = NULL,
+  thresh = 2,
+  batch_step = 4,
+  min_samples = 2,
+  p = 0.05,
+  k = 0.01,
+  A = 1000,
+  cv_min = 0.001,
+  cv_max = 1,
+  entry_type = "gene",
+  adjust_method = "ruv",
+  surrogates = "be",
+  ...
+)
 }
 \arguments{
 \item{data}{Some data as a df/expt/whatever.}

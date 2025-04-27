@@ -86,6 +86,8 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
         do_reactome = do_reactome, excel = chosen_up_xlsx,
         ...)
+      orgdb_from <- ret[[retname_up]][["orgdb_from"]]
+      orgdb_to <- ret[[retname_up]][["orgdb_to"]]
     } else {
       ret[[retname_up]] <- NULL
     }
@@ -102,6 +104,8 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
         do_reactome = do_reactome, excel = chosen_down_xlsx,
         ...)
+      orgdb_from <- ret[[retname_down]][["orgdb_from"]]
+      orgdb_to <- ret[[retname_down]][["orgdb_to"]]
       #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
     } else {
       ret[[retname_down]] <- NULL
@@ -356,7 +360,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   mesg("Found ", nrow(group_go[["MF"]]),
        " MF, ", nrow(group_go[["BP"]]),
        " BP, and ", nrow(group_go[["CC"]]), " CC hits.")
-  mesg("Calculating overrepresented GO groups.")
+  mesg("Calculating enriched GO groups.")
   ego_all_mf <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "MF", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
@@ -393,7 +397,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     "CC_sig" = as.data.frame(ego_sig_cc, stringsAsFactors = FALSE))
   mesg("Found ", nrow(enrich_go[["MF_sig"]]),
        " MF, ", nrow(enrich_go[["BP_sig"]]),
-       " BP, and ", nrow(enrich_go[["CC_sig"]]), " CC overrepresented hits.")
+       " BP, and ", nrow(enrich_go[["CC_sig"]]), " CC enriched hits.")
   ## Set up to do GSEA
   gse_go <- list()
   de_table_merged <- NULL
@@ -631,19 +635,22 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     "gse_enrich_kegg" = gse_sig_kegg)
   retlist <- list(
     "all_mappings" = de_table_namedf,
-    "sig_mappings" = sig_genes_namedf,
-    "group_go" = group_go,
+    "david_data" = david_data,
     "enrich_go" = enrich_go,
     "enrich_objects" = enrich_objects,
+    "group_go" = group_go,
     "gse_go" = gse_go,
     "kegg_data" = kegg_data,
+    "orgdb_from" = orgdb_from,
+    "orgdb_to" = orgdb_to,
     "reactome_data" = reactome_data,
     "dose_data" = dose_data,
     "mesh_data" = mesh_data,
     "msigdb_data" = msigdb_data,
     "david_data" = david_data,
     "plots" = plotlist,
-    "pvalue_plots" = plotlist)
+    "pvalue_plots" = plotlist,
+    "sig_mappings" = sig_genes_namedf)
   class(retlist) <- c("clusterprofiler_result", "list")
   if (!is.null(excel)) {
     mesg("Writing data to: ", excel, ".")

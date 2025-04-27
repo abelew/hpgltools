@@ -12,13 +12,15 @@ simple_clusterprofiler(
   orgdb_to = "ENTREZID",
   go_level = 3,
   pcutoff = 0.05,
-  qcutoff = 0.1,
+  organism = "human",
+  qcutoff = 0.2,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
   internal = FALSE,
   updown = "up",
   permutations = 1000,
   min_groupsize = 5,
+  max_groupsize = 500,
   kegg_prefix = NULL,
   kegg_organism = NULL,
   do_gsea = TRUE,
@@ -28,7 +30,15 @@ simple_clusterprofiler(
   do_kegg = TRUE,
   david_id = "ENTREZ_GENE_ID",
   padj_type = "BH",
-  david_user = "abelew@umd.edu"
+  david_user = "abelew@umd.edu",
+  do_reactome = TRUE,
+  do_dose = FALSE,
+  do_mesh = FALSE,
+  do_msigdb = FALSE,
+  mesh_category = "C",
+  mesh_dbname = "gendoo",
+  msigdb_category = "C2",
+  msig_db = NULL
 )
 }
 \arguments{

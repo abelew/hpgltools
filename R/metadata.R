@@ -118,7 +118,7 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
   if (isTRUE(sanitize)) {
     if (isTRUE(keep_underscore)) {
       colnames(sample_definitions) <- gsub(pattern = "[^_[:^punct:]]", replacement = "",
-                                 x = colnames(sample_definitions), perl = TRUE)
+                                           x = colnames(sample_definitions), perl = TRUE)
     } else {
       colnames(sample_definitions) <- gsub(pattern = "[[:punct:]]",
                                            replacement = "",
@@ -315,7 +315,7 @@ analyses more difficult/impossible.")
 gather_preprocessing_metadata <- function(starting_metadata = NULL, specification = NULL,
                                           basedir = "preprocessing", new_metadata = NULL,
                                           species = "*", type = "genome", subtype = "gene",
-                                          tag = "ID", verbose = FALSE,
+                                          tag = "ID", verbose = FALSE, id_column = 1,
                                           md5 = FALSE, ...) {
   ## I want to create a set of specifications for different tasks:
   ## tnseq/rnaseq/assembly/phage/phylogenetics/etc.
@@ -366,7 +366,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   } else if (class(starting_metadata)[1] == "data.frame") {
     meta <- starting_metadata
   } else {
-    meta <- extract_metadata(starting_metadata)
+    meta <- extract_metadata(starting_metadata, id_column = id_column, ...)
   }
 
   if (class(starting_metadata)[1] == "data.frame" && is.null(new_metadata)) {
@@ -378,8 +378,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
 
   old_meta <- meta
   ## Perhaps use sanitize instead?
-  meta[[1]] <- gsub(pattern = "\\s+", replacement = "", x = meta[[1]])
-  colnames(meta)[1] <- "sampleid"
+  meta[["sampleid"]] <- gsub(pattern = "\\s+", replacement = "", x = meta[[id_column]])
   new_columns <- c()
 
   for (entry in seq_along(specification)) {
@@ -395,9 +394,9 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
       warning("Column: ", new_column, " already exists, replacing it.")
     }
     input_file_spec <- specification[[entry_type]][["file"]]
-    old_spec <- NULL
-    if (!is.null(specification[[entry_type]][["oldfile"]])) {
-      old_spec <- specification[[entry_type]][["oldfile"]]
+    new_spec <- NULL
+    if (!is.null(specification[[entry_type]][["file_new"]])) {
+      new_spec <- specification[[entry_type]][["file_new"]]
     }
     if (verbose) {
       message("Checking input_file_spec: ", input_file_spec, ".")
@@ -406,7 +405,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     new_entries <- dispatch_metadata_extract(
       meta, entry_type, input_file_spec, specification,
       basedir = basedir, verbose = verbose, species = species, type = type,
-      subtype = subtype, tag = tag, old_spec = old_spec) ##, ...)
+      subtype = subtype, tag = tag, new_spec = new_spec) ##, ...)
     test_entries <- new_entries
     na_idx <- is.na(test_entries)
     na_entries <- sum(na_idx)
@@ -456,6 +455,19 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   return(ret)
 }
 
+#' Print the result from gather_preprocessing_metadata().
+#'
+#' @param x List composed of the xlsx output file, new columns added
+#'  to it, and copies of the metadata before/after modification.
+#' @param ... Other args to match the generic.
+#' @export
+print.preprocessing_metadata <- function(x, ...) {
+  message("The result of performing extract_preprocessing_metadata().")
+  columns <- toString(colnames(x[["new_meta"]]))
+  message("The columns now are: ", columns, ".")
+  return(invisible(x))
+}
+
 #' This is basically just a switch and set of regexes for finding the
 #' numbers of interest in the various log files.
 #'
@@ -483,7 +495,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
 #'  column in the metadata.
 dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                       specification, basedir = "preprocessing", verbose = FALSE,
-                                      old_spec = NULL, species = "*", type = "genome",
+                                      new_spec = NULL, species = "*", type = "genome",
                                       subtype = "gene", tag = "ID", ...) {
   switchret <- switch(
     entry_type,
@@ -493,67 +505,69 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching aragorn outputs for tRNA-like genes.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir,
-        verbose = verbose, as = "numeric", ...)
+        verbose = verbose, new_spec = new_spec, as = "numeric", ...)
     },
     "assembly_fasta_nt" = {
       mesg("Searching for assembly fasta files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_genbank_annotated" = {
       mesg("Searching for assembly genbank files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_genbank_stripped" = {
       mesg("Searching for stripped down assembly genbank files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_cds_amino_acids" = {
       mesg("Searching for assembly amino acid fasta files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_cds_nucleotides" = {
       mesg("Searching for assembly CDS fasta files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_gff" = {
       mesg("Searching for assembly gff files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_tsv" = {
       mesg("Searching for assembly tsv feature files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "assembly_xls" = {
       mesg("Searching for assembly xlsx feature files.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "bedtools_coverage_file" = {
       mesg("Searching for files containing coverage from bedtools")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, species = species, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec,
+        species = species, basedir = basedir)
     },
     "bbmap_coverage_stats" = {
       mesg("Searching for coverage statistics from bbmap.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "bbmap_coverage_per_nt" = {
       mesg("Searching for coverage/nucleotide from bbmap.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir)
     },
     "deduplication_stats" = {
       mesg("Searching for the GATK/picard deduplication stats file.")
       entries <- dispatch_filename_search(
-        meta, input_file_spec, verbose = verbose, species = species, type = type, basedir = basedir)
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec,
+        species = species, type = type, basedir = basedir)
     },
     "fastqc_pct_gc" = {
       ## %GC     62
@@ -561,7 +575,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^%GC	(\\d+)$"
       mesg("Searching for the percent GC content from fastqc.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose,
+        meta, search, replace, input_file_spec, verbose = verbose, new_spec = new_spec,
         as = "numeric", basedir = basedir, ...)
     },
     "fastqc_most_overrepresented" = {
@@ -581,29 +595,29 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^>\\d+ length=\\d+ coverage=(.*)x.*$"
       mesg("Searching for relative coverage observed by unicycler/spades.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
-        which = "all", ...)
+        meta, search, replace, input_file_spec, verbose = verbose, new_spec = new_spec,
+        basedir = basedir, which = "all", ...)
     },
     "final_gc_content" = {
       mesg("Searching for the GC content of a finalized assembly.")
       entries <- dispatch_gc(
-        meta, input_file_spec, basedir = basedir, verbose = verbose)
+        meta, input_file_spec, basedir = basedir, verbose = verbose, new_spec = new_spec)
     },
     "gatk_unpaired" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t(\\d+)\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching the number of unpaired reads observed by GATK.")
       entries <- dispatch_regex_search(
-        meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        meta, search, replace, species = species, input_file_spec, new_spec = new_spec,
+        verbose = verbose, basedir = basedir, which = "first", ...)
     },
     "gatk_paired" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       replace <- "^.+\t\\d+\t(\\d+)\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
       mesg("Searching for the number of paired reads observed by GATK.")
       entries <- dispatch_regex_search(
-        meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        meta, search, replace, species = species, input_file_spec, new_spec = new_spec,
+        verbose = verbose, basedir = basedir, which = "first", ...)
     },
     "gatk_supplementary" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
@@ -611,7 +625,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of supplementary reads observed by GATK.")
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_unmapped" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
@@ -619,7 +633,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of unmapped reads by GATK.")
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_unpaired_duplicates" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
@@ -627,7 +641,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of unpaired duplicate reads observed by GATK.")
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_paired_duplicates" = {
       search <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t\\d+$"
@@ -635,7 +649,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of paired duplicate reads observed by GATK.")
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_paired_opt_duplicates" = {
       mesg("Searching for the number of optical paired duplicate reads observed by GATK.")
@@ -643,7 +657,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t(\\d+)\t0\\.\\d+\t\\d+$"
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_duplicate_pct" = {
       mesg("Searching for the percentage duplication observed by GATK.")
@@ -651,7 +665,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t(0\\.\\d+)\t\\d+$"
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "gatk_libsize" = {
       mesg("Searching for the library size by GATK.")
@@ -659,25 +673,25 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^.+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t\\d+\t0\\.\\d+\t(\\d+)$"
       entries <- dispatch_regex_search(
         meta, search, replace, species = species, input_file_spec, verbose = verbose,
-        basedir = basedir, which = "first", ...)
+        new_spec = new_spec, basedir = basedir, which = "first", ...)
     },
     "glimmer_positive_strand" = {
       search <- "\\s+\\+\\d+\\s+"
       mesg("Searching for the number of + strand entries observed by glimmer.")
       entries <- dispatch_count_lines(
-        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir, new_spec = new_spec)
     },
     "glimmer_negative_strand" = {
       search <- "\\s+-\\d+\\s+"
       mesg("Searching for the number of - strand entries observed by glimmer.")
       entries <- dispatch_count_lines(
-        meta, search, input_file_spec, verbose = verbose, basedir = basedir)
+        meta, search, input_file_spec, verbose = verbose, basedir = basedir, new_spec = new_spec)
     },
     "hisat_count_table" = {
       mesg("Searching for the count tables from hisat->htseq.")
       entries <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, species = species, type = type,
-        subtype = subtype, tag = tag, basedir = basedir)
+        subtype = subtype, tag = tag, basedir = basedir, new_spec = new_spec)
     },
     "hisat_genome_single_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
@@ -685,7 +699,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant single-mapped reads to CDS by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, type = type, species = species, old_spec = old_spec, ...)
+        verbose = verbose, type = type, species = species, new_spec = new_spec, ...)
     },
     "hisat_genome_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
@@ -693,7 +707,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant multi-mapped reads to RNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, type = type, species = species, old_spec = old_spec, ...)
+        verbose = verbose, type = type, species = species, new_spec = new_spec, ...)
     },
     "hisat_genome_single_all" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned exactly 1 time"
@@ -701,7 +715,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of all reads mapped to CDS by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
-        basedir = basedir, type = type, species = species, old_spec = old_spec,
+        basedir = basedir, type = type, species = species, new_spec = new_spec,
         ...)
     },
     "hisat_genome_multi_all" = {
@@ -710,7 +724,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of all reads multi-mapped to CDS by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
-        basedir = basedir, type = type, species = species, old_spec = old_spec, ...)
+        basedir = basedir, type = type, species = species, new_spec = new_spec, ...)
     },
     "hisat_genome_percent_log" = {
       search <- "^.+% overall alignment rate"
@@ -718,7 +732,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the percent mapped in the hisat log.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
-        type = type, species = species, old_spec = old_spec, ...)
+        type = type, species = species, new_spec = new_spec, ...)
     },
     "hisat_genome_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_genome_single_concordant"]][["column"]]
@@ -738,7 +752,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, species = species, old_spec = old_spec,
+        verbose = verbose, species = species, new_spec = new_spec,
         ...)
     },
     "hisat_observed_genes" = {
@@ -746,12 +760,12 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of genes observed by hisat.")
       entries <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose, basedir = basedir, inverse = TRUE,
-        type = type, subtype = subtype, tag = tag, species = species)
+        new_spec = new_spec, type = type, subtype = subtype, tag = tag, species = species)
     },
     "hisat_sum_genes" = {
       mesg("Searching for the number of reads counted to genes.")
       entries <- dispatch_sum_column(
-        meta, input_file_spec, verbose = verbose, basedir = basedir,
+        meta, input_file_spec, verbose = verbose, basedir = basedir, new_spec = new_spec,
         type = type, subtype = subtype, tag = tag, species = species)
 
     },
@@ -789,7 +803,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, species = species, type = "rRNA", old_spec = old_spec,
+        verbose = verbose, species = species, type = "rRNA", new_spec = new_spec,
         ...)
     },
     "hisat_rrna_single_concordant" = {
@@ -798,7 +812,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, species = species, type = "rRNA", old_spec = old_spec, ...)
+        verbose = verbose, species = species, type = "rRNA", new_spec = new_spec, ...)
     },
     "hisat_rrna_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
@@ -806,7 +820,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of concordant multi-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, type = "rRNA", species = species, old_spec = old_spec, ...)
+        verbose = verbose, type = "rRNA", species = species, new_spec = new_spec, ...)
     },
     "hisat_rrna_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_rrna_multi_concordant"]][["column"]]
@@ -831,7 +845,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the percent mapped in the hisat log.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
-        type = "rRNA", species = species, old_spec = old_spec, ...)
+        type = "rRNA", species = species, new_spec = new_spec, ...)
     },
     "hisat_unmapped" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned 0 times"
@@ -839,7 +853,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for number of all reads that did not map to CDS by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, as = "numeric",
-        basedir = basedir, type = type, species = species, old_spec = old_spec, ...)
+        basedir = basedir, type = type, species = species, new_spec = new_spec, ...)
     },
     "host_filter_species" = {
       search <- "^.*$"
@@ -1439,7 +1453,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
 dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbose,
                                  species = "*", basedir = "preprocessing",
                                  type = "genome", subtype = "gene", tag = "ID",
-                                 inverse = FALSE) {
+                                 new_spec = NULL, inverse = FALSE) {
 
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
@@ -1494,7 +1508,8 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
 #' Note: This is not taking some important things into account yet.
 dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
                                 species = "*", basedir = "preprocessing",
-                                type = "genome", subtype = "gene", tag = "ID") {
+                                type = "genome", subtype = "gene",
+                                new_spec = NULL, tag = "ID") {
 
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
@@ -1602,7 +1617,7 @@ dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
 #' @param basedir Root directory containing the files/logs of metadata.
 dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
                                      species = "*", type = "genome", subtype = "gene",
-                                     tag = "ID", basedir = "preprocessing") {
+                                     tag = "ID", basedir = "preprocessing", new_spec = NULL) {
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1798,14 +1813,13 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 #' @param ... Used to pass extra variables to glue for finding files.
 dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
-                                  extraction = "\\1", which = "first", old_spec = NULL,
+                                  extraction = "\\1", which = "first", new_spec = NULL,
                                   as = NULL, verbose = FALSE, type = "genome",
                                   ...) {
   arglist <- list(...)
   ## if (length(arglist) > 0) {
   ##
   ## }
-
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1813,14 +1827,14 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
       output_entries[[species_name]] <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
         species = species_name, basedir = basedir, type = type,
-        extraction = extraction, which = which, as = as, old_spec = old_spec, ...)
+        extraction = extraction, which = which, as = as, new_spec = new_spec, ...)
     }
     return(output_entries)
   }
   filenames_with_wildcards <- glue(input_file_spec, ...)
-  old_filenames <- NULL
-  if (!is.null(old_spec)) {
-    old_filenames <- glue(old_spec, ...)
+  new_filenames <- NULL
+  if (!is.null(new_spec)) {
+    new_filenames <- glue(new_spec, ...)
   }
   if (isTRUE(verbose)) {
     message("Example regex filename: ", filenames_with_wildcards[1], ".")
@@ -1831,16 +1845,17 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
     ## Just in case there are multiple matches
     input_file <- Sys.glob(filenames_with_wildcards[row])[1]
     if (is.na(input_file)) {
-      old_file <- NA
-      if (!is.null(old_filenames[row])) {
-        old_file <- Sys.glob(old_filenames[row])[1]
+      new_file <- NA
+      if (!is.null(new_filenames[row])) {
+        new_file <- Sys.glob(new_filenames[row])[1]
       }
-      if (is.na(old_file)) {
+      if (is.na(new_file)) {
         output_entries[row] <- ''
         ## The file did not exist.
         next
       } else {
-        input_file <- old_file
+        message("Setting input file to new_file: ", new_file, ".")
+        input_file <- new_file
       }
     }
     if (length(input_file) == 0) {
@@ -2036,6 +2051,304 @@ plot_metadata_factors <- function(expt, column = "hisatsinglemapped", second_col
   }
   return(meta_plot)
 }
+
+#' Plot metadata factors as a sankey diagram.
+#'
+#' This provides two implementations of a sankey plot, one interactive
+#' and one using ggplot2.
+#'
+#' @param design Metadata from which to extract the categories/numbers.
+#' @param factors Factors/columns in the metadata to count and plot.
+#' @param fill Use either the current or next node for coloring the transitions.
+#' @param font_size Chosen font size, perhaps no longer needed?
+#' @param node_width Make nodes more or less rectangular with this.
+#' @param color_choices Either a named vector of states and colors, or NULL
+#'  (in which case it will use viridis.)
+#' @param drill_down When true, this will end in the product of the
+#'  factor levels number of final states. (e.g. if there are 2 sexes,
+#'  3 visits, and 4 genotypes, there will be 2, 6, 24 states going
+#' from right to left).  If FALSE, there will be 2,3,4 states going
+#' from right to left.
+#' @return List containing a couple of plots, one interactive, one gg.
+#' @export
+plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "node",
+                             font_size = 18, node_width = 30,
+                             color_choices = NULL,
+                             drill_down = TRUE) {
+  ## Recasting to a dataframe in case I pass a SE with a datatable/tibble/etc
+  design <- as.data.frame(design)
+  found <- factors %in% colnames(design)
+  if (sum(found) < length(factors)) {
+    missing <- factors[!found]
+    message("These columns are not in the metadata: ", toString(missing))
+    factors <- factors[found]
+  }
+
+  permutations <- c()
+  states <- list()
+  for (f in factors) {
+    state_levels <- levels(as.factor(design[[f]]))
+    states[[f]] <- state_levels
+    new_permutations <- tidyr::expand_grid(!!!states) |> purrr::pmap_chr(paste)
+    permutations <- c(permutations, new_permutations)
+  }
+
+  start_node <- c("all", "0")
+  names(start_node) <- c("name", "node")
+  my_nodes <- data.frame(name = permutations)
+  my_nodes[["node"]] <- rownames(my_nodes)
+  my_nodes <- rbind(start_node, my_nodes)
+
+  my_links <- data.frame(row.names = 0)
+  my_links[["source"]] <- 0
+  my_links[["target"]] <- 0
+  my_links[["value"]] <- nrow(design)
+
+  result <- list("all" = nrow(design))
+  for (p in seq_len(length(permutations))) {
+    element <- permutations[p]
+    pieces <- strsplit(x = element, split = " ")[[1]]
+
+    working_meta <- design
+    for (cat_num in seq_len(length(pieces))) {
+      category <- pieces[cat_num]
+      factor <- factors[cat_num]
+      idx <- working_meta[[factor]] == category
+      working_meta <- working_meta[idx, ]
+    }
+    if (nrow(working_meta) > 0) {
+      result[[element]] <- nrow(working_meta)
+
+      target_node_idx <- my_nodes[["name"]] == element
+      target_node <- my_nodes[target_node_idx, "node"]
+      if (length(pieces) > 1) {
+        source_node_pieces <- pieces[1:length(pieces) - 1]
+        source_node_name <- stringi::stri_paste(source_node_pieces, collapse = " ")
+        source_node_idx <- my_nodes[["name"]] == source_node_name
+        source_node <- my_nodes[source_node_idx, "node"]
+      } else {
+        source_node <- "0"
+      }
+      link <- c(source_node, target_node, nrow(working_meta))
+      my_links <- rbind(my_links, link)
+    }
+  }
+
+  my_links <- my_links[-1, ]
+  my_links[["value"]] <- as.numeric(my_links[["value"]])
+  my_links[["source"]] <- as.numeric(my_links[["source"]])
+  my_links[["target"]] <- as.numeric(my_links[["target"]])
+
+  links_to_nodes <- merge(my_links, my_nodes, by.x = "target",
+                          by.y = "node")
+  links_to_nodes <- links_to_nodes[, c("name", "value")]
+
+  sub_design <- design[, c(factors)]
+  if (isTRUE(drill_down)) {
+    for (col in seq_len(ncol(sub_design))) {
+      if (col == 1) {
+        next
+      }
+      col_name <- colnames(sub_design)[col]
+      previous_col <- colnames(sub_design)[col - 1]
+      new_values <- paste0(sub_design[[previous_col]], " ",
+                           sub_design[[col_name]])
+      sub_design[[col_name]] <- new_values
+    }
+  }
+
+  plot_df <- sub_design %>%
+    ggsankey::make_long(factors)
+  plot_df[["name"]] <- plot_df[["node"]]
+  plot_df <- merge(plot_df, links_to_nodes, by.x = "node", by.y = "name")
+  plot_df[["name"]] <- paste0(plot_df[["name"]], ":",
+                              plot_df[["value"]])
+
+  color_fact <- NULL
+  if (!is.null(color_choices)) {
+    color_levels <- levels(as.factor(plot_df[["node"]]))
+    all_colors <- unlist(color_choices)
+    names(all_colors) <- gsub(x = names(all_colors),
+                              pattern = ".*\\.", replacement = "")
+    color_fact_idx <- names(all_colors) %in% color_levels
+    color_fact <- all_colors[color_fact_idx]
+    if (isTRUE(drill_down)) {
+      ## Set the plot name and color names:
+      plot_df[["name"]] <- gsub(x = plot_df[["node"]],
+        pattern = "^.* (\\w+$)",
+        replacement = "\\1")
+      plot_df[["name"]] <- paste0(plot_df[["name"]], ":",
+                                  plot_df[["value"]])
+      color_level_suffixes <- gsub(x = color_levels,
+        pattern = "^.* (\\w+$)",
+        replacement = "\\1")
+      color_fact_idx <- names(all_colors) %in% color_level_suffixes
+      color_suffix_fact <- all_colors[color_fact_idx]
+      new_color_fact <- rep("#000000", length(color_level_suffixes))
+      names(new_color_fact) <- color_levels
+      for (col in seq_len(length(new_color_fact))) {
+        color_name <- color_level_suffixes[col]
+        color_suffix <- as.character(color_suffix_fact[color_name])
+        new_color_fact[col] <- color_suffix
+      }
+      color_fact <- new_color_fact
+    }
+  }
+  retlist <- list(
+    "design" = design,
+    "factor" = factors,
+    "observed_nodes" = unique(plot_df[["node"]]))
+
+  if (fill == "node") {
+    ggplt <- ggplot(plot_df, aes(x = x, next_x = next_x, node = node,
+                                 next_node = next_node, fill = factor(node), label = name))
+  } else if (fill == "next") {
+    message("Filling to next node?")
+    ggplt <- ggplot(plot_df, aes(x = x, next_x = next_x, node = node,
+                                 next_node = next_node, fill = factor(next_node), label = name))
+  }
+  ggplt <- ggplt +
+    ggsankey::geom_sankey(flow.alpha = 0.6,
+                          node.color = "gray30") +
+    ggsankey::geom_sankey_label(color = 1, fill = "white", size = 3.5)
+
+  ## I want to figure out how to set up my own colors...
+  if (is.null(color_choices)) {
+    ggplt <- ggplt +
+      ggplot2::scale_fill_viridis_d() +
+      ggsankey::theme_sankey(base_size = 18) +
+      ggplot2::labs(x = NULL) +
+      theme(legend.position = "none",
+            plot.title = element_text(hjust = 0.5))
+  } else {
+    ggplt <- ggplt +
+      ggplot2::scale_fill_manual(values = color_fact) +
+      ggsankey::theme_sankey(base_size = font_size) +
+      ggplot2::labs(x = NULL) +
+      theme(legend.position = "none",
+            plot.title = element_text(hjust = 0.5))
+  }
+  retlist[["ggplot"]] <- ggplt
+  class(retlist) <- "meta_sankey"
+  return(retlist)
+}
+setGeneric("plot_meta_sankey")
+
+#' Print a metadata sankey plot.
+#'
+#' @param x List containing the table of connected nodes and a ggplot2
+#'  sankey.
+#' @param ... Other args to match the generic.
+#' @export
+print.meta_sankey <- function(x, ...) {
+  summary_string <- glue("A sankey plot describing the metadata of {nrow(x[['design']])} samples,
+including {length(x[['observed_nodes']])} out of {length(x[['permutations']])} nodes \\
+and traversing metadata factors:
+{toString(x[['factors']])}.")
+  message(summary_string)
+  plot(x[["ggplot"]])
+  return(invisible(x))
+}
+
+#' Feed an expt to a sankey plot.
+#' @export
+setMethod(
+  "plot_meta_sankey", signature = signature(design = "expt"),
+  definition = function(design, factors = c("condition", "batch"),
+                        color_choices = NULL) {
+    design <- pData(design)
+    plot_meta_sankey(design, factors = factors,
+                     color_choices = color_choices)
+  })
+
+## I might want to just delete this, I think the ggplot version is better.
+plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch"), fill = "node",
+                                         font_size = 18, node_width = 30,
+                                         color_choices = NULL, html = NULL,
+                                         drill_down = TRUE) {
+
+  found <- factors %in% colnames(design)
+  if (sum(found) < length(factors)) {
+    missing <- factors[!found]
+    message("These columns are not in the metadata: ", toString(missing))
+    factors <- factors[found]
+  }
+
+  permutations <- c()
+  states <- list()
+  for (f in factors) {
+    state_levels <- levels(as.factor(design[[f]]))
+    states[[f]] <- state_levels
+    new_permutations <- tidyr::expand_grid(!!!states) |> purrr::pmap_chr(paste)
+    permutations <- c(permutations, new_permutations)
+  }
+
+  start_node <- c("all", "0")
+  names(start_node) <- c("name", "node")
+  my_nodes <- data.frame(name = permutations)
+  my_nodes[["node"]] <- rownames(my_nodes)
+  my_nodes <- rbind(start_node, my_nodes)
+
+  my_links <- data.frame(row.names = 0)
+  my_links[["source"]] <- 0
+  my_links[["target"]] <- 0
+  my_links[["value"]] <- nrow(design)
+
+  result <- list("all" = nrow(design))
+  for (p in seq_len(length(permutations))) {
+    element <- permutations[p]
+    pieces <- strsplit(x = element, split = " ")[[1]]
+
+    working_meta <- design
+    for (cat_num in seq_len(length(pieces))) {
+      category <- pieces[cat_num]
+      factor <- factors[cat_num]
+      idx <- working_meta[[factor]] == category
+      working_meta <- working_meta[idx, ]
+    }
+    if (nrow(working_meta) > 0) {
+      result[[element]] <- nrow(working_meta)
+
+      target_node_idx <- my_nodes[["name"]] == element
+      target_node <- my_nodes[target_node_idx, "node"]
+      if (length(pieces) > 1) {
+        source_node_pieces <- pieces[1:length(pieces) - 1]
+        source_node_name <- stringi::stri_paste(source_node_pieces, collapse = " ")
+        source_node_idx <- my_nodes[["name"]] == source_node_name
+        source_node <- my_nodes[source_node_idx, "node"]
+      } else {
+        source_node <- "0"
+      }
+      link <- c(source_node, target_node, nrow(working_meta))
+      my_links <- rbind(my_links, link)
+    }
+  }
+
+  my_links <- my_links[-1, ]
+  my_links[["value"]] <- as.numeric(my_links[["value"]])
+  my_links[["source"]] <- as.numeric(my_links[["source"]])
+  my_links[["target"]] <- as.numeric(my_links[["target"]])
+
+  links_to_nodes <- merge(my_links, my_nodes, by.x = "target",
+                          by.y = "node")
+  links_to_nodes <- links_to_nodes[, c("name", "value")]
+
+
+  plt <- NULL
+  if (!is.null(html)) {
+    plt = networkD3::sankeyNetwork(Links = my_links, Nodes = my_nodes,
+                                   Source = "source", Target = "target",
+                                   Value = "value", fontSize = font_size, nodeWidth = node_width)
+  }
+  retlist <- list(
+    "permutations" = permutations,
+    "plot" = plt)
+  if (!is.null(html)) {
+    retlist[["html"]] <- htmlwidgets::saveWidget(plt, file = html, selfcontained = TRUE)
+  }
+  return(retlist)
+}
+
 
 #' Given a table of meta data, read it in for use by create_expt().
 #'
@@ -2317,6 +2630,20 @@ tar_meta_column <- function(meta, column = "hisatcounttable", output = NULL, com
 }
 setGeneric("tar_meta_column")
 
+#' Make a tarball using a metadata column given an xlsx file.
+#' @export
+setMethod(
+  "tar_meta_column", signature = signature(meta = "character"),
+  definition = function(meta, column = "hisatcounttable",
+                        output = NULL, compression = "xz") {
+    meta <- read_metadata(meta)
+    ## Someone snuck some spaces into my most recent sample sheet file column!
+    meta <- sanitize_metadata(meta, columns = column, punct = FALSE, lower = FALSE, spaces = TRUE)
+    result <- tar_meta_column(meta, column = column,
+                              output = output, compression = compression)
+    return(result)
+  })
+
 #' Generate an assembly annotation specification for use by gather_preprocessing_metadata()
 #'
 #' This is the default set of files/information that will be sought.  It is a bit much.
@@ -2409,6 +2736,7 @@ make_assembly_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "jellyfish_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*jellyfish_*/*_matrix.csv.xz"),
@@ -2559,14 +2887,18 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "hisat_genome_pct_vs_trimmed" = list(
       "column" = "hisat_genome_pct_vs_trimmed"),
     "hisat_observed_genes" = list(
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes" = list(
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes_pct" = list(
       "column" = "hisat_sum_genes_pct"),
     "hisat_observed_mean_exprs" = list(
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_observed_median_exprs" = list(
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "salmon_stranded" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
@@ -2583,15 +2915,16 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
     ## 202410: Given recent changes to FC/FH/FD handling, this will require some changes...
     ## Make cyoa create input_r1= output_r1= lines to make this easier.
-##    "trimmed_r1" = list(
-##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
-##    "trimmed_r2" = list(
-##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
+    ##    "trimmed_r1" = list(
+    ##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
+    ##    "trimmed_r2" = list(
+    ##      "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
     "hisat_count_table" = list(
       ## Note, I changed the output slightly for hisat in recent (202404) cyoa invocations
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
@@ -2611,6 +2944,7 @@ make_rnaseq_spec <- function(umi = FALSE) {
     specification[["umi_dedup_output_bam"]] = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_tools_deduplicated.bam")
     specification[["umi_dedup_output_count"]] = list(
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_tools_deduplicated*.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_tools_deduplicated*.count.xz")
     specification[["umi_dedup_chimeric"]] = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
@@ -2717,6 +3051,7 @@ make_dnaseq_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "deduplication_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),

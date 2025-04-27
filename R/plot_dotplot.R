@@ -425,4 +425,90 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
 }
 setGeneric("plot_sm")
 
+#' Print the result of plot_sm()
+#'
+#' @param x List containing the pairwise distances/correlations, median/mean values,
+#'  quartiles, and the standard median plot.
+#' @param ... Other args to match the generic.
+#' @export
+print.standardmedian_plot <- function(x, ...) {
+  min_comp <- min(x[["measurement"]])
+  max_comp <- max(x[["measurement"]])
+  first_quart <- x[["quantile"]][1]
+  third_quart <- x[["quantile"]][2]
+  summary_string <- glue("When the standard median metric was plotted, the values observed range
+from {min_comp} to {max_comp} with quartiles at {first_quart} and {third_quart}.")
+  message(summary_string)
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
+#' Plot the standard median pairwise values of an expt.
+#' @export
+setMethod(
+  "plot_sm", signature = signature(data = "expt"),
+  definition = function(data, colors = NULL, method = "pearson",
+                        plot_legend = FALSE, expt_names = NULL,
+                        label_chars = 10, plot_title = NULL, dot_size = 5,
+                        ...) {
+            design <- pData(data)
+            colors <- colors(data)
+            conditions <- design[["condition"]]
+            mtrx <- exprs(data)
+            plot_sm(mtrx, design = design, colors = colors, method = method,
+                    plot_legend = plot_legend, expt_names = expt_names,
+                    label_chars = label_chars, plot_title = plot_title,
+                    dot_size = dot_size,
+                    ...)
+          })
+
+#' Plot the standard median pairwise values of a SummarizedExperiment.
+#' @export
+setMethod(
+  "plot_sm", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, colors = NULL, method = "pearson",
+                        plot_legend = FALSE, expt_names = NULL,
+                        label_chars = 10, plot_title = NULL, dot_size = 5,
+                        ...) {
+    design <- pData(data)
+    colors <- colors(data)
+    mtrx <- exprs(data)
+    plot_sm(mtrx, design = design, colors = colors, method = method,
+            plot_legend = plot_legend, expt_names = expt_names,
+            label_chars = label_chars, plot_title = plot_title,
+            dot_size = dot_size, ...)
+  })
+
+#' Plot the standard median pairwise values of an ExpressionSet.
+#' @export
+setMethod(
+  "plot_sm", signature = signature(data = "ExpressionSet"),
+  definition = function(data, colors = NULL, method = "pearson",
+                        plot_legend = FALSE, expt_names = NULL,
+                        label_chars = 10, plot_title = NULL, dot_size = 5,
+                        ...) {
+    design <- pData(data)
+    mtrx <- exprs(data)
+    plot_sm(mtrx, design = design, colors = colors, method = method,
+            plot_legend = plot_legend, expt_names = expt_names,
+            label_chars = label_chars, plot_title = plot_title,
+            dot_size = dot_size, ...)
+  })
+
+#' Plot the standard median pairwise values of a dataframe.
+#' @export
+setMethod(
+  "plot_sm", signature = signature(data = "data.frame"),
+  definition = function(data, colors = NULL, method = "pearson",
+                        plot_legend = FALSE, expt_names = NULL,
+                        label_chars = 10, plot_title = NULL, dot_size = 5,
+                        ...) {
+    mtrx <- as.matrix(data)
+    plot_sm(mtrx, colors = colors, method = method,
+            plot_legend = plot_legend, expt_names = expt_names,
+            label_chars = label_chars, plot_title = plot_title,
+            dot_size = dot_size, ...)
+  })
+
+
 ## EOF

@@ -80,6 +80,98 @@ get_identifier <- function(type) {
   return(id_function)
 }
 
+all_enricher <- function(sig, according_to = "deseq", together = FALSE, plot_type = "dotplot",
+                         excel = "excel/all_en.xlsx", gsc = msigdb_data,
+                         orgdb = "org.Hs.eg.db", from = "ENSEMBL", to = "SYMBOL") {
+  ret <- list()
+  input_up <- list()
+  input_down <- list()
+  source <- "significant"
+  xlsx_dir <- dirname(excel)
+  xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
+  ## Check if this came from extract_significant_genes or extract_abundant_genes.
+  fc_col <- paste0(according_to, "_logfc")
+  if (!is.null(sig[[according_to]][["ups"]])) {
+    input_up <- sig[[according_to]][["ups"]]
+    input_down <- sig[[according_to]][["downs"]]
+  } else if (!is.null(sig[["abundances"]])) {
+    source <- "abundance"
+    input_up <- sig[["abundances"]][[according_to]][["high"]]
+    input_down <- sig[["abundances"]][[according_to]][["low"]]
+  } else {
+    stop("I do not understand this input.")
+  }
+
+  sig_names <- names(input_up)
+  for (i in seq_along(sig_names)) {
+    name <- sig_names[i]
+    retname_up <- paste0(name, "_up")
+    retname_down <- paste0(name, "_down")
+    up <- input_up[[name]]
+    down <- input_down[[name]]
+    up_elements <- 0
+    down_elements <- 0
+    if (source == "abundance") {
+      up <- names(up)
+      down <- names(down)
+      up_elements <- length(up)
+      down_elements <- length(down)
+    } else {
+      up_elements <- nrow(up)
+      down_elements <- nrow(down)
+    }
+    mesg("Starting ", name, ".")
+
+    if (isTRUE(together)) {
+      if (source == "abundance") {
+        up <- c(up, down)
+        up_elements <- up_elements + down_elements
+        down <- c()
+        down_elements <- 0
+      } else {
+        up <- rbind(up, down)
+        up_elements <- nrow(up)
+        down <- data.frame()
+        down_elements <- 0
+      }
+    }
+    if (up_elements > 0) {
+      chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
+      ret[[retname_up]] <- enricher_gsc(up, gsc, orgdb)
+    } else {
+      ret[[retname_up]] <- NULL
+    }
+    if (down_elements > 0) {
+      chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
+      ret[[retname_down]] <- enricher_gsc(down, gsc, orgdb)
+    } else {
+      ret[[retname_down]] <- NULL
+    }
+  }
+  class(ret) <- "all_gsc_enricher"
+  return(ret)
+
+}
+
+enricher_gsc <- function(genes, gsc, org = "org.Hs.eg.db", from = "ENSEMBL", to = "SYMBOL") {
+  signature_df <- signatures_to_df(gsc)
+  test_sig_df <- clusterProfiler::bitr(rownames(genes), fromType = from,
+                                       toType = to, OrgDb = get0(org))
+  enricher_data <- clusterProfiler::enricher(test_sig_df[[to]], TERM2GENE = signature_df)
+  return(enricher_data)
+}
+
+## I think this is a compelling place to use R's S4 dispatch on different
+## data types (gsc vs dataframe etc)
+enricher_msigdb <- function(genes, msig_db, signature_category = "C2", id_type = "entrez") {
+  signature_data <- load_gmt_signatures(signatures = msig_db,
+                                        signature_category = signature_category,
+                                        id_type = id_type)
+  enricher_data <- enricher_gsc(genes, signature_data)
+  return(enricher_data)
+}
+
+
 #' Create a metadata dataframe of msigdb data, this hopefully will be usable to
 #' fill the fData slot of a gsva returned expressionset.
 #'
@@ -214,6 +306,8 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
   } else if (class(signatures)[1] == "character" && grepl(pattern = "\\.db$", x = signatures)) {
     gmt_filename <- glue("signatures_{collection}.gmt")
     db <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = signatures)
+    ## If I want this to be anything other than gene symbols,
+    ## then I need to change this select statement
     query <- glue("SELECT gene_set_id, standard_name 'na',
      (SELECT description_brief FROM gene_set_details WHERE gene_set_id = gene_set_id),
      group_concat(symbol, ' ')
@@ -948,6 +1042,25 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
       "high" = high_lst,
       "low" = low_lst)
   return(retlst)
+}
+
+signatures_to_df <- function(signature_data) {
+  output_df <- data.frame()
+  gsc_names <- names(signature_data)
+  for (count in seq_along(gsc_names)) {
+    gs_name <- gsc_names[count]
+    gs_ids <- GSEABase::geneIds(signature_data[[count]])
+    num_ids <- length(gs_ids)
+    gs_df <- data.frame(
+      GS = rep(gs_name, num_ids),
+      geneID = gs_ids)
+    if (count == 1) {
+      output_df <- gs_df
+    } else {
+      output_df <- rbind.data.frame(output_df, gs_df)
+    }
+  }
+  return(output_df)
 }
 
 ## EOF

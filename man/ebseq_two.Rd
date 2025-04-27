@@ -6,11 +6,22 @@
 \usage{
 ebseq_two(
   pair_data,
-  factors,
+  conditions,
   numerator = 2,
   denominator = 1,
+  fast = TRUE,
   ng_vector = NULL,
-  rounds = 10,
+  rounds = 20,
+  Alpha = NULL,
+  Beta = NULL,
+  Qtrm = 1,
+  QtrmCut = 0,
+  step1 = 1e-06,
+  step2 = 0.01,
+  thre = log(2),
+  sthre = 0,
+  filter = 10,
+  stopthre = 1e-04,
   target_fdr = 0.05,
   norm = "median",
   force = FALSE
@@ -19,6 +30,8 @@ ebseq_two(
 \arguments{
 \item{pair_data}{Matrix containing the samples comprising two experimental
 factors of interest.}
+
+\item{conditions}{Factor of conditions in the data.}
 
 \item{numerator}{Which factor has the numerator in the data.}
 
@@ -33,8 +46,6 @@ factors of interest.}
 \item{norm}{Normalization method of ebseq to apply.}
 
 \item{force}{Force inappropriate data into ebseq?}
-
-\item{conditions}{Factor of conditions in the data.}
 }
 \value{
 EBSeq result table with some extra formatting.

@@ -389,6 +389,17 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   return(plots)
 }
 
+#' Print a linear scatter plot without all the fluff.
+#'
+#' @param x List containing the result of plot_linear_scatter()
+#' @param ... Other args for the generic.
+#' @export
+print.linear_scatter <- function(x, ...) {
+  message("Plot attempting to show the relationship between two columns of data.")
+  print(x[["scatter"]])
+  return(invisible(x))
+}
+
 #' Quick point-recolorizer given an existing plot, df, list of rownames to
 #' recolor, and a color.
 #'
@@ -577,6 +588,73 @@ plot_nonzero <- function(data, design = NULL, colors = NULL, plot_labels = "repe
   return(retlist)
 }
 setGeneric("plot_nonzero")
+
+#' Print a nonzero plot.
+#'
+#' @param x List containing the plot and table describing the data.
+#' @param ... Other args to match the generic.
+#' @export
+print.nonzero_plot <- function(x, ...) {
+  summary_string <- glue("A non-zero genes plot of {nrow(x[['table']])} samples.
+These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM coverage and \\
+{as.integer(mean(x[['table']][['nonzero_genes']]))} genes observed, ranging from \\
+{as.integer(min(x[['table']][['nonzero_genes']]))} to
+{as.integer(max(x[['table']][['nonzero_genes']]))}.")
+  message(summary_string)
+  plot(x[["plot"]])
+  return(invisible(x))
+}
+
+#' Make a nonzero plot given an expt.
+#' @export
+setMethod(
+  "plot_nonzero", signature = signature(data = "expt"),
+  definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
+                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
+                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+    mtrx <- as.matrix(exprs(data))
+    pd <- pData(data)
+    condition <- pd[["condition"]]
+    names <- pd[["samplenames"]]
+    chosen_colors <- colors(data)
+    plot_nonzero(mtrx, design = pd, colors = chosen_colors, plot_labels = plot_labels,
+                 expt_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
+                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65, ...)
+  })
+
+#' Make a nonzero plot given an ExpressionSet
+#' @export
+setMethod(
+  "plot_nonzero", signature = signature(data = "ExpressionSet"),
+  definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
+                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
+                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+    mtrx <- as.matrix(exprs(data))
+    pd <- pData(data)
+    condition <- pd[["condition"]]
+    names <- pd[["samplenames"]]
+    plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
+                 expt_names = names, max_overlaps = max_overlaps,
+                 label_chars = label_chars, plot_legend = plot_legend,
+                 plot_title = plot_title, cutoff = 0.65, ...)
+  })
+
+#' Make a nonzero plot given a SummarizedExperiment
+#' @export
+setMethod(
+  "plot_nonzero", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
+                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
+                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+    mtrx <- as.matrix(assay(data))
+    pd <- SummarizedExperiment::colData(data)
+    condition <- pd[["condition"]]
+    names <- pd[["samplenames"]]
+    colors <- S4Vectors::metadata(data)[["colors"]]
+    plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
+                 expt_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
+                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65, ...)
+  })
 
 #' Plot all pairwise MA plots in an experiment.
 #'

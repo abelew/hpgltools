@@ -4,7 +4,7 @@
 \alias{plot_enrichresult}
 \title{Invoke ther various fun plots created by Guangchuang Yu.}
 \usage{
-plot_enrichresult(enrichresult)
+plot_enrichresult(enrichresult, ...)
 }
 \arguments{
 \item{enrichresult}{S4 object of type enrichResult.}

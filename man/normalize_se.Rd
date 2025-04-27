@@ -14,7 +14,6 @@ normalize_se(
   annotations = NULL,
   fasta = NULL,
   entry_type = "gene",
-  use_original = FALSE,
   batch1 = "batch",
   batch2 = NULL,
   batch_step = 4,
@@ -54,8 +53,6 @@ normalize_se(
 \item{fasta}{Fasta file for cp_seq_m counting of oligos.}
 
 \item{entry_type}{For getting genelengths by feature type (rpkm or cp_seq_m).}
-
-\item{use_original}{Use the backup data in the expt class?}
 
 \item{batch1}{Experimental factor to extract first.}
 

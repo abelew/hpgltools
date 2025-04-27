@@ -12,7 +12,7 @@ dispatch_metadata_extract(
   specification,
   basedir = "preprocessing",
   verbose = FALSE,
-  old_spec = NULL,
+  new_spec = NULL,
   species = "*",
   type = "genome",
   subtype = "gene",

@@ -6,14 +6,12 @@
 \usage{
 ebseq_pairwise_subset(
   input,
+  model_fstring = "~ 0 + condition + batch",
   ng_vector = NULL,
   rounds = 10,
   target_fdr = 0.05,
-  model_batch = FALSE,
-  model_cond = TRUE,
-  model_intercept = FALSE,
-  alt_model = NULL,
   keepers = NULL,
+  conditions = NULL,
   norm = "median",
   force = FALSE,
   keep_underscore = TRUE,
@@ -30,6 +28,17 @@ perform before return the de estimates}
 
 \item{target_fdr}{If we reach this fdr before iterating rounds times, return.}
 
+\item{keepers}{Specify a set of contrasts to perform here.}
+
+\item{conditions}{Factor of conditions in the data, used to define the
+contrasts.}
+
+\item{norm}{EBseq normalization method to apply to the data.}
+
+\item{force}{Flag used to force inappropriate data into the various methods.}
+
+\item{...}{Extra arguments passed downstream.}
+
 \item{model_batch}{Provided by all_pairwise()  I do not think a Bayesian
 analysis really cares about models, but if one wished to try to add a batch
 factor, this would be the place to do it.  It is currently ignored.}
@@ -39,17 +48,6 @@ factor, this would be the place to do it.  It is currently ignored.}
 \item{model_intercept}{Ibid.}
 
 \item{alt_model}{Ibid.}
-
-\item{keepers}{Specify a set of contrasts to perform here.}
-
-\item{norm}{EBseq normalization method to apply to the data.}
-
-\item{force}{Flag used to force inappropriate data into the various methods.}
-
-\item{...}{Extra arguments passed downstream, noably to choose_model()}
-
-\item{conditions}{Factor of conditions in the data, used to define the
-contrasts.}
 }
 \value{
 A pairwise comparison of the various conditions in the data.

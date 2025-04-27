@@ -15,6 +15,7 @@ gather_preprocessing_metadata(
   subtype = "gene",
   tag = "ID",
   verbose = FALSE,
+  id_column = 1,
   md5 = FALSE,
   ...
 )

@@ -63,7 +63,7 @@ hpgl_voomweighted <- function(data, fun_model, libsize = NULL, normalize.method 
             ylab = "Weight", xlab = "Sample", col = col)
     abline(h = 1, col = 2, lty = 2)
     voom_barplot <- grDevices::recordPlot()
-    dev.off()
+    plotted <- dev.off()
     removed <- file.remove(tmp_file)
   }
   if (replace.weights) {
@@ -302,87 +302,54 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #'  pretend <- limma_pairwise(expt)
 #' }
 #' @export
-limma_pairwise <- function(input = NULL, conditions = NULL,
-                           batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
-                           alt_model = NULL, extra_contrasts = NULL,
-                           annot_df = NULL, libsize = NULL, adjust = "BH",
+limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                           null_fstring = "~", model_svs = NULL, filter = FALSE,
+                           extra_contrasts = NULL, annot_df = NULL,
+                           libsize = NULL, adjust = "BH",
                            which_voom = "limma", limma_method = "ls",
                            limma_robust = FALSE, voom_norm = "quantile",
-                           limma_trend = FALSE, force = FALSE, keep_underscore = TRUE,
-                           keepers = NULL, ...) {
+                           limma_trend = TRUE, force = FALSE, keep_underscore = TRUE,
+                           num_surrogates = "be", keepers = NULL,
+                           ...) {
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
 
-  san_input <- sanitize_expt(input, keep_underscore = keep_underscore)
-  input_data <- choose_limma_dataset(san_input, force = force, which_voom = which_voom)
-  design <- pData(san_input)
-  if (is.null(conditions)) {
-    conditions <- design[["condition"]]
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") &&
+        isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
   }
-  if (is.null(batches)) {
-    batches <- design[["batch"]]
-  }
+  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  input_data <- choose_limma_dataset(input, force = force, which_voom = which_voom)
+  count_mtrx <- as.matrix(input_data[["data"]])
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
+  design <- pData(input)
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  batches <- droplevels(as.factor(design[["batch"]]))
+  libsize <- libsize(input)
 
   ## The following small piece of logic is intended to handle situations where we use
   ## tximport for limma (kallisto/sailfish/salmon).
-  if (is.null(san_input[["tximport"]])) {
-    data <- input_data[["data"]]
+  if (is.null(input[["tximport"]])) {
+    count_mtrx <- input_data[["data"]]
   } else {
-    data <- edgeR::DGEList(san_input[["tximport"]][["scaled"]][["counts"]])
-    data <- edgeR::calcNormFactors(data)
+    data <- edgeR::DGEList(input[["tximport"]][["scaled"]][["counts"]])
+    count_mtrx <- edgeR::calcNormFactors(data)
   }
 
   if (is.null(libsize)) {
-    message("libsize was not specified, this parameter has profound effects on limma's result.")
-    if (!is.null(san_input[["best_libsize"]])) {
-      message("Using the libsize from expt$best_libsize.")
-      libsize <- san_input[["best_libsize"]]
-    } else if (!is.null(input[["libsize"]])) {
-      message("Using the libsize from expt$libsize.")
-      libsize <- san_input[["libsize"]]
-    } else if (!is.null(
-      san_input[["normalized"]][["intermediate_counts"]][["normalization"]][["libsize"]])) {
-      libsize <- colSums(data, na.rm = TRUE)
-    } else {
-      message("Using the libsize from expt$normalized$intermediate_counts$normalization$libsize")
-      libsize <- san_input[["normalized"]][["intermediate_counts"]][["normalization"]][["libsize"]]
-    }
-  } else {
-    message("libsize was specified.  This parameter has profound effects on limma's result.")
+    libsize <- libsize(input)
   }
 
-  if (is.null(libsize)) {
-    libsize <- colSums(data, na.rm = TRUE)
-  }
   condition_table <- table(conditions)
   batch_table <- table(batches)
-  conditions <- as.factor(conditions)
-  batches <- as.factor(batches)
+  mesg("This limma pairwise comparison should compare across:")
+  print(condition_table)
 
-  mesg("Limma step 1/6: choosing model.")
-  model <- choose_model(san_input, conditions = conditions, batches = batches,
-                        model_batch = model_batch, model_cond = model_cond,
-                        model_intercept = model_intercept, model_sv = model_sv,
-                        alt_model = alt_model, keep_underscore = keep_underscore,
-                        ...)
-  ##model <- choose_model(input, conditions, batches,
-  ##                      model_batch = model_batch,
-  ##                      model_cond = model_cond,
-  ##                      model_intercept = model_intercept,
-  ##                      alt_model = alt_model)
-  chosen_model <- model[["chosen_model"]]
-  model_string <- model[["chosen_string"]]
-  voom_result <- NULL
-  fctrs <- get_formula_factors(model_string)
-  contrast_factor <- fctrs[["contrast"]]
-  ## voom() it, taking into account whether the data has been log2 transformed.
-
-  ## Leaving the following here for the moment, but I think it will no longer be needed.
-  ## Instead, I am checking the data state before passing it to this function with the
-  ## choose_limma_dataset() call above.
-  loggedp <- san_input[["state"]][["transform"]]
+  loggedp <- current[["transform"]]
   if (is.null(loggedp)) {
     mesg("I don't know if this data is logged, testing if it is integer.")
     if (is.integer(data)) {
@@ -398,7 +365,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     }
   }
 
-  convertedp <- san_input[["state"]][["conversion"]]
+  convertedp <- current[["conversion"]]
   if (is.null(convertedp)) {
     message("I cannot determine if this data has been converted, assuming no.")
     convertedp <- FALSE
@@ -410,7 +377,26 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     }
   }
 
-  na_sum <- sum(is.na(data))
+  appended_fstring <- model_fstring
+  if ("character" %in% class(model_svs)) {
+    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                                      null_fstring = null_fstring,
+                                      model_svs = model_svs,
+                                      num_surrogates = num_surrogates,
+                                      ...)
+    estimate_type <- model_svs
+    model_svs <- model_params[["model_adjust"]]
+    null_model <- model_params[["null_model"]]
+    appended_fstring <- model_params[["appended_fstring"]]
+    design <- pData(model_params[["modified_input"]])
+  }
+  model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
+
+  ## voom() it, taking into account whether the data has been log2 transformed.
+  ## Leaving the following here for the moment, but I think it will no longer be needed.
+  ## Instead, I am checking the data state before passing it to this function with the
+  ## choose_limma_dataset() call above.
+  na_sum <- sum(is.na(count_mtrx))
   if (na_sum > 0) {
     ## My version of voom can handle nas
     which_voom <- "hpgl"
@@ -418,41 +404,41 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
   voom_result <- NULL
   voom_plot <- NULL
   if (which_voom == "hpgl_weighted") {
-    mesg("Limma step 2/6: running hpgl_voomweighted(), switch with the argument 'which_voom'.")
+    mesg("Limma step 1/5: running hpgl_voomweighted(), switch with the argument 'which_voom'.")
     voom_result <- hpgl_voomweighted(
-      data, chosen_model, libsize = libsize, voom_norm = voom_norm,
+      count_mtrx, model_mtrx, libsize = libsize, voom_norm = voom_norm,
       span = 0.5, var.design = NULL, method = "genebygene",
       maxiter = 50, tol = 1E-10, trace = FALSE, replace.weights = TRUE, col = NULL,
       logged = loggedp, converted = convertedp)
     voom_plot <- voom_result[["plot"]]
   } else if (which_voom == "hpgl") {
-    mesg("Limma step 2/6: running hpgl_voom(), switch with the argument 'which_voom'.")
+    mesg("Limma step 1/5: running hpgl_voom(), switch with the argument 'which_voom'.")
     voom_result <- hpgl_voom(
-      data, chosen_model, libsize = libsize,
+      count_mtrx, model_mtrx, libsize = libsize,
       logged = loggedp, converted = convertedp)
     voom_plot <- voom_result[["plot"]]
   } else if (which_voom == "limma_weighted") {
-    mesg("Limma step 2/6: running limma::voomWithQualityWeights(), ",
+    mesg("Limma step 1/5: running limma::voomWithQualityWeights(), ",
          "switch with the argument 'which_voom'.")
     tmp_file <- tmpmd5file(pattern = "voom", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
     voom_result <- try(limma::voomWithQualityWeights(
-      counts = data, design = chosen_model, lib.size = libsize,
+      counts = count_mtrx, design = model_mtrx, lib.size = libsize,
       normalize.method = voom_norm, plot = TRUE, span = 0.5,
       var.design = NULL, method = "genebygene", maxiter = 50,
       tol = 1E-10, trace = FALSE, replace.weights = TRUE, col = NULL))
     if (class(voom_result) == "try-error") {
       mesg("voomWithQualityWeights failed, falling back to voom.")
       voom_result <- limma::voom(
-        counts = data, design = chosen_model, lib.size = libsize,
+        counts = count_mtrx, design = model_mtrx, lib.size = libsize,
         normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     }
     voom_plot <- grDevices::recordPlot()
-    dev.off()
+    plotted <- dev.off()
     removed <- file.remove(tmp_file)
   } else if (which_voom == "limma") {
-    mesg("Limma step 2/6: running limma::voom(), switch with the argument 'which_voom'.")
+    mesg("Limma step 1/5: running limma::voom(), switch with the argument 'which_voom'.")
     mesg("Using normalize.method = ", voom_norm, " for voom.")
     ## Note to self, the defaults are span = 0.5, plot = FALSE, save.plot = FALSE,
     ## normalize.method = "none", lib.size = NULL, design = NULL
@@ -460,23 +446,23 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
     voom_result <- limma::voom(
-      counts = data, design = chosen_model, lib.size = libsize,
+      counts = count_mtrx, design = model_mtrx, lib.size = libsize,
       normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     voom_plot <- grDevices::recordPlot()
-    dev.off()
+    plotted <- dev.off()
     removed <- file.remove(tmp_file)
   } else if (which_voom == "cpm") {
     ## Reyy reminded me today that one does not necessarily need voom, but
     ## logcpm might be sufficient when the data distributions are nice and
     ## consistent.
-    mesg("Limma step 2/6: using edgeR::cpm(), switch with the argument 'which_voom'.")
-    voom_result <- edgeR::cpm(data, log = TRUE, prior.count = 3)
+    mesg("Limma step 1/5: using edgeR::cpm(), switch with the argument 'which_voom'.")
+    voom_result <- edgeR::cpm(count_mtrx, log = TRUE, prior.count = 3)
   } else if (which_voom == "none") {
     ## Then this is microarray-ish data.
     mesg("Assuming this data is similar to a micro array and not performign voom.")
     voom_result <- data
   } else {
-    mesg("Limma step 2/6: running limma::voom(), switch with the argument 'which_voom'.")
+    mesg("Limma step 1/5: running limma::voom(), switch with the argument 'which_voom'.")
     mesg("Using normalize.method = ", voom_norm, " for voom.")
     ## Note to self, the defaults are span = 0.5, plot = FALSE, save.plot = FALSE,
     ## normalize.method = "none", lib.size = NULL, design = NULL
@@ -484,10 +470,10 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
     voom_result <- limma::voom(
-      counts = data, design = chosen_model, lib.size = libsize,
+      counts = count_mtrx, design = model_mtrx, lib.size = libsize,
       normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     voom_plot <- grDevices::recordPlot()
-    dev.off()
+    plotted <- dev.off()
     removed <- file.remove(tmp_file)
   }
   one_replicate <- FALSE
@@ -495,19 +481,19 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     ## Apparently voom returns null where there is only 1 replicate.
     message("voom returned null, I am not sure what will happen.")
     one_replicate <- TRUE
-    voom_result <- data
+    voom_result <- count_mtrx
   }
 
   ## Do the lmFit() using this model
   pairwise_fits <- NULL
   identity_fits <- NULL
-  mesg("Limma step 3/6: running lmFit with method: ", limma_method, ".")
+  mesg("Limma step 2/5: running lmFit with method: ", limma_method, ".")
   fitted_data <- limma::lmFit(object = voom_result,
-                              design = chosen_model,
+                              design = model_mtrx,
                               method = limma_method)
   all_tables <- NULL
-  if (isTRUE(model_intercept)) {
-    mesg("Limma step 4/6: making and fitting contrasts with an intercept. (~ factors)")
+  if (is.null(fctrs[["cellmeans_intercept"]])) {
+    message("Limma step 3/5: making and fitting contrasts with a model intercept. (~ factors)")
     contrasts <- "nointercept"
     all_pairwise_contrasts <- NULL
     contrast_string <- "no intercept done"
@@ -516,22 +502,22 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     identity_contrasts <- NULL
     identities <- NULL
     identity_fits <- fitted_data
-    mesg("Limma step 5/6: Running eBayes with robust = ",
+    mesg("Limma step 4/5: Running eBayes with robust = ",
          limma_robust, " and trend = ", limma_trend, ".")
     all_pairwise_comparisons <- limma::eBayes(fitted_data,
                                               robust = limma_robust,
                                               trend = limma_trend)
     all_identity_comparisons <- NULL
-    mesg("Limma step 6/6: Creating tables with an intercept.")
+    mesg("Limma step 5/5: Creating tables with an intercept.")
     pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = "BH",
                                           n = 0, coef = NULL, annot_df = NULL, intercept = TRUE)
     limma_tables <- pairwise_results[["contrasts"]]
     contrasts_performed <- names(limma_tables)
     limma_identities <- pairwise_results[["identities"]]
   } else {
-    mesg("Limma step 4/6: making and fitting contrasts with no intercept. (~ 0 + factors)")
+    mesg("Limma step 3/5: making and fitting contrasts with no intercept. (~ 0 + factors)")
     contrasts <- make_pairwise_contrasts(
-      model = chosen_model, conditions = conditions, contrast_factor = contrast_factor,
+      model = model_mtrx, conditions = conditions, contrast_factor = condition_column,
       extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
       do_identities = FALSE)
     all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
@@ -541,15 +527,13 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     ## This will first provide the relative abundances of each condition
     ## followed by the set of all pairwise comparisons.
     pairwise_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = all_pairwise_contrasts)
-
-    identity_contrasts <- sm(make_pairwise_contrasts(
-      model = chosen_model, conditions = conditions,
-      contrast_factor = contrast_factor,
-      do_identities = TRUE, do_pairwise = FALSE,
-      keep_underscore = keep_underscore))
+    identity_contrasts <- sm(make_pairwise_contrasts(model = model_mtrx, conditions = conditions,
+                                                     contrast_factor = condition_column,
+                                                     do_identities = TRUE, do_pairwise = FALSE,
+                                                     keep_underscore = keep_underscore))
     identities <- identity_contrasts[["all_pairwise_contrasts"]]
     identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
-    mesg("Limma step 5/6: Running eBayes with robust = ",
+    mesg("Limma step 4/5: Running eBayes with robust = ",
             limma_robust, " and trend = ", limma_trend, ".")
     if (isTRUE(one_replicate)) {
       all_pairwise_comparisons <- pairwise_fits[["coefficients"]]
@@ -562,7 +546,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
                                                 robust = limma_robust,
                                                 trend = limma_trend)
     }
-    mesg("Limma step 6/6: Creating tables without an intercept.")
+    mesg("Limma step 5/5: Creating tables without an intercept.")
     pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = adjust,
                                           n = 0, coef = NULL, annot_df = NULL)
     limma_tables <- pairwise_results[["contrasts"]]
@@ -579,7 +563,7 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     "batches" = batches,
     "batches_table" = batch_table,
     "conditions" = conditions,
-    "conditions_table" = condition_table,
+    "condition_table" = condition_table,
     "contrast_string" = contrast_string,
     "contrasts_performed" = contrasts_performed,
     "design" = design,
@@ -590,8 +574,8 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     "identity_comparisons" = all_identity_comparisons,
     "input_data" = input,
     "method" = "limma",
-    "model" = model,
-    "model_string" = model_string,
+    "model" = model_mtrx,
+    "model_fstring" = model_fstring,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
     "voom_result" = voom_result)
@@ -600,6 +584,13 @@ limma_pairwise <- function(input = NULL, conditions = NULL,
     retlist[["limma_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])
   }
   return(retlist)
+}
+
+#' @export
+print.limma_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the limma pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Writes out the results of a limma search using toptable().
@@ -649,9 +640,9 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
   if (isTRUE(intercept)) {
     ## If we do have an intercept model, then we get the data
     ## in a slightly different fashion.
-    for (c in seq_len(ncol(fit[["coefficients"]]))) {
+    for (d in seq_len(ncol(fit[["coefficients"]]))) {
       data_table <-  limma::topTable(fit, adjust.method = adjust,
-                                     n = n, coef = c, sort.by = "logFC")
+                                     n = n, coef = d, sort.by = "logFC")
 
       for (column in seq_len(ncol(data_table))) {
         data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = 4)
@@ -660,20 +651,20 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
         data_table <- merge(data_table, annot_df, by.x = "row.names", by.y = "row.names")
       }
 
-      if (c == 1) {
+      if (d == 1) {
         return_identities[[1]] <- data_table
       } else {
-        comparison <- colnames(fit[["coefficients"]])[c]
+        comparison <- colnames(fit[["coefficients"]])[d]
         return_data[[comparison]] <- data_table
       }
     }
   } else {
     ## If we do not have an intercept (~ 0 + ...)
     ## Then extract the coefficients and identities separately.
-    for (c in seq_len(end)) {
-      comparison <- coef[c]
+    for (it in seq_len(end)) {
+      comparison <- coef[it]
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
-      mesg("Limma step 6/6: ", c, "/", end, ": Creating table: ",
+      mesg("Limma step 6/6: ", it, "/", end, ": Creating table: ",
            comp_name, ".  Adjust = ", adjust)
       data_tables[[comp_name]] <- limma::topTable(
         fit, adjust.method = adjust,
@@ -681,10 +672,10 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
     }
     ## Take a moment to prettily format the numbers in the tables
     ## and fill in the identity table.
-    for (d in seq_along(data_tables)) {
-      comparison <- coef[d]
+    for (e in seq_along(data_tables)) {
+      comparison <- coef[e]
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
-      table <- data_tables[[d]]
+      table <- data_tables[[e]]
       for (column in seq_len(ncol(table))) {
         table[[column]] <- signif(x = as.numeric(table[[column]]), digits = 4)
       }

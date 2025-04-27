@@ -12,7 +12,8 @@ dispatch_filename_search(
   type = "genome",
   subtype = "gene",
   tag = "ID",
-  basedir = "preprocessing"
+  basedir = "preprocessing",
+  new_spec = NULL
 )
 }
 \arguments{

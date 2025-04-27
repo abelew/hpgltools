@@ -13,7 +13,7 @@ dispatch_regex_search(
   basedir = "preprocessing",
   extraction = "\\\\1",
   which = "first",
-  old_spec = NULL,
+  new_spec = NULL,
   as = NULL,
   verbose = FALSE,
   type = "genome",

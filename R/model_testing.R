@@ -187,7 +187,7 @@ get_degrees <- function(design, fctrs) {
       message("Factor ", f, " is not in the experimental design.")
       next
     }
-    fctr <- as.factor(design[[f]])
+    fctr <- droplevels(as.factor(design[[f]]))
     factor_levels[[f]] <- length(levels(fctr))
     range <- table(fctr)
     adder <- length(levels(fctr))
@@ -271,9 +271,28 @@ get_formula_factors <- function(formula_string = NULL) {
 
   retlist[["factors"]] <- unique(fct_vector)
   retlist[["contrast"]] <- retlist[["factors"]][1]
+  if (length(retlist[["factors"]]) > 1) {
+    retlist[["assumed_batch"]] <- retlist[["factors"]][2]
+  }
   return(retlist)
 }
 setGeneric("get_formula_factors")
+
+#' Set method for formula input to get_formula_factors
+#'
+#' @param formula_string What should have been a string, but is a formula.
+#' @return List describing the formula
+#' @export
+setMethod(
+  "get_formula_factors", signature = signature(formula_string = "formula"),
+  function(formula_string) {
+    new_string <- ""
+    cheat <- as.character(formula_string)
+    for (chr in cheat) {
+      new_string <- paste0(new_string, chr)
+    }
+    get_formula_factors(new_string)
+  })
 
 #' Perform a series of single regression analyses and tabulate/plot the results.
 #'
@@ -642,6 +661,17 @@ a different factor or random effect should be used.")
   return(retlist)
 }
 setGeneric("test_design_model_rank")
+
+#' Pass an expt to test_design_model_rank.
+#' @param design In this instance, an expressionset.
+#' @param fstring Formula string to query.
+#' @export
+setMethod(
+  "test_design_model_rank", signature = signature(design = "expt"),
+  definition = function(design, fstring = "~ condition + batch") {
+    design <- pData(design)
+    test_design_model_rank(design, fstring)
+  })
 
 #' Given the result from one of the regression testers, plot it!
 #'

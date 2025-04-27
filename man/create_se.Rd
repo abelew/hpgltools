@@ -13,10 +13,11 @@ create_se(
   title = NULL,
   notes = NULL,
   include_type = "all",
+  count_source = "htseq",
   countdir = NULL,
   include_gff = NULL,
   file_column = "file",
-  id_column = NULL,
+  file_type = NULL,
   savefile = NULL,
   low_files = FALSE,
   annotation = "org.Hs.eg.db",
@@ -49,8 +50,6 @@ create_se(
 
 \item{file_column}{Metadata column containing the counts for each sample.}
 
-\item{id_column}{Non-default column containing the sample IDs.}
-
 \item{savefile}{Filename to which to save a rda file of the data structure.}
 
 \item{low_files}{I don't remember this, I bet it is deprecated.}
@@ -64,6 +63,8 @@ create_se(
 \item{tx_gene_map}{When using tximport, use this to convert from transcripts to genes.}
 
 \item{...}{Extra options.}
+
+\item{id_column}{Non-default column containing the sample IDs.}
 }
 \description{
 This function was taken from create_expt() and repurposed to create SummarizedExperiments.

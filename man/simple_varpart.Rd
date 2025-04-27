@@ -5,7 +5,7 @@
 \title{Use variancePartition to try and understand where the variance lies in a data set.}
 \usage{
 simple_varpart(
-  expt,
+  input,
   fstring = "~ condition + batch",
   do_fit = FALSE,
   cor_gene = 1,
@@ -13,12 +13,10 @@ simple_varpart(
   genes = 40,
   parallel = TRUE,
   strict_filter = TRUE,
-  modify_expt = TRUE
+  modify_input = TRUE
 )
 }
 \arguments{
-\item{expt}{Some data}
-
 \item{do_fit}{Perform a fitting using variancePartition?}
 
 \item{cor_gene}{Provide a set of genes to look at the correlations, defaults
@@ -33,7 +31,7 @@ to the first gene.}
 \item{strict_filter}{Perform a strict filtering of the results via median_by_factor and dropping
 any genes with a 0.}
 
-\item{modify_expt}{Add annotation columns with the variance/factor?}
+\item{expt}{Some data}
 
 \item{predictor}{Non-categorical predictor factor with which to begin the
 model.}
@@ -44,6 +42,8 @@ model.}
 extract from the design?}
 
 \item{mixed}{Used a mixed model?}
+
+\item{modify_expt}{Add annotation columns with the variance/factor?}
 }
 \value{
 List of plots and variance data frames

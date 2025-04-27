@@ -53,46 +53,43 @@
 #'  pretend <- edger_pairwise(expt, model_batch = "sva")
 #' }
 #' @export
-edger_pairwise <- function(input = NULL, conditions = NULL,
-                           batches = NULL, model_cond = TRUE,
-                           model_batch = TRUE, model_sv = NULL, model_intercept = FALSE,
-                           alt_model = NULL, extra_contrasts = NULL,
-                           annot_df = NULL, force = FALSE, keepers = NULL,
-                           edger_method = "long", keep_underscore = FALSE, ...) {
+edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
+                           null_fstring = "~", model_svs = NULL,
+                           extra_contrasts = NULL, annot_df = NULL,
+                           force = FALSE, keepers = NULL, filter = FALSE,
+                           edger_method = "long", edger_test = "lrt",
+                           keep_underscore = FALSE, num_surrogates = "be",
+                           ...) {
   arglist <- list(...)
 
-  edger_test <- "lrt"
-  if (!is.null(arglist[["edger_test"]])) {
-    edger_test <- arglist[["edger_test"]]
-  }
   mesg("Starting edgeR pairwise comparisons.")
   input <- sanitize_expt(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
+  count_mtrx <- input_data[["data"]]
+  fctrs <- get_formula_factors(model_fstring)
+  condition_column <- fctrs[["factors"]][1]
   design <- pData(input)
-  conditions <- design[["condition"]]
-  conditions_table <- table(conditions)
-  batches <- design[["batch"]]
-  batches_table <- table(batches)
-  data <- input_data[["data"]]
-  conditions <- as.factor(conditions)
-  batches <- as.factor(batches)
-
-  model_choice <- choose_model(input, conditions = conditions, batches = batches,
-                               model_batch = model_batch, model_cond = model_cond,
-                               model_intercept = model_intercept, model_sv = model_sv,
-                               alt_model = alt_model, keep_underscore = keep_underscore,
-                               ...)
-  ##model_choice <- choose_model(input, conditions, batches,
-  ##                             model_batch = model_batch,
-  ##                             model_cond = model_cond,
-  ##                             model_intercept = model_intercept,
-  ##                             alt_model = alt_model)
-  model_including <- model_choice[["including"]]
-  if (class(model_choice[["model_batch"]])[1] == "matrix") {
-    model_batch <- model_choice[["model_batch"]]
+  conditions <- droplevels(as.factor(design[[condition_column]]))
+  batches <- droplevels(as.factor(design[["batch"]]))
+  condition_table <- table(conditions)
+  batch_table <- table(batches)
+  condition_levels <- levels(conditions)
+  mesg("This edger pairwise comparison should compare across:")
+  print(condition_table)
+  appended_fstring <- model_fstring
+  if ("character" %in% class(model_svs)) {
+    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+                                      null_fstring = null_fstring,
+                                      estimate_type = model_svs,
+                                      surrogates = num_surrogates,
+                                      ...)
+    estimate_type <- model_svs
+    model_svs <- model_params[["model_adjust"]]
+    null_model <- model_params[["null_model"]]
+    appended_fstring <- model_params[["appended_fstring"]]
+    design <- pData(model_params[["modified_input"]])
   }
-  model_data <- model_choice[["chosen_model"]]
-  model_string <- model_choice[["chosen_string"]]
+  model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
 
   ## I have a strong sense that the most recent version of edgeR changed its
   ## dispersion estimate code. Here is a note from the user's guide, which may
@@ -101,12 +98,13 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   ## y <- estimateDisp(y, design)
   ## raw <- edgeR::DGEList(counts = data, group = conditions)
   ## norm <- edgeR::calcNormFactors(raw)
-  norm <- import_edger(data, conditions, tximport = input[["tximport"]][["raw"]])
   mesg("EdgeR step 1/9: Importing and normalizing data.")
+  data <- exprs(input)
+  norm <- import_edger(data, conditions, tximport = input[["tximport"]][["raw"]])
   final_norm <- NULL
   if (edger_method == "short") {
     mesg("EdgeR steps 2 through 6/9: All in one!")
-    final_norm <- edgeR::estimateDisp(norm, design = model_data)
+    final_norm <- edgeR::estimateDisp(norm, design = model_mtrx)
   } else {
     state <- TRUE
     mesg("EdgeR step 2/9: Estimating the common dispersion.")
@@ -125,7 +123,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     }
     if (isTRUE(state)) {
       mesg("EdgeR step 4/9: Estimating GLM Common dispersion.")
-      glm_norm <- try(edgeR::estimateGLMCommonDisp(tagdisp_norm, model_data))
+      glm_norm <- try(edgeR::estimateGLMCommonDisp(tagdisp_norm, model_mtrx))
       if (class(glm_norm)[1] == "try-error") {
         warning("estimateGLMCommonDisp() failed.  Trying again with estimateDisp().")
         state <- FALSE
@@ -133,7 +131,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     }
     if (isTRUE(state)) {
       mesg("EdgeR step 5/9: Estimating GLM Trended dispersion.")
-      glm_trended <- try(edgeR::estimateGLMTrendedDisp(glm_norm, model_data))
+      glm_trended <- try(edgeR::estimateGLMTrendedDisp(glm_norm, model_mtrx))
       if (class(glm_trended)[1] == "try-error") {
         warning("estimateGLMTrendedDisp() failed.  Trying again with estimateDisp().")
         state <- FALSE
@@ -141,7 +139,7 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     }
     if (isTRUE(state)) {
       mesg("EdgeR step 6/9: Estimating GLM Tagged dispersion.")
-      final_norm <- try(edgeR::estimateGLMTagwiseDisp(glm_trended, model_data))
+      final_norm <- try(edgeR::estimateGLMTagwiseDisp(glm_trended, model_mtrx))
       if (class(final_norm)[1] == "try-error") {
         warning("estimateGLMTagwiseDisp() failed.  Trying again with estimateDisp().")
         state <- FALSE
@@ -152,22 +150,22 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     if (isFALSE(state)) {
       warning("There was a failure when doing the estimations.")
       message("There was a failure when doing the estimations, using estimateDisp().")
-      final_norm <- edgeR::estimateDisp(norm, design = model_data, robust = TRUE)
+      final_norm <- edgeR::estimateDisp(norm, design = model_mtrx, robust = TRUE)
     }
   }
   cond_fit <- NULL
   if (edger_test == "lrt") {
     mesg("EdgeR step 7/9: Running glmFit, ",
          "switch to glmQLFit by changing the argument 'edger_test'.")
-    cond_fit <- edgeR::glmFit(final_norm, design = model_data, robust = TRUE)
+    cond_fit <- edgeR::glmFit(final_norm, design = model_mtrx, robust = TRUE)
   } else {
     mesg("EdgeR step 7/9: Running glmQLFit, ",
          "switch to glmFit by changing the argument 'edger_test'.")
-    cond_fit <- edgeR::glmQLFit(final_norm, design = model_data, robust = TRUE)
+    cond_fit <- edgeR::glmQLFit(final_norm, design = model_mtrx, robust = TRUE)
   }
 
   mesg("EdgeR step 8/9: Making pairwise contrasts.")
-  apc <- make_pairwise_contrasts(model_data, conditions,
+  apc <- make_pairwise_contrasts(model_mtrx, conditions,
                                  extra_contrasts = extra_contrasts,
                                  do_identities = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,
@@ -186,8 +184,9 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
     name <- apc[["names"]][[con]]
     sc[[name]] <- gsub(pattern = ",", replacement = "", apc[["all_pairwise"]][[con]])
     tt <- parse(text = sc[[name]])
+    ## FIXME FIXME: Replace this foolishness with do.call()
     ## ctr_string <- paste0("tt = mymakeContrasts(", tt, ", levels = model_data)")
-    ctr_string <- glue("tt = mymakeContrasts({tt}, levels = model_data)")
+    ctr_string <- glue("tt = mymakeContrasts({tt}, levels = model_mtrx)")
     eval(parse(text = ctr_string))
     contrast_list[[name]] <- tt
     lrt_list[[name]] <- NULL
@@ -220,15 +219,15 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
   if (class(dispersions)[1] != "try-error") {
     dispersion_plot <- grDevices::recordPlot()
   }
-  dev.off()
+  plotted <- dev.off()
   removed <- file.remove(tmp_file)
 
   retlist <- list(
       "all_tables" = result_list,
       "batches" = batches,
-      "batches_table" = batches_table,
+      "batches_table" = batch_table,
       "conditions" = conditions,
-      "conditions_table" = conditions_table,
+      "conditions_table" = condition_table,
       "contrast_list" = contrast_list,
       "contrasts" = apc,
       "contrast_string" = contrast_string,
@@ -237,14 +236,21 @@ edger_pairwise <- function(input = NULL, conditions = NULL,
       "input_data" = input,
       "lrt" = lrt_list,
       "method" = "edger",
-      "model" = model_data,
-      "model_string" = model_string)
+      "model" = model_mtrx,
+      "model_string" = model_fstring)
   class(retlist) <- c("edger_pairwise", "list")
   if (!is.null(arglist[["edger_excel"]])) {
     retlist[["edger_excel"]] <- write_edger(retlist, excel = arglist[["edger_excel"]])
   }
   class(retlist) <- c("edger_pairwise", "list")
   return(retlist)
+}
+
+#' @export
+print.edger_pairwise <- function(x, ...) {
+  summary_string <- glue("The results from the EdgeR pairwise analysis.")
+  message(summary_string)
+  return(invisible(x))
 }
 
 #' Import tximport information into edgeR.

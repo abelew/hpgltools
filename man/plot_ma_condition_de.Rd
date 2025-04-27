@@ -19,6 +19,8 @@ plot_ma_condition_de(
   size = 2,
   shapes = TRUE,
   invert = FALSE,
+  outline = TRUE,
+  stroke = 1,
   label = 10,
   label_column = "hgnc_symbol",
   ...

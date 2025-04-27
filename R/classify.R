@@ -307,6 +307,27 @@ create_partitions <- function(full_df, interesting_meta, outcome_factor = "condi
   return(retlist)
 }
 
+#' Print something useful about the result of create_partitions()
+#'
+#' @param x List containing the n sets of partitioned data test/train.
+#' @param ... Other args to match the generic.
+#' @export
+print.partitioned_data <- function(x, ...) {
+  train_sets <- list()
+  count <- 0
+  for (tr in x[["trainers"]]) {
+    count <- count + 1
+    name <- names(x[["trainers"]])[[count]]
+    train_sets[[name]] <- rownames(x[["trainers"]][[name]])
+  }
+  upset_input <- UpSetR::fromList(train_sets)
+  upset_plot <- UpSetR::upset(upset_input)
+  print(upset_plot)
+  summary_string <- glue("A series of {x[['times']]} data partitions with a {x[['p']]} proportion of train/test.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Given an n-dimensional matrix, try some KNN-esque clustering on it.
 #'
 #' I want some functions to help me understand clustering.  This is a
@@ -433,6 +454,24 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
     "auc" = auc)
   class(retlist) <- "classifier_evaluation"
   return(retlist)
+}
+
+#' Print the result from self_evaluate_model().
+#'
+#' @param x List showing AUC/ROC curves of the test performed, summary
+#'  thereof, the confusion matrix, and vector of incorrectly called samples.
+#' @param ... Other args to match the generic.
+#' @export
+print.classifier_evaluation <- function(x, ...) {
+  message("The summary of the (in)correct calls is: ")
+  print(x[["self_summary"]])
+  message("The missed samples are: ")
+  print(x[["wrong_samples"]])
+  message("The confusion matrix is:")
+  print(x[["confusion_mtrx"]])
+  message("The ROC AUC is: ", x[["auc"]], ".")
+  print(x[["roc_plot"]])
+  return(invisible(x))
 }
 
 #' Write out the results of classify_n_times().

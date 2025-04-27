@@ -31,7 +31,6 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 
   sig_names <- names(input_up)
   for (i in seq_along(sig_names)) {
-    slept <- Sys.sleep(sleep)
     name <- sig_names[i]
     retname_up <- paste0(name, "_up")
     retname_down <- paste0(name, "_down")
@@ -73,7 +72,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
-      slept <- Sys.sleep(10)
+      slept <- Sys.sleep(3)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_gprofiler2(down, first_col = fc_col,
                                                plot_type = plot_type,
@@ -85,6 +84,24 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
   }
   class(ret) <- "all_gprofiler"
   return(ret)
+}
+
+#' Print the result of all_gprofiler()
+#'
+#' @param x List composed of simple_gprofiler() results for every
+#'  up/down set provided by extract_significant_genes().
+#' @param ... Other args to match the generic.
+#' @export
+print.all_gprofiler <- function(x, ...) {
+  summary_df <- data.frame()
+  for (gp in x) {
+    summary_df <- rbind(summary_df, gp[["num_hits"]])
+  }
+  rownames(summary_df) <- names(x)
+  colnames(summary_df) <- names(x[[1]][["num_hits"]])
+  message("Running gProfiler on every set of significant genes found:")
+  print(summary_df)
+  return(invisible(x))
 }
 
 #' Run searches against the web service g:Profiler.
@@ -318,6 +335,33 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   retlst[["threshold"]] <- threshold
   class(retlst) <- c("gprofiler_result", "list")
   return(retlst)
+}
+
+#' Print a gprofiler over representation search.
+#'
+#' @param x List from gProfiler2 containing its various plots, tables
+#'  of significant categories for GO, reactome, KEGG, miRNA,
+#'  transcription factors, CORUM, wiki pathways, etc; along with the
+#'  coerced enrichResult versions.
+#' @param ... Other args to match the generic.
+#' @export
+print.gprofiler_result <- function(x, ...) {
+  types <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
+             "MIRNA", "HPA", "CORUM", "HP")
+  num_string <- ""
+  for (t in types) {
+    if (!is.null(x[[t]])) {
+      num_string <- glue("{num_string}\
+{nrow(x[[t]])} {t}")
+    }
+  }
+  num_string <- gsub(x = num_string, pattern = "^\\,", replacement = "")
+
+  hit_string <- glue("A set of ontologies produced by gprofiler using {x[['num_genes']]}
+genes against the {x[['species']]} annotations and significance cutoff {x[['threshold']]}.
+There are: {num_string} hits.")
+  message(hit_string)
+  return(invisible(x))
 }
 
 #' Redirect users to simple_gprofiler2
