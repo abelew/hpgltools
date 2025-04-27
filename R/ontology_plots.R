@@ -11,31 +11,82 @@
 #' easier to send results to it.
 #'
 #' @param enrichresult S4 object of type enrichResult.
-plot_enrichresult <- function(enrichresult) {
-  dot <- enrichplot::dotplot(enrichresult)
-  cnet <- enrichplot::cnetplot(enrichresult)
-  heat <- enrichplot::heatplot(enrichresult)
-  up <- enrichplot::upsetplot(enrichresult)
-  go <- enrichplot::goplot(enrichresult)
-
-  termsim <- enrichplot::pairwise_termsim(enrichresult)
-  tree <- try(enrichplot::treeplot(termsim))
-  map <- enrichplot::emapplot(termsim)
-  ss <- enrichplot::ssplot(termsim)
+plot_enrichresult <- function(enrichresult, ...) {
+  if (is.null(enrichresult)) {
+    return(NULL)
+  }
+  if (is.null(enrichresult@result)) {
+    return(NULL)
+  }
+  check <- as.data.frame(enrichresult@result)
+  if (nrow(check) < 2) {
+    message("There are insufficient significant results to plot.")
+    return(NULL)
+  }
+  bar <- try(barplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(bar)) {
+    bar <- NULL
+  }
+  dot <- try(enrichplot::dotplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(dot)) {
+    dot <- NULL
+  }
+  cnet <- try(enrichplot::cnetplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(cnet)) {
+    cnet <- NULL
+  }
+  heat <- try(enrichplot::heatplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(heat)) {
+    heat <- NULL
+  }
+  up <- try(enrichplot::upsetplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(up)) {
+    up <- NULL
+  }
+  go <- try(enrichplot::goplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(go)) {
+    go <- NULL
+  }
+  vol <- try(enrichplot::volplot(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(vol)) {
+    vol <- NULL
+  }
+  termsim <- try(enrichplot::pairwise_termsim(enrichresult, ...), silent = TRUE)
+  if ("try-error" %in% class(termsim)) {
+    termsim <- NULL
+    tree <- NULL
+    ss <- NULL
+    map <- NULL
+  } else {
+    tree <- try(enrichplot::treeplot(termsim, ...), silent = TRUE)
+    if ("try-error" %in% class(tree)) {
+      tree <- NULL
+    }
+    map <- try(enrichplot::emapplot(termsim, ...), silent = TRUE)
+    if ("try-error" %in% class(map)) {
+      map <- NULL
+    }
+    ss <- try(enrichplot::ssplot(termsim, interactive = FALSE, ...), silent = TRUE)
+    if ("try-error" %in% class(ss)) {
+      ss <- NULL
+    }
+  }
 
   ## Used for gsea
   ## gsea <- enrichplot::gseaplot2(enrichresult)
   ## gsea_ridge <- enrichplot::ridgeplot(enrichresult
   retlist <- list(
-    "dot" = dot,
+    "bar" = bar,
     "cnet" = cnet,
+    "dot" = dot,
     "go" = go,
     "heat" = heat,
     "map" = map,
-    "termsim" = termsim,
     "ss" = ss,
+    "termsim" = termsim,
     "tree" = tree,
-    "up" = up)
+    "up" = up,
+    "vol" = vol)
   return(retlist)
 }
 
@@ -192,6 +243,47 @@ plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
   return(retlist)
 }
 setGeneric("plot_topn_gsea")
+
+
+#' Plot topn GSEA results given the result from all_cprofiler
+#' @export
+setMethod(
+  "plot_topn_gsea", signature = signature(gse = "all_cprofiler"),
+  definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
+    ## Yank out the data
+    retlist <- list()
+    for (sig in names(gse)) {
+      message("Starting: ", sig, ".")
+      input_go <- gse[[sig]][["enrich_objects"]][["gse"]]
+      ret_name_go <- paste0("GO_", sig)
+      input_kegg <- gse[[sig]][["enrich_objects"]][["gse_all_kegg"]]
+      ret_name_kegg <- paste0("KEGG_", sig)
+      retlist[[ret_name_go]] <- NULL
+      if (!is.null(input_go)) {
+        retlist[[ret_name_go]] <- plot_topn_gsea(input_go, topn = topn, id = id, add_score = add_score)
+      }
+      retlist[[ret_name_kegg]] <- NULL
+      if (!is.null(input_kegg)) {
+        retlist[[ret_name_kegg]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
+      }
+    }
+    return(retlist)
+  })
+
+#' Plot topn GSEA results given the result from simple_clusterprofiler
+#' @export
+setMethod(
+  "plot_topn_gsea", signature = signature(gse = "clusterprofiler_result"),
+  definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
+    ## Yank out the data
+    retlist <- list()
+    input_go <- gse[["enrich_objects"]][["gse"]]
+    input_kegg <- gse[["enrich_objects"]][["gse_all_kegg"]]
+    retlist[["GO"]] <- plot_topn_gsea(input_go, topn = topn, id = id, add_score = add_score)
+    retlist[["KEGG"]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
+    return(retlist)
+  })
+
 
 #' Make a pvalue plot from goseq data.
 #'

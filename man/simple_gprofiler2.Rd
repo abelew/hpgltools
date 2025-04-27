@@ -12,7 +12,7 @@ simple_gprofiler2(
   second_col = "logfc",
   do_mf = TRUE,
   do_bp = TRUE,
-  do_cc = FALSE,
+  do_cc = TRUE,
   do_kegg = TRUE,
   do_reactome = TRUE,
   do_mi = TRUE,

@@ -191,7 +191,7 @@ goseq_msigdb <- function(sig_genes, signatures = "c2BroadSets", data_pkg = "GSVA
                             doplot = TRUE, adjust = 0.1, pvalue = 0.1,
                             length_keytype = "transcripts", go_keytype = "entrezid",
                             goseq_method = "Wallenius", padjust_method = "BH",
-                            plot_title = "Enriched MSIG categories",
+                            plot_title = "Overrepresented MSIG categories",
                             expand_categories = FALSE,
                             excel = excel, add_trees = FALSE, gather_genes = FALSE, width = 20)
   return(go_result)

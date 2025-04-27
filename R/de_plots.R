@@ -259,6 +259,8 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
     coefficient_df <- coefficients[, c(xname, yname)]
   }
 
+  na_idx <- is.na(coefficient_df)
+  coefficient_df[na_idx] <- 0
   maxvalue <- max(coefficient_df) + 1.0
   minvalue <- min(coefficient_df) - 1.0
   plot <- plot_linear_scatter(df = coefficient_df, loess = loess, first = xname, second = yname,
@@ -1089,8 +1091,8 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
                                  fc_col = "logFC", p_col = "qvalue",
                                  color_high = "red", color_low = "blue",
                                  pval = 0.05, alpha = 0.4, logfc = 1.0, label_numbers = TRUE,
-                                 size = 2, shapes = TRUE, invert = FALSE,
-                                 label = 10, label_column = "hgnc_symbol", ...) {
+                                 size = 2, shapes = TRUE, invert = FALSE, outline = TRUE,
+                                 stroke = 1, label = 10, label_column = "hgnc_symbol", ...) {
   ## Set up the data frame which will describe the plot
 
   ## Example caller:
@@ -1099,6 +1101,10 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
   ##     logfc = logfc, pval = pval, invert = invert,
 
   arglist <- list(...)
+
+  if (!isTRUE(outline)) {
+    stroke <- NA
+  }
 
   ## A recent request was to color gene families within these plots.
   ## Below there is a short function,  recolor_points() which handles this.
@@ -1202,17 +1208,29 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
   names(plot_colors) <- c("c_insig", "a_upsig", "b_downsig")
 
   ## make the plot!
-  plt <- ggplot(data = df,
-                ## I am setting x, y, fill color, outline color, and the shape.
-                aes(x = .data[["avg"]],
-                    y = .data[["logfc"]],
-                    label = .data[["label"]],
-                    fill = as.factor(.data[["state"]]),
-                    colour = as.factor(.data[["state"]]),
-                    shape = as.factor(.data[["state"]]))) +
+  plt <- NULL
+  if (isTRUE(outline)) {
+    plt <- ggplot(data = df,
+                  ## I am setting x, y, fill color, outline color, and the shape.
+                  aes(x = .data[["avg"]],
+                      y = .data[["logfc"]],
+                      label = .data[["label"]],
+                      fill = as.factor(.data[["state"]]),
+                      colour = as.factor(.data[["state"]]),
+                      shape = as.factor(.data[["state"]])))
+  } else {
+    plt <- ggplot(data = df,
+                  ## I am setting x, y, fill color, outline color, and the shape.
+                  aes(x = .data[["avg"]],
+                      y = .data[["logfc"]],
+                      label = .data[["label"]],
+                      fill = as.factor(.data[["state"]]),
+                      shape = as.factor(.data[["state"]])))
+  }
+  plt <- plt +
     ggplot2::geom_hline(yintercept = c((logfc * -1.0), logfc),
                         color = "red", size=(size / 3)) +
-    ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    ggplot2::geom_point(stat = "identity", size = size, alpha = alpha, stroke = stroke)
   if (isTRUE(label_numbers)) {
     plt <- plt +
       ## The following scale_shape_manual() sets the labels of the legend on the right side.
@@ -1233,10 +1251,14 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
     ## Set the colors of the significant/insignificant points.
     ggplot2::scale_fill_manual(name = "state",
                                values = plot_colors,
-                               guide = "none") +
-    ggplot2::scale_color_manual(name = "state",
-                                values = plot_colors,
-                                guide = "none") +
+                               guide = "none")
+  if (isTRUE(outline)) {
+    plt <- plt +
+      ggplot2::scale_color_manual(name = "state",
+                                  values = plot_colors,
+                                  guide = "none")
+  }
+  plt <- plt +
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black")) +
     ggplot2::xlab("Average log2(Counts)") +
@@ -1705,9 +1727,8 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                  aes(label = .data[["label"]], y = .data[["logyaxis"]],
                                      x = .data[["xaxis"]]),
                                  colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
-                                 point.padding = ggplot2::unit(1.6, "lines"),
-                                 size = label_size, max.overlaps = num_labels * 2,
-                                 arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
+                                 size = label_size, max.overlaps = num_labels * 2, ...)
+##                                 arrow = ggplot2::arrow(length = ggplot2::unit(0.02, "npc")), ...)
     } else if (label_type == "normal") {
       plt <- plt +
         ggplot2::geom_text(data = df_subset,
@@ -1723,7 +1744,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       y = .data[["logyaxis"]], x = .data[["xaxis"]]),
                                   colour = "black", fill = "white",
                                   max.overlaps = num_labels * 2, size = label_size,
-                                  nudge_x = nudge_x, nudge_y = nudge_y)
+                                  nudge_x = nudge_x, nudge_y = nudge_y, ...)
     }
   }
 
@@ -2115,6 +2136,21 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
   return(retlist)
 }
 
+#' Mostly as a reminder of how to get the gene IDs from a specific group in an upset plot.
+#'
+#' Given a set of groups from upsetr, extract the elements from one of them.
+#' @param overlapping_groups Result from overlap_groups, which just makes an indexed
+#'  version of the genes by venn/upset group.
+#' @param group Name of the subset of interest, something like 'a:b' for the union of a:b.
+#' @export
+overlap_geneids <- function(overlapping_groups, group) {
+  portion <- overlapping_groups[[group]]
+  all_elements <- attr(overlapping_groups, "elements")
+  numeric_idx <- unique(as.numeric(portion))
+  gene_ids <- all_elements[numeric_idx]
+  return(gene_ids)
+}
+
 #' Extract overlapping groups from an upset
 #'
 #' Taken from: https://github.com/hms-dbmi/UpSetR/issues/85
@@ -2164,20 +2200,20 @@ overlap_groups <- function(input, sort = TRUE) {
   ## save element list to facilitate access using an index in case rownames are not named
 }
 
-#' Mostly as a reminder of how to get the gene IDs from a specific group in an upset plot.
-#'
-#' Given a set of groups from upsetr, extract the elements from one of them.
-#' @param overlapping_groups Result from overlap_groups, which just makes an indexed
-#'  version of the genes by venn/upset group.
-#' @param group Name of the subset of interest, something like 'a:b' for the union of a:b.
-#' @export
-overlap_geneids <- function(overlapping_groups, group) {
-  portion <- overlapping_groups[[group]]
-  all_elements <- attr(overlapping_groups, "elements")
-  numeric_idx <- unique(as.numeric(portion))
-  gene_ids <- all_elements[numeric_idx]
-  return(gene_ids)
-}
+#setMethod(
+#  "overlap_groups", signature = signature(input_mtrx = "upset", sort = "logical"),
+#  definition = function(input_mtrx, sort = sort) {
+#    new_mtrx <- input_mtrx == 1
+#    overlap_groups(new_mtrx, sort = sort)
+#  })
+#
+#setMethod(
+#  "overlap_groups", signature = signature(input_mtrx = "list", sort = "logical"),
+#  definition = function(input_mtrx, sort = sort) {
+#    input_upset <- UpSetR::fromList(input_mtrx)
+#    new_mtrx <- input_upset == 1
+#    overlap_groups(new_mtrx, sort = sort)
+#  })
 
 #' Make an upset plot of all up/down genes in a set of contrasts.
 #'
@@ -2259,6 +2295,18 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     "plot" = upset_combined)
   class(retlist) <- "combined_de_upset"
   return(retlist)
+}
+
+#' Print a summary from combine_de_upset
+#'
+#' @param x List produced by combined_de_upset
+#' @param ... Other args for the generic.
+#' @export
+print.combined_de_upset <- function(x, ...) {
+  summary_string <- glue("Plot describing unique/shared genes in a differential expression table.")
+  message(summary_string)
+  print(x[["plot"]])
+  return(invisible(x))
 }
 
 #' Use UpSetR to compare significant gene lists.

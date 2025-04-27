@@ -9,7 +9,7 @@ all_cprofiler(
   tables,
   according_to = "deseq",
   together = FALSE,
-  plot_type = "dotplot",
+  plot_type = "all",
   excel = "all_cp.xlsx",
   ...
 )
