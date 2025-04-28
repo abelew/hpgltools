@@ -953,25 +953,28 @@ Defaulting to fdr.")
     temp_helpfc <- cbind(as.numeric(comb[["limma_logfc"]]),
                      as.numeric(comb[["edger_logfc"]]),
                      as.numeric(comb[["deseq_logfc"]]))
-    temp_fc <- preprocessCore::normalize.quantiles(as.matrix(temp_fc))
-    comb[["lfc_meta"]] <- rowMeans(temp_fc, na.rm = TRUE)
-    comb[["lfc_var"]] <- genefilter::rowVars(temp_fc, na.rm = TRUE)
-    comb[["lfc_varbymed"]] <- comb[["lfc_var"]] / comb[["lfc_meta"]]
-    temp_p <- cbind(as.numeric(comb[["limma_p"]]),
-                    as.numeric(comb[["edger_p"]]),
-                    as.numeric(comb[["deseq_p"]]))
-    comb[["p_meta"]] <- rowMeans(temp_p, na.rm = TRUE)
-    comb[["p_var"]] <- genefilter::rowVars(temp_p, na.rm = TRUE)
-    if (is.numeric(format_sig)) {
-      comb[["lfc_meta"]] <- signif(x = comb[["lfc_meta"]], digits = format_sig)
-      comb[["lfc_var"]] <- format(x = comb[["lfc_var"]], digits = format_sig,
+    temp_fc <- try(preprocessCore::normalize.quantiles(as.matrix(temp_fc)), silent = TRUE)
+    ## I just got a strange error: 'vector types do not match in copyVector'
+    if (! "try-error" %in% class(temp_fc)) {
+      comb[["lfc_meta"]] <- rowMeans(temp_fc, na.rm = TRUE)
+      comb[["lfc_var"]] <- genefilter::rowVars(temp_fc, na.rm = TRUE)
+      comb[["lfc_varbymed"]] <- comb[["lfc_var"]] / comb[["lfc_meta"]]
+      temp_p <- cbind(as.numeric(comb[["limma_p"]]),
+                      as.numeric(comb[["edger_p"]]),
+                      as.numeric(comb[["deseq_p"]]))
+      comb[["p_meta"]] <- rowMeans(temp_p, na.rm = TRUE)
+      comb[["p_var"]] <- genefilter::rowVars(temp_p, na.rm = TRUE)
+      if (is.numeric(format_sig)) {
+        comb[["lfc_meta"]] <- signif(x = comb[["lfc_meta"]], digits = format_sig)
+        comb[["lfc_var"]] <- format(x = comb[["lfc_var"]], digits = format_sig,
+                                    scientific = TRUE, trim = TRUE)
+        comb[["lfc_varbymed"]] <- format(x = comb[["lfc_varbymed"]], digits = format_sig,
+                                         scientific = TRUE, trim = TRUE)
+        comb[["p_var"]] <- format(x = comb[["p_var"]], digits = format_sig,
                                   scientific = TRUE, trim = TRUE)
-      comb[["lfc_varbymed"]] <- format(x = comb[["lfc_varbymed"]], digits = format_sig,
-                                       scientific = TRUE, trim = TRUE)
-      comb[["p_var"]] <- format(x = comb[["p_var"]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-      comb[["p_meta"]] <- format(x = comb[["p_meta"]], digits = format_sig,
-                                 scientific = TRUE, trim = TRUE)
+        comb[["p_meta"]] <- format(x = comb[["p_meta"]], digits = format_sig,
+                                   scientific = TRUE, trim = TRUE)
+      }
     }
   }
   if (!is.null(annot_df)) {
