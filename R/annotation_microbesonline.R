@@ -12,8 +12,11 @@
 #' @param type File type(s) to download, if left null it will grab the genbank,
 #'  tab, protein fasta, transcript fasta, and genome.
 #' @return List describing the files downloaded and their locations.
-download_microbesonline_files <- function(id = "160490", type = NULL) {
+#' @example inst/examples/annotation_microbesonline.R
+#' @export
+download_microbesonline_files <- function(id = "160490", type = "gbk") {
   retlist <- list()
+
   gbk <- FALSE
   if (type == "gbk") {
     gbk <- TRUE
@@ -110,9 +113,7 @@ download_microbesonline_files <- function(id = "160490", type = NULL) {
 #' @param species String to search the set of microbesonline taxa.
 #' @return NULL or 1 or more taxon ids.
 #' @seealso [xml2]
-#' @examples
-#'  coli_taxids <- get_microbesonline_taxid(species = "coli S88")
-#'  head(coli_taxids)
+#' @example inst/examples/annotation_microbesonline.R
 #' @export
 get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
   id_url <- "http://microbesonline.org/cgi-bin/fetchGenome2.cgi?taxId=g1&byFavorites=1"
@@ -135,12 +136,12 @@ get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
   } else if (length(foundp) == 1) {
     result <- id_df[foundp, ]
     message("Found 1 entry.")
-    message(result)
+    message(toString(result))
     ret <- result[["tax_id"]]
   } else {
     result <- id_df[foundp, ]
     message("Found multiple entries.")
-    message(result)
+    message(toString(result))
     ret <- result[["tax_id"]]
     names(ret) <- result[["Genome"]]
   }
@@ -164,9 +165,7 @@ get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
 #' @param id Microbesonline ID to query.
 #' @return Dataframe containing the annotation information.
 #' @seealso [rvest] [xml2] [readr]
-#' @examples
-#'  pa14_microbesonline_annot <- load_microbesonline_annotations(species = "PA14")
-#'  colnames(pa14_microbesonline_annot)
+#' @example inst/examples/annotation_microbesonline.R
 #' @export
 load_microbesonline_annotations <- function(species = NULL, id = NULL) {
   if (is.null(id) & is.null(species)) {
@@ -211,9 +210,7 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
 #' @param name Allowing for non-specific searches by species name.
 #' @return data frame of GO terms from www.microbesonline.org
 #' @seealso [tidyr]
-#' @examples
-#'  pa14_microbesonline_go <- load_microbesonline_go(species = "PA14")
-#'  head(pa14_microbesonline_go)
+#' @example inst/examples/annotation_microbesonline.R
 #' @export
 load_microbesonline_go <- function(id = NULL, species = NULL, table_df = NULL, id_column = "name",
                                    data_column = "GO", name = NULL) {

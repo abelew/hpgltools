@@ -18,6 +18,32 @@
   ...
 )
 }
+\arguments{
+\item{data}{Expt, expressionset, or dataframe.}
+
+\item{design}{Eesign matrix.}
+
+\item{colors}{Color scheme.}
+
+\item{plot_labels}{How do you want to label the graph? 'fancy' will use
+directlabels() to try to match the labels with the positions without
+overlapping anything else will just stick them on a 45' offset next to the
+graphed point.}
+
+\item{expt_names}{Column or character list of preferred sample names.}
+
+\item{max_overlaps}{Permit this many labels to overlap before dropping some.}
+
+\item{label_chars}{How many characters for sample names before abbreviation.}
+
+\item{plot_legend}{Print a legend for this plot?}
+
+\item{plot_title}{Add a title?}
+
+\item{cutoff}{Minimum proportion (or number) of genes below which samples might be in trouble.}
+
+\item{...}{rawr!}
+}
 \description{
 Make a nonzero plot given a SummarizedExperiment
 }

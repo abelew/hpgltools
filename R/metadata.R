@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Figure out when mappings were performed by their timestamp
 #'
 #' I got bit in the butt by mismatching ensembl IDs from some older
@@ -46,6 +49,11 @@ check_metadata_year <- function(metadata = NULL, column = NULL) {
 #' Use the heuristic that any column with a number of different
 #' elements which is <= (samples / ratio) has a reasonable chance of
 #' being usable as a categorical.
+#'
+#' @param meta_df Input metadata.
+#' @param ratio Heuristic of levels/ratio as the maximum number of
+#'  allowed levels in the new factor.  If the putative number of
+#'  levels is more than this, then assume it is not a factor.
 guess_factors <- function(meta_df, ratio = 3) {
   guesses <- c()
   num_samples <- nrow(meta_df)
@@ -73,6 +81,7 @@ guess_factors <- function(meta_df, ratio = 3) {
 #' @param fill Fill missing data with this.
 #' @param fill_condition Add a condition column if there is not one?
 #' @param fill_batch Add a batch column if there is not one?
+#' @param keep_underscore Sanitize underscores?
 #' @param sanitize Perform my various sanitizers on the data?
 #' @param ... Arguments to pass to the child functions (read_csv etc).
 #' @return Metadata dataframe hopefully cleaned up to not be obnoxious.
@@ -304,10 +313,16 @@ analyses more difficult/impossible.")
 #' @param new_metadata Filename to which to write the new metadata
 #' @param species Define a desired species when file hunting.
 #' @param type Define a feature type when file hunting.
+#' @param subtype More specific type in the file spec.
+#' @param tag Filename tag.
 #' @param verbose Currently just used to debug the regexes.
+#' @param id_column Column number or name containing the gene IDs.
+#' @param r1_input_column Column containing the required names.
+#' @param r2_input_column Ibid.
+#' @param md5 Seek out and/or calculate md5 checksums for this column?
 #' @param ... This is one of the few instances where I used
 #' ... intelligently.  Pass extra variables to the file specification
-#' and glue will pick them up (note the {species} entries in the
+#' and glue will pick them up (note the species entries in the
 #' example specifications.
 #' @return For the moment it just returns the modified metadata, I
 #'  suspect there is something more useful it should do.
@@ -316,6 +331,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
                                           basedir = "preprocessing", new_metadata = NULL,
                                           species = "*", type = "genome", subtype = "gene",
                                           tag = "ID", verbose = FALSE, id_column = 1,
+                                          r1_input_column = NULL, r2_input_column = NULL,
                                           md5 = FALSE, ...) {
   ## I want to create a set of specifications for different tasks:
   ## tnseq/rnaseq/assembly/phage/phylogenetics/etc.
@@ -488,8 +504,11 @@ print.preprocessing_metadata <- function(x, ...) {
 #'  or to just get rid of this function.
 #' @param basedir Root directory containing the files/logs of metadata.
 #' @param verbose used for testing regexes.
+#' @param new_spec New specification resulting from this invocation.
 #' @param species Choose a specific species for which to search (for filenames generally).
 #' @param type Set the type of file to search.
+#' @param subtype Specific annotation type to seek.
+#' @param tag GFF tag to use when seeking IDs.
 #' @param ... passed to glue to add more variables to the file spec.
 #' @return Vector of entries which will be used to populate the new
 #'  column in the metadata.
@@ -1449,6 +1468,9 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
 #' @param species Specify a species to search for.
 #' @param basedir Root directory containing the files/logs of metadata.
 #' @param type Add columns for only the genome mapping and/or rRNA by default.
+#' @param subtype A specific annotation type to seek.
+#' @param tag GFF tag to use for IDs.
+#' @param new_spec New specification resulting from this function.
 #' @param inverse Count the lines that do _not_ match the pattern.
 dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbose,
                                  species = "*", basedir = "preprocessing",
@@ -1505,7 +1527,19 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
   return(output_entries)
 }
 
+#' Given an arbitrary input column, get the sum of its values.
+#'
 #' Note: This is not taking some important things into account yet.
+#'
+#' @param meta Input metadata
+#' @param input_file_spec Filename specification to seek out the input data.
+#' @param verbose Be verbose about what is happening?
+#' @param species Choose a specific species, or all.
+#' @param basedir Start searching here.
+#' @param type Analysis type to search.
+#' @param subtype Specific annotation type to search.
+#' @param new_spec New specification resulting from this invocation.
+#' @param tag GFF tag used to extract IDs.
 dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
                                 species = "*", basedir = "preprocessing",
                                 type = "genome", subtype = "gene",
@@ -1561,7 +1595,7 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
       num_hits <- sum(input_df)
     } else {
       drop_idx <- grepl(x = names(input_df), pattern = "^_")
-      input_df <- input_df[!keep_idx]
+      input_df <- input_df[!drop_idx]
       num_hits <- sum(input_df)
     }
     output_entries[row] <- num_hits
@@ -1613,8 +1647,12 @@ dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
 #'  file of interest.
 #' @param verbose Print diagnostic information while running?
 #' @param species Specify a species to search for, or '*' for anything.
-#' @param type Some likely filename searches may be for genome vs. rRNA vs other feature types.
+#' @param type Some likely filename searches may be for genome
+#'  vs. rRNA vs other feature types.
+#' @param subtype Specific annotation type to seek.
+#' @param tag GFF tag from which to seek IDs.
 #' @param basedir Root directory containing the files/logs of metadata.
+#' @param new_spec New specification resulting from this.
 dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
                                      species = "*", type = "genome", subtype = "gene",
                                      tag = "ID", basedir = "preprocessing", new_spec = NULL) {
@@ -1661,9 +1699,10 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
 #' @param input_file_spec Input file specification to hunt down the
 #'  file of interest.
 #' @param verbose Print diagnostic information while running?
+#' @param new_spec New specification from this.
 #' @param basedir Root directory containing the files/logs of metadata.
 dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
-                        basedir = "preprocessing") {
+                        new_spec = NULL, basedir = "preprocessing") {
   filenames_with_wildcards <- glue(input_file_spec)
   if (isTRUE(verbose)) {
     message("Example gc filename: ", filenames_with_wildcards[1], ".")
@@ -1726,8 +1765,11 @@ dispatch_md5 <- function(meta, input_file_spec) {
 #' @param numerator_column what it says on the tin.
 #' @param denominator_column what it says on the tin.
 #' @param digits Number of significant digits to keep in the output.
-#' @param numerator_add Add this column to the numerator in case one needs multiple columns.
+#' @param numerator_add Add this column to the numerator in case one
+#'  needs multiple columns.
 #' @param verbose unsed for the moment.
+#' @param as Recast the data to this type.
+#' @param species Search a specific species, or all.
 dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
                                     denominator_column = NULL, digits = 3,
                                     numerator_add = FALSE, verbose = FALSE,
@@ -1807,6 +1849,7 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 #'  outputs if this changes, but for the moment I am sort of assuming
 #'  \\1 will always suffice.
 #' @param which Usually 'first', which means grab the first match and get out.
+#' @param new_spec New specification resulting from this invocation.
 #' @param as Coerce the output to a specific data type (numeric/character/etc).
 #' @param verbose For testing regexes.
 #' @param type Make explicit the type of data (genome/rRNA/Tx/etc).
@@ -1933,6 +1976,8 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
 #' @param chosen_func If set, use this function to summarize the result.
 #' @param species Specify a species, or glob it.
 #' @param type Specify a type of search, usually genome and/or rRNA.
+#' @param subtype Specific annotation type to seek.
+#' @param tag GFF tag to use for IDs.
 #' @param basedir Root directory containing the files/logs of metadata.
 #' @param which Take the first entry, or some subset.
 #' @param verbose Print diagnostic information while running?
@@ -2016,7 +2061,7 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
 
 #' Produce plots of metadata factor(s) of interest.
 #'
-#' @param expt Input expressionset.
+#' @param input Input expressionset.
 #' @param column Currently a single, but soon multiple column(s) of metadata.
 #' @param second_column Or perhaps put other columns here.
 #' @param norm_column Normalize the data?
@@ -2024,10 +2069,11 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
 #' @param scale Rescale the data?
 #' @return ggplot and maybe some form of useful table.
 #' @export
-plot_metadata_factors <- function(expt, column = "hisatsinglemapped", second_column = NULL,
+plot_metadata_factors <- function(input, column = "hisatsinglemapped", second_column = NULL,
                                   norm_column = NULL, type = NULL, scale = "base10") {
-  design <- as.data.frame(pData(expt))
-  color_choices <- get_expt_colors(expt)
+  condition <- plotted <- NULL ## R CMD check
+  design <- as.data.frame(pData(input))
+  color_choices <- get_input_colors(input)
   meta_plot <- NULL
   if (is.null(type)) {
     meta_plot <- ggplot(design, aes(x = .data[["condition"]], y = .data[[column]])) +
@@ -2196,7 +2242,7 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
   }
   retlist <- list(
     "design" = design,
-    "factor" = factors,
+    "factors" = factors,
     "observed_nodes" = unique(plot_df[["node"]]))
 
   if (fill == "node") {
@@ -2251,14 +2297,42 @@ and traversing metadata factors:
 }
 
 #' Feed an expt to a sankey plot.
+#' @param design Metadata from which to extract the categories/numbers.
+#' @param factors Factors/columns in the metadata to count and plot.
+#' @param fill Use either the current or next node for coloring the transitions.
+#' @param font_size Chosen font size, perhaps no longer needed?
+#' @param node_width Make nodes more or less rectangular with this.
+#' @param color_choices Either a named vector of states and colors, or NULL
+#'  (in which case it will use viridis.)
+#' @param drill_down When true, this will end in the product of the
+#'  factor levels number of final states. (e.g. if there are 2 sexes,
+#'  3 visits, and 4 genotypes, there will be 2, 6, 24 states going
+#' from right to left).  If FALSE, there will be 2,3,4 states going
+#' from right to left.
 #' @export
 setMethod(
   "plot_meta_sankey", signature = signature(design = "expt"),
   definition = function(design, factors = c("condition", "batch"),
-                        color_choices = NULL) {
+                        fill = "node", font_size = 18, node_width = 30,
+                        color_choices = NULL, drill_down = TRUE) {
     design <- pData(design)
-    plot_meta_sankey(design, factors = factors,
-                     color_choices = color_choices)
+    plot_meta_sankey(design, factors = factors, fill = fill,
+                     font_size = font_size, node_width = node_width,
+                     color_choices = color_choices, drill_down = drill_down)
+  })
+
+#' Using plot_meta_sankey on a SE is basically the same as an expt.
+#'
+#' @inheritParams plot_meta_sankey
+setMethod(
+  "plot_meta_sankey", signature = signature(design = "SummarizedExperiment"),
+  definition = function(design, factors = c("condition", "batch"),
+                        fill = "node", font_size = 18, node_width = 30,
+                        color_choices = NULL, drill_down = TRUE) {
+    design <- colData(design)
+    plot_meta_sankey(design, factors = factors, fill = fill, font_size = font_size,
+                     node_width = node_width, color_choices = color_choices,
+                     drill_down = drill_down)
   })
 
 ## I might want to just delete this, I think the ggplot version is better.
@@ -2349,7 +2423,6 @@ plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch
   return(retlist)
 }
 
-
 #' Given a table of meta data, read it in for use by create_expt().
 #'
 #' Reads an experimental design in a few different formats in preparation for
@@ -2360,6 +2433,8 @@ plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch
 #' @param header Used by read.csv, is there a header?
 #' @param sheet Used for excel/etc, which sheet to read?
 #' @param comment Skip rows starting with this (in the first cell of the row if not a text file).
+#' @param sanitize Sanitize the results?
+#' @param sanitize_underscore including underscores!?
 #' @param ... Arguments for arglist, used by sep, header and similar
 #'  read_csv/read.table parameters.
 #' @return Df of metadata.
@@ -2631,6 +2706,11 @@ tar_meta_column <- function(meta, column = "hisatcounttable", output = NULL, com
 setGeneric("tar_meta_column")
 
 #' Make a tarball using a metadata column given an xlsx file.
+#'
+#' @param meta dataframe of the good stuff.
+#' @param column Column containing filenames to archive.
+#' @param output Output prefix for the tarball's name.
+#' @param compression Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?
 #' @export
 setMethod(
   "tar_meta_column", signature = signature(meta = "character"),

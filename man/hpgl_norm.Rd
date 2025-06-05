@@ -28,12 +28,67 @@ hpgl_norm(
   cv_max = 1,
   entry_type = "gene",
   adjust_method = "ruv",
-  surrogates = "be",
+  num_surrogates = "be",
+  length_column = "length",
+  cpus = 4,
+  noscale = FALSE,
   ...
 )
 }
 \arguments{
 \item{data}{Some data as a df/expt/whatever.}
+
+\item{expt_state}{State of the input data.}
+
+\item{design}{experimental design.}
+
+\item{transform}{Desired transformation.}
+
+\item{norm}{Desired normalization.}
+
+\item{convert}{Desired conversion.}
+
+\item{batch}{Desired batch estimator/adjuster.}
+
+\item{batch1}{Factor containing the primary batch factor.}
+
+\item{batch2}{Factor containing secondary batch factor.}
+
+\item{low_to_zero}{Push values < 0 to zero.}
+
+\item{filter}{Filter the data before SV searching.}
+
+\item{annotations}{Annotation source.}
+
+\item{fasta}{Input fasta file (for rpkm I assume)}
+
+\item{thresh}{threshold number of reads/gene.}
+
+\item{batch_step}{When to perform batch correction.}
+
+\item{min_samples}{Requisite number of samples for collapsing.}
+
+\item{p}{p-value cutoff.}
+
+\item{k}{K!}
+
+\item{A}{A}
+
+\item{cv_min}{Minimum coefficient of variance.}
+
+\item{cv_max}{Maximum allowed coefficient of variance.}
+
+\item{entry_type}{Specific annotation type for matching rpkm lengths.}
+
+\item{adjust_method}{Adjustment method when seeking SVs}
+
+\item{num_surrogates}{Explicit number or character describing how  many SVs}
+
+\item{length_column}{annotation column containing gene lengths.}
+
+\item{cpus}{deprecated: Number of cpus to use.}
+
+\item{noscale}{Used by combat.}
 
 \item{...}{I should put all those other options here}
 }
@@ -44,6 +99,9 @@ edgeR's DGEList expression of a count table.  This seems to
 \description{
 There are many possible options to this function.  Refer to normalize_expt()
 for a more complete list.
+}
+\details{
+FIXME: This function is defunct and should be deleted in favor of normalize()
 }
 \examples{
 \dontrun{

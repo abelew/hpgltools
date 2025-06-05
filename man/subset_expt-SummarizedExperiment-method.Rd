@@ -4,8 +4,34 @@
 \alias{subset_expt,SummarizedExperiment-method}
 \title{Subset a SummarizedExperiment with some extra syntax.}
 \usage{
-\S4method{subset_expt}{SummarizedExperiment}(expt, subset = NULL, ids = NULL, nonzero = NULL, coverage = NULL)
+\S4method{subset_expt}{SummarizedExperiment}(
+  expt,
+  subset = NULL,
+  ids = NULL,
+  nonzero = NULL,
+  coverage = NULL,
+  print_excluded = TRUE
+)
+}
+\arguments{
+\item{expt}{Expt chosen to extract a subset of data.}
+
+\item{subset}{Valid R expression which defines a subset of the design to keep.}
+
+\item{ids}{List of sample IDs to extract.}
+
+\item{nonzero}{Look for a minimal number of nonzero genes.}
+
+\item{coverage}{Request a minimum coverage/sample rather than text-based subset.}
+
+\item{print_excluded}{Print out the samples which are removed via this filter?}
+}
+\value{
+metadata Expt class which contains the smaller set of data.
 }
 \description{
 Subset a SummarizedExperiment with some extra syntax.
+}
+\seealso{
+[Biobase] [pData()] [exprs()] [fData()]
 }

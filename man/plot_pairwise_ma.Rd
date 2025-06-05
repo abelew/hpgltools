@@ -4,10 +4,14 @@
 \alias{plot_pairwise_ma}
 \title{Plot all pairwise MA plots in an experiment.}
 \usage{
-plot_pairwise_ma(data, log = NULL, ...)
+plot_pairwise_ma(data, colors = NULL, design = NULL, log = NULL, ...)
 }
 \arguments{
 \item{data}{Expt expressionset or data frame.}
+
+\item{colors}{Vector of colors to use in the plot.}
+
+\item{design}{Input design!}
 
 \item{log}{Is the data in log format?}
 

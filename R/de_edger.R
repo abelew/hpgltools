@@ -21,13 +21,9 @@
 #'
 #' @param input Dataframe/vector or expt class containing data, normalization
 #'  state, etc.
-#' @param conditions Factor of conditions in the experiment.
-#' @param batches Factor of batches in the experiment.
-#' @param model_cond Include condition in the experimental model?
-#' @param model_batch Include batch in the model?  In most cases this is a good
-#'  thing(tm).
-#' @param model_intercept Use an intercept containing model?
-#' @param alt_model Alternate experimental model to use?
+#' @param model_fstring Formula string describing the model of interest.
+#' @param null_fstring Formula string describing the null hypothesis.
+#' @param model_svs Matrix or character describing the SVs or how to get them.
 #' @param extra_contrasts Add some extra contrasts to add to the list of
 #'  pairwise contrasts. This can be pretty neat, lets say one has conditions
 #'  A,B,C,D,E and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
@@ -36,8 +32,12 @@
 #' @param annot_df Annotation information to the data tables?
 #' @param force Force edgeR to accept inputs which it should not have to deal with.
 #' @param keepers Ask for a specific set of contrasts instead of all.
+#' @param filter Filter the data before seeking SVs?
 #' @param edger_method  I found a couple/few ways of doing edger in the manual,
 #'  choose with this.
+#' @param edger_test Test type used to define differential expression.
+#' @param keep_underscore Sanitize out the underscores?
+#' @param num_surrogates Explicit number of SVs to seek or a way to guesstimate it.
 #' @param ... The elipsis parameter is fed to write_edger() at the end.
 #' @return List including the following information:
 #'  contrasts = The string representation of the contrasts performed.
@@ -58,7 +58,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                            extra_contrasts = NULL, annot_df = NULL,
                            force = FALSE, keepers = NULL, filter = FALSE,
                            edger_method = "long", edger_test = "lrt",
-                           keep_underscore = FALSE, num_surrogates = "be",
+                           keep_underscore = TRUE, num_surrogates = "be",
                            ...) {
   arglist <- list(...)
 
@@ -80,8 +80,9 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   if ("character" %in% class(model_svs)) {
     model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
                                       null_fstring = null_fstring,
-                                      estimate_type = model_svs,
-                                      surrogates = num_surrogates,
+                                      model_svs = model_svs,
+                                      num_surrogates = num_surrogates,
+                                      filter = filter,
                                       ...)
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]

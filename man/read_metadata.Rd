@@ -26,6 +26,10 @@ read_metadata(
 
 \item{comment}{Skip rows starting with this (in the first cell of the row if not a text file).}
 
+\item{sanitize}{Sanitize the results?}
+
+\item{sanitize_underscore}{including underscores!?}
+
 \item{...}{Arguments for arglist, used by sep, header and similar
 read_csv/read.table parameters.}
 }

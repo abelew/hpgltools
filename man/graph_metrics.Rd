@@ -5,7 +5,7 @@
 \title{Make lots of graphs!}
 \usage{
 graph_metrics(
-  expt,
+  input,
   cormethod = "pearson",
   distmethod = "euclidean",
   title_suffix = NULL,
@@ -17,7 +17,7 @@ graph_metrics(
 )
 }
 \arguments{
-\item{expt}{an expt to process}
+\item{input}{an input to process}
 
 \item{cormethod}{The correlation test for heatmaps.}
 
@@ -63,9 +63,9 @@ qq plots.
 }
 \examples{
 \dontrun{
- toomany_plots <- graph_metrics(expt)
+ toomany_plots <- graph_metrics(input)
  toomany_plots$pcaplot
- norm <- normalize_expt(expt, convert = "cpm", batch = TRUE, filter_low = TRUE,
+ norm <- normalize_input(input, convert = "cpm", batch = TRUE, filter_low = TRUE,
                         transform = "log2", norm = "rle")
  holy_asscrackers <- graph_metrics(norm, qq = TRUE, ma = TRUE)
 }

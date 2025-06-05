@@ -8,6 +8,8 @@
 #' @export
 plot_exprs_by_chromosome <- function(expt, chromosome_column = "chromosome", scaffolds = TRUE,
                                      min_genes = 10) {
+  ## Shush, R CMD check
+  exprs_mean <- genes <- exprs_var <- NULL
   start <- data.frame(row.names = unique(fData(expt)[["chromosome"]]))
   start[["genes"]] <- 0
   start[["exprs_mean"]] <- 0
@@ -103,6 +105,10 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
     colors <- grDevices::colorRampPalette(pal)(ncol(mtrx))
   }
 
+  ## Exclude any NAs
+  na_idx <- is.na(mtrx)
+  mtrx[na_idx] <- 0
+
   ## Get conditions
   if (is.null(condition)) {
     stop("Missing condition label vector.")
@@ -178,6 +184,19 @@ setMethod(
   })
 
 #' Run plot_libsize() with a dataframe as input.
+#'
+#' @param data SummarizedExperiment presumably created by create_se().
+#' @param condition Set of conditions observed in the metadata, overriding
+#'  the metadata in the SE.
+#' @param colors Set of colors for the plot, overriding the SE metadata.
+#' @param text Print text with the counts/sample observed at the top of the bars?
+#' @param order Optionally redefine the order of the bars of the plot.
+#' @param plot_title Plot title!
+#' @param yscale Explicitly set the scale on the log or base10 scale.
+#' @param expt_names Optionally change the names of the bars.
+#' @param label_chars If the names of the bars are larger than this, abbreviate them.
+#' @param ... Additonal arbitrary arguments.
+#' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
   "plot_libsize", signature = signature(data = "data.frame", condition = "factor",
@@ -192,6 +211,19 @@ setMethod(
   })
 
 #' Run plot_libsize() with an expt as input.
+#'
+#' @param data SummarizedExperiment presumably created by create_se().
+#' @param condition Set of conditions observed in the metadata, overriding
+#'  the metadata in the SE.
+#' @param colors Set of colors for the plot, overriding the SE metadata.
+#' @param text Print text with the counts/sample observed at the top of the bars?
+#' @param order Optionally redefine the order of the bars of the plot.
+#' @param plot_title Plot title!
+#' @param yscale Explicitly set the scale on the log or base10 scale.
+#' @param expt_names Optionally change the names of the bars.
+#' @param label_chars If the names of the bars are larger than this, abbreviate them.
+#' @param ... Additonal arbitrary arguments.
+#' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
   "plot_libsize", signature = signature(data = "expt"),
@@ -199,14 +231,27 @@ setMethod(
                         order = NULL, plot_title = NULL, yscale = NULL,
                         expt_names = NULL, label_chars = 10, ...) {
     mtrx <- exprs(data)
-    condition <- pData(data)[["condition"]]
-    colors = data[["colors"]]
+    condition <- conditions(data)
+    colors = get_colors(data)
     plot_libsize(mtrx, condition = condition, colors = colors, text = text,
                  order = order, plot_title = plot_title, yscale = yscale,
                  expt_names = expt_names, label_chars = label_chars, ...)
   })
 
 #' Run plot_libsize() with an ExpressionSet as input.
+#'
+#' @param data SummarizedExperiment presumably created by create_se().
+#' @param condition Set of conditions observed in the metadata, overriding
+#'  the metadata in the SE.
+#' @param colors Set of colors for the plot, overriding the SE metadata.
+#' @param text Print text with the counts/sample observed at the top of the bars?
+#' @param order Optionally redefine the order of the bars of the plot.
+#' @param plot_title Plot title!
+#' @param yscale Explicitly set the scale on the log or base10 scale.
+#' @param expt_names Optionally change the names of the bars.
+#' @param label_chars If the names of the bars are larger than this, abbreviate them.
+#' @param ... Additonal arbitrary arguments.
+#' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
   "plot_libsize", signature = signature(data = "ExpressionSet"),
@@ -219,6 +264,34 @@ setMethod(
                  text = text, order = order, plot_title = plot_title,
                  yscale = yscale, expt_names = expt_names, label_chars = label_chars,
                  ...)
+  })
+
+#' Run plot_libsize() with an expt as input.
+#'
+#' @param data SummarizedExperiment presumably created by create_se().
+#' @param condition Set of conditions observed in the metadata, overriding
+#'  the metadata in the SE.
+#' @param colors Set of colors for the plot, overriding the SE metadata.
+#' @param text Print text with the counts/sample observed at the top of the bars?
+#' @param order Optionally redefine the order of the bars of the plot.
+#' @param plot_title Plot title!
+#' @param yscale Explicitly set the scale on the log or base10 scale.
+#' @param expt_names Optionally change the names of the bars.
+#' @param label_chars If the names of the bars are larger than this, abbreviate them.
+#' @param ... Additonal arbitrary arguments.
+#' @return Plot of library sizes and a couple tables describing the data.
+#' @export
+setMethod(
+  "plot_libsize", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, condition = NULL, colors = NULL, text = TRUE,
+                        order = NULL, plot_title = NULL, yscale = NULL,
+                        expt_names = NULL, label_chars = 10, ...) {
+    mtrx <- assay(data)
+    condition <- conditions(data)
+    colors = get_colors(data)
+    plot_libsize(mtrx, condition = condition, colors = colors, text = text,
+                 order = order, plot_title = plot_title, yscale = yscale,
+                 expt_names = expt_names, label_chars = label_chars, ...)
   })
 
 #' Print the library sizes from an experiment.
@@ -246,6 +319,8 @@ ranging from ", prettyNum(min_value, big.mark = ","),
 #' @param expt Input expressionset.
 #' @param low_limit Threshold to define 'low-representation.'
 #' @param filter Method used to low-count filter the data.
+#' @param num_color Color for the numbers in the bars.
+#' @param num_size Size of said numbers.
 #' @param ... Extra arbitrary arguments to pass to normalize_expt()
 #' @return Bar plot showing the number of genes below the low_limit before and
 #'  after filtering the data.

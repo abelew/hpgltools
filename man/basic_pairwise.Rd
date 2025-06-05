@@ -19,27 +19,21 @@ basic_pairwise(
 \arguments{
 \item{input}{Count table by sample.}
 
+\item{model_fstring}{Formula string which describes the experimental model.}
+
+\item{null_fstring}{Formula string describing the null hypothesis (not used).}
+
+\item{model_svs}{Method to extract surrogate variables (not used).}
+
+\item{annot_df}{Extra annotation dataframe.}
+
 \item{keepers}{Set of specific contrasts to perform instead of all.}
 
 \item{fx}{What function to use for mean/median?}
 
+\item{keep_underscore}{Sanitize model underscores?}
+
 \item{...}{Extra options passed to arglist.}
-
-\item{design}{Data frame of samples and conditions.}
-
-\item{conditions}{Not currently used, but passed from all_pairwise()}
-
-\item{batches}{Not currently used, but passed from all_pairwise()}
-
-\item{model_cond}{Not currently used, but passed from all_pairwise()}
-
-\item{model_intercept}{Not currently used, but passed from all_pairwise()}
-
-\item{alt_model}{Not currently used, but passed from all_pairwise()}
-
-\item{model_batch}{Not currently used, but passed from all_pairwise()}
-
-\item{force}{Force as input non-normalized data?}
 }
 \value{
 Df of pseudo-logFC, p-values, numerators, and denominators.

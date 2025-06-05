@@ -27,127 +27,6 @@ backup_file <- function(backup_file, backups = 4) {
   }
 }
 
-#' Grab a copy of all bioconductor packages and install them by type
-#'
-#' This uses jsonlite to get a copy of all bioconductor packages by name and
-#' then iterates through them with BiocManager to install all of them.  It
-#' performs a sleep between each installation in an attempt to avoid being
-#' obnoxious.  As a result, it will of a necessity take forever.
-#'
-#' @param release Bioconductor release to use, should probably be adjusted to
-#'  automatically find it.
-#' @param mirror Bioconductor mirror to use.
-#' @param base Base directory on the mirror to download from.
-#' @param type Type in the tree to use (software or annotation)
-#' @param suppress_updates For BiocLite(), don't update?
-#' @param suppress_auto For BiocLite(), don't update?
-#' @param force Install if already installed?
-#' @return a number of packages installed
-#' @seealso [BiocManager] [jsonlite]
-#' @examples
-#' \dontrun{
-#'  go_get_some_coffee_this_will_take_a_while <- bioc_all()
-#' }
-#' @export
-bioc_all <- function(release = NULL,
-                     mirror = "bioconductor.statistik.tu-dortmund.de",
-                     base = "packages", type = "software",
-                     suppress_updates = TRUE, suppress_auto = TRUE, force = FALSE) {
-  if (is.null(release)) {
-    release <- as.character(BiocManager::version())
-  }
-  dl_url <- glue("https://{mirror}/{base}/json/{release}/tree.json")
-  ## dl_url <- "https://bioc.ism.ac.jp/packages/json/3.3/tree.json"
-  suc <- c()
-  ## Sadly, biocLite() does not give different returns for a successfully/failed
-  ## install. Instead it always returns a character of the package(s) requested.
-  ## That seems dumb to me, but what do I know.
-  fail <- c()
-  alr <- c()
-  ## Soemthing is weird with the libcurl on the cluster...
-  test <- download.file(url = dl_url, destfile = "test.json")
-  pkg_list <- jsonlite::fromJSON("test.json")
-  pkg_names <- pkg_list[["attr"]][["packageList"]]
-  software_names <- strsplit(x = pkg_names[[1]], split = ",")[[1]]
-  annotation_names <- strsplit(x = pkg_names[[2]], split = ",")[[1]]
-  ## experiment_names <- strsplit(x = pkg_names[[3]], split = ",")[[1]]
-  ## It appears that with bioconductor release 3.4,
-  ## experiment has been folded into annotation.
-  installed <- list(succeeded = c(), failed = c(), already = c())
-  attempt <- function(pkg, update = suppress_updates, auto = suppress_auto,
-                      forceme = force,
-                      state = list(succeeded = c(),
-                                   failed = c(),
-                                   already = c())) {
-    sleep <- 10
-    suc <- state[["succeeded"]]
-    fail <- state[["failed"]]
-    alr <- state[["already"]]
-    message("Installing: ", pkg)
-    if (isTRUE(forceme)) {
-      installedp <- sm(try(BiocManager::install(pkg, ask = FALSE,
-                                                suppressUpdates = update,
-                                                suppressAutoUpdate = auto)))
-      if (class(installedp) == "try-error") {
-        fail <- append(fail, pkg)
-      } else {
-        install_directory <- glue("{.libPaths()[1]}/{pkg}")
-        if (file.exists(install_directory)) {
-          suc <- append(suc, pkg)
-        } else {
-          fail <- append(fail, pkg)
-        }
-      }
-    } else {
-      if (isTRUE(pkg %in% .packages(all.available = TRUE))) {
-        message("Package ", pkg,  " is already installed.")
-        alr <- append(alr, pkg)
-        sleep <- 0
-      } else {
-        installedp <- try(sm(BiocManager::install(pkg, ask = FALSE,
-                                                  suppressUpdates = update,
-                                                  suppressAutoUpdate = auto)))
-        if (class(installedp) == "try-error") {
-          fail <- append(fail, pkg)
-        } else {
-          install_directory <- glue("{.libPaths()[1]}/{pkg}")
-          if (file.exists(install_directory)) {
-            suc <- append(suc, pkg)
-          } else {
-            fail <- append(fail, pkg)
-          }
-        }
-      }
-    }
-    Sys.sleep(sleep)
-    ret <- list(
-      "succeeded" = suc,
-      "failed" = fail,
-      "already" = alr)
-    return(ret)
-  } ## End attempt
-  if (type == "software") {
-    for (pkg in software_names) {
-      installed <- attempt(pkg, state = installed)
-    }
-  } else if (type == "annotation") {
-    for (pkg in annotation_names) {
-      installed <- attempt(pkg, state = installed)
-    }
-  } else {
-    software_installed <- bioc_all(release = release,
-                                   mirror = mirror, base = base,
-                                   type = "software")
-    annotation_installed <- bioc_all(release = release,
-                                     mirror = mirror, base = base,
-                                     type = "annotation")
-    installed <- list(
-      "software" = software_installed,
-      "annotation" = annotation_installed)
-  }
-  return(installed)
-}
-
 #' Clear an R session, this is probably unwise given what I have read about R.
 #'
 #' @param keepers List of namespaces to leave alone (unimplemented).
@@ -449,7 +328,7 @@ local_get_value <- function(x, delimiter = ": ") {
 #' @return Factor with levels from q1 to q4.
 #' @export
 make_quartile_factor <- function(numeric_vector) {
-  new_factor <- as.factor(paste0("q", ntile(numeric_vector, 4)))
+  new_factor <- as.factor(paste0("q", dplyr::ntile(numeric_vector, 4)))
   return(new_factor)
 }
 
@@ -460,7 +339,7 @@ make_quartile_factor <- function(numeric_vector) {
 #' @return Factor with levels from q1 to q4.
 #' @export
 make_ntile_factor <- function(numeric_vector, n) {
-  new_factor <- as.factor(paste0("n", ntile(numeric_vector), n))
+  new_factor <- as.factor(paste0("n", dplyr::ntile(numeric_vector), n))
   return(new_factor)
 }
 

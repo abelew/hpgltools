@@ -13,6 +13,20 @@
   ...
 )
 }
+\arguments{
+\item{data}{Expressionset/epxt to poke at.}
+
+\item{design}{Specify metadata if necessary.}
+
+\item{x_axis}{Factor in the experimental design we may use to group the data
+and calculate the dispersion metrics.}
+
+\item{colors}{Set of colors to use when making the violins}
+
+\item{plot_title}{Optional title to include with the plot.}
+
+\item{...}{Extra arguments to pass along.}
+}
 \description{
 Plot the coefficient of variance values of a SummarizedExperiment.
 }

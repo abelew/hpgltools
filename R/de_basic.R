@@ -20,16 +20,13 @@
 #' those, it is purposefully stupid.
 #'
 #' @param input Count table by sample.
-#' @param design Data frame of samples and conditions.
-#' @param conditions Not currently used, but passed from all_pairwise()
-#' @param batches Not currently used, but passed from all_pairwise()
-#' @param model_cond Not currently used, but passed from all_pairwise()
-#' @param model_intercept Not currently used, but passed from all_pairwise()
-#' @param alt_model Not currently used, but passed from all_pairwise()
-#' @param model_batch Not currently used, but passed from all_pairwise()
-#' @param force Force as input non-normalized data?
+#' @param model_fstring Formula string which describes the experimental model.
+#' @param null_fstring Formula string describing the null hypothesis (not used).
+#' @param model_svs Method to extract surrogate variables (not used).
+#' @param annot_df Extra annotation dataframe.
 #' @param keepers Set of specific contrasts to perform instead of all.
 #' @param fx What function to use for mean/median?
+#' @param keep_underscore Sanitize model underscores?
 #' @param ... Extra options passed to arglist.
 #' @return Df of pseudo-logFC, p-values, numerators, and denominators.
 #' @seealso [deseq_pairwise()] [limma_pairwise()] [edger_pairwise()] [ebseq_pairwise()]
@@ -136,7 +133,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     t_data <- vector("list", nrow(xdata))
     p_data <- vector("list", nrow(xdata))
     for (j in seq_len(nrow(xdata))) {
-      test_result <- try(wilcox.test(x = as.numeric(xdata[j, ]),
+      test_result <- try(stats::wilcox.test(x = as.numeric(xdata[j, ]),
                                      y = as.numeric(ydata[j, ]), alternative = "two.sided"),
                          silent = TRUE)
       if (class(test_result) == "htest") {
@@ -295,7 +292,6 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
       message("Basic step 0/3: Converting data.")
       ready <- sm(normalize(ready, convert = "cbcbcpm"))
     }
-
   }
   ## No matter what we do, it must be logged.
   message("I think this is failing? ", class(ready))
@@ -303,7 +299,6 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
     message("Basic step 0/3: Transforming data.")
     ready <- normalize(ready, transform = "log2")
   }
-  message("Passed?")
   data <- exprs(ready)
   libsize <- colSums(data)
   rm(ready)

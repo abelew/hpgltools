@@ -20,6 +20,8 @@ read_snp_columns(
 \item{column}{Column from the bcf file to read.}
 
 \item{verbose}{Print information about the input data.}
+
+\item{reader}{Use readr:: or read.table().}
 }
 \value{
 A big honking data table.

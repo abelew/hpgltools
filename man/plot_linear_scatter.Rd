@@ -63,9 +63,22 @@ plot_linear_scatter(
 
 \item{base_url}{Base url to add to the plot.}
 
+\item{color_weights}{Apply colors by the weights of the points vs
+the linear model.}
+
 \item{xlab}{Alternate x-axis label.}
 
 \item{ylab}{Alternate x-axis label.}
+
+\item{model_type}{Type of lm to use.}
+
+\item{add_equation}{Add the lm equation to the plot.}
+
+\item{add_rsq}{Add the rsquared value to the plot.}
+
+\item{add_cor}{Add the correlation coefficient to the plot.}
+
+\item{label_prefix}{Use this prefix for the axis labels.}
 
 \item{color_high}{Chosen color for points significantly above the mean.}
 
@@ -74,8 +87,6 @@ plot_linear_scatter(
 \item{alpha}{Choose an alpha channel to define how see-through the dots are.}
 
 \item{...}{Extra args likely used for choosing significant genes.}
-
-\item{pretty_colors}{Colors!}
 }
 \value{
 List including a ggplot2 scatter plot and some histograms.  This plot

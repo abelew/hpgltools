@@ -19,18 +19,18 @@ Description: This is a set of functions I have been using in my various analyses
 License: GPL-2 | file LICENSE
 Suggests:
   affy, AnnotationDbi, AnnotationForge, AnnotationHub, ape,
-  BiocGenerics, BiocManager, biomaRt, Biostrings, bluster, broom,
+  BiocManager, biomaRt, Biostrings, bluster,
   BRAIN, BSgenome,
   caret, Category, cleaver, clusterProfiler, corpcor, corrplot, curl,
-  DALEX, DBI, DEGreport, desc, DESeq2, devEMF, devtools, digest, directlabels,
-  doParallel, dorothea, doSNOW, dotwhisker, DSS,
-  EBSeq, EDASeq, edgeR, enrichplot, 
+  DALEX, DBI, DEGreport, desc, devEMF, devtools, digest, directlabels,
+  doParallel, dorothea, doSNOW, dotwhisker,
+  EBSeq, EDASeq, enrichplot,
   fastcluster, fastICA, ffpe, fission, flashClust,
   genefilter, GenomicRanges, GenomeInfoDb, genoPlotR, ggdendro,
   ggrepel, ggsankey, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
   graph, GSVA, GSVAdata, gtools, gplots, gProfileR, gprofiler2,
   Heatplus, Hmisc, Homo.sapiens, htmlwidgets, hpgldata, httr,
-  iDA, igraph, IHW, inflection, IRanges, isva, iterators,
+  iDA, igraph, IHW, inflection, isva, iterators,
   jsonlite,
   KEGGREST, KEGGgraph, kmer,
   lattice, limma, locfit, lubridate,
@@ -46,15 +46,15 @@ Suggests:
   rtracklayer, ruv, RUVSeq, rvest,
   scales, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,
   stringr, SWATH2stats,
-  taxize, testthat, tibble, tidyr, tidymodels, tidyselect, topGO, tximport,
+  taxize, testthat, tibble, tidyr, tidymodels, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
-  varhandle, variancePartition, Vennerable,
+  Vennerable,
   WGCNA,
   xCell, xml2
 Imports:
   Biobase, BiocGenerics, broom,
-  data.table, DOSE, dplyr,
-  forcats, foreach,
+  data.table, DESeq2, DSS, DOSE, dplyr,
+  edgeR, forcats, foreach,
   GenomicFeatures, ggplot2, glue, GSEABase,
   IRanges,
   knitr,
@@ -69,81 +69,81 @@ ByteCompile: true
 biocViews: DifferentialExpression
 Encoding: UTF-8
 RoxygenNote: 7.3.2
-Collate:
-  '01_hpgltools.R'
-  'alt_splicing.R'
-  'annotation_biomart.R'
-  'annotation_genbank.R'
-  'annotation_gff.R'
-  'annotation_kegg.R'
-  'annotation_microbesonline.R'
-  'annotation_orgdb.R'
-  'annotation_txt.R'
-  'annotation_uniprot.R'
-  'annotation_shared.R'
-  'attributes.R'
-  'classify.R'
-  'counts.R'
-  'de_shared.R'
-  'de_basic.R'
-  'de_edger.R'
-  'de_deseq.R'
-  'de_ebseq.R'
-  'de_limma.R'
-  'de_noiseq.R'
-  'de_plots.R'
-  'de_xlsx.R'
-  'de_varpart.R'
-  'dimension_reduction.R'
-  'expt.R'
-  'genes.R'
-  'gene_sets.R'
-  'gsva.R'
-  'helpers_misc.R'
-  'metadata.R'
-  'model_testing.R'
-  'model_varpartition.R'
-  'motif.R'
-  'network.R'
-  'normalize_shared.R'
-  'normalize_filter.R'
-  'normalize_convert.R'
-  'normalize_transform.R'
-  'normalize_norm.R'
-  'normalize_batch.R'
-  'ontology_shared.R'
-  'ontology_goseq.R'
-  'ontology_gprofiler.R'
-  'ontology_gostats.R'
-  'ontology_topgo.R'
-  'ontology_clusterprofiler.R'
-  'ontology_plots.R'
-  'ontology_xlsx.R'
-  'ontology_kegg.R'
-  'pcr.R'
-  'peptides.R'
-  'phylo.R'
-  'plot_shared.R'
-  'plot_bar.R'
-  'plot_distribution.R'
-  'plot_dotplot.R'
-  'plot_heatmap.R'
-  'plot_hist.R'
-  'plot_point.R'
-  'plot_proteomics.R'
-  'plot_venn.R'
-  'plot_circos.R'
-  'plot_genplot.R'
-  'plot_misc.R'
-  'power_estimation.R'
-  'proteomics.R'
-  'sanitize.R'
-  'se.R'
-  'sequence.R'
-  'shiny.R'
-  'singlecell.R'
-  'tf.R'
-  'tnseq.R'
-  'variants.R'
-  'xlsx.R'
-  'zzz_subset.R'
+Collate: 
+    '01_hpgltools.R'
+    'alt_splicing.R'
+    'annotation_biomart.R'
+    'annotation_genbank.R'
+    'annotation_gff.R'
+    'annotation_kegg.R'
+    'annotation_microbesonline.R'
+    'annotation_orgdb.R'
+    'annotation_shared.R'
+    'annotation_txt.R'
+    'annotation_uniprot.R'
+    'classify.R'
+    'counts.R'
+    'de_basic.R'
+    'de_deseq.R'
+    'de_ebseq.R'
+    'de_edger.R'
+    'de_limma.R'
+    'de_noiseq.R'
+    'de_plots.R'
+    'de_shared.R'
+    'de_varpart.R'
+    'de_xlsx.R'
+    'expt.R'
+    'dimension_reduction.R'
+    'gene_sets.R'
+    'genes.R'
+    'gsva.R'
+    'helpers_misc.R'
+    'metadata.R'
+    'model_testing.R'
+    'model_varpartition.R'
+    'motif.R'
+    'network.R'
+    'normalize_batch.R'
+    'normalize_convert.R'
+    'normalize_filter.R'
+    'normalize_norm.R'
+    'normalize_shared.R'
+    'normalize_transform.R'
+    'ontology_clusterprofiler.R'
+    'ontology_goseq.R'
+    'ontology_gostats.R'
+    'ontology_gprofiler.R'
+    'ontology_kegg.R'
+    'ontology_topgo.R'
+    'ontology_plots.R'
+    'ontology_shared.R'
+    'ontology_xlsx.R'
+    'pcr.R'
+    'peptides.R'
+    'phylo.R'
+    'plot_bar.R'
+    'plot_circos.R'
+    'plot_distribution.R'
+    'plot_dotplot.R'
+    'plot_genplot.R'
+    'zzz_attributes.R'
+    'plot_shared.R'
+    'plot_heatmap.R'
+    'plot_hist.R'
+    'plot_misc.R'
+    'plot_point.R'
+    'plot_proteomics.R'
+    'plot_venn.R'
+    'power_estimation.R'
+    'proteomics.R'
+    'sanitize.R'
+    'se.R'
+    'sequence.R'
+    'shiny.R'
+    'singlecell.R'
+    'tf.R'
+    'tnseq.R'
+    'variants.R'
+    'xlsx.R'
+    'zzz_subset.R'

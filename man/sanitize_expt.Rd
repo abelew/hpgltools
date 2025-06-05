@@ -11,6 +11,8 @@ sanitize_expt(expt, keep_underscore = TRUE, factors = c("condition", "batch"))
 \item{expt}{An expt object to clean.}
 
 \item{keep_underscore}{Sanitize underscores too?}
+
+\item{factors}{Specific factors to check.}
 }
 \description{
 Get rid of characters which will mess up contrast making and such before

@@ -429,6 +429,10 @@ gather_utrs_txdb <- function(bsgenome, fivep_utr = NULL, threep_utr = NULL,
 #'
 #' I was poking around for ways to mix and match gff files and found this:
 #' https://support.bioconductor.org/p/66003/
+#'
+#' @param input gff file containing the annotations.
+#' @param intron_gff Output gff file containing intron coordinates.
+#' @param intergenic_gff Output gff containing the intergenic regions.
 #' @export
 get_inter_txdb <- function(input, intron_gff = "introns.gff",
                            intergenic_gff = "intergenic.gff") {
@@ -448,6 +452,12 @@ get_inter_txdb <- function(input, intron_gff = "introns.gff",
 }
 setGeneric("get_inter_txdb")
 
+#' Given an input gff, create intron/intergenic gff files.
+#'
+#' I was poking around for ways to mix and match gff files and found this:
+#' https://support.bioconductor.org/p/66003/
+#'
+#' @param input gff file containing the annotations.
 #' @export
 setMethod(
   "get_inter_txdb", signature = signature(input = "character"),

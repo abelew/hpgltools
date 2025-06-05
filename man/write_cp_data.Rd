@@ -42,6 +42,12 @@ write_cp_data(
 
 \item{primary_key}{Use this annotation column to keep track of annotation IDs.}
 
+\item{new}{ORF?}
+
+\item{add_gsea}{Add some gsea results}
+
+\item{pval_column}{what column to use for pvalues?}
+
 \item{...}{Extra arguments are passed to arglist.}
 }
 \value{

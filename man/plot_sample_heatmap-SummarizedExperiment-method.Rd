@@ -9,7 +9,7 @@
   colors = NULL,
   design = NULL,
   heatmap_colors = NULL,
-  expt_names = NULL,
+  input_names = NULL,
   dendrogram = "column",
   row_label = NA,
   plot_title = NULL,
@@ -19,6 +19,33 @@
   filter = TRUE,
   ...
 )
+}
+\arguments{
+\item{data}{Input/expressionset/dataframe set of samples.}
+
+\item{colors}{Color scheme of the samples (not needed if input is an input).}
+
+\item{design}{Design matrix describing the experiment (gotten for free if an input).}
+
+\item{heatmap_colors}{Specify a colormap.}
+
+\item{input_names}{Alternate samples names.}
+
+\item{dendrogram}{Where to put dendrograms?}
+
+\item{row_label}{Passed through to heatmap.2.}
+
+\item{plot_title}{Title of the plot!}
+
+\item{Rowv}{Reorder the rows by expression?}
+
+\item{Colv}{Reorder the columns by expression?}
+
+\item{label_chars}{Maximum number of characters before abbreviating sample names.}
+
+\item{filter}{Filter the data before performing this plot?}
+
+\item{...}{More parameters for a good time!}
 }
 \description{
 Plot a sample heatmap with a SummarizedExperiment.

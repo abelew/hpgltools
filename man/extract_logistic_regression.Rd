@@ -22,7 +22,8 @@ matrix.}
 
 \item{query}{Response variable.}
 
-\item{multivariable}{When not true, this will iterate over every factor individually.}
+\item{multivariable}{When not true, this will iterate over every
+factor individually.}
 
 \item{factors}{set of factors to query against the query.}
 
@@ -30,7 +31,11 @@ matrix.}
 
 \item{conf}{Confidence interval chosen for plotting.}
 
+\item{scale}{Scale the data before the regression?}
+
 \item{excel}{Output xlsx file to which we print the f values etc.}
+
+\item{intercept}{Set an intercept for the regression?}
 }
 \description{
 The current implementation uses lm() and assumes everything is a

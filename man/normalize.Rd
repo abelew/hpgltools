@@ -2,10 +2,15 @@
 % Please edit documentation in R/normalize_shared.R
 \name{normalize}
 \alias{normalize}
-\title{Normalization dispatcher.}
+\title{Every time I think I have a handle on R dispatch I get some BS like this.}
 \usage{
-normalize(input, ...)
+normalize(object, ...)
+}
+\arguments{
+\item{object}{Input to normalize}
+
+\item{...}{other arguments passed along to BiocGenerics::normalize().}
 }
 \description{
-Normalization dispatcher.
+Every time I think I have a handle on R dispatch I get some BS like this.
 }

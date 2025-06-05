@@ -10,6 +10,8 @@
 #' @param gff Input gff file.
 #' @param type Feature type to extract.
 #' @param type_column Tag from the gff file to use when extracting the type.
+#' @example inst/examples_annotation_gff.R
+#' @return GRanges represenatation of the gff portion of interest.
 #' @export
 gff2gr <- function(gff, type = NULL, type_column = "type") {
   chr_entries <- read.delim(file = gff, header = FALSE, sep = "")
@@ -61,10 +63,7 @@ gff2gr <- function(gff, type = NULL, type_column = "type") {
 #' @return Iranges! (useful for getSeq().)
 #' @seealso [rtracklayer] [load_gff_annotations()]
 #'  \code{\link[rtracklayer]{import.gff}}
-#' @examples
-#'  example_gff <- system.file("share", "gas.gff", package = "hpgldata")
-#'  gas_iranges <- gff2irange(example_gff)
-#'  colnames(as.data.frame(gas_iranges))
+#' @example inst/examples/annotation_gff.R
 #' @export
 gff2irange <- function(gff, type = NULL) {
   ret <- NULL
@@ -109,10 +108,7 @@ gff2irange <- function(gff, type = NULL) {
 #' @param row.names Choose another column for setting the rownames of the data frame.
 #' @return Dataframe of the annotation information found in the gff file.
 #' @seealso [rtracklayer] [GenomicRanges]
-#' @examples
-#'  example_gff <- system.file("share", "gas.gff", package = "hpgldata")
-#'  gas_gff_annot <- load_gff_annotations(example_gff)
-#'  dim(gas_gff_annot)
+#' @example /inst/examples/annotation_gff.R
 #' @export
 load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "data.frame",
                                  second_id_col = "locus_tag", try = NULL, row.names = NULL) {
@@ -230,6 +226,19 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
   return(ret)
 }
 
+#' Merge child annotations into a parental gff file.
+#'
+#' On occasion we create gff files with specific features of interest.
+#' Most notably, when working with our parasites, we sometimes create
+#' new 5' and 3' UTR entries using spliced leader/polyA junction
+#' reads.  This function attempts to merge together these annotations.
+#'
+#' @param gff Starting gff file.
+#' @param grandparent Top-level heirarchy of the gff file (excepting chromosome)
+#' @param parent Second-level in the gff heirarchy
+#' @param parent_tag What gff tag to use to trace the lineage of a gene.
+#' @param id_tag How to extract gene IDs given the above.
+#' @param children New annotation types to create.
 merge_gff_children <- function(gff, grandparent = "gene", parent = "mRNA",
                                parent_tag = "Parent", id_tag = "ID",
                                children = c("CDS", "exon", "three_prime_UTR", "five_prime_UTR")) {
@@ -250,85 +259,6 @@ merge_gff_children <- function(gff, grandparent = "gene", parent = "mRNA",
     all <- merge(all, child_annot, by.x = by_parent, by.y = by_child)
   }
   return(all)
-}
-
-
-#' Find how many times a given pattern occurs in every gene of a genome.
-#'
-#' There are times when knowing how many times a given string appears in a
-#' genome/CDS is helpful. This function provides that information and is
-#' primarily used by cp_seq_m().
-#'
-#' This is once again a place where mcols() usage might improve the overall
-#' quality of life.
-#'
-#' @param fasta Genome sequence.
-#' @param gff Gff of annotation information from which to acquire CDS (if not
-#'  provided it will just query the entire genome).
-#' @param pattern What to search for? This was used for tnseq and TA is the
-#'  mariner insertion point.
-#' @param type Column to use in the gff file.
-#' @param id_col Column containing the gene IDs.
-#' @param key What type of entry of the gff file to key from?
-#' @return Data frame of gene names and number of times the pattern appears/gene.
-#' @seealso [Biostrings] [Rsamtools::FaFile()] [Biostrings::PDict()]
-#' @examples
-#'  pa_data <- get_paeruginosa_data()
-#'  pa_fasta <- pa_data[["fasta"]]
-#'  pa_gff <- pa_data[["gff"]]
-#'  ta_count <- pattern_count_genome(pa_fasta, pa_gff)
-#'  head(ta_count)
-#' @export
-pattern_count_genome <- function(fasta, gff = NULL, pattern = "TA",
-                                 type = "gene", id_col = "ID", key = NULL) {
-  rawseq <- Rsamtools::FaFile(fasta)
-  if (is.null(key)) {
-    key <- c("ID", "locus_tag")
-  }
-  if (is.null(gff)) {
-    entry_sequences <- Biostrings::getSeq(rawseq)
-  } else {
-    ## Note, I use import.gff here instead of import.gff3 or one of
-    ## the other more sensible functions because import.gff sets the
-    ## seqnames to match the chromosome; I have not figured out how to
-    ## do that properly using import.gff3 without some annoying shenanigans.
-    entries <- rtracklayer::import.gff(gff)
-    meta <- mcols(entries)
-    wanted <- meta[["type"]] == type
-    ## keep only the ones of the type of interest (gene).
-    type_entries <- entries[wanted, ]
-    ## Get the sequence from the genome for them.
-    entry_sequences <- Biostrings::getSeq(rawseq, type_entries)
-    tmp_entries <- as.data.frame(type_entries)
-    ## Give them some sensible names
-    for (k in key) {
-      if (!is.null(tmp_entries[[k]])) {
-        names(entry_sequences) <- tmp_entries[[k]]
-      }
-    }
-  }
-  dict <- Biostrings::PDict(pattern, max.mismatch = 0)
-  result <- Biostrings::vcountPDict(dict, entry_sequences)
-  num_pattern <- data.frame(
-      "name" = names(entry_sequences),
-      "num" = as.data.frame(t(result)),
-      stringsAsFactors = FALSE)
-  colnames(num_pattern) <- c("name", "number")
-  class(num_pattern) <- "pattern_counted"
-  return(num_pattern)
-}
-
-#' Print some information about a pattern counted genome
-#'
-#' @param x Dataframe containing how many instances of the pattern
-#'  were observed in every gene.
-#' @param ... Other args to match the generic.
-#' @export
-print.pattern_counted <- function(x, ...) {
-  summary_string <-
-    glue("The pattern was observed {sum(x[['number']])} times ober {nrow(x)} genes.")
-  message(summary_string)
-  return(invisible(x))
 }
 
 #' Given a data frame of exon counts and annotation information, sum the exons.
@@ -360,8 +290,8 @@ sum_exon_widths <- function(data = NULL, gff = NULL, annotdf = NULL,
   }
 
   tmp_data <- merge(data, annotdf, by = child)
-  rownames(tmp_data) <- tmp_data[["Row.names"]]
-  tmp_data <- tmp_data[-1]
+  rownames(tmp_data) <- make.names(tmp_data[["Row.names"]], unique = TRUE)
+  tmp_data[["Row.names"]] <- NULL
   ## Start out by summing the gene widths
   column <- aggregate(tmp_data[, "width"],
                       by = list(Parent = tmp_data[, parent]), FUN = sum)

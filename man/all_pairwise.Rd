@@ -2,7 +2,8 @@
 % Please edit documentation in R/de_shared.R
 \name{all_pairwise}
 \alias{all_pairwise}
-\title{Perform limma, DESeq2, EdgeR pairwise analyses.}
+\title{Perform limma, DESeq2, EdgeR, basic, noiseq, dream, and ebseq
+pairwise analyses.}
 \usage{
 all_pairwise(
   input = NULL,
@@ -30,12 +31,21 @@ all_pairwise(
   methods = NULL,
   keep_underscore = TRUE,
   dream_model = NULL,
+  force = FALSE,
   ...
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing count tables,
-normalization state, etc.}
+\item{input}{Input data structure with count data, annotations, and
+metadata.}
+
+\item{model_fstring}{Formula string describing the statistical
+model of interest.}
+
+\item{null_fstring}{Formula string describing the null hypothesis.}
+
+\item{model_svs}{Surrogate variable(s) to add to the model; this is
+commonly a character describing the method used to extract them (sva).}
 
 \item{modify_p}{Depending on how it is used, sva may require a modification
 of the p-values.}
@@ -79,9 +89,21 @@ so it can choose).}
 
 \item{verbose}{Print extra information while running?}
 
-\item{...}{Picks up extra arguments into arglist.}
+\item{num_surrogates}{Either a number of surrogates or method to
+estimate it.}
 
-\item{surrogates}{Either a number of surrogates or method to estimate it.}
+\item{methods}{I want to replace the various do_x arguments with
+this.}
+
+\item{keep_underscore}{Do not sanitize underscores from the model.}
+
+\item{dream_model}{Dream models are a superset of everything else,
+so one may provide them here.}
+
+\item{force}{Force the input data into the methods even if it is
+expected to violate their assumptions/rules (e.g. integers for DESeq)}
+
+\item{...}{Picks up extra arguments into arglist.}
 }
 \value{
 A list of limma, deseq, edger results.
@@ -92,13 +114,12 @@ comparisons, sets up experimental models appropriate for the differential
 expression analyses, and performs them.
 }
 \details{
-This runs limma_pairwise(), deseq_pairwise(), edger_pairwise(),
-basic_pairwise() each in turn. It collects the results and does some simple
-comparisons among them.
+This runs the various x_pairwise() functions each in turn. It
+collects the results and does some simple comparisons among them.
 }
 \examples{
 \dontrun{
- lotsodata <- all_pairwise(input = expt, model_batch = "svaseq")
+ lotsodata <- all_pairwise(input = expt)
  summary(lotsodata)
  ## limma, edger, deseq, basic results; plots; and summaries.
 }

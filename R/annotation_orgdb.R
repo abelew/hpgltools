@@ -7,7 +7,6 @@
 #' Creates a dataframe gene and transcript information for a given set of gene
 #' ids using the AnnotationDbi interface.
 #'
-#' Tested in test_45ann_organdb.R
 #' This defaults to a few fields which I have found most useful, but the brave
 #' or pathological can pass it 'all'.
 #'
@@ -40,11 +39,11 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
                                    fields = NULL, sum_exon_widths = FALSE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_pkgstring <- "library(Homo.sapiens); orgdb <- Homo.sapiens"
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", args = list("package" = "Homo.sapiens", "character.only" = TRUE))
+    orgdb <- get0("Homo.sapiens")
   } else if (class(orgdb) == "character") {
-    org_pkgstring <- glue("library({orgdb}); orgdb <- {orgdb}")
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    orgdb <- get0(orgdb)
   }
   keytype <- toupper(keytype)
   strand_column <- toupper(strand_column)
@@ -175,7 +174,13 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
       "transcripts" = transcripts,
       "fivep_utr" = fivep_utr,
       "threep_utr" = threep_utr)
+  class(retlist) <- "orgdb_annotations"
   return(retlist)
+}
+
+print.orgdb_annotations <- function(x) {
+  result_string <- glue("A set of orgdb annotations including: {nrow(x[['genes']])} gene annotations.")
+  return(result_string)
 }
 
 #' Retrieve GO terms associated with a set of genes.
@@ -184,7 +189,6 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
 #' ID and ontologies.  This will extract that table for a given set of gene
 #' IDs.
 #'
-#' Tested in test_45ann_organdb.R
 #' This is a nice way to extract GO data primarily because the Orgdb data sets
 #' are extremely fast and flexible, thus by changing the keytype argument, one
 #' may use a lot of different ID types and still score some useful ontology data.
@@ -195,25 +199,30 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
 #' @param columns The set of columns to request.
 #' @return Data frame of gene IDs, go terms, and names.
 #' @seealso [AnnotationDbi] [GO.db]
-#' @examples
-#'  drosophila_orgdb_go <- load_orgdb_go(orgdb = "org.Dm.eg.db")
-#'  head(drosophila_orgdb_go)
+#' @example inst/examples/annotation_orgdb.R
 #' @author I think Keith provided the initial implementation of this, but atb
 #'  messed with it pretty extensively.
 #' @export
 load_orgdb_go <- function(orgdb = NULL, gene_ids = NULL, keytype = "ensembl",
-                          columns = c("go", "goall", "goid")) {
+                          columns = c("go", "goall", "goid"), guess_columns = FALSE,
+                          rbind = TRUE) {
+                          ## columns = "go", rbind = TRUE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_pkgstring <- "library(Homo.sapiens); orgdb <- Homo.sapiens"
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
+    orgdb <- get0("Homo.sapiens")
   } else if ("character" %in% class(orgdb)) {
-    org_pkgstring <- glue("library({orgdb}); orgdb <- {orgdb}")
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    orgdb <- get0(orgdb)
   }
   tt <- sm(requireNamespace("GO.db"))
   keytype <- toupper(keytype)
   columns <- toupper(columns)
+  if (isTRUE(guess_columns)) {
+    available <- keytypes(orgdb)
+    column_idx <- grepl(x = available, pattern = "GO")
+    columns <- available[column_idx]
+  }
   if (is.null(gene_ids)) {
     gene_ids <- try(AnnotationDbi::keys(orgdb, keytype = keytype), silent = TRUE)
     if (class(gene_ids) == "try-error") {
@@ -248,19 +257,41 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
     stop("Did not find any of: ", toString(columns),
          " in the set of available columns: ", toString(available_columns))
   }
-  go_terms <- try(sm(AnnotationDbi::select(x = orgdb,
-                                           keys = gene_ids,
-                                           keytype = keytype,
-                                           columns = chosen_columns)))
-  if (class(go_terms) == "try-error") {
-    if (grep(pattern = "Invalid keytype", x = go_terms[[1]])) {
-      message("Here are the possible keytypes:")
-      message(toString(AnnotationDbi::keytypes(orgdb)))
-      stop()
+
+  go_terms <- data.frame()
+  passed_columns <- 0
+  observed_colnames <- c()
+  for (column in chosen_columns) {
+    mesg("Getting all rows from ", column, ".")
+    column_terms <- try(AnnotationDbi::select(x = orgdb,
+                                              keys = gene_ids,
+                                              keytype = keytype,
+                                              columns = column))
+    if (class(column_terms) == "try-error") {
+      if (grep(pattern = "Invalid keytype", x = go_terms[[1]])) {
+        message("Here are the possible keytypes:")
+        message(toString(AnnotationDbi::keytypes(orgdb)))
+      }
+    } else {
+      passed_columns <- passed_columns + 1
+    }
+    if (passed_columns == 1) {
+      observed_colnames <- colnames(column_terms)
+      go_terms <- column_terms
+    } else {
+      mesg("Adding ", column, " entries.")
+      colnames(column_terms) <- observed_colnames
+      go_terms <- rbind.data.frame(go_terms, column_terms)
+      dup_idx <- duplicated(go_terms)
+      mesg("Deduplicating, removing ", sum(dup_idx), " rows.")
+      go_terms <- go_terms[!dup_idx, ]
     }
   }
-  ## Deduplicate
-  go_terms <- go_terms[!duplicated(go_terms), ]
+  if (passed_column == 0) {
+    stop("None of the go columns provided information.")
+  }
+
+
   if ("GO" %in% chosen_columns) {
     go_terms <- go_terms[!is.na(go_terms[["GO"]]), ]
     go_term_names <- sm(AnnotationDbi::select(x = GO.db::GO.db,
@@ -268,10 +299,6 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
                                               columns = c("TERM", "GOID", "ONTOLOGY")))
     go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
   }
-
-  ## Remove redundant annotations which differ only in source/evidence
-  ## and rename ONTOLOGYALL column
-  go_terms <- unique(tibble::as_tibble(go_terms) %>% na.omit())
   return(go_terms)
 }
 
@@ -333,14 +360,6 @@ extract_eupath_orthologs <- function(db, master = "GID", query_species = NULL,
   pkg <- NULL
   if (class(db)[1] == "OrgDb") {
     pkg <- db
-  } else if ("character" %in% class(db)) {
-    pkg <- load_eupath_pkg(db, webservice=webservice)
-  } else if ("list" %in% class(db)) {
-    if ("character" %in% class(db[["orgdb_name"]])) {
-      pkg <- load_eupath_pkg(db[["orgdb_name"]], webservice=webservice)
-    } else {
-      stop("I only understand lists which contain package names.")
-    }
   } else {
     stop("I only understand orgdbs or the name of a species.")
   }
@@ -425,19 +444,18 @@ extract_eupath_orthologs <- function(db, master = "GID", query_species = NULL,
 #' @param keytype Choose a keytype, this will yell if it doesn't like your choice.
 #' @return a table of gene information
 #' @seealso [AnnotationDbi]
-#' @examples
-#'  dm_unigene_to_ensembl <- map_orgdb_ids("org.Dm.eg.db", mapto = "ensembl", keytype = "unigene")
-#'  head(dm_unigene_to_ensembl)
+#' @example inst/examples/annotation_orgdb.R
 #' @author Keith Hughitt with changes by atb.
 #' @export
-map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl", keytype = "geneid") {
+map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl",
+                          keytype = "geneid") {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_pkgstring <- "library(Homo.sapiens); orgdb <- Homo.sapiens"
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
+    orgdb <- get0("Homo.sapiens")
   } else if ("character" %in% class(orgdb)) {
-    org_pkgstring <- glue("library({orgdb}); orgdb <- {orgdb}")
-    eval(parse(text = org_pkgstring))
+    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    orgdb <- get0(orgdb)
   }
   mapto <- toupper(mapto)
   keytype <- toupper(keytype)
@@ -471,7 +489,8 @@ map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl", keytype = "
   }
   ## Gene info
   ## Note querying by "GENEID" will exclude noncoding RNAs
-  gene_info <- AnnotationDbi::select(x = orgdb, keytype = keytype, keys = gene_ids, columns = mapto)
+  gene_info <- AnnotationDbi::select(x = orgdb, keytype = keytype,
+                                     keys = gene_ids, columns = mapto)
   colnames(gene_info) <- tolower(colnames(gene_info))
   return(gene_info)
 }
@@ -486,11 +505,7 @@ map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl", keytype = "
 #' @param verbose talky talk
 #' @return Likely keytype which provides the desired IDs.
 #' @seealso [org.Dm.eg.db]
-#' @examples
-#'  ids <- c("Dm.9", "Dm.2294", "Dm.4971")
-#'  dm_orgdb <- "org.Dm.eg.db"
-#'  keytype_guess <- guess_orgdb_keytype(ids, dm_orgdb)
-#'  keytype_guess
+#' @example inst/examples/annotation_orgdb.R
 #' @export
 guess_orgdb_keytype <- function(ids, orgdb = NULL, verbose = FALSE) {
   if (is.null(orgdb)) {
@@ -531,6 +546,12 @@ guess_orgdb_keytype <- function(ids, orgdb = NULL, verbose = FALSE) {
 }
 
 #' Guess the orgdb from a genusspecies.
+#'
+#' Given a name like 'mmusculus', guess the orgdb package name.
+#' @param species Input species
+#' @param genus and genus.
+#' @examples
+#'  guess <- map_species_orgdb("hsapiens")
 map_species_orgdb <- function(species, genus = NULL) {
   if (is.null(genus)) {
     ## Then assume things like 'hsapiens'.

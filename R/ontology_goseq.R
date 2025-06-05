@@ -108,6 +108,86 @@ extract_interesting_goseq <- function(godata, expand_categories = TRUE, pvalue =
   return(retlist)
 }
 
+#' Create a clusterProfiler compatible enrichResult data structure from a goseq result.
+#'
+#' The metrics and visualization methods in clusterProfiler are the
+#' best.  It is not always trivial to get non-model organisms working
+#' well with clusterProfiler.  Therefore I still like using tools like
+#' topgo/goseq/gostats/gprofiler.  This function and its companions
+#' seek to make them cross-compatible.  Ideally, they will lead me to
+#' being able to rip out a lot of superfluous material.
+#'
+#' @param retlist Result from simple_goseq().
+#' @param ontology Ontology sub-tree of interest.
+#' @param cutoff (adjusted)p cutoff.
+#' @param cutoff_column Choose a column of p-values.
+#' @param organism Currently unused.
+#' @param padjust_method Define the desired p.adjust method.
+#' @return enrichResult object ready to pass to things like dotplot.
+#' @export
+goseq2enrich <- function(retlist, ontology = "MF", cutoff = 1,
+                         cutoff_column = "over_represented_pvalue",
+                         organism = NULL, padjust_method = "BH") {
+  godf <- retlist[["go_db"]]
+  sig_genes <- rownames(retlist[["input"]])
+  interesting_name <- paste0(tolower(ontology), "_interesting")
+  interesting <- retlist[[interesting_name]]
+  if (is.null(interesting)) {
+    return(NULL)
+  }
+  if (nrow(interesting) == 0) {
+    return(NULL)
+  }
+  ## I would like to write this data as an enrichResult as per
+  ## DOSE/clusterProfiler so that I may use their plotting functions
+  ## without fighting. Therefore I will coerce the various results I
+  ## create into that data structure's format.
+  ## The enrichResult is a class created with the following code:
+  bg_genes <- sum(!duplicated(sort(godf[["ID"]])))
+  adjusted <- p.adjust(interesting[["over_represented_pvalue"]], method = padjust_method)
+  interesting[["adjusted"]] <- adjusted
+  interesting[["tmp"]] <- bg_genes
+  interesting_cutoff_idx <- interesting[[cutoff_column]] <= cutoff
+  interesting_cutoff <- interesting[interesting_cutoff_idx, ]
+  genes_per_category <- gather_ontology_genes(
+    retlist, ontology = ontology, column = "over_represented_pvalue",
+    pval = cutoff, include_all = FALSE)
+  category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
+
+  ## FIXME: This is _definitely_ wrong for BgRatio
+  representation_df <- data.frame(
+      "ID" = rownames(interesting_cutoff),
+      "Description" = interesting_cutoff[["term"]],
+      ## The following two lines are ridiculous, but required for the enrichplots to work.
+      "GeneRatio" = paste0(interesting_cutoff[["numDEInCat"]], "/", interesting_cutoff[["numInCat"]]),
+      "BgRatio" = paste0(interesting_cutoff[["numDEInCat"]], "/", interesting_cutoff[["tmp"]]),
+      "pvalue" = interesting_cutoff[["over_represented_pvalue"]],
+      "p.adjust" = interesting_cutoff[["adjusted"]],
+      "qvalue" = interesting_cutoff[["qvalue"]],
+      "geneID" = category_genes,
+      "Count" = interesting_cutoff[["numDEInCat"]],
+      stringsAsFactors = FALSE)
+  rownames(representation_df) <- representation_df[["ID"]]
+  if (is.null(organism)) {
+    organism <- "UNKNOWN"
+  }
+  ret <- new("enrichResult",
+             result = representation_df,
+             pvalueCutoff = cutoff,
+             pAdjustMethod = padjust_method,
+             qvalueCutoff = cutoff,
+             gene = sig_genes,
+             universe = godf[["ID"]],
+             ## universe = extID,
+             geneSets = list(up=sig_genes),
+             ## geneSets = geneSets,
+             organism = organism,
+             keytype = "UNKNOWN",
+             ontology = ontology,
+             readable = FALSE)
+  return(ret)
+}
+
 #' Pass MSigDB categorical data to goseq and run it.
 #'
 #' goseq is probably the easiest method to push varying data types into.  Thus
@@ -311,7 +391,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
   goids_df <- NULL
   ## sig_genes may be a list, character list, or data frame.
   gene_list <- NULL
-  if (class(sig_genes)[1] == "data.table") {
+  if ("data.frame" %in% class(sig_genes) || "DFrame" %in% class(sig_genes)) {
     sig_genes <- as.data.frame(sig_genes)
   }
   if (class(sig_genes) == "character") {
@@ -345,7 +425,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
 
   ## Database of lengths may be a gff file, TxDb, or OrganismDb
   metadf <- NULL
-  if (class(length_db)[1] == "data.table") {
+  if ("data.table" %in% class(length_db) || "DFrame" %in% class(length_db)) {
     length_db <- as.data.frame(length_db)
   }
   if (class(length_db)[[1]] == "character")  {

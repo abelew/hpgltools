@@ -8,6 +8,9 @@
 ## where this is a danger, it is a likely good idea to cast it as a
 ## data frame.
 
+#' @include zzz_attributes.R
+NULL
+
 #' Look at the range of the data for a plot and use it to suggest if a plot
 #' should be on log scale.
 #'
@@ -25,6 +28,11 @@
 #' @param max_data Define the upper limit for the heuristic.
 #' @param min_data Define the lower limit for the heuristic.
 check_plot_scale <- function(data, scale = NULL, max_data = 10000, min_data = 10) {
+  na_idx <- is.na(data)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " na values, setting them to 0.")
+    data[na_idx] <- 0
+  }
   if (is.null(scale)) {
     if (max(data) > max_data & min(data) < min_data) {
       mesg("This data will benefit from being displayed on the log scale.")
@@ -65,6 +73,33 @@ color_int <- function(rgb) {
     "green" = green,
     "blue" = blue)
   return(retlist)
+}
+
+#' Given separate RGB values, make a hex string.
+#'
+#' @param red Red value.
+#' @param green Green value.
+#' @param blue Blue value!
+color_hex <- function(red, green, blue) {
+  r <- as.hexmode(red)
+  g <- as.hexmode(green)
+  b <- as.hexmode(blue)
+  hex <- paste0("#", r, g, b)
+  return(hex)
+}
+
+#' Given a hex color, make it x percent darker.
+#'
+#' @param color Existing hex color string.
+#' @param percent How much darker to make it.
+#' @return a new hex string.
+darker_color <- function(color, percent = 20) {
+  text_lst <- color_int(color)
+  darker_red <- text_lst[["red"]] - ceiling((text_lst[["red"]] * percent) / 100)
+  darker_green <- text_lst[["green"]] - ceiling((text_lst[["green"]] * percent) / 100)
+  darker_blue <- text_lst[["blue"]] - ceiling((text_lst[["blue"]] * percent) / 100)
+  darker_hex <- color_hex(darker_red, darker_green, darker_blue)
+  return(darker_hex)
 }
 
 #' Simplify plotly ggplot conversion so that there are no shenanigans.
@@ -113,7 +148,7 @@ ggplt <- function(gg, filename = "ggplot.html",
 #' density plots, pca plots, standard median distance/correlation, and
 #' qq plots.
 #'
-#' @param expt an expt to process
+#' @param input an input to process
 #' @param cormethod The correlation test for heatmaps.
 #' @param distmethod define the distance metric for heatmaps.
 #' @param title_suffix Text to add to the titles of the plots.
@@ -144,18 +179,18 @@ ggplt <- function(gg, filename = "ggplot.html",
 #'  [plot_corheat()] [plot_topn()] [plot_pca()] [plot_sm()] [plot_boxplot()]
 #' @examples
 #' \dontrun{
-#'  toomany_plots <- graph_metrics(expt)
+#'  toomany_plots <- graph_metrics(input)
 #'  toomany_plots$pcaplot
-#'  norm <- normalize_expt(expt, convert = "cpm", batch = TRUE, filter_low = TRUE,
+#'  norm <- normalize_input(input, convert = "cpm", batch = TRUE, filter_low = TRUE,
 #'                         transform = "log2", norm = "rle")
 #'  holy_asscrackers <- graph_metrics(norm, qq = TRUE, ma = TRUE)
 #' }
 #' @export
-graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
+graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean",
                           title_suffix = NULL, qq = NULL, ma = NULL, cv = NULL, gene_heat = NULL,
                           ...) {
   arglist <- list(...)
-  if (!exists("expt", inherits = FALSE)) {
+  if (!exists("input", inherits = FALSE)) {
     stop("The input data does not exist.")
   }
   dev_length <- length(dev.list())
@@ -197,89 +232,89 @@ graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
   ## I am putting the ... arguments on a separate line so that I can check that
   ## each of these functions is working properly in an interactive session.
   mesg("Graphing number of non-zero genes with respect to CPM by library.")
-  nonzero <- try(plot_nonzero(expt, plot_title = nonzero_title,
+  nonzero <- try(plot_nonzero(input, plot_title = nonzero_title,
                               ...))
   if ("try-error" %in% class(nonzero)) {
     nonzero <- list()
   }
   mesg("Graphing library sizes.")
-  libsize <- try(plot_libsize(expt, plot_title = libsize_title,
+  libsize <- try(plot_libsize(input, plot_title = libsize_title,
                               ...))
   if ("try-error" %in% class(libsize)) {
     libsize <- list()
   }
   mesg("Graphing a boxplot.")
-  boxplot <- try(plot_boxplot(expt, plot_title = boxplot_title,
+  boxplot <- try(plot_boxplot(input, plot_title = boxplot_title,
                               ...))
   if ("try-error" %in% class(boxplot)) {
     boxplot <- NULL
   }
   mesg("Graphing a correlation heatmap.")
-  corheat <- try(plot_corheat(expt, method = cormethod, plot_title = corheat_title,
+  corheat <- try(plot_corheat(input, method = cormethod, plot_title = corheat_title,
                               ...))
   if ("try-error" %in% class(corheat)) {
     corheat <- list()
   }
   mesg("Graphing a standard median correlation.")
-  smc <- try(plot_sm(expt, method = cormethod, plot_title = smc_title,
+  smc <- try(plot_sm(input, method = cormethod, plot_title = smc_title,
                      ...))
   if ("try-error" %in% class(smc)) {
     smc <- NULL
   }
   mesg("Graphing a distance heatmap.")
-  disheat <- try(plot_disheat(expt, method = distmethod, plot_title = disheat_title,
+  disheat <- try(plot_disheat(input, method = distmethod, plot_title = disheat_title,
                               ...))
   if ("try-error" %in% class(disheat)) {
     disheat <- list()
   }
   mesg("Graphing a standard median distance.")
-  smd <- try(plot_sm(expt, method = distmethod, plot_title = smd_title,
+  smd <- try(plot_sm(input, method = distmethod, plot_title = smd_title,
                      ...))
   if ("try-error" %in% class(smd)) {
     smd <- NULL
   }
   mesg("Graphing a PCA plot.")
-  pca <- try(plot_pca(expt, plot_title = pca_title,
+  pca <- try(plot_pca(input, plot_title = pca_title,
                       ...))
   if ("try-error" %in% class(pca)) {
     pca <- list()
   }
   mesg("Graphing a T-SNE plot.")
-  tsne <- try(plot_tsne(expt, plot_title = tsne_title,
+  tsne <- try(plot_tsne(input, plot_title = tsne_title,
                         ...))
   if ("try-error" %in% class(tsne)) {
     tsne <- list()
   }
   mesg("Plotting a density plot.")
-  density <- try(plot_density(expt, plot_title = dens_title,
+  density <- try(plot_density(input, plot_title = dens_title,
                               ...))
   if ("try-error" %in% class(density)) {
     density <- list()
   }
   mesg("Plotting a CV plot.")
-  cv <- try(plot_variance_coefficients(expt, plot_title = cv_title,
+  cv <- try(plot_variance_coefficients(input, plot_title = cv_title,
                                        ...))
   if ("try-error" %in% class(cv)) {
     cv <- list()
   }
   mesg("Plotting the representation of the top-n genes.")
-  topn <- try(plot_topn(expt, plot_title = topn_title,
+  topn <- try(plot_topn(input, plot_title = topn_title,
                         ...))
   if ("try-error" %in% class(topn)) {
     topn <- list()
   }
-  tmp_expt <- sm(normalize_expt(expt, filter = TRUE))
+  tmp_input <- sm(normalize(input, filter = TRUE))
   pcload <- list()
-  if (nrow(exprs(tmp_expt)) > ncol(exprs(tmp_expt))) {
+  if (nrow(exprs(tmp_input)) > ncol(exprs(tmp_input))) {
     mesg("Plotting the expression of the top-n PC loaded genes.")
-    pcload <- try(plot_pcload(tmp_expt, plot_title = pc_loading_title))
+    pcload <- try(plot_pcload(tmp_input, plot_title = pc_loading_title))
     if ("try-error" %in% class(pcload)) {
       pcload <- list()
     }
   }
 
   mesg("Printing a color to condition legend.")
-  legend <- try(suppressWarnings(plot_legend(expt)))
+  legend <- try(suppressWarnings(plot_legend(input)))
   if ("try-error" %in% class(legend)) {
     legend <- list()
   }
@@ -287,7 +322,7 @@ graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
   qq_ratios <- NULL
   if (isTRUE(qq)) {
     mesg("QQ plotting!")
-    qq_plots <- try(sm(suppressWarnings(plot_qq_all(tmp_expt,
+    qq_plots <- try(sm(suppressWarnings(plot_qq_all(tmp_input,
                                                     ...))))
     if ("try-error" %in% class(qq_plots)) {
       qq_plots <- list()
@@ -299,7 +334,7 @@ graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
   ma_plots <- NULL
   if (isTRUE(ma)) {
     mesg("Many MA plots!")
-    ma_plots <- try(suppressWarnings(plot_pairwise_ma(expt,
+    ma_plots <- try(suppressWarnings(plot_pairwise_ma(input,
                                                       ...)))
     if ("try-error" %in% class(ma_plots)) {
       ma_plots <- list()
@@ -309,7 +344,7 @@ graph_metrics <- function(expt, cormethod = "pearson", distmethod = "euclidean",
   gene_heatmap <- NULL
   if (isTRUE(gene_heat)) {
     mesg("gene heatmap!")
-    gene_heatmap <- try(suppressWarnings(plot_sample_heatmap(tmp_expt, filter = FALSE,
+    gene_heatmap <- try(suppressWarnings(plot_sample_heatmap(tmp_input, filter = FALSE,
                                                              ...)))
     if ("try-error" %in% class(gene_heatmap)) {
       gene_heatmap <- NULL
@@ -379,7 +414,7 @@ plot_legend <- function(stuff) {
     ## Then assume it is a pca plot
     plot <- stuff
   } else {
-    color_fact <- get_expt_colors(stuff)
+    color_fact <- get_input_colors(stuff)
     plot <- plot_pca(stuff)[["plot"]]
   }
 

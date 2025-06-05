@@ -49,12 +49,8 @@ print.reordered_varpart <- function(x, ...) {
 #' The arguments and usage of variancePartition are a bit opaque.  This function
 #' attempts to fill in reasonable values and simplify its invocation.
 #'
-#' @param expt Some data
-#' @param predictor Non-categorical predictor factor with which to begin the
-#'  model.
-#' @param factors Character list of columns in the experiment design to query
-#' @param chosen_factor When checking for sane 'batches', what column to
-#'  extract from the design?
+#' @param input Some data
+#' @param fstring Formula string describing the factors to query.
 #' @param do_fit Perform a fitting using variancePartition?
 #' @param cor_gene Provide a set of genes to look at the correlations, defaults
 #'  to the first gene.
@@ -63,8 +59,7 @@ print.reordered_varpart <- function(x, ...) {
 #' @param parallel Use doParallel?
 #' @param strict_filter Perform a strict filtering of the results via median_by_factor and dropping
 #'  any genes with a 0.
-#' @param mixed Used a mixed model?
-#' @param modify_expt Add annotation columns with the variance/factor?
+#' @param modify_input Add annotation columns with the variance/factor?
 #' @return List of plots and variance data frames
 #' @seealso [variancePartition] DOI:10.1186/s12859-016-1323-z.
 #' @export

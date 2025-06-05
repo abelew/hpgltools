@@ -7,9 +7,9 @@
 plot_topgo_densities(godatum, table)
 }
 \arguments{
-\item{table}{Table of genes.}
+\item{godatum}{Result from topgo.}
 
-\item{godata}{Result from topgo.}
+\item{table}{Table of genes.}
 }
 \value{
 density plot as per topgo

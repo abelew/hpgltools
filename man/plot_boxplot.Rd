@@ -11,7 +11,7 @@ plot_boxplot(
   order = NULL,
   violin = FALSE,
   scale = NULL,
-  expt_names = NULL,
+  sample_names = NULL,
   label_chars = 10,
   ...
 )
@@ -29,7 +29,7 @@ plot_boxplot(
 
 \item{scale}{Whether to log scale the y-axis.}
 
-\item{expt_names}{Another version of the sample names for printing.}
+\item{sample_names}{Another version of the sample names for printing.}
 
 \item{label_chars}{Maximum number of characters for abbreviating sample names.}
 

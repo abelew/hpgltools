@@ -2,10 +2,15 @@
 % Please edit documentation in R/normalize_shared.R
 \name{normalize,SummarizedExperiment-method}
 \alias{normalize,SummarizedExperiment-method}
-\title{Normalization of se}
+\title{Normalization of se, taking a hint from BiocGenerics::normalize()}
 \usage{
-\S4method{normalize}{SummarizedExperiment}(input, ...)
+\S4method{normalize}{SummarizedExperiment}(object, ...)
+}
+\arguments{
+\item{object}{Data structure to normalize}
+
+\item{...}{Other options.}
 }
 \description{
-Normalization of se
+Normalization of se, taking a hint from BiocGenerics::normalize()
 }

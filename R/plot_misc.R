@@ -10,6 +10,7 @@
 #' @param width How wide?
 #' @param height How high?
 #' @param res The chosen resolution.
+#' @param crop Crop off the edges of the plot?
 #' @param ... Arguments passed to the image plotters.
 #' @return a png/svg/eps/ps/pdf with height = width=9 inches and a high resolution
 #' @seealso [png()] [svg()] [postscript()] [cairo_ps()] [cairo_pdf()] [tiff()] [devEMF::emf()]

@@ -8,7 +8,7 @@ plot_topn(
   data,
   plot_title = NULL,
   num = 100,
-  expt_names = NULL,
+  sample_names = NULL,
   plot_labels = NULL,
   label_chars = 10,
   plot_legend = FALSE,
@@ -22,7 +22,7 @@ plot_topn(
 
 \item{num}{The N in top-n genes, if null, do them all.}
 
-\item{expt_names}{Column or character list of sample names.}
+\item{sample_names}{Column or character list of sample names.}
 
 \item{plot_labels}{Method for labelling the lines.}
 

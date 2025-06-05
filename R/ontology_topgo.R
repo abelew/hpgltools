@@ -23,6 +23,7 @@
 #' @param overwrite Yeah I do not remember this one either.
 #' @param densities Densities, yeah, the densities...
 #' @param pval_plots Include pvalue plots of the results a la clusterprofiler?
+#' @param parallel Use doParallel?
 #' @param excel  Print the results to an excel file?
 #' @param ... Other options which I do not remember right now!
 #' @return Big list including the various outputs from topgo
@@ -256,6 +257,27 @@ setGeneric("simple_topgo")
 #' Coerce simple_topgo to accept a vector of gene IDs instead of a real dataframe of significance.
 #'
 #' Doing this voids the topgo warantee.
+#'
+#' @param sig_genes Data frame of differentially expressed genes, containing IDs
+#'  any other columns.
+#' @param goid_map File containing mappings of genes to goids in the format
+#'  expected by topgo.
+#' @param go_db Data frame of the goids which may be used to make the goid_map.
+#' @param pvals Set of pvalues in the DE data which may be used to improve the
+#'  topgo results.
+#' @param limitby Test to index the results by.
+#' @param limit Ontology pvalue to use as the lower limit.
+#' @param signodes I don't remember right now.
+#' @param sigforall Provide the significance for all nodes?
+#' @param numchar Character limit for the table of results.
+#' @param selector Function name for choosing genes to include.
+#' @param pval_column Column from which to acquire scores.
+#' @param overwrite Yeah I do not remember this one either.
+#' @param densities Densities, yeah, the densities...
+#' @param pval_plots Include pvalue plots of the results a la clusterprofiler?
+#' @param parallel Use doParallel?
+#' @param excel  Print the results to an excel file?
+#' @param ... Other options which I do not remember right now!
 setMethod(
   "simple_topgo", signature = signature(sig_genes = "character"),
   definition = function(sig_genes, goid_map = "id2go.map", go_db = NULL,
@@ -410,6 +432,78 @@ print.topgo_result <- function(x, ...) {
   message(summary_string)
   enrichplot::dotplot(x[["enrich_results"]][["bp"]])
   return(invisible(x))
+}
+
+#' Convert a simple_topgo() result to an enrichResult.
+#'
+#' Same idea as goseq2enrich.
+#'
+#' @param retlist result from simple_topgo()
+#' @param ontology Ontology subtree to act upon.
+#' @param pval Cutoff, hmm I think I need to standardize these.
+#' @param organism org name/data.
+#' @param column Table column to export.
+#' @param padjust_method Use this method for the pvalues for the enrich result.
+#' @return enrichResult object ready to pass to things like dotplot.
+topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
+                         column = "fisher", padjust_method = "BH") {
+  result_name <- paste0(column, "_", tolower(ontology))
+
+  term_column <- paste0("Term_", column)
+  sig_column <- paste0("Significant_", column)
+  annot_column <- paste0("Annotated_", column)
+  q_column <- paste0("padj_", column)
+  interesting_name <- paste0(tolower(ontology), "_interesting")
+  godata <- retlist[["godata"]][[result_name]]
+  result_data <- retlist[["results"]][[result_name]]
+  interesting <- retlist[["tables"]][[interesting_name]]
+  bg_genes <- godata@allGenes
+  scores <- interesting[[column]]
+  adjusted <- p.adjust(scores)
+  sig_genes <- rownames(retlist[["input"]])
+  mesg("Gather genes per category, this is slow.")
+  genes_per_category <- gather_ontology_genes(retlist, ontology = ontology, pval = pval,
+                                              column = column, include_all = FALSE)
+  ## One of the biggest oddities of enrichResult objects: the scores
+  ## are explicitly ratio _strings_, thus 0.05 is bizarrely '5/100' and fails otherwise.
+  category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
+  names(category_genes) <- rownames(genes_per_category)
+  keepers <- names(category_genes) %in% rownames(interesting)
+  category_genes_kept <- category_genes[keepers]
+  interesting[["gene_ids"]] <- as.character(category_genes_kept)
+  interesting[["tmp"]] <- length(bg_genes)
+  ## FIXME: This is _definitely_ wrong for BgRatio
+  representation_df <- data.frame(
+      "ID" = rownames(interesting),
+      "Description" = interesting[[term_column]],
+      ## The following two lines are ridiculous, but required for the enrichplots to work.
+      "GeneRatio" = paste0(interesting[[sig_column]], "/", interesting[[annot_column]]),
+      "BgRatio" = paste0(interesting[[sig_column]], "/", interesting[["tmp"]]),
+      "pvalue" = interesting[[column]],
+      "p.adjust" = adjusted,
+      "qvalue" = interesting[[q_column]],
+      "geneID" = interesting[["gene_ids"]],
+      "Count" = interesting[[sig_column]],
+      stringsAsFactors = FALSE)
+  rownames(representation_df) <- representation_df[["ID"]]
+  if (is.null(organism)) {
+    organism <- "UNKNOWN"
+  }
+  ret <- new("enrichResult",
+             result = representation_df,
+             pvalueCutoff = pval,
+             pAdjustMethod = padjust_method,
+             qvalueCutoff = pval,
+             gene = sig_genes,
+             universe = godata@graph@nodes,
+             ## universe = extID,
+             geneSets = list(up=sig_genes),
+             ## geneSets = geneSets,
+             organism = organism,
+             keytype = "UNKNOWN",
+             ontology = ontology,
+             readable = FALSE)
+  return(ret)
 }
 
 #' Make pretty tables out of topGO data

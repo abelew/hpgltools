@@ -58,6 +58,24 @@ concatenate_runs <- function(expt, column = "replicate") {
 }
 setGeneric("concatenate_runs")
 
+#' Sum the reads/gene for multiple sequencing runs of a single condition/batch.
+#'
+#' On occasion we have multiple technical replicates of a sequencing run.  This
+#' can use a column in the experimental design to identify those replicates and
+#' sum the counts into a single column in the count tables.
+#'
+#' Untested as of 2016-12-01, but used in a couple of projects where sequencing
+#' runs got repeated.
+#'
+#' @param expt Experiment class containing the requisite metadata and count tables.
+#' @param column Column of the design matrix used to specify which samples are replicates.
+#' @return Expt with the concatenated counts, new design matrix, batches, conditions, etc.
+#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_expt()]
+#' @examples
+#' \dontrun{
+#'  compressed <- concatenate_runs(expt)
+#' }
+#' @export
 setMethod(
   "concatenate_runs", signature(expt = "SummarizedExperiment", column = "character"),
   definition = function(expt, column = "replicate") {

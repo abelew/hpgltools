@@ -11,6 +11,7 @@
 #' easier to send results to it.
 #'
 #' @param enrichresult S4 object of type enrichResult.
+#' @param ... Parameters to pass to the various plotting functions.
 plot_enrichresult <- function(enrichresult, ...) {
   if (is.null(enrichresult)) {
     return(NULL)
@@ -94,7 +95,7 @@ plot_enrichresult <- function(enrichresult, ...) {
 #'
 #' This can make a large number of plots.
 #'
-#' @param godata Result from topgo.
+#' @param godatum Result from topgo.
 #' @param table  Table of genes.
 #' @return density plot as per topgo
 #' @seealso [topGO]
@@ -211,7 +212,14 @@ plot_ontpval <- function(df, ontology = "MF", fontsize = 14, plot_title = NULL,
 #'
 #' @param gse clusterProfiler GSEA result.
 #' @param topn Number of enrichments to plot.
+#' @param id Focus on a specific category.
+#' @param add_score Add the score to the plot.
 #' @return List of plots.
+#' @include ontology_clusterprofiler.R
+#' @include ontology_topgo.R
+#' @include ontology_goseq.R
+#' @include ontology_gostats.R
+#' @include ontology_gprofiler.R
 #' @export
 plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
   retlist <- list()
@@ -244,8 +252,12 @@ plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
 }
 setGeneric("plot_topn_gsea")
 
-
 #' Plot topn GSEA results given the result from all_cprofiler
+#'
+#' @param gse clusterProfiler GSEA result.
+#' @param topn Number of enrichments to plot.
+#' @param id Focus on a specific category.
+#' @param add_score Add the score to the plot.
 #' @export
 setMethod(
   "plot_topn_gsea", signature = signature(gse = "all_cprofiler"),
@@ -271,6 +283,11 @@ setMethod(
   })
 
 #' Plot topn GSEA results given the result from simple_clusterprofiler
+#'
+#' @param gse clusterProfiler GSEA result.
+#' @param topn Number of enrichments to plot.
+#' @param id Focus on a specific category.
+#' @param add_score Add the score to the plot.
 #' @export
 setMethod(
   "plot_topn_gsea", signature = signature(gse = "clusterprofiler_result"),
@@ -283,7 +300,6 @@ setMethod(
     retlist[["KEGG"]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
     return(retlist)
   })
-
 
 #' Make a pvalue plot from goseq data.
 #'
@@ -538,247 +554,6 @@ plot_gostats_pval <- function(gs_result, wrapped_width = 20, cutoff = 0.1,
   } ## End of the for loop.
 
   return(plot_list)
-}
-
-#' Make a pvalue plot from gprofiler data.
-#'
-#' The p-value plots from clusterProfiler are pretty, this sets the gprofiler
-#' data into a format suitable for plotting in that fashion and returns the
-#' resulting plots of significant ontologies.
-#'
-#' @param gp_result Some data from gProfiler.
-#' @param wrapped_width Maximum width of the text names.
-#' @param cutoff P-value cutoff for the plots.
-#' @param n Maximum number of ontologies to include.
-#' @param group_minsize Minimum ontology group size to include.
-#' @param scorer Which column to use for scoring the data.
-#' @param ... Options I might pass from other functions are dropped into arglist.
-#' @return List of MF/BP/CC pvalue plots.
-#' @seealso [ggplot2]
-#' @export
-plot_gprofiler_pval <- function(gp_result, wrapped_width = 30,
-                                cutoff = 0.1, n = 30,
-                                group_minsize = 5, scorer = "recall",
-                                ...) {
-  bp_result <- gp_result[["bp"]]
-  mf_result <- gp_result[["mf"]]
-  cc_result <- gp_result[["cc"]]
-  kegg_result <- gp_result[["kegg"]]
-  reactome_result <- gp_result[["reac"]]
-  mi_result <- gp_result[["mi"]]
-  tf_result <- gp_result[["tf"]]
-  corum_result <- gp_result[["corum"]]
-  hp_result <- gp_result[["hp"]]
-  hpa_result <- gp_result[["hpa"]]
-
-  kept_columns <- c("p.value", "term.size", "query.size",
-                    "overlap.size", "recall", "precision",
-                    "term.id", "term.name", "relative.depth")
-  old_options <- options(scipen = 4)
-
-  gp_rewrite_df <- function(plotting_df) {
-    ## First set the order of the table to be something most descriptive.
-    ## For the moment, we want that to be the score.
-    plotting_df[["score"]] <- plotting_df[[scorer]]
-    new_order <- order(plotting_df[["score"]], decreasing = FALSE)
-    plotting_df <- plotting_df[new_order, ]
-    ## Drop anything with no term name
-    kidx <- plotting_df[["term.name"]] != "NULL"
-    plotting_df <- plotting_df[kidx, ]
-    ## Drop anything outside of our pvalue cutoff
-    kidx <- plotting_df[["p.value"]] <= cutoff
-    plotting_df <- plotting_df[kidx, ]
-    ## Drop anything with fewer than x genes in the group
-    kidx <- plotting_df[["query.size"]] >= group_minsize
-    plotting_df <- plotting_df[kidx, ]
-    ## Because of the way ggplot wants to order the bars, we need to go from the bottom up,
-    ## ergo tail here. This ordering will be maintained in the plot by setting the levels of
-    ## the factor in plot_ontpval, which should have a note.
-    plotting_df <- tail(plotting_df, n = n)
-    plotting_df <- plotting_df[, c("term.name", "p.value", "score")]
-    colnames(plotting_df) <- c("term", "pvalue", "score")
-    plotting_df[["term"]] <- as.character(
-      lapply(strwrap(plotting_df[["term"]],
-                     wrapped_width, simplify = FALSE),
-             paste, collapse = "\n"))
-    return(plotting_df)
-  }
-
-  plotting_mf_over <- mf_result
-  mf_pval_plot_over <- NULL
-  if (is.null(mf_over) | nrow(mf_over) == 0) {
-    plotting_mf_over <- NULL
-  } else {
-    plotting_mf_over <- gp_rewrite_df(plotting_mf_over)
-    mf_pval_plot_over <- try(plot_ontpval(plotting_mf_over, ontology = "MF"),
-                             silent = TRUE)
-  }
-  if (class(mf_pval_plot_over)[[1]] == "try-error") {
-    mf_pval_plot_over <- NULL
-  }
-
-  plotting_bp_over <- bp_result
-  bp_pval_plot_over <- NULL
-  if (is.null(bp_over) | nrow(bp_over) == 0) {
-    plotting_bp_over <- NULL
-  } else {
-    plotting_bp_over <- gp_rewrite_df(plotting_bp_over)
-    bp_pval_plot_over <- try(plot_ontpval(plotting_bp_over, ontology = "BP"),
-                             silent = TRUE)
-  }
-  if (class(bp_pval_plot_over)[[1]] == "try-error") {
-    bp_pval_plot_over <- NULL
-  }
-
-  plotting_cc_over <- cc_result
-  cc_pval_plot_over <- NULL
-  if (is.null(cc_over) | nrow(cc_over) == 0) {
-    plotting_cc_over <- NULL
-  } else {
-    plotting_cc_over <- gp_rewrite_df(plotting_cc_over)
-    cc_pval_plot_over <- try(plot_ontpval(plotting_cc_over, ontology = "CC"),
-                             silent = TRUE)
-  }
-  if (class(cc_pval_plot_over)[[1]] == "try-error") {
-    cc_pval_plot_over <- NULL
-  }
-
-  plotting_kegg_over <- kegg_result
-  kegg_pval_plot_over <- NULL
-  if (is.null(kegg_result)) {
-    kegg_result <- data.frame()
-  }
-  if (nrow(kegg_result) == 0) {
-    plotting_kegg_over <- NULL
-  } else {
-    plotting_kegg_over <- gp_rewrite_df(plotting_kegg_over)
-    kegg_pval_plot_over <- try(plot_ontpval(plotting_kegg_over, ontology = "KEGG"),
-                               silent = TRUE)
-  }
-  if (class(kegg_pval_plot_over)[[1]] == "try-error") {
-    kegg_pval_plot_over <- NULL
-  }
-
-  plotting_reactome_over <- reactome_result
-  reactome_pval_plot_over <- NULL
-  if (is.null(reactome_result)) {
-    reactome_result <- data.frame()
-  }
-  if (nrow(reactome_result) == 0) {
-    plotting_reactome_over <- NULL
-  } else {
-    plotting_reactome_over <- gp_rewrite_df(plotting_reactome_over)
-    reactome_pval_plot_over <- try(plot_ontpval(plotting_reactome_over, ontology = "Reactome"),
-                                   silent = TRUE)
-  }
-  if (class(reactome_pval_plot_over)[[1]] == "try-error") {
-    reactome_pval_plot_over <- NULL
-  }
-
-  plotting_mi_over <- mi_result
-  mi_pval_plot_over <- NULL
-  if (is.null(mi_result)) {
-    mi_result <- data.frame()
-  }
-  if (nrow(mi_result) == 0) {
-    plotting_mi_over <- NULL
-  } else {
-    plotting_mi_over <- gp_rewrite_df(plotting_mi_over)
-    mi_pval_plot_over <- try(plot_ontpval(plotting_mi_over, ontology = "miRNA"),
-                             silent = TRUE)
-  }
-  if (class(mi_pval_plot_over)[[1]] == "try-error") {
-    mi_pval_plot_over <- NULL
-  }
-
-  plotting_tf_over <- tf_result
-  tf_pval_plot_over <- NULL
-  if (is.null(tf_result)) {
-    tf_result <- data.frame()
-  }
-  if (nrow(tf_result) == 0) {
-    plotting_tf_over <- NULL
-  } else {
-    plotting_tf_over <- gp_rewrite_df(plotting_tf_over)
-    tf_pval_plot_over <- try(plot_ontpval(plotting_tf_over, ontology = "Transcription factors"),
-                             silent = TRUE)
-  }
-  if (class(tf_pval_plot_over)[[1]] == "try-error") {
-    tf_pval_plot_over <- NULL
-  }
-
-  plotting_corum_over <- corum_result
-  corum_pval_plot_over <- NULL
-  if (is.null(corum_result)) {
-    corum_result <- data.frame()
-  }
-  if (nrow(corum_result) == 0) {
-    plotting_corum_over <- NULL
-  } else {
-    plotting_corum_over <- gp_rewrite_df(plotting_corum_over)
-    corum_pval_plot_over <- try(plot_ontpval(plotting_corum_over, ontology = "Corum"),
-                                silent = TRUE)
-  }
-  if (class(corum_pval_plot_over)[[1]] == "try-error") {
-    corum_pval_plot_over <- NULL
-  }
-
-  plotting_hp_over <- hp_result
-  hp_pval_plot_over <- NULL
-  if (is.null(hp_result)) {
-    hp_result <- data.frame()
-  }
-  if (nrow(hp_result) == 0) {
-    plotting_hp_over <- NULL
-  } else {
-    plotting_hp_over <- gp_rewrite_df(plotting_hp_over)
-    hp_pval_plot_over <- try(plot_ontpval(plotting_hp_over, ontology = "Human pathology"),
-                             silent = TRUE)
-  }
-  if (class(hp_pval_plot_over)[[1]] == "try-error") {
-    hp_pval_plot_over <- NULL
-  }
-
-  plotting_hpa_over <- hpa_result
-  hpa_pval_plot_over <- NULL
-  if (is.null(hpa_result)) {
-    hpa_result <- data.frame()
-  }
-  if (nrow(hpa_result) == 0) {
-    plotting_hpa_over <- NULL
-  } else {
-    plotting_hpa_over <- gp_rewrite_df(plotting_hpa_over)
-    hpa_pval_plot_over <- try(plot_ontpval(plotting_hpa_over, ontology = "HPA"),
-                              silent = TRUE)
-  }
-  if (class(hpa_pval_plot_over)[[1]] == "try-error") {
-    hpa_pval_plot_over <- NULL
-  }
-
-  pval_plots <- list(
-    "mfp_plot_over" = mf_pval_plot_over,
-    "bpp_plot_over" = bp_pval_plot_over,
-    "ccp_plot_over" = cc_pval_plot_over,
-    "kegg_plot_over" = kegg_pval_plot_over,
-    "reactome_plot_over" = reactome_pval_plot_over,
-    "mi_plot_over" = mi_pval_plot_over,
-    "tf_plot_over" = tf_pval_plot_over,
-    "corum_plot_over" = corum_pval_plot_over,
-    "hp_plot_over" = hp_pval_plot_over,
-    "hpa_plot_over" = hp_pval_plot_over,
-    "mf_subset_over" = plotting_mf_over,
-    "bp_subset_over" = plotting_bp_over,
-    "cc_subset_over" = plotting_cc_over,
-    "kegg_subset" = plotting_kegg_over,
-    "reactome_subset" = plotting_reactome_over,
-    "mi_subset" = plotting_mi_over,
-    "tf_subset" = plotting_tf_over,
-    "corum_subset" = plotting_corum_over,
-    "hp_subset" = plotting_hp_over,
-    "hpa_subset" = plotting_hpa_over
-  )
-  new_options <- options(old_options)
-  return(pval_plots)
 }
 
 #' Make a pvalue plot from gprofiler data.

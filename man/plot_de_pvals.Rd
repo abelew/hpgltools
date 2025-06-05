@@ -15,7 +15,7 @@ plot_de_pvals(
 \arguments{
 \item{combined_data}{Table to extract the values from.}
 
-\item{type}{If provided, extract the {type}_p and {type}_adjp columns.}
+\item{type}{If provided, extract the type_p and type_adjp columns.}
 
 \item{p_type}{Which type of pvalue to show (adjusted, raw, or all)?}
 

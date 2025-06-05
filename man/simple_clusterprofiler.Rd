@@ -13,7 +13,7 @@ simple_clusterprofiler(
   go_level = 3,
   pcutoff = 0.05,
   organism = "human",
-  qcutoff = 0.2,
+  qcutoff = 0.1,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
   internal = FALSE,
@@ -58,6 +58,8 @@ expressed categories.}
 
 \item{pcutoff}{P-value cutoff for 'significant' analyses.}
 
+\item{organism}{String name of the organism.}
+
 \item{qcutoff}{Q-value cutoff for 'significant' analyses.}
 
 \item{fc_column}{When extracting vectors of all genes, what column should be used?}
@@ -65,11 +67,15 @@ expressed categories.}
 \item{second_fc_column}{When extracting vectors of all genes, what column
 should be tried the second time around?}
 
+\item{internal}{I dunno}
+
 \item{updown}{Include the less than expected ontologies?}
 
 \item{permutations}{How many permutations for GSEA-ish analyses?}
 
 \item{min_groupsize}{Minimum size of an ontology before it is included.}
+
+\item{max_groupsize}{Ignore groups which are too big.}
 
 \item{kegg_prefix}{Many KEGG ids need a prefix before they will cross reference.}
 
@@ -87,7 +93,25 @@ should be tried the second time around?}
 
 \item{david_id}{Which column to use for cross-referencing to DAVID?}
 
+\item{padj_type}{Use this FDR}
+
 \item{david_user}{Default registered username to use.}
+
+\item{do_reactome}{what it says on the tin.}
+
+\item{do_dose}{Attempt disease ontology search.}
+
+\item{do_mesh}{Attempt MESH search.}
+
+\item{do_msigdb}{Attempt mSigDB search.}
+
+\item{mesh_category}{Use this category for MESH.}
+
+\item{mesh_dbname}{Use this MESH sub-database.}
+
+\item{msigdb_category}{Use this mSigDB sub-database.}
+
+\item{msig_db}{Use this database file for the msigdb data.}
 }
 \value{
 a list

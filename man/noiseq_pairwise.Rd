@@ -30,9 +30,24 @@ noiseq_pairwise(
 \arguments{
 \item{input}{Expressionset to compare.}
 
+\item{model_fstring}{Formula string describing the model of interest.}
+
+\item{null_fstring}{Formula string describing the null model.}
+
+\item{model_svs}{Surrogate matrix or how to find them.}
+
+\item{extra_contrasts}{Extra contrasts beyond the default set to seek.}
+
 \item{annot_df}{Extra annotations.}
 
-\item{keepers}{Perform the comparison only over these specific contrasts instead of all.}
+\item{force}{Force the data even if it violates the method's assumptions.}
+
+\item{keepers}{Perform the comparison only over these specific
+contrasts instead of all.}
+
+\item{batch}{Noiseq batch factor.}
+
+\item{logtransf}{noiseq log transformer.}
 
 \item{k}{Taken from the noiseq docs.}
 
@@ -50,16 +65,9 @@ noiseq_pairwise(
 
 \item{filter}{Filter the data?}
 
+\item{keep_underscore}{Sanitize out underscores?}
+
 \item{...}{Extra arguments.}
-
-\item{conditions}{Set of conditions to query}
-
-\item{batches}{known batches in the data, or a surrogate estimator.}
-
-\item{model_cond}{Add condition to the model?}
-
-\item{model_batch}{Add batch to the model, noiseq has its own combat-like method,
-so maybe not necessary?}
 }
 \value{
 List similar to deseq_pairwise/edger_pairwise/etc.

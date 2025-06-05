@@ -20,6 +20,8 @@ ebseq_few(
 
 \item{conditions}{Factor of conditions in the data to compare.}
 
+\item{model_fstring}{Formula string describing the model of interest.}
+
 \item{patterns}{Set of patterns as described in the ebseq documentation to query.}
 
 \item{ng_vector}{Passed along to ebmultitest().}

@@ -1,6 +1,7 @@
 #' Create a SummarizedExperiment given some metadata
 #'
-#' This function was taken from create_expt() and repurposed to create SummarizedExperiments.
+#' This function was taken from create_expt() and repurposed to create
+#' SummarizedExperiments.
 #'
 #' @param metadata Filename or table of metadata about the samples of interest.
 #' @param gene_info Annotations for the genes in the count data.
@@ -9,17 +10,26 @@
 #' @param sample_colors Specify the colors for the samples?
 #' @param title Provide a title for the experiment.
 #' @param notes Provide arbitrary notes.
-#' @param countdir (deprecated) Directory containing count tables.
 #' @param include_type Used to specify types of genes/annotations to use.
+#' @param countdir (deprecated) Directory containing count tables.
 #' @param include_gff Keep a copy of the gff with the data?
 #' @param file_column Metadata column containing the counts for each sample.
+#' @param file_type Force a specific source of count data instead
+#'  of autodetecting it.
 #' @param id_column Non-default column containing the sample IDs.
+#' @param handle_na How to handle NA values in the data.
+#' @param researcher When creating gene sets, set the researcher.
+#' @param study_name When creating gene sets, set the study name.
+#' @param feature_type When matching annotations, use this feature type.
+#' @param ignore_tx_version tximport can strictly match transcript/gene
+#'  versions, or not.
 #' @param savefile Filename to which to save a rda file of the data structure.
 #' @param low_files I don't remember this, I bet it is deprecated.
 #' @param annotation orgDB associated with this, primarily used with gsva-like tools.
 #' @param palette Color palette when auto-choosing colors for the samples.
 #' @param round Round the data if/when it is not integer?
-#' @param tx_gene_map When using tximport, use this to convert from transcripts to genes.
+#' @param tx_gene_map When using tximport, use this to convert from
+#'  transcripts to genes.
 #' @param ... Extra options.
 #' @importFrom SummarizedExperiment SummarizedExperiment metadata<- assays
 #' @importFrom S4Vectors metadata
@@ -27,8 +37,11 @@
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, include_type = "all", count_source = "htseq",
-                      countdir = NULL, include_gff = NULL, file_column = "file", file_type = NULL,
+                      notes = NULL, include_type = "all",
+                      countdir = NULL, include_gff = NULL, file_column = "file",
+                      file_type = NULL, id_column = NULL, handle_na = "drop",
+                      researcher = "elsayed", study_name = NULL, feature_type = "gene",
+                      ignore_tx_version = TRUE,
                       savefile = NULL, low_files = FALSE, annotation = "org.Hs.eg.db",
                       palette = "Dark2", round = FALSE, tx_gene_map = NULL,
                       ...) {
@@ -36,6 +49,15 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   if (is.null(metadata)) {
     stop("This requires some metadata at minimum.")
   }
+
+  if ("gene_tx_map" %in% names(arglist)) {
+    message("Hey, it is tx_gene_map, not gene_tx_map!")
+    tx_gene_map <- arglist[["gene_tx_map"]]
+  }
+  if (is.null(metadata)) {
+    stop("This requires some metadata at minimum.")
+  }
+
   ## I am learning about simplifying vs. preserving subsetting
   ## This is a case of simplifying and I believe one which is good because I
   ## just want the string out from my list. Lets assume that palette is in fact
@@ -68,6 +90,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   message("Reading the sample metadata.")
   sample_definitions <- extract_metadata(metadata, id_column = id_column,
                                          ...)
+
   ## sample_definitions <- extract_metadata(metadata)
   ## Add an explicit removal of the column named 'file' file column if the option file_column is NULL.
   ## This is a just in case measure to avoid conflicts.
@@ -125,7 +148,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     filenames <- as.character(sample_definitions[[file_column]])
     sample_ids <- rownames(sample_definitions)
     count_data <- read_counts(sample_ids, filenames, countdir = countdir,
-                              file_type = file_type,
+                              file_type = file_type, tx_gene_map = tx_gene_map,
+                              ignore_tx_version = ignore_tx_version,
                               ...)
     if (count_data[["source"]] == "tximport") {
       tximport_data <- list("raw" = count_data[["tximport"]],
@@ -152,16 +176,39 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     warning("Some samples were removed when cross referencing the samples against the count data.")
   }
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
-  ## While we are removing stuff...
-  ## I have had a couple data sets with incomplete counts, get rid of those rows
-  ## before moving on.
-  all_count_tables <- all_count_tables[complete.cases(all_count_tables), ]
+
+  test_df <- as.data.frame(all_count_tables)
+  rownames(test_df) <- test_df[["rownames"]]
+  test_df[["rownames"]] <- NULL
+  count_nas <- is.na(test_df)
+  if (sum(count_nas) > 0) {
+    warning("There are some NAs in this data, the 'handle_nas' parameter may be required.")
+  }
+  check_counts <- colSums(test_df, na.rm = TRUE)
+  zero_count_samples <- check_counts == 0
+  if (sum(zero_count_samples) > 0) {
+    warning("The following samples have no counts: ", toString(names(check_counts)[zero_count_samples]))
+    message("If the handle_na parameter is 'drop', this will result in an empty dataset.")
+  }
+
+  if (handle_na == "drop") {
+    all_count_tables <- all_count_tables[complete.cases(all_count_tables), ]
+  } else {
+    na_idx <- is.na(all_count_tables)
+    all_count_tables[na_idx] <- 0
+  }
 
   numeric_columns <- colnames(all_count_tables) != "rownames"
   for (col in colnames(all_count_tables)[numeric_columns]) {
     ## Ensure there are no stupid entries like target_id est_counts
     all_count_tables[[col]] <- as.numeric(all_count_tables[[col]])
   }
+
+  ## While we are removing stuff...
+  ## I have had a couple data sets with incomplete counts, get rid of those rows
+  ## before moving on.
+  all_count_tables <- all_count_tables[complete.cases(all_count_tables), ]
+
   ## Features like exon:alicethegene-1 are annoying and entirely too common in TriTrypDB data
   if (isTRUE(sanitize_rownames)) {
     all_count_tables[["rownames"]] <- gsub(pattern = "^exon:", replacement = "",
@@ -305,12 +352,12 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## This should automagically check and fix rownames when they would otherwise
   ## not match after using tximport.
   if (!is.null(tx_gene_map)) {
-    matched_rows <- sum(rownames(gene_info) %in% tx_gene_map[[2]])
+    matched_rows <- sum(gene_info[["rownames"]] %in% tx_gene_map[[2]])
     if (matched_rows < 1) {
       message("The mapped IDs are not the rownames of your gene information, changing them now.")
       if (names(tx_gene_map)[2] %in% colnames(gene_info)) {
         new_name <- names(tx_gene_map)[2]
-        rownames(gene_info) <- make.names(tx_gene_map[[new_name]], unique = TRUE)
+        gene_info[["rownames"]] <- make.names(tx_gene_map[[new_name]], unique = TRUE)
       } else {
         warning("Cannot find an appropriate column in gene_info, refusing to use the tx_map.")
       }
@@ -441,6 +488,12 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   names(chosen_colors) <- rownames(sample_definitions)
   metadata(se)[["colors"]] <- chosen_colors
   metadata(se)[["tximport"]] <- tximport_data
+  if (is.null(study_name)) {
+    study_name <- basename(getwd())
+  }
+  metadata(se)[["study"]] <- study_name
+  metadata(se)[["researcher"]] <- researcher
+  metadata(se)[["title"]] <- title
 
   ## Save an rdata file of the se.
   if (is.null(savefile)) {
@@ -464,6 +517,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
 #' Analagous function to make_pombe_expt()
 #'
 #' @param annotation Include annotations?
+#' @param host ensembl host to query
 #' @export
 make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org") {
   fission <- new.env()
@@ -508,19 +562,32 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
   return(pombe_se)
 }
 
+#' Use an expression to subset a summarized experiment.
+#'
+#' I like just passing an expression string to get subsets.
+#'
+#' @param se Input se.
+#' @param subset expression to use to subset on the metadata.
+#' @param ids Optional vector of sample IDs.
+#' @param nonzero A number of nonzero genes to use instead.
+#' @param coverage A minimum coverage to use instead.
+#' @param print_excluded Print the sampleIDs excluded by this subset.
 #' @export
 subset_se <- function(se, subset = NULL, ids = NULL,
-                      nonzero = NULL, coverage = NULL) {
+                      nonzero = NULL, coverage = NULL,
+                      print_excluded = TRUE) {
   starting_se <- se
   starting_metadata <- colData(se)
   starting_samples <- sampleNames(se)
-  starting_colors <- colors(se)
+  starting_colors <- get_colors(se)
+  end_colors <- starting_colors
   current_libsize <- libsize(se)
   subset_libsize <- current_libsize
   if (!is.null(ids)) {
     idx <- starting_samples %in% ids
     se <- se[, idx]
     subset_libsize <- subset_libsize[idx]
+    end_colors <- starting_colors[idx]
   }
 
   note_appended <- NULL
@@ -560,10 +627,12 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     se <- se[, subset_idx]
     subset_libsize <- subset_libsize[subset_idx]
     end_colors <- starting_colors[subset_idx]
+    if (isTRUE(print_excluded)) {
     message("The samples removed (and read coverage) when filtering samples with less than ",
             coverage, " reads are: ")
-    print(lost_samples)
+    message(toString(lost_samples))
     print(colData(se)[["sample_coverage"]])
+    }
   } else if (is.null(coverage)) {
     ## Remove samples with less than this number of non-zero genes.
     nonzero_idx <- assay(se) != 0
@@ -581,6 +650,9 @@ subset_se <- function(se, subset = NULL, ids = NULL,
             nonzero, " non-zero genes are: ")
     print(colSums(exprs(se))[remove_idx])
     print(num_nonzero[remove_idx])
+    if (isTRUE(print_excluded)) {
+      message("Samples remove: ", toString(samples_dropped))
+    }
     se <- se[, !remove_idx]
     end_colors <- starting_colors[!remove_idx]
     subset_libsize <- subset_libsize[!remove_idx]

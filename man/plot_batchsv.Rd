@@ -24,6 +24,8 @@ or batch estimates.}
 
 \item{batch_column}{Which experimental design column to use?}
 
+\item{condition_column}{Column with the information of interest.}
+
 \item{factor_type}{This may be a factor or range, it is intended to plot
 a scatterplot if it is a range, a dotplot if a factor.}
 

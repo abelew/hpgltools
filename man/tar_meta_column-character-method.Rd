@@ -11,6 +11,15 @@
   compression = "xz"
 )
 }
+\arguments{
+\item{meta}{dataframe of the good stuff.}
+
+\item{column}{Column containing filenames to archive.}
+
+\item{output}{Output prefix for the tarball's name.}
+
+\item{compression}{Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?}
+}
 \description{
 Make a tarball using a metadata column given an xlsx file.
 }

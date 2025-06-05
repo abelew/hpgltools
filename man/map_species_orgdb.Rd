@@ -6,6 +6,11 @@
 \usage{
 map_species_orgdb(species, genus = NULL)
 }
+\arguments{
+\item{species}{Input species}
+
+\item{genus}{and genus.}
+}
 \description{
-Guess the orgdb from a genusspecies.
+Given a name like 'mmusculus', guess the orgdb package name.
 }

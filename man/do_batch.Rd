@@ -2,7 +2,8 @@
 % Please edit documentation in R/normalize_shared.R
 \name{do_batch}
 \alias{do_batch}
-\title{Actually runs the batch method, this more than anything shows that hpgl_norm is too complicated.}
+\title{Actually runs the batch method, this more than anything shows that
+hpgl_norm is too complicated.}
 \usage{
 do_batch(
   count_table,
@@ -13,7 +14,7 @@ do_batch(
   current_design = NULL,
   expt_state = NULL,
   surrogate_method = "be",
-  surrogates = NULL,
+  num_surrogates = NULL,
   low_to_zero = FALSE,
   cpus = 4,
   batch2 = NULL,
@@ -27,16 +28,35 @@ do_batch(
 
 \item{method}{Batch/SV method to employ.}
 
-\item{design}{Experimental design, requiring columns named 'condition' and 'batch'.}
+\item{design}{Experimental design, requiring columns named
+'condition' and 'batch'.}
+
+\item{batch1}{Column containing the primary batch factor}
 
 \item{current_state}{State of the data before messing with it.}
 
-\item{adjust_method}{Method to use to modify the counts after finding the surrogates.}
+\item{current_design}{Redundant with design above...}
+
+\item{expt_state}{Redundant with current_state above.}
+
+\item{surrogate_method}{Method to estimate the number of SVs.}
+
+\item{num_surrogates}{Explicit number of surrogates.}
+
+\item{low_to_zero}{Push values less than zero to zero.}
+
+\item{cpus}{Number of cores to use, should be removed.}
+
+\item{batch2}{Secondary batch factor column.}
+
+\item{noscale}{Scale the data (combat)?}
+
+\item{adjust_method}{Method to use to modify the counts after
+finding the surrogates.}
 
 \item{batch_step}{Choose when to perform this in the set of normalization tasks.}
-
-\item{...}{Extra arguments passed to sva and friends.}
 }
 \description{
-Actually runs the batch method, this more than anything shows that hpgl_norm is too complicated.
+Actually runs the batch method, this more than anything shows that
+hpgl_norm is too complicated.
 }

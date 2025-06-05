@@ -6,7 +6,7 @@
 \usage{
 sanitize_model(
   model,
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   exclude_strings = c("condition", "batch")
 )
 }

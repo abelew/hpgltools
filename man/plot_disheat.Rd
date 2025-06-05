@@ -5,11 +5,11 @@
 \title{Make a heatmap.3 of the distances (euclidean by default) between samples.}
 \usage{
 plot_disheat(
-  expt_data,
-  expt_colors = NULL,
-  expt_design = NULL,
+  input_data,
+  column_colors = NULL,
+  design = NULL,
   method = "euclidean",
-  expt_names = NULL,
+  sample_names = NULL,
   batch_row = "batch",
   plot_title = NULL,
   label_chars = 10,
@@ -17,15 +17,15 @@ plot_disheat(
 )
 }
 \arguments{
-\item{expt_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, expt, or expressionset to work with.}
 
-\item{expt_colors}{Color scheme (not needed if an expt is provided).}
+\item{column_colors}{Color scheme (not needed if an expt is provided).}
 
-\item{expt_design}{Design matrix (not needed if an expt is provided).}
+\item{design}{Design matrix (not needed if an expt is provided).}
 
 \item{method}{Distance metric to use.}
 
-\item{expt_names}{Alternate names to use for the samples.}
+\item{sample_names}{Alternate names to use for the samples.}
 
 \item{batch_row}{Name of the design row used for 'batch' column colors.}
 

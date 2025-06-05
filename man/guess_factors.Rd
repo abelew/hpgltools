@@ -6,6 +6,13 @@
 \usage{
 guess_factors(meta_df, ratio = 3)
 }
+\arguments{
+\item{meta_df}{Input metadata.}
+
+\item{ratio}{Heuristic of levels/ratio as the maximum number of
+allowed levels in the new factor.  If the putative number of
+levels is more than this, then assume it is not a factor.}
+}
 \description{
 Use the heuristic that any column with a number of different
 elements which is <= (samples / ratio) has a reasonable chance of

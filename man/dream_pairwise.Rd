@@ -3,7 +3,7 @@
 \name{dream_pairwise}
 \alias{dream_pairwise}
 \title{Set up a model matrix and set of contrasts for pairwise comparisons using
-voom/limma.}
+voom/limma via their modified functions from variancePartition.}
 \usage{
 dream_pairwise(
   input = NULL,
@@ -14,6 +14,7 @@ dream_pairwise(
   annot_df = NULL,
   libsize = NULL,
   filter = TRUE,
+  num_surrogates = "be",
   limma_method = "ls",
   limma_robust = FALSE,
   voom_norm = "none",
@@ -29,6 +30,14 @@ dream_pairwise(
 \item{input}{Dataframe/vector or expt class containing count tables,
 normalization state, etc.}
 
+\item{model_fstring}{Formula string describing the statistical
+model of interest.}
+
+\item{null_fstring}{Formula string describing the null model.}
+
+\item{model_svs}{Matrix of surrogates or character describing how
+to get them.}
+
 \item{extra_contrasts}{Some extra contrasts to add to the list.
 This can be pretty neat, lets say one has conditions A,B,C,D,E
 and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
@@ -39,6 +48,10 @@ de_vs_cb = (E-D)-(C-B),"}
 
 \item{libsize}{I've recently figured out that libsize is far more important
 than I previously realized.  Play with it here.}
+
+\item{filter}{Filter the data before seeking SVs?}
+
+\item{num_surrogates}{Number of SVs or way to guesstimate them.}
 
 \item{limma_method}{Choose one of limma's lm methods.}
 
@@ -52,23 +65,11 @@ than I previously realized.  Play with it here.}
 
 \item{keepers}{Perform an explicit set of contrasts instead of all.}
 
+\item{keep_underscore}{Sanitize underscores from the model matrix?}
+
+\item{adjust}{Use this p-value adjustment.}
+
 \item{...}{Use the elipsis parameter to feed options to write_limma().}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the model?}
-
-\item{model_batch}{Include batch in the model?  If this is a character
-instead of a logical, then it is passed to all_adjusers() to attempt to find
-model parameters which describe surrogate variables in the data.}
-
-\item{model_intercept}{Perform a cell-means or intercept model? A little more
-difficult for me to understand.  I have tested and get the same answer
-either way.}
-
-\item{alt_model}{Specify another model.}
 }
 \value{
 List including the following information:

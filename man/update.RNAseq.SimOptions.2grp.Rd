@@ -6,6 +6,9 @@
 \usage{
 \method{update}{RNAseq.SimOptions.2grp}(sim.opts)
 }
+\arguments{
+\item{sim.opts}{Used by PROPER}
+}
 \description{
 Use my cheater infix ::: to handle some unexported stuff from PROPER.
 }

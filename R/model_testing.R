@@ -2,20 +2,41 @@
 ## DE/test/etc methods.  These functions seek to catch some corner cases when
 ## playing with the various model types when using DESeq/etc.
 
+#' Perform some checks on a formula string
+#'
+#' It might be nice to be able to add some checks of the fstring against
+#' the experimental design as well.  For now, I will just query the fstring for
+#' a ~ character.
+#'
+#' @param fstring Input fstring
+check_fstring <- function(fstring) {
+  found_tilde <- grepl(pattern = "~", x = fstring)
+  if (!found_tilde) {
+    message("This fstring does not have a ~, putting it in front.")
+    fstring <- paste0("~ ", fstring)
+  }
+  return(fstring)
+}
+
 #' Gather the models and perform forest plots to look at various regression analyses.
 #'
 #' @param meta Experimental design
 #' @param query Factor to query against
-#' @param multivariable If set to FALSE, this will iterate over every factor individually.
+#' @param multivariable If set to FALSE, this will iterate over every
+#'  factor individually.
+#' @param scale Scale the values before the regression?
 #' @param intercept Set an intercept? (unused)
 #' @param factors Set of factors to query
 #' @param excel output xlsx file.
+#' @param family Use this model family.
+#' @param conf Desired confidence interval.
+#' @param step Perform stepwise comparison?
 #' @export
 extract_linear_regression <- function(meta, query = "condition", multivariable = TRUE,
                                       scale = TRUE, intercept = FALSE, factors = NULL,
-                                      excel = NULL) {
+                                      excel = NULL, family = NULL, conf = NULL, step = FALSE) {
   if (isFALSE(multivariable)) {
-    serial <- iterate_linear_regression(design, query = query, factors = factors, family = family,
+    serial <- iterate_linear_regression(design, query = query, factors = factors,
                                         conf = conf, excel = excel)
     return(serial)
   }
@@ -100,11 +121,14 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
 #' @param design Experimental design, I need to change this it is not a
 #'  matrix.
 #' @param query Response variable.
-#' @param multivariable When not true, this will iterate over every factor individually.
+#' @param multivariable When not true, this will iterate over every
+#'  factor individually.
 #' @param factors set of factors to query against the query.
 #' @param family The family passed to glm.
 #' @param conf Confidence interval chosen for plotting.
+#' @param scale Scale the data before the regression?
 #' @param excel Output xlsx file to which we print the f values etc.
+#' @param intercept Set an intercept for the regression?
 #' @export
 extract_logistic_regression <- function(design, query = "condition", multivariable = TRUE,
                                         factors = NULL, family = "binomial", conf = 0.95,
@@ -179,6 +203,11 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
 }
 
 #' Use a vector of factors and design to count up the levels.
+#'
+#' This implements a quick and dirty degrees of freedom counter.
+#'
+#' @param design experimental design.
+#' @param fctrs vector of factors to count up.
 get_degrees <- function(design, fctrs) {
   degrees <- 0
   factor_levels <- list()
@@ -397,6 +426,7 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
 #' @param query Factor of primary interest.
 #' @param factors Set of factors to query against (if not set, then query will be
 #'  the first design column, and these will be 2:end)
+#' @param family model family to use.
 #' @param conf Choose the confidence interval.
 #' @param excel Write the results to this file.
 #' @export
@@ -514,7 +544,7 @@ make_null_formula <- function(formula_string, starting = 2) {
 #' @param model input model
 #' @param keep_underscore I previously dropped all punctuation including underscores.
 #' @param exclude_strings simplify the strings for these factors a little.
-sanitize_model <- function(model, keep_underscore = FALSE,
+sanitize_model <- function(model, keep_underscore = TRUE,
                            exclude_strings = c("condition", "batch")) {
   startnames <- colnames(model)
   ## Get rid of punctuation in the model column names
@@ -675,17 +705,25 @@ setMethod(
 
 #' Given the result from one of the regression testers, plot it!
 #'
-#' @param df The primary dataframe from one of the sister regression functions above.
+#' @param plot_df The primary dataframe from one of the sister
+#'  regression functions above.
 #' @param percent Confidence interval chosen.
 #' @param type Either linear or logistic.
 #' @param iterate Was this a series of single-variable regressions, or all in one?
 #' @param family Only currently used for logistic.
 #' @param intercept Include the intercept in the plot?
+#' @param base_size Glyph size for the plot
+#' @param title_size Text size for the title
+#' @param axis_size Axis label size
+#' @param query Compare the data against what metadata column.
 #' @export
 plot_forest_from_regression <- function(plot_df, percent = 95, type = "logistic",
                                         iterate = TRUE, family = "binomial",
-                                        intercept = FALSE, base_size = 18, title_size = 22,
+                                        intercept = FALSE, base_size = 18,
+                                        title_size = 22,
                                         axis_size = 20, query = "condition") {
+  ## Shutting up R CMD check
+  term <- estimate <- conf_low <- conf_high <- NULL
   ## On may not wish to see the intercept in the plot, if not, remove it here...
   if (!isTRUE(intercept)) {
     mesg("Removing intercept row(s).")

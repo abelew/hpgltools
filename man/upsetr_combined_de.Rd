@@ -25,7 +25,15 @@ upsetr_combined_de(
 
 \item{adjp}{and the p-value.}
 
-\item{desired_contrasts}{Use factors from a few contrasts.}
+\item{text_scale}{Scale up the text size.}
+
+\item{color_by}{Try to color the bars.}
+
+\item{desired_contrasts}{Use a subset of the possible upsets.}
+
+\item{intersections}{Use all intersecitons.}
+
+\item{num_sets}{Plot only the first x sets.}
 }
 \description{
 This is intended to give a quick and dirty view of the genes

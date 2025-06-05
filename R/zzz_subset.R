@@ -5,8 +5,9 @@
 #' @param i Set of genes to keep
 #' @param j Set of samples to keep.
 #' @param ... Parameters to pass to subset_genes/subset_expt.
+#' @param value New subset value
 #' @export
-`[.expt` <- function(expt, i, j, ...) {
+`[.expt` <- function(expt, i, j, ..., value) {
   if (!missing(i)) {
     message("Subsetting on features.")
     expt <- subset_genes(expt, ids = i, method = "keep", ...)
@@ -21,27 +22,50 @@
   return(expt)
 }
 
+#' Simplifying subset on metadata when i is a character.
+#'
+#' @param x an expt
+#' @param i Column to extract
+#' @param j not sure
+#' @param ... extra arguments.
+#' @export
+setMethod(
+  "[[", signature = c(x = "expt", i = "character"),
+  definition = function(x, i, j, ...) {
+    pData(x)[[i]]
+  })
+
 #' Simplifying subset on metadata.
 #'
 #' @param x an expt
 #' @param i Column to extract
 #' @export
 setMethod(
-  "[[", signature = c(x = "expt", i = "character"),
-  definition = function(x, i, j, ...) {
-    pData(object)[[i]]
-  })
-setMethod(
   "[[", signature = c(x = "expt", i = "ANY"),
   definition = function(x, i) {
     pData(x)[[i]]
   })
 
+#' Simplifying subset on metadata when i is anything and j is missing.
+#'
+#' @param x an expt
+#' @param i Column to extract
+#' @param j not sure
+#' @param ... extra arguments.
+#' @export
 setMethod(
   "[[", signature = c("expt", "ANY", "missing"),
   definition = function(x, i, j, ...) {
     pData(x)[[i]]
   })
+
+#' Simplifying subset on metadata when i is anything and j is missing.
+#'
+#' @param x an expt
+#' @param i Column to extract
+#' @param j not sure
+#' @param ... extra arguments.
+#' @export
 setReplaceMethod(
   "[[", c("expt", "ANY", "missing"),
   function(x, i, j, ..., value) {

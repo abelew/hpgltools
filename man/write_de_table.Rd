@@ -19,7 +19,13 @@ write_de_table(
 
 \item{type}{Which DE tool to write.}
 
+\item{coef}{Add coefficients}
+
+\item{table_type}{Contrasts or identities}
+
 \item{excel}{Filename into which to save the xlsx data.}
+
+\item{n}{Limit to the top n genes.}
 
 \item{...}{Parameters passed downstream, dumped into arglist and passed,
 notably the number of genes (n), the coefficient column (coef)}

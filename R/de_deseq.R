@@ -173,13 +173,14 @@ print.deseq_lrt <- function(x, ...) {
 #' code paths as outlined in the manual.  If you want to play with non-standard
 #' data, the force argument will round the data and shoe-horn it into DESeq2.
 #'
-#' @param input Dataframe/vector or expt class containing data, normalization state, etc.
-#' @param conditions Factor of conditions in the experiment.
-#' @param batches Factor of batches in the experiment.
-#' @param model_cond Is condition in the experimental model?
-#' @param model_batch Is batch in the experimental model?
-#' @param model_intercept Use an intercept model?
-#' @param alt_model Provide an arbitrary model here.
+#' @param input Dataframe/vector or expt class containing data,
+#'  normalization state, etc.
+#' @param model_fstring Formula string describing the statistical
+#'  model of interest.
+#' @param null_fstring Formula string describing the null model.
+#' @param model_svs Either a matrix of surrogates or character telling
+#'  how to search for them.
+#' @param filter Filter the data before SV searching?
 #' @param extra_contrasts Provide extra contrasts here.
 #' @param annot_df Include some annotation information in the results?
 #' @param force Force deseq to accept data which likely violates its assumptions.
@@ -187,6 +188,9 @@ print.deseq_lrt <- function(x, ...) {
 #' @param deseq_method The DESeq2 manual shows a few ways to invoke it, I make
 #'  2 of them available here.
 #' @param fittype Method to fir the data.
+#' @param num_surrogates Either an explicit number of method to guess
+#'  at the number of SVs to seek.
+#' @param keep_underscore Filter out underscores from the metadata?
 #' @param ... Triple dots!  Options are passed to arglist.
 #' @return List including the following information:
 #'  run = the return from calling DESeq()
@@ -249,14 +253,16 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   if ("character" %in% class(model_svs)) {
     model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
                                       null_fstring = null_fstring,
-                                      estimate_type = model_svs,
-                                      surrogates = num_surrogates,
+                                      model_svs = model_svs,
+                                      num_surrogates = num_surrogates, filter = filter,
                                       ...)
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
     design <- pData(model_params[["modified_input"]])
+  } else if ("matrix" %in% class(model_svs)) {
+    message("This received a matrix of SVs.")
   }
   model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
   summarized <- NULL
@@ -675,30 +681,6 @@ import_deseq <- function(data, column_data, model_string,
                                                    design = as.formula(model_string))
   }
   return(summarized)
-}
-
-subtract_deseq_results <- function(first_table, second_table,
-                                   first_lfc = "deseq_logfc", second_lfc = "deseq_logfc",
-                                   first_p = "deseq_adjp", second_p = "deseq_adjp",
-                                   first_name = "first", second_name = "second",
-                                   excel = NULL) {
-    first_fragment <- first_table[, c(first_lfc, first_p)]
-  second_fragment <- second_table[, c(second_lfc, second_p)]
-  comparison <- merge(first_fragment, second_fragment, by = "row.names")
-  rownames(comparison) <- comparison[["Row.names"]]
-  comparison[["Row.names"]] <- NULL
-  new_names <- c(glue("{first_name}_deseq_logfc"), glue("{first_name}_deseq_adjp"),
-                 glue("{second_name}_deseq_logfc"), glue("{second_name}_deseq_adjp"))
-  colnames(comparison) <- new_names
-  logfc_name <- glue("{first_name}_vs_{second_name}_logfc")
-  comparison[[logfc_name]] <- comparison[[1]] - comparison[[3]]
-  p_name <- glue("{first_name}_vs_{second_name}_p")
-  p_vector <- mapply(max, comparison[[2]], comparison[[4]])
-  comparison[[p_name]] <- p_vector
-  if (!is.null(excel)) {
-    written <- write_xlsx(data = comparison, excel = excel)
-  }
-  return(comparison)
 }
 
 #' Writes out the results of a deseq search using write_de_table()

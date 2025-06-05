@@ -2,7 +2,7 @@
 % Please edit documentation in R/metadata.R
 \name{dispatch_sum_column}
 \alias{dispatch_sum_column}
-\title{Note: This is not taking some important things into account yet.}
+\title{Given an arbitrary input column, get the sum of its values.}
 \usage{
 dispatch_sum_column(
   meta,
@@ -15,6 +15,25 @@ dispatch_sum_column(
   new_spec = NULL,
   tag = "ID"
 )
+}
+\arguments{
+\item{meta}{Input metadata}
+
+\item{input_file_spec}{Filename specification to seek out the input data.}
+
+\item{verbose}{Be verbose about what is happening?}
+
+\item{species}{Choose a specific species, or all.}
+
+\item{basedir}{Start searching here.}
+
+\item{type}{Analysis type to search.}
+
+\item{subtype}{Specific annotation type to search.}
+
+\item{new_spec}{New specification resulting from this invocation.}
+
+\item{tag}{GFF tag used to extract IDs.}
 }
 \description{
 Note: This is not taking some important things into account yet.

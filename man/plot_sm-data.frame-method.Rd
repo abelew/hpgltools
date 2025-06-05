@@ -10,12 +10,33 @@
   colors = NULL,
   method = "pearson",
   plot_legend = FALSE,
-  expt_names = NULL,
+  sample_names = NULL,
   label_chars = 10,
   plot_title = NULL,
   dot_size = 5,
   ...
 )
+}
+\arguments{
+\item{data}{Expt, expressionset, or data frame.}
+
+\item{design}{Specify metadata if desired.}
+
+\item{colors}{Color scheme if data is not an expt.}
+
+\item{method}{Correlation or distance method to use.}
+
+\item{plot_legend}{Include a legend on the side?}
+
+\item{sample_names}{Use pretty names for the samples?}
+
+\item{label_chars}{Maximum number of characters before abbreviating sample names.}
+
+\item{plot_title}{Title for the graph.}
+
+\item{dot_size}{How large should the glyphs be?}
+
+\item{...}{More parameters to make you happy!}
 }
 \description{
 Plot the standard median pairwise values of a dataframe.

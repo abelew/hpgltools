@@ -18,8 +18,8 @@
 #' @param alpha Use this transparency.
 #' @param z z-score cutoff for coefficient significance.
 #' @param n Choose the top/bottom-n by logFC.
-#' @param logfc What logFC to use for the MA plot horizontal lines.
-#' @param pval Cutoff to define 'significant' by p-value.
+#' @param lfc_cutoff What logFC to use for the MA plot horizontal lines.
+#' @param p_cutoff Cutoff to define 'significant' by p-value.
 #' @param adjp Use adjusted p-value?
 #' @param found_table Result from edger to use, left alone it chooses the first.
 #' @param p_type Adjusted or raw pvalues?
@@ -38,11 +38,13 @@
 #' @export
 extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
                              invert = FALSE, invert_colors = c(),
-                             numerator = NULL, denominator = NULL, alpha = 0.4, z = 1.5, n = NULL,
-                             lfc_cutoff = 1.0, p_cutoff = 0.05, adjp = TRUE, found_table = NULL,
-                             p_type = "adj", color_high = NULL, color_low = NULL, loess = FALSE,
-                             z_lines = FALSE, label = 10, label_column = "hgnc_symbol") {
-
+                             numerator = NULL, denominator = NULL, alpha = 0.4,
+                             z = 1.5, n = NULL, lfc_cutoff = 1.0,
+                             p_cutoff = 0.05, adjp = TRUE, found_table = NULL,
+                             p_type = "adj", color_high = NULL,
+                             color_low = NULL, loess = FALSE,
+                             z_lines = FALSE, label = 10,
+                             label_column = "hgnc_symbol") {
   if (is.null(type)) {
     if (grepl(pattern = "pairwise", x = class(pairwise)[1])) {
       type <- gsub(x = class(pairwise)[1], pattern = "_pairwise$", replacement = "")
@@ -130,6 +132,7 @@ extract_de_plots <- function(pairwise, combined = NULL, type = NULL,
 #' @param alpha How see-through to make the dots.
 #' @param color_low Color for the genes less than the mean.
 #' @param color_high Color for the genes greater than the mean.
+#' @param coefficient_column Where to find the coefficients in the input data.
 #' @seealso [plot_linear_scatter()]
 #' @examples
 #' \dontrun{
@@ -263,10 +266,17 @@ extract_coefficient_scatter <- function(output, toptable = NULL, type = "limma",
   coefficient_df[na_idx] <- 0
   maxvalue <- max(coefficient_df) + 1.0
   minvalue <- min(coefficient_df) - 1.0
-  plot <- plot_linear_scatter(df = coefficient_df, loess = loess, first = xname, second = yname,
-                              alpha = alpha, pretty_colors = FALSE,
-                              color_low = color_low, color_high = color_high,
-                              n = n, z = z, logfc = logfc, z_lines = z_lines)
+  ## Add a check for sparse tables.
+  if (nrow(coefficient_df) < 10) {
+    plt <- plot_scatter(df = coefficient_df)
+    plot <- list()
+    plot[["scatter"]] <- plt
+  } else {
+    plot <- plot_linear_scatter(df = coefficient_df, loess = loess, first = xname, second = yname,
+                                alpha = alpha, pretty_colors = FALSE,
+                                color_low = color_low, color_high = color_high,
+                                n = n, z = z, logfc = logfc, z_lines = z_lines)
+  }
   plot[["scatter"]] <- plot[["scatter"]] +
     ggplot2::scale_x_continuous(limits = c(minvalue, maxvalue)) +
     ggplot2::scale_y_continuous(limits = c(minvalue, maxvalue))
@@ -438,7 +448,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   all_tables <- NULL
   if (table_source == "combined_table") {
     if (type == "basic") {
-      expr_col <- "basic_num"
+      expr_col <- c("basic_num", "basic_den")
     } else if (type == "deseq") {
       expr_col <- "deseq_basemean"
     } else if (type == "dream") {
@@ -531,7 +541,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
     all_tables <- data[["all_tables"]]
   } else if (table_source == "combined") {
     if (type == "basic") {
-      expr_col <- "basic_nummed"
+      expr_col <- c("basic_num", "basic_den")
     } else if (type == "deseq") {
       expr_col <- "deseq_basemean"
     } else if (type == "dream") {
@@ -543,13 +553,14 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
     } else if (type == "limma") {
       expr_col <- "limma_ave"
     } else if (type == "noiseq") {
-      expr_col <- "noiseq_num_mean"
+      expr_col <- "noiseq_mean"
     }
     fc_col <- glue("{type}_logfc")
     if (p_type == "adj") {
       p_col <- glue("{type}_adjp")
     } else {
       p_col <- glue("{type}_p")
+
     }
     all_tables <- data[["data"]]
   } else {
@@ -620,6 +631,11 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   ## methods will be available; indeed in many instances
   ## only edger and limma will be available
   ## Therefore, let us drop out now if the requisite columns are missing.
+  if (length(expr_col) > 1) {
+    tmpdf <- the_table[, expr_col]
+    expr_col <- "basic_mean"
+    the_table[[expr_col]] <- (tmpdf[[1]] + tmpdf[[2]]) / 2
+  }
   if (is.null(the_table[[expr_col]])) {
     return(NULL)
   }
@@ -652,7 +668,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
 #' p-values.  However, it is hoped that it will not utterly remove them.
 #'
 #' @param combined_data Table to extract the values from.
-#' @param type If provided, extract the {type}_p and {type}_adjp columns.
+#' @param type If provided, extract the type_p and type_adjp columns.
 #' @param p_type Which type of pvalue to show (adjusted, raw, or all)?
 #' @param columns Otherwise, extract whatever columns are provided.
 #' @param ... Arguments passed through to the histogram plotter
@@ -846,225 +862,6 @@ plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebs
   return(retlist)
 }
 
-#' Make a pretty MA plot from one of limma, deseq, edger, or basic.
-#'
-#' Because I can never remember, the following from wikipedia: "An MA plot is an
-#' application of a Bland-Altman plot for visual representation of two channel
-#' DNA microarray gene expression data which has been transformed onto the M
-#' (log ratios) and A (mean average) scale."
-#'
-#' @param table Df of linear-modelling, normalized counts by sample-type,
-#' @param expr_col Column showing the average expression across genes.
-#' @param fc_col Column showing the logFC for each gene.
-#' @param p_col Column containing the relevant p values.
-#' @param pval Name of the pvalue column to use for cutoffs.
-#' @param alpha How transparent to make the dots.
-#' @param logfc Fold change cutoff.
-#' @param label_numbers Show how many genes were 'significant', 'up', and 'down'?
-#' @param size How big are the dots?
-#' @param shapes Provide different shapes for up/down/etc?
-#' @param invert Invert the ma plot?
-#' @param label Label the top/bottom n logFC values?
-#' @param label_column gene annotation column from which to extract labels.
-#' @param ... More options for you
-#' @return ggplot2 MA scatter plot.  This is defined as the rowmeans of the
-#'  normalized counts by type across all sample types on the x axis, and the
-#'  log fold change between conditions on the y-axis. Dots are colored
-#'  depending on if they are 'significant.'  This will make a fun clicky
-#'  googleVis graph if requested.
-#' @seealso [limma_pairwise()] [deseq_pairwise()] [edger_pairwise()] [basic_pairwise()]
-#' @examples
-#'  \dontrun{
-#'   plot_ma(voomed_data, table)
-#'   ## Currently this assumes that a variant of toptable was used which
-#'   ## gives adjusted p-values.  This is not always the case and I should
-#'   ## check for that, but I have not yet.
-#'  }
-#' @export
-plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qvalue",
-                       pval = 0.05, alpha = 0.4, logfc = 1.0, label_numbers = TRUE,
-                       size = 2, shapes = TRUE, invert = FALSE, label = NULL,
-                       label_column = "hgnc_symbol", ...) {
-  ## Set up the data frame which will describe the plot
-  arglist <- list(...)
-  ## I like dark blue and dark red for significant and insignificant genes respectively.
-  ## Others may disagree and change that with sig_color, insig_color.
-  sig_color <- "darkred"
-  if (!is.null(arglist[["sig_color"]])) {
-    sig_color <- arglist[["sig_color"]]
-  }
-  insig_color <- "darkblue"
-  if (!is.null(arglist[["insig_color"]])) {
-    insig_color <- arglist[["insig_color"]]
-  }
-  ## A recent request was to color gene families within these plots.
-  ## Below there is a short function,  recolor_points() which handles this.
-  ## The following 2 arguments are used for that.
-  ## That function should work for other things like volcano or scatter plots.
-  family <- NULL
-  if (!is.null(arglist[["family"]])) {
-    family <- arglist[["family"]]
-  }
-  family_color <- "red"
-  if (!is.null(arglist[["family_color"]])) {
-    family_color <- arglist[["family_color"]]
-  }
-
-  ## The data frame used for these MA plots needs to include a few aspects of the state
-  ## Including: average expression (the y axis), log-fold change, p-value, a
-  ## boolean of the p-value state, and a factor of the state which will be
-  ## counted and provide some information on the side of the plot. One might
-  ## note that I am pre-filling in this data frame with 4 blank entries. This is
-  ## to make absolutely certain that ggplot will not re-order my damn
-  ## categories.
-  df <- data.frame(
-    "avg" = c(0, 0, 0),
-    "logfc" = c(0, 0, 0),
-    "pval" = c(0, 0, 0),
-    "label" = c("", "", ""),
-    "pcut" = c(FALSE, FALSE, FALSE),
-    "state" = c("a_upsig", "b_downsig", "c_insig"), stringsAsFactors = TRUE)
-
-  ## Get rid of rows which will be annoying.
-  ## If somehow a list got into the data table, this will fail, lets fix that now.
-  tmp_table <- table
-  for (c in seq_len(ncol(tmp_table))) {
-    tmp_table[[c]] <- as.character(table[[c]])
-  }
-  rows_without_na <- complete.cases(tmp_table)
-  rm(tmp_table)
-  table <- table[rows_without_na, ]
-
-  ## Extract the information of interest from my original table
-  newdf <- data.frame("avg" = table[[expr_col]],
-                      "logfc" = table[[fc_col]],
-                      "pval" = table[[p_col]])
-  if (is.null(label_column)) {
-    newdf[["label"]] <- rownames(table)
-  } else if (!is.null(table[[label_column]])) {
-    newdf[["label"]] <- table[[label_column]]
-    rownames(newdf) <- make.names(rownames(table), unique = TRUE)
-  } else {
-    newdf[["label"]] <- rownames(table)
-    rownames(newdf) <- rownames(table)
-  }
-  if (isTRUE(invert)) {
-    newdf[["logfc"]] <- newdf[["logfc"]] * -1.0
-  }
-  ## Check if the data is on a log or base10 scale, if the latter, then convert it.
-  if (max(newdf[["avg"]]) > 1000) {
-    newdf[["avg"]] <- log(newdf[["avg"]])
-  }
-
-  ## Set up the state of significant/insiginificant vs. p-value and/or fold-change.
-  newdf[["pval"]] <- as.numeric(format(newdf[["pval"]], scientific = FALSE))
-  newdf[["pcut"]] <- newdf[["pval"]] <= pval
-  newdf[["state"]] <- ifelse(newdf[["pval"]] > pval, "c_insig",
-                             ifelse(newdf[["pval"]] <= pval &
-                                      newdf[["logfc"]] >= logfc, "a_upsig",
-                                    ifelse(newdf[["pval"]] <= pval &
-                                             newdf[["logfc"]] <= (-1.0 * logfc),
-                                           "b_downsig", "c_insig")))
-  newdf[["state"]] <- as.factor(newdf[["state"]])
-  df <- rbind(df, newdf)
-  rm(newdf)
-
-  ## Subtract one from each value because I filled in a fake value of each category to start.
-  num_downsig <- sum(df[["state"]] == "b_downsig") - 1
-  num_insig <- sum(df[["state"]] == "c_insig") - 1
-  num_upsig <- sum(df[["state"]] == "a_upsig") - 1
-
-  ## Make double-certain that my states are only factors or numbers where necessary.
-  df[["avg"]] <- as.numeric(df[["avg"]])
-  df[["logfc"]] <- as.numeric(df[["logfc"]])
-  df[["pval"]] <- as.numeric(df[["pval"]])
-  df[["pcut"]] <- as.factor(df[["pcut"]])
-  df[["state"]] <- as.factor(df[["state"]])
-
-  ## Set up the labels for the legend by significance.
-  ## 4 states, 4 shapes -- these happen to be the 4 best shapes in R because they may be filled.
-  ## shape 24 is the up arrow, 25 the down arrow, 21 the circle.
-  state_shapes <- 21
-  if (isTRUE(state_shapes)) {
-    state_shapes <- c(24, 25, 21)
-    names(state_shapes) <- c("a_upsig", "b_downsig", "c_insig")
-  } else {
-    state_shapes <- c(21, 21, 21)
-    names(state_shapes) <- c("a_upsig", "b_downsig", "c_insig")
-  }
-
-  ## make the plot!
-  plt <- ggplot(data = df,
-                ## I am setting x, y, fill color, outline color, and the shape.
-                aes(x = avg,
-                    y = logfc,
-                    label = label,
-                    fill = pcut,
-                    colour = pcut,
-                    shape = state)) +
-    ggplot2::geom_hline(yintercept = c((logfc * -1.0), logfc),
-                        color = "red", size=(size / 3)) +
-    ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
-  if (isTRUE(label_numbers)) {
-    plt <- plt +
-      ## The following scale_shape_manual() sets the labels of the legend on the right side.
-      ggplot2::scale_shape_manual(name = "State", values = state_shapes,
-                                  labels = c(
-                                    glue("Up Sig.: {num_upsig}"),
-                                    glue("Down Sig.: {num_downsig}"),
-                                    glue("Insig.: {num_insig}")),
-                                  guide = ggplot2::guide_legend(override.aes = aes(size = 3,
-                                                                                   fill = "grey")))
-  } else {
-    plt <- plt +
-      ggplot2::scale_shape_manual(name = "State", values = state_shapes,
-                                  guide = "none")
-  }
-
-  plt <- plt +
-    ## Set the colors of the significant/insignificant points.
-    ggplot2::scale_fill_manual(name = "as.factor(pcut)",
-                               values = c("FALSE"=insig_color, "TRUE"=sig_color),
-                               guide = "none") +
-    ggplot2::scale_color_manual(name = "as.factor(pcut)",
-                                values = c("FALSE"=insig_color, "TRUE"=sig_color),
-                                guide = "none") +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black")) +
-    ggplot2::xlab("Average log2(Counts)") +
-    ggplot2::ylab("log2(fold change)")
-
-  ## Recolor a family of genes if requested.
-  if (!is.null(family)) {
-    plt <- recolor_points(plt, df, family, color = family_color)
-  }
-
-  if (!is.null(label)) {
-    reordered_idx <- order(df[["logfc"]])
-    reordered <- df[reordered_idx, ]
-    top <- head(reordered, n = label)
-    bottom <- tail(reordered, n = label)
-    df_subset <- rbind(top, bottom)
-    plt <- plt +
-      ggrepel::geom_text_repel(
-        data = df_subset,
-        aes(label = .data[["label"]], x = .data[["avg"]], y = .data[["logfc"]]),
-        colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
-        point.padding = ggplot2::unit(1.6, "lines"),
-        arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
-  }
-
-  ## Return the plot, some numbers, and the data frame used to make the plot so
-  ## that I may check my work.
-  retlist <- list(
-    "num_upsig" = num_upsig,
-    "num_downsig" = num_downsig,
-    "num_insig" = num_insig,
-    "plot" = plt,
-    "df" = df)
-  return(retlist)
-}
-
 #' Create a MA plot with colors from the original expressionset.
 #'
 #' The logic for this is directly from its volcano plot sister, but I think that function
@@ -1084,6 +881,8 @@ plot_ma_de <- function(table, expr_col = "logCPM", fc_col = "logFC", p_col = "qv
 #' @param size Relative size of the dots.
 #' @param shapes Use fun shapes for categories?
 #' @param invert Invert the plot?
+#' @param outline Include the plot outline on the edge of the plot.
+#' @param stroke Add a stroke around the points.
 #' @param label Add labels for this number of genes.
 #' @param label_column Use this column for the labels.
 #' @param ... Arbitrary passthrough.
@@ -1344,215 +1143,6 @@ plot_sankey_de <- function(de_table, lfc = 1.0, p = 0.05,
   return(test[["ggplot"]])
 }
 
-#' Make a pretty Volcano plot!
-#'
-#' Volcano plots and MA plots provide quick an easy methods to view the set of
-#' (in)significantly differentially expressed genes.  In the case of a volcano
-#' plot, it places the -log10 of the p-value estimate on the y-axis and the
-#' fold-change between conditions on the x-axis.  Here is a neat snippet from
-#' wikipedia: "The concept of volcano plot can be generalized to other
-#' applications, where the x-axis is related to a measure of the strength of a
-#' statistical signal, and y-axis is related to a measure of the statistical
-#' significance of the signal."
-#'
-#' @param table Dataframe from limma's toptable which includes log(fold change) and an
-#'  adjusted p-value.
-#' @param alpha How transparent to make the dots.
-#' @param color_by By p-value something else?
-#' @param color_list List of colors for significance.
-#' @param fc_col Which column contains the fc data?
-#' @param fc_name Name of the fold-change to put on the plot.
-#' @param line_color What color for the significance lines?
-#' @param line_position Put the significance lines above or below the dots?
-#' @param logfc Cutoff defining the minimum/maximum fold change for
-#'  interesting.
-#' @param p_col Which column contains the p-value data?
-#' @param p_name Name of the p-value to put on the plot.
-#' @param p Cutoff defining significant from not.
-#' @param shapes_by_state Add fun shapes for the various significance states?
-#' @param minimum_p If a pvalue is lower than this, then set it to
-#'  this, thus artificially limiting the y-scale of a volcano plot.
-#'  This is only valid if one thinks that the pvalues are artificially
-#'  low and that is messing with the interpretation of the data.
-#' @param size How big are the dots?
-#' @param invert Flip the x-axis?
-#' @param label Label the top/bottom n logFC values?
-#' @param label_column Use this column of annotations for labels instead of rownames?
-#' @param ... I love parameters!
-#' @return Ggplot2 volcano scatter plot.  This is defined as the -log10(p-value)
-#'   with respect to log(fold change).  The cutoff values are delineated with
-#'   lines and mark the boundaries between 'significant' and not.  This will
-#'   make a fun clicky googleVis graph if requested.
-#' @seealso [all_pairwise()]
-#' @examples
-#' \dontrun{
-#'  plot_volcano_de(table)
-#'  ## Currently this assumes that a variant of toptable was used which
-#'  ## gives adjusted p-values.  This is not always the case and I should
-#'  ## check for that, but I have not yet.
-#' }
-#' @export
-plot_volcano_de <- function(table, alpha = 0.5, color_by = "p",
-                            color_list = c("FALSE" = "darkblue", "TRUE" = "darkred"),
-                            fc_col = "logFC", fc_name = "log2 fold change",
-                            line_color = "black", line_position = "bottom", logfc = 1.0,
-                            p_col = "adj.P.Val", p_name = "-log10 p-value", p = 0.05,
-                            shapes_by_state = FALSE, minimum_p = NULL,
-                            size = 2, invert = FALSE, label = NULL,
-                            label_column = "hgnc_symbol", ...) {
-  arglist <- list(...)
-  low_vert_line <- 0.0 - logfc
-  horiz_line <- -1 * log10(p)
-
-  if (! fc_col %in% colnames(table)) {
-    stop("Column: ", fc_col, " is not in the table.")
-  }
-  if (! p_col %in% colnames(table)) {
-    stop("Column: ", p_col, " is not in the table.")
-  }
-
-  df <- data.frame("xaxis" = as.numeric(table[[fc_col]]),
-                   "yaxis" = as.numeric(table[[p_col]]))
-  rownames(df) <- rownames(table)
-  if (!is.null(minimum_p)) {
-    low_idx <- df[["yaxis"]] < minimum_p
-    df[low_idx, "yaxis"] <- minimum_p
-  }
-  ## Add the label column if it exists.
-  if (!is.null(label_column) && !is.null(table[[label_column]])) {
-    df[["label"]] <- table[[label_column]]
-  } else {
-    df[["label"]] <- rownames(table)
-  }
-
-  if (isTRUE(invert)) {
-    df[["xaxis"]] <- df[["xaxis"]] * -1.0
-  }
-
-
-  ## This might have been converted to a string
-  df[["logyaxis"]] <- -1.0 * log10(as.numeric(df[["yaxis"]]))
-  df[["pcut"]] <- df[["yaxis"]] <= p
-  df[["fccut"]] <- abs(df[["xaxis"]]) >= logfc
-
-  df[["state"]] <- ifelse(table[[p_col]] > p, "pinsig",
-                          ifelse(table[[p_col]] <= p &
-                                   table[[fc_col]] >= logfc, "upsig",
-                                 ifelse(table[[p_col]] <= p &
-                                          table[[fc_col]] <= (-1 * logfc),
-                                        "downsig", "fcinsig")))
-  df[["pcut"]] <- as.factor(df[["pcut"]])
-  df[["state"]] <- as.factor(df[["state"]])
-
-  ## shape 25 is the down arrow, 22 is the square, 23 the diamond, 24 the up arrow
-  state_shapes <- c(25, 22, 23, 24)
-  names(state_shapes) <- c("downsig", "fcinsig", "pinsig", "upsig")
-
-  color_column <- "pcut"
-  color_column_number <- 2
-  if (color_by != "p") {
-    color_column <- "state"
-    color_column_number <- 4
-    color_list <- c("downsig" = "blue", "fcinsig" = "darkgrey",
-                    "pinsig" = "darkgrey", "upsig" = "red")
-  }
-  ## Now make sure that the color column has the correct number of elements.
-  if (length(color_list) != color_column_number) {
-    mesg("The color list must have ", color_column_number,
-         ", setting it to the default.")
-  }
-
-  ## Count the numbers in the categories
-  num_downsig <- sum(df[["state"]] == "downsig")
-  num_fcinsig <- sum(df[["state"]] == "fcinsig")
-  num_pinsig <- sum(df[["state"]] == "pinsig")
-  num_upsig <- sum(df[["state"]] == "upsig")
-
-  plt <- NULL
-  if (isTRUE(shapes_by_state)) {
-    plt <- ggplot(data = df,
-                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
-                      label = .data[["label"]],
-                      fill = color_column, colour = color_column, shape = "state"))
-  } else {
-    plt <- ggplot(data = df,
-                  aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
-                      label = .data[["label"]], fill = .data[[color_column]],
-                      colour = .data[[color_column]]))
-  }
-
-  ## Now define when to put lines vs. points
-  if (line_position == "bottom") {
-    ## lines, then points.
-    plt <- plt +
-      ggplot2::geom_hline(yintercept = horiz_line, color = line_color, size=(size / 2)) +
-      ggplot2::geom_vline(xintercept = logfc, color = line_color, size=(size / 2)) +
-      ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size=(size / 2)) +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
-  } else {
-    ## points, then lines
-    plt <- plt +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha) +
-      ggplot2::geom_hline(yintercept = horiz_line, color = line_color, size=(size / 2)) +
-      ggplot2::geom_vline(xintercept = logfc, color = line_color, size=(size / 2)) +
-      ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size=(size / 2))
-  }
-
-  ## If shapes are being set by state,  add that to the legend now.
-  if (isTRUE(shapes_by_state)) {
-    plt <- plt +
-      ggplot2::scale_shape_manual(
-        name = "state", values = state_shapes,
-        labels = c(
-          glue("Down Sig.: {num_downsig}"),
-          glue("FC Insig.: {num_fcinsig}"),
-          glue("P Insig.: {num_pinsig}"),
-          glue("Up Sig.: {num_upsig}")),
-        guide = ggplot2::guide_legend(override.aes = aes(size = 3, fill = "grey")))
-  }
-
-  ## Now set the colors and axis labels
-  plt <- plt +
-    ggplot2::scale_fill_manual(name = color_column, values = color_list,
-                               guide = "none") +
-    ggplot2::scale_color_manual(name = color_column, values = color_list,
-                                guide = "none") +
-    ggplot2::xlab(label = fc_name) +
-    ggplot2::ylab(label = p_name) +
-    ## ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 3))) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"))
-  ##  axis.text.x = ggplot2::element_text(angle=-90))
-
-  if (!is.null(label)) {
-    if (is.numeric(label)) {
-      reordered_idx <- order(df[["xaxis"]])
-      reordered <- df[reordered_idx, ]
-      sig_idx <- reordered[["logyaxis"]] > horiz_line
-      reordered <- reordered[sig_idx, ]
-      top <- head(reordered, n = label)
-      bottom <- tail(reordered, n = label)
-      df_subset <- rbind(top, bottom)
-    } else if (is.character(label)) {
-      sig_idx <- rownames(df) %in% label
-      df_subset <- df[sig_idx, ]
-    } else {
-      stop("I do not understand this set of IDs to label.")
-    }
-    plt <- plt +
-      ggrepel::geom_text_repel(data = df_subset,
-                               aes(label = .data[["label"]], y = .data[["logyaxis"]],
-                                   x = .data[["xaxis"]]),
-                               colour = "black", box.padding = ggplot2::unit(0.5, "lines"),
-                               point.padding = ggplot2::unit(1.6, "lines"),
-                               arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
-  }
-
-  retlist <- list("plot" = plt,
-                  "df" = df)
-  return(retlist)
-}
-
 #' Theresa's volcano plots are objectively nicer because they are colored by condition.
 #'
 #' I therefore took a modified copy of her implementation and added it here.
@@ -1569,14 +1159,19 @@ plot_volcano_de <- function(table, alpha = 0.5, color_by = "p",
 #' @param p_name Axis label for the significance.
 #' @param pval Demarcation for (in)significance.
 #' @param shapes_by_state Change point shapes according to their states?
+#' @param stroke Add a stroke to the dots.
+#' @param fill Fill the dots.
 #' @param color_high Color for the ups.
 #' @param color_low and the downs.
 #' @param size Point size
 #' @param invert Flip the plot?
-#' @param stroke Include the geom_color to get the outline of the dots?
 #' @param label Label some points?
+#' @param label_type What kind of label to apply.
 #' @param label_column Using this column in the data.
 #' @param label_size Use this font size for the labels on the plot.
+#' @param nudge_x Nudge the label on the x axis.
+#' @param nudge_y Nudge the label on the y axis.
+#' @param ... Arbitrary args.
 #' @export
 plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       fc_col = "logFC", fc_name = "log2 fold change",
@@ -2224,7 +1819,12 @@ overlap_groups <- function(input, sort = TRUE) {
 #' @param according_to Choose the lfc column to use.
 #' @param lfc Choose the logFC
 #' @param adjp and the p-value.
+#' @param text_scale Scale up the text size.
+#' @param color_by Try to color the bars.
 #' @param desired_contrasts Use factors from a few contrasts.
+#' @param desired_contrasts Use a subset of the possible upsets.
+#' @param intersections Use all intersecitons.
+#' @param num_sets Plot only the first x sets.
 #' @export
 upsetr_combined_de <- function(combined, according_to = "deseq",
                                lfc = 1.0, adjp = 0.05, text_scale = 2,
@@ -2232,7 +1832,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
                                intersections = "all", num_sets = "all") {
   ud_list <- list()
   wanted_tables <- names(combined[["data"]])
-  possible_colors <- get_expt_colors(combined[["input"]][["input"]])
+  possible_colors <- get_input_colors(combined[["input"]][["input"]])
   upset_contrasts <- data.frame(row.names = wanted_tables)
   upset_contrasts[["numerator"]] <- gsub(x = wanted_tables,
                                          pattern = "^(.*)_vs_.*$", replacement = "\\1")
@@ -2317,7 +1917,10 @@ print.combined_de_upset <- function(x, ...) {
 #' @param up Make a plot of the up genes?
 #' @param down Make a plot of the down genes?
 #' @param both Make a plot of the up+down genes?
+#' @param all Do all combinations?
 #' @param scale Make the numbers larger and easier to read?
+#' @param intersections Calculate all intersections?
+#' @param num_sets Plot only this number of sets.
 #' @param ... Other parameters to pass to upset().
 #' @export
 upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE, down = TRUE,

@@ -24,9 +24,14 @@ dispatch_metadata_ratio(
 
 \item{digits}{Number of significant digits to keep in the output.}
 
-\item{numerator_add}{Add this column to the numerator in case one needs multiple columns.}
+\item{numerator_add}{Add this column to the numerator in case one
+needs multiple columns.}
 
 \item{verbose}{unsed for the moment.}
+
+\item{as}{Recast the data to this type.}
+
+\item{species}{Search a specific species, or all.}
 }
 \description{
 Given two metadata columns, print a ratio.

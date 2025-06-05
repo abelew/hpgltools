@@ -5,11 +5,47 @@
 
 #' Run simple_clusterprofiler on every table from extract_significant_genes()
 #'
-#' @param sig Result from extract_significant_genes
-#' @param tables Result from combine_de_tables
+#' Most of the options are taken from simple_cprofiler and passed directly down.
+#'
+#' @param sig Result from extract_significant_genes.
+#' @param tables Result from combine_de_tables.
 #' @param according_to Use this result type for the clusterprofiler searches.
 #' @param together Concatenate the up/down genes into one set?
-#' @param plot_type Choose a plot method as the default.
+#' @param orgdb Name of the DBI containing the annotations for this organism.
+#' @param orgdb_from Column from which to convert the gene IDs.
+#' @param orgdb_to Column to which to convert, this must match the ontology IDS.
+#' @param go_level Ignore categories above this level in the ontology tree.
+#' @param pcutoff p-value significance cutoff.
+#' @param qcutoff FDR adjusted significance cutoff.
+#' @param fc_column Column containing the fold-change values.
+#' @param second_fc_column A fallback column for FC values.
+#' @param internal This changes the output data structure, but I forget how.
+#' @param updown Seek out categories with increased enrichment,  or decreased.
+#' @param permutations Run x permutations in clusterProfiler.
+#' @param min_groupsize Ignore groups with less than x genes.
+#' @param kegg_prefix Prefix of this kegg organism ID.
+#' @param kegg_organism Full name of this organism when querying KEGG.
+#' @param do_gsea Perform a full gene set enrichment analysis.
+#' @param categories Plot this number of categories by default.
+#' @param do_david Do a david over representation search? (the java
+#'  DAVID interface is kind of broken, this should stay FALSE)
+#' @param do_kegg Attempt a KEGG over representation analysis.
+#' @param padj_type FDR correction method.
+#' @param plot_type Choose specific plot(s).
+#' @param do_reactome Attempt a reactome over representation analysis.
+#' @param excel Output xlsx filename.
+#' @param organism String name of the organism.
+#' @param internal I dunno
+#' @param max_groupsize Ignore groups which are too big.
+#' @param padj_type Use this FDR
+#' @param do_reactome what it says on the tin.
+#' @param do_dose Attempt disease ontology search.
+#' @param do_mesh Attempt MESH search.
+#' @param do_msigdb Attempt mSigDB search.
+#' @param mesh_category Use this category for MESH.
+#' @param mesh_dbname Use this MESH sub-database.
+#' @param msigdb_category Use this mSigDB sub-database.
+#' @param msig_db Use this database file for the msigdb data.
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
@@ -19,7 +55,10 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
                           permutations = 1000, min_groupsize = 5, kegg_prefix = NULL,
                           kegg_organism = NULL, do_gsea = TRUE, categories = 12, do_david = FALSE,
                           do_kegg = TRUE, padj_type = "BH", plot_type = "all",
-                          do_reactome = TRUE,
+                          do_reactome = TRUE, organism = "human",
+                          max_groupsize = 500, do_dose = TRUE, do_mesh = TRUE,
+                          do_msigdb = TRUE, mesh_category = "C", mesh_dbname = "gendoo",
+                          msigdb_category = "C2", msig_db = NULL,
                           excel = "excel/all_cp.xlsx", ...) {
   ret <- list()
   input_up <- list()
@@ -85,6 +124,9 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         kegg_organism = kegg_organism, do_gsea = do_gsea, categories = categories,
         do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
         do_reactome = do_reactome, excel = chosen_up_xlsx,
+        organism = organism, max_groupsize = max_groupsize, do_dose = do_dose,
+        do_mesh = do_mesh, do_msigdb = do_msigdb, mesh_category = mesh_category,
+        mesh_dbname = mesh_dbname, msigdb_category = msigdb_category, msig_db = msig_db,
         ...)
       orgdb_from <- ret[[retname_up]][["orgdb_from"]]
       orgdb_to <- ret[[retname_up]][["orgdb_to"]]
@@ -103,6 +145,9 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         kegg_organism = kegg_organism, do_gsea = do_gsea, categories = categories,
         do_david = do_david, do_kegg = do_kegg, padj_type = padj_type,
         do_reactome = do_reactome, excel = chosen_down_xlsx,
+        organism = organism, max_groupsize = max_groupsize, do_dose = do_dose,
+        do_mesh = do_mesh, do_msigdb = do_msigdb, mesh_category = mesh_category,
+        mesh_dbname = mesh_dbname, msigdb_category = msigdb_category, msig_db = msig_db,
         ...)
       orgdb_from <- ret[[retname_down]][["orgdb_from"]]
       orgdb_to <- ret[[retname_down]][["orgdb_to"]]
@@ -115,6 +160,14 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
   return(ret)
 }
 
+#' Use a heuristic to guess the appropriate keytype when using clusterProfiler::enricher().
+#'
+#' @param org orgdb containing the potential keys
+#' @param from starting keytype
+#' @param sig_genes Input gene set
+#' @param to new keytype
+#' @param possible_keys Set of keys to test
+#' @param universe Universe of possible genes.
 guess_bitr_keytype <- function(org, from, sig_genes = NULL, to = "ENTREZ",
                                possible_keys = NULL, universe = NULL) {
   if (is.null(universe)) {
@@ -130,7 +183,7 @@ guess_bitr_keytype <- function(org, from, sig_genes = NULL, to = "ENTREZ",
   test_sig_df <- data.frame()
   num_sig <- 0
   num_hits <- 0
-  orgdb_sig_from <- orgdb_from
+  orgdb_sig_from <- from
   for (k in seq_along(possible_keys)) {
     key <- possible_keys[k]
     test_genes_df <- sm(try(clusterProfiler::bitr(universe, fromType = key,
@@ -180,7 +233,6 @@ simple_cprofiler <- function(...) {
   simple_clusterprofiler(...)
 }
 
-
 #' Perform the array of analyses in the 2016-04 version of clusterProfiler
 #'
 #' The new version of clusterProfiler has a bunch of new toys.  However, it is
@@ -215,6 +267,18 @@ simple_cprofiler <- function(...) {
 #' @param do_kegg Perform kegg search?
 #' @param david_id Which column to use for cross-referencing to DAVID?
 #' @param david_user Default registered username to use.
+#' @param organism String name of the organism.
+#' @param internal I dunno
+#' @param max_groupsize Ignore groups which are too big.
+#' @param padj_type Use this FDR
+#' @param do_reactome what it says on the tin.
+#' @param do_dose Attempt disease ontology search.
+#' @param do_mesh Attempt MESH search.
+#' @param do_msigdb Attempt mSigDB search.
+#' @param mesh_category Use this category for MESH.
+#' @param mesh_dbname Use this MESH sub-database.
+#' @param msigdb_category Use this mSigDB sub-database.
+#' @param msig_db Use this database file for the msigdb data.
 #' @return a list
 #' @seealso [clusterProfiler] [AnnotationDbi] [KEGGREST]
 #' @examples
@@ -225,7 +289,7 @@ simple_cprofiler <- function(...) {
 simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.eg.db",
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",
                                    go_level = 3, pcutoff = 0.05, organism = "human",
-                                   qcutoff = 0.2, fc_column = "logFC",
+                                   qcutoff = 0.1, fc_column = "logFC",
                                    second_fc_column = "deseq_logfc", internal = FALSE,
                                    updown = "up", permutations = 1000, min_groupsize = 5,
                                    max_groupsize = 500, kegg_prefix = NULL, kegg_organism = NULL,
@@ -373,8 +437,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
                                           pvalueCutoff = 1.0)
-  ## Now extract the p-value significant categories.
-  ## This is at least a little bit redundant and should perhaps be revisited/removed.
   ego_sig_bp <- clusterProfiler::enrichGO(gene = sig_gene_list, universe = universe_to,
                                           OrgDb = org, ont = "BP", keyType = orgdb_to,
                                           minGSSize = min_groupsize, pAdjustMethod = padj_type,
@@ -476,11 +538,9 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                                     pvalueCutoff = pcutoff))
     }
   }
-
   if (is.null(all_kegg)) {
     do_gsea <- FALSE
   }
-
   gse_all_kegg <- NULL
   gse_sig_kegg <- NULL
   if (isTRUE(do_gsea)) {
@@ -511,7 +571,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                nPerm = permutations, minGSSize = min_groupsize,
                                pvalueCutoff = pcutoff, use_internal_data = internal))
   }
-
   kegg_data <- list(
     "kegg_all" = as.data.frame(all_kegg, stringsAsFactors = FALSE),
     "kegg_sig" = as.data.frame(enrich_kegg, stringsAsFactors = FALSE),
@@ -601,10 +660,15 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     ## Currently my msigdb converter only does gene symbols...
     signature_data <- load_gmt_signatures(
       signatures = msig_db, signature_category = msigdb_category, id_type = "entrez")
-    signature_df <- signatures_to_df(signature_df)
-    test_sig_df <- sm(try(clusterProfiler::bitr(sig_gene_list, fromType = "ENTREZID",
-                                                toType = "SYMBOL", OrgDb = org), silent = TRUE))
-    msigdb_data <- clusterProfiler::enricher(test_sig_df[["SYMBOL"]], TERM2GENE = signature_df)
+    signature_df <- signatures_to_df(signature_data)
+    expected_term_type <- "ENTREZID"
+    current_term_type <- "ENTREZID"
+    if (current_term_type != expected_term_type) {
+      test_sig_df <- sm(try(clusterProfiler::bitr(sig_gene_list, fromType = current_term_type,
+                                                  toType = expected_term_type, OrgDb = org),
+                            silent = TRUE))
+    }
+    msigdb_data <- clusterProfiler::enricher(sig_gene_list, TERM2GENE = signature_df)
   }
 
   mesg("Plotting results, removing most of this.")
@@ -709,16 +773,47 @@ cp_options <- function(species) {
 #'
 #' @param sig_genes Set of 'significant' genes as a table.
 #' @param de_table All genes from the original analysis.
-#' @param go_db Dataframe of GO->ID matching the gene names of sig_genes to GO
+#' @param db Dataframe of GO->ID matching the gene names of sig_genes to GO
 #'  categories.
+#' @param current_id Starting ID of the genes.
+#' @param needed_id ID type to coerce the data to.
+#' @param org DBI to do the conversion.
 #' @return Table of 'enriched' categories.
-simple_cp_enricher <- function(sig_genes, de_table, go_db = NULL) {
+#' @export
+simple_cp_enricher <- function(sig_genes, de_table, db, current_id = "ENSEMBL",
+                               needed_id = "SYMBOL", org = "org.Hs.eg.db") {
   all_genenames <- rownames(de_table)
   sig_genenames <- rownames(sig_genes)
-  enriched <- clusterProfiler::enricher(sig_genenames, TERM2GENE = go_db)
-  retlist <- list(
-    "enriched" = as.data.frame(enriched, stringsAsFactors = FALSE))
-  return(retlist)
+  if (current_id != needed_id) {
+    test_genes <- clusterProfiler::bitr(rownames(sig_genes), fromType = current_id,
+                                        toType = needed_id, OrgDb = org)
+    test_genes <- test_genes[[needed_id]]
+  } else {
+    test_genes <- rownames(sig_genes)
+  }
+  enriched <- clusterProfiler::enricher(test_genes, TERM2GENE = db)
+  return(enriched)
 }
+setGeneric("simple_cp_enricher")
+
+#' Invoke simple_cp_enricher when the input database is a GeneSetCollection.
+#'
+#' @param sig_genes Set of 'significant' genes as a table.
+#' @param de_table All genes from the original analysis.
+#' @param db Dataframe of GO->ID matching the gene names of sig_genes to GO
+#'  categories.
+#' @param current_id Starting ID of the genes.
+#' @param needed_id ID type to coerce the data to.
+#' @param org DBI to do the conversion.
+#' @return Table of 'enriched' categories.
+#' @export
+setMethod(
+  "simple_cp_enricher", signature = signature(db = "GeneSetCollection"),
+  definition = function(sig_genes, de_table, db, current_id = "ENSEMBL",
+                        needed_id = "SYMBOL", org = "org.Hs.eg.db") {
+    db <- signatures_to_df(db)
+    simple_cp_enricher(sig_genes, de_table, db = db, current_id = current_id,
+                       needed_id = needed_id, org = org)
+  })
 
 ## EOF

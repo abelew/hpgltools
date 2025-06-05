@@ -5,7 +5,7 @@
 \title{Potential replacement for heatmap.2 based plots.}
 \usage{
 plot_heatplus(
-  expt,
+  input,
   type = "correlation",
   method = "pearson",
   annot_columns = "batch",
@@ -19,13 +19,15 @@ plot_heatplus(
 )
 }
 \arguments{
-\item{expt}{Experiment to try plotting.}
+\item{input}{Experiment to try plotting.}
 
-\item{type}{What comparison method to use on the data (distance or correlation)?}
+\item{type}{What comparison method to use on the data (distance or
+correlation)?}
 
 \item{method}{What distance/correlation method to perform?}
 
-\item{annot_columns}{Set of columns to include as terminal columns next to the heatmap.}
+\item{annot_columns}{Set of columns to include as terminal columns
+next to the heatmap.}
 
 \item{annot_rows}{Set of columns to include as terminal rows below the heatmap.}
 
@@ -42,7 +44,8 @@ plot_heatplus(
 \item{heatmap_colors}{Choose your own heatmap cluster palette?}
 }
 \value{
-List containing the returned heatmap along with some parameters used to create it.
+List containing the returned heatmap along with some
+ parameters used to create it.
 }
 \description{
 Heatplus is an interesting tool, I have a few examples of using it and intend

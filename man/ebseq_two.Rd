@@ -37,9 +37,31 @@ factors of interest.}
 
 \item{denominator}{Which factor has the denominator in the data.}
 
+\item{fast}{The EBSeq fast argument.}
+
 \item{ng_vector}{Passed to ebseq.}
 
 \item{rounds}{Passed to ebseq.}
+
+\item{Alpha}{The ebseq alpha parameter.}
+
+\item{Beta}{The ebseq beta parameter.}
+
+\item{Qtrm}{Ibid.}
+
+\item{QtrmCut}{Ibid.}
+
+\item{step1}{Ibid.}
+
+\item{step2}{Ibid.}
+
+\item{thre}{Ibid.}
+
+\item{sthre}{Ibid.}
+
+\item{filter}{Ibid.}
+
+\item{stopthre}{Ibid.}
 
 \item{target_fdr}{Passed to ebseq.}
 

@@ -9,6 +9,7 @@
 #' @param design Sometimes the experimental design is also required.
 #' @param method Type of transformation to perform: log2/log10/log.
 #' @param base Other log scales?
+#' @param model_fstring Formula describing the model of interest.
 #' @param ... Options I might pass from other functions are dropped into
 #'  arglist.
 #' @return dataframe of transformed counts.
@@ -19,7 +20,8 @@
 #' }
 #' @export
 transform_counts <- function(count_table, design = NULL, method = "raw",
-                             base = NULL, ...) {
+                             base = NULL, model_fstring = "~ 0 + condition + batch",
+                             ...) {
   arglist <- list(...)
   if (!is.null(arglist[["transform"]])) {
     method <- arglist[["transform"]]

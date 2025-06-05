@@ -1,22 +1,17 @@
 ## Use variancePartition's dream method with limma.
 
 #' Set up a model matrix and set of contrasts for pairwise comparisons using
-#' voom/limma.
+#' voom/limma via their modified functions from variancePartition.
 #'
 #' Creates the set of all possible contrasts and performs them using voom/limma.
 #'
 #' @param input Dataframe/vector or expt class containing count tables,
 #'  normalization state, etc.
-#' @param conditions Factor of conditions in the experiment.
-#' @param batches Factor of batches in the experiment.
-#' @param model_cond Include condition in the model?
-#' @param model_batch Include batch in the model?  If this is a character
-#'  instead of a logical, then it is passed to all_adjusers() to attempt to find
-#'  model parameters which describe surrogate variables in the data.
-#' @param model_intercept Perform a cell-means or intercept model? A little more
-#'  difficult for me to understand.  I have tested and get the same answer
-#'  either way.
-#' @param alt_model Specify another model.
+#' @param model_fstring Formula string describing the statistical
+#'  model of interest.
+#' @param null_fstring Formula string describing the null model.
+#' @param model_svs Matrix of surrogates or character describing how
+#'  to get them.
 #' @param extra_contrasts Some extra contrasts to add to the list.
 #'  This can be pretty neat, lets say one has conditions A,B,C,D,E
 #'  and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
@@ -25,12 +20,16 @@
 #' @param annot_df Data frame for annotations.
 #' @param libsize I've recently figured out that libsize is far more important
 #'  than I previously realized.  Play with it here.
+#' @param filter Filter the data before seeking SVs?
+#' @param num_surrogates Number of SVs or way to guesstimate them.
 #' @param limma_method Choose one of limma's lm methods.
 #' @param limma_robust Make the significance estimation robust?
 #' @param voom_norm Use this method to normalize the voom inputs.
 #' @param limma_trend Add trend lines to limma's voom plot?
 #' @param force Force data which may not be appropriate for limma into it?
 #' @param keepers Perform an explicit set of contrasts instead of all.
+#' @param keep_underscore Sanitize underscores from the model matrix?
+#' @param adjust Use this p-value adjustment.
 #' @param ... Use the elipsis parameter to feed options to write_limma().
 #' @return List including the following information:
 #'  macb = the mashing together of condition/batch so you can look at it
@@ -59,6 +58,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                            null_fstring = "~", model_svs = NULL,
                            extra_contrasts = NULL, annot_df = NULL,
                            libsize = NULL, filter = TRUE,
+                           num_surrogates = "be",
                            limma_method = "ls", limma_robust = FALSE, voom_norm = "none",
                            limma_trend = FALSE, force = FALSE, keepers = NULL,
                            keep_underscore = TRUE, adjust = "BH", ...) {
@@ -111,8 +111,9 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   if ("character" %in% class(model_svs)) {
     model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
                                       null_fstring = null_fstring,
-                                      estimate_type = model_svs,
-                                      surrogates = surrogates,
+                                      model_svs = model_svs,
+                                      num_surrogates = num_surrogates,
+                                      filter = filter,
                                       ...)
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
@@ -121,8 +122,6 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     design <- pData(model_params[["modified_input"]])
   }
   model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
-
-
   fctrs <- get_formula_factors(model_fstring)
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["contrast"]]
@@ -159,7 +158,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
   contrast_vector <- c()
   for (n in seq_along(contrasts[["all_pairwise"]])) {
-       dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,$", replacement = "")
+       dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,[[:space:]]*$", replacement = "")
        contrast_vector <- c(contrast_vector, dream_contrast)
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
@@ -356,6 +355,10 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
   return(retlist)
 }
 
+#' Nearly a copy of write_limma().
+#'
+#' This will add a couple of columns to the output table which are
+#' specific to variancePartition's dream
 #'
 #' @param data Output from limma_pairwise()
 #' @param ... Options for writing the xlsx file.

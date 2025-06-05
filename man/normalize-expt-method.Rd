@@ -2,10 +2,15 @@
 % Please edit documentation in R/normalize_shared.R
 \name{normalize,expt-method}
 \alias{normalize,expt-method}
-\title{Normalization of expt}
+\title{Normalization of an expt}
 \usage{
-\S4method{normalize}{expt}(input, ...)
+\S4method{normalize}{expt}(object, ...)
+}
+\arguments{
+\item{object}{Data structure to normalize}
+
+\item{...}{Other options.}
 }
 \description{
-Normalization of expt
+The primary definition for normalize resides in BiocGenerics.
 }

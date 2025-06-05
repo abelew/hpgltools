@@ -7,14 +7,15 @@
 plot_density(
   data,
   colors = NULL,
-  expt_names = NULL,
-  position = "identity",
+  colors_by = "condition",
+  design = NULL,
   direct = NULL,
   fill = NULL,
-  plot_title = NULL,
-  scale = NULL,
-  colors_by = "condition",
   label_chars = 10,
+  plot_title = NULL,
+  position = "identity",
+  sample_names = NULL,
+  scale = NULL,
   ...
 )
 }
@@ -23,21 +24,23 @@ plot_density(
 
 \item{colors}{Color scheme to use.}
 
-\item{expt_names}{Names of the samples.}
+\item{colors_by}{Factor for coloring the lines.}
 
-\item{position}{How to place the lines, either let them overlap (identity), or stack them.}
+\item{design}{Experimental design.}
 
 \item{direct}{Use direct.labels for labeling the plot?}
 
 \item{fill}{Fill the distributions?  This might make the plot unreasonably colorful.}
 
+\item{label_chars}{Maximum number of characters in sample names before abbreviation.}
+
 \item{plot_title}{Title for the plot.}
 
+\item{position}{How to place the lines, either let them overlap (identity), or stack them.}
+
+\item{sample_names}{Names of the samples.}
+
 \item{scale}{Plot on the log scale?}
-
-\item{colors_by}{Factor for coloring the lines}
-
-\item{label_chars}{Maximum number of characters in sample names before abbreviation.}
 
 \item{...}{sometimes extra arguments might come from graph_metrics()}
 }

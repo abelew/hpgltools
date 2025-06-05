@@ -117,9 +117,8 @@ get_group_gsva_means <- function(gsva_scores, groups, keep_single = TRUE, method
 #' @param gsva_result Result from simple_gsva()
 #' @param cutoff Significance cutoff
 #' @param excel Excel file to write the results.
-#' @param model_batch Add batch to limma's model.
-#' @param factor_column When extracting significance information, use this
-#'  metadata factor.
+#' @param model_svs Add batch to limma's model.
+#' @param model_fstring Formula string describing the model of interest.
 #' @param factor Use this metadata factor as the reference.
 #' @param label_size Used to make the category names easier to read at the expense
 #'  of dropping some.
@@ -131,7 +130,7 @@ get_group_gsva_means <- function(gsva_scores, groups, keep_single = TRUE, method
 #'  [simple_gsva()]
 #' @export
 get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/gsva_subset.xlsx",
-                                    model_batch = FALSE, factor_column = "condition", factor = NULL,
+                                    model_svs = NULL, model_fstring = "~ 0 + condition", factor = NULL,
                                     label_size = NULL, col_margin = 6, row_margin = 12,
                                     type = "mean") {
   gsva_scores <- gsva_result[["expt"]]
@@ -142,17 +141,19 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   ## a result our mean gsva scores will no longer have any connection
   ## to the results from limma.
   ## I think this may be trivially fixed though? ...
+  factor_info <- get_formula_factors(model_fstring)
+  factor_column <- factor_info[["factors"]][1]
   if (factor_column != "condition") {
     gsva_scores <- set_expt_conditions(gsva_scores, fact = factor_column)
   }
 
   ## Use limma on the gsva result
-  gsva_limma <- limma_pairwise(gsva_scores, model_batch = model_batch,
-                               which_voom = "none")
+  gsva_limma <- limma_pairwise(input = gsva_scores, model_fstring = model_fstring,
+                               which_voom = "none", model_svs = model_svs)
 
   ## Combine gsva max(scores) with limma results
   ### get gsva within group means
-  groups <- levels(gsva_scores[["conditions"]])
+  groups <- levels(droplevels(as.factor(pData(gsva_scores)[[factor_column]])))
   gsva_score_means <- median_by_factor(data = gsva_scores, fact = factor_column, fun = type)
   ## gsva_score_means <- get_group_gsva_means(gsva_scores, groups)
   num_den_string <- strsplit(x = names(gsva_limma[["all_tables"]]), split = "_vs_")
@@ -558,7 +559,7 @@ score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
 #' function will hopefully provide some of the requisite defaults and do some
 #' sanity checking to make it more likely that a gsva analysis will succeed.
 #'
-#' @param expt Expt object to be analyzed.
+#' @param eset Expt object to be analyzed.
 #' @param signatures Provide an alternate set of signatures (GeneSetCollections)
 #' @param data_pkg What package contains the requisite dataset?
 #' @param signature_category Specify a subset category to extract from the signatures database.
@@ -566,6 +567,7 @@ score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
 #' @param current_id Where did the IDs of the genes come from?
 #' @param required_id gsva (I assume) always requires ENTREZ IDs, but just in
 #'  case this is a parameter.
+#' @param id_source How to find the IDs (DBI or fData).
 #' @param min_catsize Minimum category size to consider interesting (passed to gsva()).
 #' @param orgdb What is the data source for the rownames()?
 #' @param method Which gsva method to use? Changed this from gsva to ssgsea
@@ -584,36 +586,26 @@ score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
 #'  should revisit it?
 #' @seealso [GSEABase] [load_gmt_signatures()] [create_expt()] [GSVA]
 #' @export
-simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
+simple_gsva <- function(eset, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                         signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
-                        required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5, orgdb = "org.Hs.eg.db",
-                        method = "ssgsea", kcdf = NULL, ranking = FALSE, msig_db = NULL,
+                        required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5,
+                        orgdb = "org.Hs.eg.db", method = "ssgsea", kcdf = NULL,
+                        ranking = FALSE, msig_db = NULL,
                         ## wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID"),
                         wanted_meta = "all", mx_diff = TRUE, verbose = FALSE, id_type = "entrez") {
-  if (is.null(kcdf)) {
-    if (expt[["state"]][["transform"]] == "raw") {
-      kcdf <- "Poisson"
-    } else {
-      kcdf <- "Gaussian"
-    }
-  }
-
   if (is.null(cores)) {
     cores <- min(parallel::detectCores() - 1, 16)
   }
-
   if (!is.null(msig_db)) {
     if (!file.exists(msig_db)) {
       stop("The msig_db parameter was defined, but the file does not exist.")
     }
   }
-
   ## Make sure some data is loaded.  I will no longer assume anything here.
   ## Here is how I will decide:
   ## 1.  If signatures is a (string)filename ending in '.gmt', then extract the genesetlists and use it.
   ## 2.  If signatures is a string, then load the data_pkg, presumably GSVAdata.
   ## 3.  If signatures is not a string, assume it is a genesetlist/geneset and use that.
-
   ## Assume the desired category is c2 unless specified.
   if (is.null(signature_category)) {
     message("Signature category was null, setting it to C2.")
@@ -622,19 +614,17 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   signature_data <- load_gmt_signatures(signatures = signatures, data_pkg = data_pkg,
                                         signature_category = signature_category,
                                         id_type = id_type)
-
   ## The expressionset must have the annotation field filled in for gsva to
   ## work.
-  eset_annotation <- annotation(expt)
-  eset_pattern <- grepl(pattern = "Fill me in", x = annotation(expt))
+  eset_annotation <- annotation(eset)
+  eset_pattern <- grepl(pattern = "Fill me in", x = annotation(eset))
   if (length(eset_annotation) == 0 | isTRUE(eset_pattern)) {
     message("gsva requires the annotation field to be filled in. Setting it to orgdb given.")
-    annotation(expt) <- orgdb
+    annotation(eset) <- orgdb
   }
 
-  eset <- expt
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
-  if (current_id != required_id | !is.integer(grep("ENSG", rownames(exprs(expt))))) {
+  if (current_id != required_id | !is.integer(grep("ENSG", rownames(exprs(eset))))) {
     message("Converting the rownames() of the expressionset to ", required_id, ".")
     if (id_source == "orgdb") {
       ##tt <- sm(library(orgdb, character.only = TRUE))
@@ -646,11 +636,11 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                                           keytype = current_id,
                                           columns = c(required_id)))
     } else if (id_source == "fdata") {
-      ids <- fData(expt)[[required_id]]
+      ids <- fData(eset)[[required_id]]
       new_ids <- data.frame(
-        current_id = rownames(exprs(expt)),
+        current_id = rownames(exprs(eset)),
         required_id = ids)
-      rownames(new_ids) <- rownames(expt)
+      rownames(new_ids) <- rownames(eset)
       colnames(new_ids) <- c(current_id, required_id)
     } else {
       stop("I do not understand this ID source.")
@@ -669,66 +659,118 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     new_ids <- new_ids[!dropme, ]
     dropme <- is.na(new_ids[[required_id]])
     new_ids <- new_ids[!dropme, ]
-    message("Before conversion, the expressionset has ", length(rownames(exprs(expt))),
+    message("Before conversion, the expressionset has ", length(rownames(exprs(eset))),
             " entries.")
     new_rownames <- new_ids[[required_id]]
     old_rownames <- new_ids[[current_id]]
     ## FIXME: My expt [] implementation has a bug.
-    exprs_subset <- expt[["expressionset"]][old_rownames, ]
-    sub_expt <- expt
-    sub_expt[["expressionset"]] <- exprs_subset
+    exprs_subset <- eset[old_rownames, ]
+    sub_expt <- exprs_subset
     ## sub_expt <- subset_expt(expt, ids = old_rownames)
-    converted_expt <- set_expt_genenames(sub_expt, new_rownames)
+    converted_eset <- exprs_subset
+    rownames(converted_eset) <- new_rownames
     message("After conversion, the expressionset has ",
-            length(rownames(exprs(converted_expt))),
+            length(rownames(exprs(converted_eset))),
             " entries.")
-    check_x <- grepl(pattern = "^X", x = rownames(exprs(converted_expt)))
+    check_x <- grepl(pattern = "^X", x = rownames(exprs(converted_eset)))
     if (required_id == "ENTREZ" && sum(check_x) > 0) {
       remove_x <- gsub(pattern = "^X", replacement = "",
-                       x = rownames(exprs(converted_expt)))
-      rownames(exprs(converted_expt)) <- remove_x
+                       x = rownames(exprs(converted_eset)))
+      rownames(exprs(converted_eset)) <- remove_x
     }
-    eset <- converted_expt
+    eset <- converted_eset
     fData(eset)[[required_id]] <- rownames(fData(eset))
   }
 
+  ## Set up the GSVA parameters.
   gsva_result <- NULL
-  if (isTRUE(verbose)) {
-    #gsvapar <- GSVA::gsvaParam(eset[["expressionset"]], NULL)
-    #gsva_es <- gsva(gsvapar)
-    gsva_result <- GSVA::gsva(eset[["expressionset"]], signature_data, verbose = TRUE,
-                              method = method, min.sz = min_catsize, kcdf = kcdf,
-                              abs.ranking = ranking, parallel.sz = cores, mx.diff = mx_diff)
+  gsva_params <- NULL
+  ## There are a lot of interesting options which I am not setting here, that should be fixed.
+  if (method == "ssgsea") {
+    gsva_params <- GSVA::ssgseaParam(eset, signature_data)
+  } else if (method == "zscore") {
+    gsva_params <- GSVA::zscoreParam(eset, signature_data)
   } else {
-    gsva_result <- sm(GSVA::gsva(eset[["expressionset"]], signature_data, verbose = TRUE,
-                                 method = method, min.sz = min_catsize, kcdf = kcdf,
-                                 abs.ranking = ranking, parallel.sz = cores, mx.diff = mx_diff))
+    gsva_params <- GSVA::gsvaParam(eset, signature_data)
   }
-  fdata_df <- data.frame(row.names = rownames(exprs(gsva_result)))
-
-  fdata_df[["description"]] <- ""
-  fdata_df[["ids"]] <- ""
-  message("Adding descriptions and IDs to the gene set annotations.")
-  shared_sig_data <- signature_data[rownames(fdata_df)]
-  for (i in seq_along(names(shared_sig_data))) {
-    fdata_df[i, "description"] <- description(shared_sig_data[[i]])
-    fdata_df[i, "ids"] <- toString(GSEABase::geneIds(shared_sig_data[[i]]))
-  }
-
-  if (!is.null(msig_db)) {
-    message("Adding annotations from ", msig_db, ".")
-    improved <- get_msigdb_metadata(msig_db = msig_db, wanted_meta = wanted_meta)
-    ## Add improved to fData
-    fdata_df <- merge(fdata_df, improved, by = "row.names", all.x = TRUE)
-    rownames(fdata_df) <- fdata_df[["Row.names"]]
-    fdata_df[["Row.names"]] <- NULL
-  }
-
-  fData(gsva_result) <- fdata_df
-  new_expt <- expt
-  new_expt[["expressionset"]] <- gsva_result
-
+  gsva_result <- GSVA::gsva(gsvapar, verbose = verbose)
   retlist <- list(
+    "gsva_result" = gsva_result,
+    "signature_data" = signature_data)
+  return(retlist)
+}
+setGeneric("simple_gsva")
+
+#' Invoke simple_gsva using an expt as input.
+#'
+#' @param eset Expt object to be analyzed.
+#' @param signatures Provide an alternate set of signatures (GeneSetCollections)
+#' @param data_pkg What package contains the requisite dataset?
+#' @param signature_category Specify a subset category to extract from the signatures database.
+#' @param cores How many CPUs to use?
+#' @param current_id Where did the IDs of the genes come from?
+#' @param required_id gsva (I assume) always requires ENTREZ IDs, but just in
+#'  case this is a parameter.
+#' @param id_source How to find the IDs (DBI or fData).
+#' @param min_catsize Minimum category size to consider interesting (passed to gsva()).
+#' @param orgdb What is the data source for the rownames()?
+#' @param method Which gsva method to use? Changed this from gsva to ssgsea
+#'  because it was throwing segmentation faults.
+#' @param kcdf Options for the gsva methods.
+#' @param ranking another gsva option.
+#' @param msig_db File contining msigdb annotations.
+#' @param wanted_meta Desired metadata elements from the mxig_xml file.
+#' @param mx_diff Passed to gsva(), I do not remember what it does.
+#' @param verbose Print some information while running?
+#' @param id_type Specify the ID type when loading the signature database.
+setMethod(
+  "simple_gsva", signature(eset = "expt"),
+  definition = function(eset, signatures = "c2BroadSets", data_pkg = "GSVAdata",
+                        signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
+                        required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5,
+                        orgdb = "org.Hs.eg.db", method = "ssgsea", kcdf = NULL,
+                        ranking = FALSE, msig_db = NULL,
+                        ## wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID"),
+                        wanted_meta = "all", mx_diff = TRUE, verbose = FALSE, id_type = "entrez") {
+    if (is.null(kcdf)) {
+      if (state(eset)[["transform"]] == "raw") {
+        kcdf <- "Poisson"
+      } else {
+        kcdf <- "Gaussian"
+      }
+    }
+    expt <- eset
+    eset <- eset[["expressionset"]]
+    gsva_data <- simple_gsva(eset = eset, signatures = signatures, data_pkg = data_pkg,
+                               signature_category = signature_category, cores = cores,
+                               current_id = current_id, required_id = required_id,
+                               id_source = id_source, min_catsize = min_catsize,
+                               orgdb = orgdb, method = method, kcdf = kcdf, ranking = ranking,
+                               msig_db = msig_db, wanted_meta = wanted_meta, mx_diff = mx_diff,
+                             verbose = verbose, id_type = id_type)
+    gsva_result <- gsva_data[["gsva_result"]]
+    signature_data <- gsva_data[["signature_data"]]
+    fdata_df <- data.frame(row.names = rownames(exprs(gsva_result)))
+    fdata_df[["description"]] <- ""
+    fdata_df[["ids"]] <- ""
+    message("Adding descriptions and IDs to the gene set annotations.")
+    shared_sig_data <- signature_data[rownames(fdata_df)]
+    for (i in seq_along(names(shared_sig_data))) {
+      fdata_df[i, "description"] <- description(shared_sig_data[[i]])
+      fdata_df[i, "ids"] <- toString(GSEABase::geneIds(shared_sig_data[[i]]))
+    }
+    if (!is.null(msig_db)) {
+      message("Adding annotations from ", msig_db, ".")
+      improved <- get_msigdb_metadata(msig_db = msig_db, wanted_meta = wanted_meta)
+      ## Add improved to fData
+      fdata_df <- merge(fdata_df, improved, by = "row.names", all.x = TRUE)
+      rownames(fdata_df) <- fdata_df[["Row.names"]]
+      fdata_df[["Row.names"]] <- NULL
+    }
+    fData(gsva_result) <- fdata_df
+    new_expt <- expt
+    new_expt[["expressionset"]] <- gsva_result
+    retlist <- list(
       "method" = method,
       "signatures" = signatures,
       "signature_category" = signature_category,
@@ -737,9 +779,9 @@ simple_gsva <- function(expt, signatures = "c2BroadSets", data_pkg = "GSVAdata",
       "expt" = new_expt,
       "gsva" = gsva_result,
       "fdata" = fdata_df)
-  class(retlist) <- "gsva_result"
-  return(retlist)
-}
+    class(retlist) <- "gsva_result"
+    return(retlist)
+  })
 
 #' Print a gsva category search.
 #'

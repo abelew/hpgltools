@@ -385,7 +385,7 @@ primer_qc <- function(entry, genome,
 #' @param conditions Set of conditions to search against.
 #' @param minimum Minimum number of variants required for a candiate.
 #' @param maximum_separation How far apart from each other are these
-#'  >={minimum} variants allowed to be?
+#'  >=minimum variants allowed to be?
 #' @param one_away_file Location to write variants that are no more than 1 base apart.
 #' @param two_away_file Location for those which are no more than 2 apart.
 #' @param doubles_file Write out variants which are 2 in a row.
@@ -630,7 +630,7 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   variants_per_bin <- as.data.frame(both_df) %>%
     group_by(bincds) %>%
     summarise(n = n()) %>%
-    arrange(desc(n))
+    dplyr::arrange(dplyr::desc(n))
 
   ## Make a big df of all these little dfs merged together.
   ## use the new column names to hopefully make it easier.
@@ -642,7 +642,7 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   ## by bins with the most variants within them.
   all_merged <- merge(all_merged, variants_per_bin,
                       by = "bincds", all.x = TRUE) %>%
-    arrange(desc(n))
+    dplyr::arrange(dplyr::desc(n))
   ## and ignore the bins with too few variants
   starting_rows <- nrow(all_merged)
   keepers <- all_merged[["n"]] >= minvar_perbin
@@ -672,8 +672,6 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   variant_df[["strand"]] <- NULL
   ## and merge the variants, note strand/width are useless here.
   all_merged <- merge(all_merged, variant_df, by.x = "var", by.y = "idx")
-
-
   ## Figure out the relative positions of the bin/variant start positions.
   ## I am not going to bother repeating this for the reverse primers with
   ## the assumption that whoever actually uses these will
@@ -686,12 +684,12 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   ## variant data is x,y,z,a,b,c for the references/alternates/positions
   final_merged <- all_merged %>%
     group_by(bincds) %>%
-    distinct(relative, .keep_all = TRUE) %>%
-    mutate(ref_series = paste0(reference, collapse = ","),
+    dplyr::distinct(relative, .keep_all = TRUE) %>%
+    dplyr::mutate(ref_series = paste0(reference, collapse = ","),
            alt_series = paste0(alternate, collapse = ","),
            pos_series = paste0(var_start, collapse = ","),
            amp_series = paste0(relative, collapse = ",")) %>%
-    distinct(bincds, .keep_all = TRUE)
+    dplyr::distinct(bincds, .keep_all = TRUE)
   final_rows <- nrow(final_merged)
   message("Collapsing variants/bin reduced the rows from: ", ending_rows, " to: ", final_rows, ".")
 

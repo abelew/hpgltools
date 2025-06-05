@@ -103,8 +103,8 @@ get_genesizes <- function(annotation = NULL, type = "gff", gene_type = "gene",
 #'  [load_kegg_annotations()] [load_trinotate_annotations()] [load_microbesonline_annotations()]
 #'  [load_uniprot_annotations()]
 #' @examples
-#'  example_gff <- get_paeruginosa_data()[["gff"]]
-#'  gff_annotations <- load_annotations(type = "gff", gff = example_gff)
+#'  pa_gff <- system.file("share", "paeruginosa_pa14.gff", package = "hpgldata")
+#'  gff_annotations <- load_annotations(type = "gff", gff = pa_gff)
 #'  dim(gff_annotations)
 #' @export
 load_annotations <- function(type = NULL, ...) {

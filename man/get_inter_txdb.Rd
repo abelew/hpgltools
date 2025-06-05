@@ -10,6 +10,13 @@ get_inter_txdb(
   intergenic_gff = "intergenic.gff"
 )
 }
+\arguments{
+\item{input}{gff file containing the annotations.}
+
+\item{intron_gff}{Output gff file containing intron coordinates.}
+
+\item{intergenic_gff}{Output gff containing the intergenic regions.}
+}
 \description{
 I was poking around for ways to mix and match gff files and found this:
 https://support.bioconductor.org/p/66003/

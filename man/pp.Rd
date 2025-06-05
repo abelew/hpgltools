@@ -18,6 +18,8 @@ print it to file and screen.}
 
 \item{res}{The chosen resolution.}
 
+\item{crop}{Crop off the edges of the plot?}
+
 \item{...}{Arguments passed to the image plotters.}
 }
 \value{

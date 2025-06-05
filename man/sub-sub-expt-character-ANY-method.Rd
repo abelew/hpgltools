@@ -2,7 +2,7 @@
 % Please edit documentation in R/zzz_subset.R
 \name{[[,expt,character,ANY-method}
 \alias{[[,expt,character,ANY-method}
-\title{Simplifying subset on metadata.}
+\title{Simplifying subset on metadata when i is a character.}
 \usage{
 \S4method{[[}{expt,character,ANY}(x, i, j, ...)
 }
@@ -10,7 +10,11 @@
 \item{x}{an expt}
 
 \item{i}{Column to extract}
+
+\item{j}{not sure}
+
+\item{...}{extra arguments.}
 }
 \description{
-Simplifying subset on metadata.
+Simplifying subset on metadata when i is a character.
 }

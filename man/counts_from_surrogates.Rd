@@ -22,18 +22,18 @@ counts_from_surrogates(
 
 \item{design}{Experimental design if it is not included in the expressionset.}
 
-\item{method}{Which methodology to follow, ideally these agree but that seems untrue.}
+\item{method}{Which methodology to follow, ideally these agree but
+that seems untrue.}
 
-\item{matrix_scale}{Was the input for the surrogate estimator on a log or linear scale?}
+\item{model_fstring}{Formula string describing the statistical
+model of interest.}
+
+\item{matrix_scale}{Was the input for the surrogate estimator on a
+log or linear scale?}
 
 \item{return_scale}{Does one want the output linear or log?}
 
 \item{...}{Arguments passed to downstream functions.}
-
-\item{cond_column}{design column containing the condition data.}
-
-\item{batch_column}{design column with the batch data, used for
-subtractive methods.}
 }
 \value{
 A data frame of adjusted counts.

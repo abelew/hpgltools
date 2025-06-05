@@ -5,7 +5,7 @@
 \title{Provide some defaults and guidance when attempting to use gsva.}
 \usage{
 simple_gsva(
-  expt,
+  eset,
   signatures = "c2BroadSets",
   data_pkg = "GSVAdata",
   signature_category = "c2",
@@ -26,7 +26,7 @@ simple_gsva(
 )
 }
 \arguments{
-\item{expt}{Expt object to be analyzed.}
+\item{eset}{Expt object to be analyzed.}
 
 \item{signatures}{Provide an alternate set of signatures (GeneSetCollections)}
 
@@ -40,6 +40,8 @@ simple_gsva(
 
 \item{required_id}{gsva (I assume) always requires ENTREZ IDs, but just in
 case this is a parameter.}
+
+\item{id_source}{How to find the IDs (DBI or fData).}
 
 \item{min_catsize}{Minimum category size to consider interesting (passed to gsva()).}
 

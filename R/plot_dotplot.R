@@ -22,7 +22,7 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
   meta <- pData(expt)
   chosen <- meta[[chosen_factor]]
   names <- sampleNames(expt)
-  my_colors <- colors(expt)
+  my_colors <- get_colors(expt)
   sv_df <- data.frame(
     "adjust" = svest[, sv],  ## Take a single estimate from compare_estimates()
     "factors" = chosen,
@@ -57,6 +57,7 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
 #'  or batch estimates.
 #' @param sv Which surrogate variable to show?
 #' @param batch_column Which experimental design column to use?
+#' @param condition_column Column with the information of interest.
 #' @param factor_type This may be a factor or range, it is intended to plot
 #'  a scatterplot if it is a range, a dotplot if a factor.
 #' @param id_column Use this column for the sample IDs.
@@ -67,7 +68,8 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
 #'  estimate_vs_snps <- plot_batchsv(start, surrogate_estimate, "snpcategory")
 #' }
 #' @export
-plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", condition_column = "condition", factor_type = "factor",
+plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch",
+                         condition_column = "condition", factor_type = "factor",
                          id_column = "sampleid") {
   meta <- pData(expt)
   chosen <- meta[[batch_column]]
@@ -77,7 +79,7 @@ plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", condition_co
   if (is.null(samples)) {
     samples <- rownames(meta)
   }
-  expt_colors <- colors(expt)
+  expt_colors <- get_colors(expt)
 
   factor_df <- data.frame(
     "sample" = samples,
@@ -214,7 +216,7 @@ plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch", condition_co
 plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC1") {
   meta <- pData(expt)
   samplenames <- sampleNames(expt)
-  my_colors <- colors(expt)
+  my_colors <- get_colors(expt)
   minval <- min(pc_df[[component]])
   maxval <- max(pc_df[[component]])
   my_binwidth <- (maxval - minval) / 40
@@ -247,7 +249,7 @@ plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC
 #' @param colors Color scheme if data is not an expt.
 #' @param method Correlation or distance method to use.
 #' @param plot_legend Include a legend on the side?
-#' @param expt_names Use pretty names for the samples?
+#' @param sample_names Use pretty names for the samples?
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param plot_title Title for the graph.
 #' @param dot_size How large should the glyphs be?
@@ -266,7 +268,7 @@ plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC
 #' }
 #' @export
 plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot_legend = FALSE,
-                    expt_names = NULL, label_chars = 10, plot_title = NULL, dot_size = 5,
+                    sample_names = NULL, label_chars = 10, plot_title = NULL, dot_size = 5,
                     ...) {
   arglist <- list(...)
   chosen_palette <- "Dark2"
@@ -279,6 +281,12 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
       RColorBrewer::brewer.pal(ncol(data), chosen_palette))(ncol(data))
   }
   colors <- as.character(colors)
+
+  na_idx <- is.na(data)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " na values, setting them to 0.")
+    data[na_idx] <- 0
+  }
 
   properties <- NULL
   if (method == "pearson" || method == "spearman" || method == "robust") {
@@ -325,9 +333,9 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
     } else {
       sm_df[["batch"]] <- as.factor(design[["batch"]])
     }
-    if (class(expt_names) == "character" && length(expt_names) == 1) {
+    if (class(sample_names) == "character" && length(sample_names) == 1) {
       ## Then this refers to an experimental metadata column.
-      sm_df[["sample"]] <- design[[expt_names]]
+      sm_df[["sample"]] <- design[[sample_names]]
     }
   } else {
     sm_df[["condition"]] <- "undefined"
@@ -444,71 +452,115 @@ from {min_comp} to {max_comp} with quartiles at {first_quart} and {third_quart}.
 }
 
 #' Plot the standard median pairwise values of an expt.
+#'
+#' @param data Expt, expressionset, or data frame.
+#' @param design Specify metadata if desired.
+#' @param colors Color scheme if data is not an expt.
+#' @param method Correlation or distance method to use.
+#' @param plot_legend Include a legend on the side?
+#' @param sample_names Use pretty names for the samples?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param plot_title Title for the graph.
+#' @param dot_size How large should the glyphs be?
+#' @param ... More parameters to make you happy!
+
 #' @export
 setMethod(
   "plot_sm", signature = signature(data = "expt"),
   definition = function(data, colors = NULL, method = "pearson",
-                        plot_legend = FALSE, expt_names = NULL,
+                        plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
             design <- pData(data)
-            colors <- colors(data)
+            colors <- get_colors(data)
             conditions <- design[["condition"]]
             mtrx <- exprs(data)
             plot_sm(mtrx, design = design, colors = colors, method = method,
-                    plot_legend = plot_legend, expt_names = expt_names,
+                    plot_legend = plot_legend, sample_names = sample_names,
                     label_chars = label_chars, plot_title = plot_title,
                     dot_size = dot_size,
                     ...)
           })
 
 #' Plot the standard median pairwise values of a SummarizedExperiment.
+#'
+#' @param data Expt, expressionset, or data frame.
+#' @param design Specify metadata if desired.
+#' @param colors Color scheme if data is not an expt.
+#' @param method Correlation or distance method to use.
+#' @param plot_legend Include a legend on the side?
+#' @param sample_names Use pretty names for the samples?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param plot_title Title for the graph.
+#' @param dot_size How large should the glyphs be?
+#' @param ... More parameters to make you happy!
 #' @export
 setMethod(
   "plot_sm", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, colors = NULL, method = "pearson",
-                        plot_legend = FALSE, expt_names = NULL,
+                        plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
     design <- pData(data)
-    colors <- colors(data)
+    colors <- get_colors(data)
     mtrx <- exprs(data)
     plot_sm(mtrx, design = design, colors = colors, method = method,
-            plot_legend = plot_legend, expt_names = expt_names,
+            plot_legend = plot_legend, sample_names = sample_names,
             label_chars = label_chars, plot_title = plot_title,
             dot_size = dot_size, ...)
   })
 
 #' Plot the standard median pairwise values of an ExpressionSet.
+#'
+#' @param data Expt, expressionset, or data frame.
+#' @param design Specify metadata if desired.
+#' @param colors Color scheme if data is not an expt.
+#' @param method Correlation or distance method to use.
+#' @param plot_legend Include a legend on the side?
+#' @param sample_names Use pretty names for the samples?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param plot_title Title for the graph.
+#' @param dot_size How large should the glyphs be?
+#' @param ... More parameters to make you happy!
 #' @export
 setMethod(
   "plot_sm", signature = signature(data = "ExpressionSet"),
   definition = function(data, colors = NULL, method = "pearson",
-                        plot_legend = FALSE, expt_names = NULL,
+                        plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
     design <- pData(data)
     mtrx <- exprs(data)
     plot_sm(mtrx, design = design, colors = colors, method = method,
-            plot_legend = plot_legend, expt_names = expt_names,
+            plot_legend = plot_legend, sample_names = sample_names,
             label_chars = label_chars, plot_title = plot_title,
             dot_size = dot_size, ...)
   })
 
 #' Plot the standard median pairwise values of a dataframe.
+#'
+#' @param data Expt, expressionset, or data frame.
+#' @param design Specify metadata if desired.
+#' @param colors Color scheme if data is not an expt.
+#' @param method Correlation or distance method to use.
+#' @param plot_legend Include a legend on the side?
+#' @param sample_names Use pretty names for the samples?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param plot_title Title for the graph.
+#' @param dot_size How large should the glyphs be?
+#' @param ... More parameters to make you happy!
 #' @export
 setMethod(
   "plot_sm", signature = signature(data = "data.frame"),
   definition = function(data, colors = NULL, method = "pearson",
-                        plot_legend = FALSE, expt_names = NULL,
+                        plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
     mtrx <- as.matrix(data)
     plot_sm(mtrx, colors = colors, method = method,
-            plot_legend = plot_legend, expt_names = expt_names,
+            plot_legend = plot_legend, sample_names = sample_names,
             label_chars = label_chars, plot_title = plot_title,
             dot_size = dot_size, ...)
   })
-
 
 ## EOF

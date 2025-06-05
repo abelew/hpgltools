@@ -28,10 +28,11 @@ normalize_se(
   na_to_zero = FALSE,
   adjust_method = "ruv",
   verbose = TRUE,
-  surrogates = "be",
+  num_surrogates = "be",
   surrogate_method = NULL,
   cpus = 4,
   noscale = TRUE,
+  length_column = NULL,
   ...
 )
 }
@@ -60,7 +61,8 @@ normalize_se(
 
 \item{batch_step}{From step 1-5, when should batch correction be applied?}
 
-\item{low_to_zero}{When log transforming, change low numbers (< 0) to 0 to avoid NaN?}
+\item{low_to_zero}{When log transforming, change low numbers (< 0)
+to 0 to avoid NaN?}
 
 \item{thresh}{Used by cbcb_lowfilter().}
 
@@ -83,7 +85,18 @@ normalize_se(
 \item{verbose}{Print what is happening while the normalization is performed?
 I am not sure why, but I think they should be 0.}
 
-\item{...}{more options}
+\item{num_surrogates}{Explicit number of way to seek the number
+of surrogates.}
+
+\item{surrogate_method}{Method to seek surrogates.}
+
+\item{cpus}{Number of cpus to use.}
+
+\item{noscale}{I think used only by combat -- scale the data?}
+
+\item{length_column}{annotation column containing gene lengths for rpkm.}
+
+\item{...}{Arbitrary arguments.}
 }
 \description{
 Normalize a SummarizedExperiment and think about how I want to reimplement some of this.

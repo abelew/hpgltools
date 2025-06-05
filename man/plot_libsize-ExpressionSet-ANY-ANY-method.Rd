@@ -17,6 +17,31 @@
   ...
 )
 }
+\arguments{
+\item{data}{SummarizedExperiment presumably created by create_se().}
+
+\item{condition}{Set of conditions observed in the metadata, overriding
+the metadata in the SE.}
+
+\item{colors}{Set of colors for the plot, overriding the SE metadata.}
+
+\item{text}{Print text with the counts/sample observed at the top of the bars?}
+
+\item{order}{Optionally redefine the order of the bars of the plot.}
+
+\item{plot_title}{Plot title!}
+
+\item{yscale}{Explicitly set the scale on the log or base10 scale.}
+
+\item{expt_names}{Optionally change the names of the bars.}
+
+\item{label_chars}{If the names of the bars are larger than this, abbreviate them.}
+
+\item{...}{Additonal arbitrary arguments.}
+}
+\value{
+Plot of library sizes and a couple tables describing the data.
+}
 \description{
 Run plot_libsize() with an ExpressionSet as input.
 }

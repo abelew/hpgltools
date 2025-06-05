@@ -56,6 +56,8 @@ topgo results.}
 
 \item{pval_plots}{Include pvalue plots of the results a la clusterprofiler?}
 
+\item{parallel}{Use doParallel?}
+
 \item{excel}{Print the results to an excel file?}
 
 \item{...}{Other options which I do not remember right now!}

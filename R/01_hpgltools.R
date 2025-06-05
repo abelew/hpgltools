@@ -1,3 +1,4 @@
+
 #' Pipe operator
 #'
 #' Shamelessly scabbed from Hadley: https://github.com/sckott/analogsea/issues/32
@@ -115,24 +116,27 @@ NULL
 #' @import SummarizedExperiment
 #' @import Biobase
 #' @import BiocGenerics
-#' @importFrom data.table data.table
+#' @importFrom data.table data.table as.data.table setkey rbindlist
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
 #' @importFrom ggplot2 aes ggplot theme labs scale_fill_manual element_text
 #' @importFrom glue glue glue_data
+#' @importFrom graphics
+#'  abline axis barplot hist layout lines mtext par plot.new
+#'  rect strheight strwidth text title
 #' @importFrom grDevices recordPlot
 #' @importFrom rlang abort sym
 #' @importFrom stats
-#'  aggregate as.dendrogram as.formula ave biplot coef coefficients complete.cases
-#'  cor cor.test density dist dnorm formula glm hclust lm lowess median
-#'  model.matrix na.omit order.dendrogram p.adjust p.adjust.methods pnorm
-#'  princomp quantile relevel reorder resid residuals rnbinom sd setNames
-#'  t.test var
-#' @import data.table
-#' @import graphics
+#'  aggregate anova as.dendrogram as.formula ave biplot coef coefficients
+#'  complete.cases cor cor.test dist dnorm family formula glm hclust lm
+#'  lowess median model.matrix na.omit order.dendrogram p.adjust
+#'  p.adjust.methods pnorm princomp quantile relevel reorder resid
+#'  rnbinom setNames step t.test wilcox.test
+#' @importFrom utils
+#'  capture.output data download.file head installed.packages read.csv read.delim
+#'  read.table setTxtProgressBar tail write.csv write.table
 #' @import grDevices
 #' @import methods
-#' @import utils
 "_PACKAGE"
 
 #' The following sets the ggplot2 default text size.

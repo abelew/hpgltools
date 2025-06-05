@@ -10,7 +10,7 @@ compare_surrogate_estimates(
   filter_it = TRUE,
   filter_type = TRUE,
   do_catplots = FALSE,
-  surrogates = "be",
+  num_surrogates = "be",
   ...
 )
 }
@@ -28,7 +28,7 @@ are 0s in the data.  Filter it?}
 \item{do_catplots}{Include the catplots?  They don't make a lot of sense yet,
 so probably no.}
 
-\item{surrogates}{Use 'be' or 'leek' surrogate estimates, or choose a
+\item{num_surrogates}{Use 'be' or 'leek' surrogate estimates, or choose a
 number.}
 
 \item{...}{Extra arguments when filtering.}

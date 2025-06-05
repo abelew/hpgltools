@@ -13,6 +13,20 @@ guess_num_surrogates(
   guess_type = "be"
 )
 }
+\arguments{
+\item{design}{Dataframe describing the experimental design}
+
+\item{linear_mtrx}{linear scale matrix of the input data}
+
+\item{log2_mtrx}{Log2 scale matrix of the input data}
+
+\item{model_svs}{Method used to model the surrogate variables.}
+
+\item{conditional_fstring}{Formula string describing the variable
+of interest.}
+
+\item{guess_type}{Method to guess at the number of surrogate variables.}
+}
 \description{
 Use methods from sva/RUVseq to guesstimate the number of surrogates.
 }

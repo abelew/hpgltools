@@ -4,7 +4,14 @@
 \alias{transform_counts}
 \title{Perform a simple transformation of a count table (log2)}
 \usage{
-transform_counts(count_table, design = NULL, method = "raw", base = NULL, ...)
+transform_counts(
+  count_table,
+  design = NULL,
+  method = "raw",
+  base = NULL,
+  model_fstring = "~ 0 + condition + batch",
+  ...
+)
 }
 \arguments{
 \item{count_table}{Matrix of count data}
@@ -14,6 +21,8 @@ transform_counts(count_table, design = NULL, method = "raw", base = NULL, ...)
 \item{method}{Type of transformation to perform: log2/log10/log.}
 
 \item{base}{Other log scales?}
+
+\item{model_fstring}{Formula describing the model of interest.}
 
 \item{...}{Options I might pass from other functions are dropped into
 arglist.}

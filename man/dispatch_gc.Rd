@@ -4,7 +4,13 @@
 \alias{dispatch_gc}
 \title{Pull GC content into the metadata sheet.}
 \usage{
-dispatch_gc(meta, input_file_spec, verbose = FALSE, basedir = "preprocessing")
+dispatch_gc(
+  meta,
+  input_file_spec,
+  verbose = FALSE,
+  new_spec = NULL,
+  basedir = "preprocessing"
+)
 }
 \arguments{
 \item{meta}{Input metadata}
@@ -13,6 +19,8 @@ dispatch_gc(meta, input_file_spec, verbose = FALSE, basedir = "preprocessing")
 file of interest.}
 
 \item{verbose}{Print diagnostic information while running?}
+
+\item{new_spec}{New specification from this.}
 
 \item{basedir}{Root directory containing the files/logs of metadata.}
 }

@@ -8,18 +8,51 @@
   data = NULL,
   wb = NULL,
   sheet = NULL,
-  excel,
+  excel = NULL,
   rownames = TRUE,
   start_row = 1,
   start_col = 1,
   title = NULL,
-  number_format = "0.000",
+  float_format = "0.000",
   data_table = TRUE,
   freeze_first_row = TRUE,
   freeze_first_column = TRUE,
+  date_format = "yyyy-mm-dd",
   column_width = "heuristic",
   ...
 )
+}
+\arguments{
+\item{data}{Data frame to print.}
+
+\item{wb}{Workbook to which to write.}
+
+\item{sheet}{Name of the sheet to write.}
+
+\item{excel}{Filename of final excel workbook to write}
+
+\item{rownames}{Include row names in the output?}
+
+\item{start_row}{First row of the sheet to write. Useful if writing multiple tables.}
+
+\item{start_col}{First column to write.}
+
+\item{title}{Title for this xlsx table.}
+
+\item{float_format}{Revisit this, but it hard-sets the number of decimal
+points in floating point columns.}
+
+\item{data_table}{Write this as an excel data table instead of just a collection of cells.}
+
+\item{freeze_first_row}{Add a hint to make the first row always on screen?}
+
+\item{freeze_first_column}{Add a hint to make the first column always on screen?}
+
+\item{date_format}{Coerce date columns to this format.}
+
+\item{column_width}{Either a specific value, NULL, or 'heuristic' which guesses.}
+
+\item{...}{Set of extra arguments given to openxlsx.}
 }
 \description{
 Write an xlsx file given the result of an existing xlsx write.

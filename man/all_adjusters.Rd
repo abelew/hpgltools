@@ -10,7 +10,7 @@ all_adjusters(
   estimate_type = "sva",
   batch1 = "batch",
   batch2 = NULL,
-  surrogates = "be",
+  num_surrogates = "be",
   low_to_zero = FALSE,
   cpus = 4,
   na_to_zero = TRUE,
@@ -35,7 +35,7 @@ all_adjusters(
 
 \item{batch2}{Only used by the limma method, a second batch column.}
 
-\item{surrogates}{Either a number of surrogates or a method to
+\item{num_surrogates}{Either a number of surrogates or a method to
 search for them.}
 
 \item{low_to_zero}{Move elements which are <0 to 0?}

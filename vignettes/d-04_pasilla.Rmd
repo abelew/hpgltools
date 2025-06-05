@@ -33,6 +33,7 @@ vignette: >
 
 ```{r options, include = FALSE}
 library(hpgltools)
+library(hpgldata)
 knitr::opts_knit$set(progress = TRUE,
                      verbose = TRUE,
                      width = 90,
@@ -48,7 +49,6 @@ ggplot2::theme_set(ggplot2::theme_bw(base_size = 10))
 set.seed(1)
 ver <- "20170820"
 rmd_file <- "d-04_pasilla.Rmd"
-library(hpgldata)
 ```
 
 # Pasilla vignette: `r ver`
@@ -63,7 +63,7 @@ through ontology searching with appropriate visualizations at each stage.
 
 In test_01load_data.R I perform load some data into an expressionset and get ready to play with it.
 
-```{r load_data}
+```{r}
 ## I use sm to keep functions from printing too much (well, anything really)
 tt <- sm(library(hpgltools))
 tt <- sm(library(pasilla))
@@ -75,7 +75,7 @@ tt <- sm(data(pasillaGenes))
 biomart is an excellent resource for annotation data, but it is entirely too complex.
 The following function 'get_biomart_annotations()' attempts to make that relatively simple.
 
-```{r biomart}
+```{r}
 ## Try loading some annotation information for this species.
 gene_info_lst <- sm(load_biomart_annotations(species = "dmelanogaster",
                                              host = "useast.ensembl.org"))
@@ -92,7 +92,7 @@ The pasilla data set provides count tables in a tab separated file, let us read 
 expressionset in the following block along with creating an experimental design.  create_expt() will
 then merge the annotations, experimental design, and count tables into an expressionset.
 
-```{r load_counts}
+```{r}
 ## This section is copy/pasted to all of these tests, that is dumb.
 datafile <- system.file("extdata/pasilla_gene_counts.tsv", package = "pasilla")
 ## Load the counts and drop super-low counts genes
@@ -109,8 +109,8 @@ colnames(metadata) <- c("condition", "batch")
 metadata[["sampleid"]] <- rownames(metadata)
 
 ## Make sure it is still possible to create an expt
-pasilla_expt <- sm(create_expt(count_dataframe = counts, metadata = metadata,
-                               savefile = "pasilla", gene_info = gene_info))
+pasilla_se <- sm(create_se(count_dataframe = counts, metadata = metadata,
+                           savefile = "pasilla", gene_info = gene_info))
 ```
 
 # Graph metrics
@@ -120,13 +120,13 @@ And then follow up with the one at a time.  Many functions in hpgltools are quit
 liberal usage of message(), as a result I will sm() this call to silence it.
 
 ```{r graph_metrics, fig.show = "hide"}
-pasilla_metrics <- sm(graph_metrics(pasilla_expt, ma = TRUE, qq = TRUE))
+pasilla_metrics <- sm(graph_metrics(pasilla_se, ma = TRUE, qq = TRUE))
 summary(pasilla_metrics)
 ```
 
 Print some plots!
 
-```{r print_graphs}
+```{r}
 pasilla_metrics$libsize
 ## The library sizes range from 8-21 million reads, this might be a problem for
 ## some analyses, but it should be ok
@@ -153,12 +153,12 @@ The most common normalization suggested by Najib is a cpm(quantile(filter(data))
 On top of that we often do log2() and/or a batch adjustment.
 default_norm() does the first and may be supplemented with other arguments.
 
-```{r normalize, fig.show = "hide"}
-norm <- default_norm(pasilla_expt, transform = "log2")
+```{r, fig.show = "hide"}
+norm <- normalize(pasilla_se, transform = "log2", convert = "cpm", norm = "quant", filter = TRUE)
 norm_metrics <- graph_metrics(norm)
 ```
 
-```{r show_norm}
+```{r}
 norm_metrics$corheat
 norm_metrics$smc
 norm_metrics$disheat
@@ -174,29 +174,26 @@ By default, all_pairwise() performs every possible pairwise contrast, which in
 the case is comprised of just treated vs. untreated.
 
 ```{r perform_pairwise, fig.show = "hide"}
-pasilla_pairwise <- sm(all_pairwise(pasilla_expt))
-pasilla_tables <- sm(combine_de_tables(
-  pasilla_pairwise,
-  excel = "pasilla_tables.xlsx"))
-pasilla_sig <- sm(extract_significant_genes(
-  pasilla_tables,
-  excel = "pasilla_sig.xlsx"))
-pasilla_ab <- sm(extract_abundant_genes(
-  pasilla_pairwise,
-  excel = "pasilla_abundant.xlsx"))
+pasilla_pairwise <- all_pairwise(pasilla_se)
+pasilla_pairwise
+pasilla_tables <- combine_de_tables(pasilla_pairwise, excel = "pasilla_tables.xlsx")
+pasilla_tables
+pasilla_sig <- extract_significant_genes(pasilla_tables, excel = "pasilla_sig.xlsx")
+pasilla_sig
+pasilla_ab <- extract_abundant_genes(pasilla_pairwise, excel = "pasilla_abundant.xlsx")
 ```
 
-```{r de_pictures}
-pasilla_tables[["plots"]][["untreated_vs_treated"]][["deseq_ma_plots"]]$plot
-pasilla_tables[["plots"]][["untreated_vs_treated"]][["edger_ma_plots"]]$plot
-pasilla_tables[["plots"]][["untreated_vs_treated"]][["limma_ma_plots"]]$plot
+```{r}
+pasilla_tables[["plots"]][["untreated_vs_treated"]][["deseq_ma_plots"]]
+pasilla_tables[["plots"]][["untreated_vs_treated"]][["edger_ma_plots"]]
+pasilla_tables[["plots"]][["untreated_vs_treated"]][["limma_ma_plots"]]
 ```
 
-```{r goseq_test}
+```{r}
 up_genes <- pasilla_sig[["deseq"]][["ups"]][["untreated_vs_treated"]]
 down_genes <- pasilla_sig[["deseq"]][["downs"]][["untreated_vs_treated"]]
 pasilla_go <- load_biomart_go(species = "dmelanogaster")$go
-pasilla_length <- fData(pasilla_expt)[, c("ensembl_gene_id", "cds_length")]
+pasilla_length <- fData(pasilla_se)[, c("ensembl_gene_id", "cds_length")]
 colnames(pasilla_length) <- c("ID", "length")
 
 pasilla_up_goseq <- simple_goseq(sig_genes = up_genes, go_db = pasilla_go,

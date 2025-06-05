@@ -122,9 +122,11 @@ plots.}
 
 \item{z_lines}{Add z-score lines to coefficient plots?}
 
-\item{rownames}{Add rownames to the xlsx printed table?}
+\item{wanted_genes}{Character vector of genes to explicitly keep.}
 
-\item{de_types}{Used for plotting pvalue/logFC cutoffs.}
+\item{scale_p}{Scale the p-value in order to allow direct comparisons to dream.}
+
+\item{...}{Extra arguments passed to plotters etc.}
 }
 \value{
 Table combining limma/edger/deseq outputs.

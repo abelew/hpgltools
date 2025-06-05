@@ -40,7 +40,11 @@ combine_extracted_plots(
 
 \item{loess}{Add a loess estimation?}
 
-\item{found_table}{The table name actually used.}
+\item{lfc_cutoff}{For Volcano/MA plot lines.}
+
+\item{p_cutoff}{For Volcano/MA plot lines.}
+
+\item{found_table}{Table name when there are multiple possible choices.}
 
 \item{p_type}{Use this/these methods' p-value for determining
 significance.}
@@ -65,22 +69,6 @@ the colors.  I think these invert parameters are not needed anymore.}
 \item{label}{Label this number of the top genes.}
 
 \item{label_column}{Label the top genes with this column.}
-
-\item{plot_basic}{Add basic data?}
-
-\item{plot_deseq}{Add deseq data?}
-
-\item{plot_edger}{Add edger data?}
-
-\item{plot_limma}{Add limma data?}
-
-\item{plot_ebseq}{Add ebseq data?}
-
-\item{plot_noiseq}{Add noiseq plots?}
-
-\item{logfc}{For Volcano/MA plot lines.}
-
-\item{pval}{For Volcano/MA plot lines.}
 }
 \description{
 It should be possible to significantly simplify the arguments passed to this

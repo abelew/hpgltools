@@ -13,6 +13,10 @@
 #' @param input Dataframe/vector or expt class containing data, normalization
 #'  state, etc.
 #' @param patterns Set of expression patterns to query.
+#' @param model_fstring Formula string describing the model of interest.
+#' @param null_fstring Formula string describing the null model.
+#' @param model_svs Matrix of SVs or character describing how to find them.
+#' @param keepers Perform a specific set of contrasts instead of all?
 #' @param ng_vector I think this is for isoform quantification, but am not yet
 #'  certain.
 #' @param rounds Number of iterations for doing the multi-test
@@ -22,14 +26,9 @@
 #'  trivially complex, this is not tenable, so this defaults to subsetting the
 #'  data into pairs of conditions.
 #' @param norm Normalization method to use.
-#' @param conditions Not currently used, but passed from all_pairwise()
-#' @param batches Not currently used, but passed from all_pairwise()
-#' @param model_cond Not currently used, but passed from all_pairwise()
-#' @param model_intercept Not currently used, but passed from all_pairwise()
-#' @param alt_model Not currently used, but passed from all_pairwise()
-#' @param model_batch Not currently used, but passed from all_pairwise()
-#' @param keepers Perform a specific set of contrasts instead of all?
-#' @param force Force ebseq to accept bad data (notably NA containing stuff from proteomics.
+#' @param force Force ebseq to accept bad data (notably NA containing
+#'  stuff from proteomics.
+#' @param keep_underscore Sanitize away underscores?
 #' @param ... Extra arguments currently unused.
 #' @return List containing tables from ebseq, the conditions tested, and the
 #'  ebseq table of conditions.
@@ -40,7 +39,8 @@
 #'   ebseq_de <- ebseq_pairwise(input = expt)
 #' }
 #' @export
-ebseq_pairwise <- function(input = NULL, patterns = NULL, model_fstring = "~ 0 + condition + batch",
+ebseq_pairwise <- function(input = NULL, patterns = NULL,
+                           model_fstring = "~ 0 + condition + batch",
                            null_fstring = "~", model_svs = NULL,
                            keepers = NULL, ng_vector = NULL, rounds = 20,
                            target_fdr = 0.05, method = "pairwise_subset",
@@ -126,21 +126,18 @@ print.ebseq_pairwise <- function(x, ...) {
 #' multitest function.
 #'
 #' @param input Expressionset/expt to perform de upon.
+#' @param model_fstring Formula string describing the model of interest.
 #' @param ng_vector Passed on to ebseq, I forget what this does.
 #' @param rounds Passed on to ebseq, I think it defines how many iterations to
 #'  perform before return the de estimates
-#' @param target_fdr If we reach this fdr before iterating rounds times, return.
-#' @param model_batch Provided by all_pairwise()  I do not think a Bayesian
-#'  analysis really cares about models, but if one wished to try to add a batch
-#'  factor, this would be the place to do it.  It is currently ignored.
-#' @param model_cond Provided by all_pairwise(), ibid.
-#' @param model_intercept Ibid.
-#' @param alt_model Ibid.
-#' @param keepers Specify a set of contrasts to perform here.
+#' @param target_fdr If we reach this fdr before iterating rounds
+#'  times, return.
+#' @param keepers Specify a set of contrasts to perform here.#'
 #' @param conditions Factor of conditions in the data, used to define the
 #'  contrasts.
 #' @param norm EBseq normalization method to apply to the data.
 #' @param force Flag used to force inappropriate data into the various methods.
+#' @param keep_underscore Sanitize away underscores?
 #' @param ... Extra arguments passed downstream.
 #' @return A pairwise comparison of the various conditions in the data.
 #' @seealso [ebseq_pairwise()]
@@ -231,6 +228,7 @@ ebseq_size_factors <- function(data_mtrx, norm = NULL) {
 #'
 #' @param data Expressionset/matrix
 #' @param conditions Factor of conditions in the data to compare.
+#' @param model_fstring Formula string describing the model of interest.
 #' @param patterns Set of patterns as described in the ebseq documentation to query.
 #' @param ng_vector Passed along to ebmultitest().
 #' @param rounds Passed to ebseq.
@@ -315,8 +313,19 @@ ebseq_few <- function(data, conditions, model_fstring = "~ 0 + condition + batch
 #' @param conditions Factor of conditions in the data.
 #' @param numerator Which factor has the numerator in the data.
 #' @param denominator Which factor has the denominator in the data.
+#' @param fast The EBSeq fast argument.
 #' @param ng_vector Passed to ebseq.
 #' @param rounds Passed to ebseq.
+#' @param Alpha The ebseq alpha parameter.
+#' @param Beta The ebseq beta parameter.
+#' @param Qtrm Ibid.
+#' @param QtrmCut Ibid.
+#' @param step1 Ibid.
+#' @param step2 Ibid.
+#' @param thre Ibid.
+#' @param sthre Ibid.
+#' @param filter Ibid.
+#' @param stopthre Ibid.
 #' @param target_fdr Passed to ebseq.
 #' @param norm Normalization method of ebseq to apply.
 #' @param force Force inappropriate data into ebseq?

@@ -2,7 +2,7 @@
 % Please edit documentation in R/normalize_batch.R
 \name{adjuster_expt_svs}
 \alias{adjuster_expt_svs}
-\title{Search for SVs in an expressionset-like object.}
+\title{Apply the suite of non-destructive batch estimate tools}
 \usage{
 adjuster_expt_svs(
   input,
@@ -18,11 +18,54 @@ adjuster_expt_svs(
   confounders = NULL,
   filter = "raw",
   thresh = 1,
+  adjust_method = "ruv",
   noscale = FALSE,
   prior_plots = FALSE,
   control_type = "norm"
 )
 }
+\arguments{
+\item{input}{Input data structure.}
+
+\item{model_fstring}{Formula string describing the relationship of interest.}
+
+\item{null_fstring}{Model describing the null hypothesis.}
+
+\item{model_svs}{Method to create SVs for the experimental model.}
+
+\item{batch1}{Column containing the primary known batch factor}
+
+\item{batch2}{Column containing a secondary batch factor.}
+
+\item{num_surrogates}{Method to guess the number of surrogate variables,
+not likely actually useful for this function.}
+
+\item{low_to_zero}{Push all values which are less than zero to
+zero.}
+
+\item{cpus}{Explicitly set the number of cpus in the adjuster.}
+
+\item{na_to_zero}{Push all NA values to zero?}
+
+\item{confounders}{Expected confounding factors -- I think only for
+smartsva}
+
+\item{filter}{Filter the data before applying the method of choice?}
+
+\item{thresh}{Threshold when filtering}
+
+\item{adjust_method}{Also not likely used by this.}
+
+\item{noscale}{Used by combat, scale the data?}
+
+\item{prior_plots}{Perform the various plots provided by combat}
+
+\item{control_type}{I do not remember.}
+}
+\value{
+Adjusted data
+}
 \description{
-Search for SVs in an expressionset-like object.
+SVA and friends by themselves do not modify the data, but provides
+a set of modified model parameters.
 }

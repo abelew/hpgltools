@@ -20,6 +20,10 @@ plot_libsize_prepost(
 
 \item{filter}{Method used to low-count filter the data.}
 
+\item{num_color}{Color for the numbers in the bars.}
+
+\item{num_size}{Size of said numbers.}
+
 \item{...}{Extra arbitrary arguments to pass to normalize_expt()}
 }
 \value{

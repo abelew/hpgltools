@@ -164,6 +164,8 @@ setMethod(
 #' the PC idea to me).
 #'
 #' @param expt Input expressionset, redo everything to use SE, stupid.
+#' @param pc_df dataframe of PCs
+#' @param num_pcs How many PCs to query?
 #' @param queries List of metadata factors to query.
 #' @param ... Parameters to plot_pca.
 #' @export
@@ -198,7 +200,7 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
     for (pc in pc_vector) {
       pc_name <- paste0("pc_", pc)
       pc_lm <- lm(as.numeric(pc_meta[[pc_name]]) ~ as.factor(pc_meta[[fact]]))
-      pc_anova <- anova(pc_lm)
+      pc_anova <- stats::anova(pc_lm)
       pc_f <- pc_anova[["F value"]][1]
       pc_p <- pc_anova[["Pr(>F)"]][1]
       fvals[pc] <- pc_f
@@ -213,6 +215,18 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
   return(retlist)
 }
 
+## I keep getting the warning: "in method for ‘pca_information’ with
+## signature ‘input="expt"’: no definition for class “expt”"
+## This warning does not make any sense to me because I have a method
+## defined shortly after the following function which AFAICT does
+## exactly that.
+## In addition, I have a bunch of other S3/S4 dispatches all over the
+## place which do not print this; so there must be something about
+## how I defined this particular thing which is wrong.
+pca_information <- function(input, ...) {
+  message("Still working on my understanding of R OO.")
+  UseMethod("pca_information")
+}
 
 #' Gather information about principle components.
 #'
@@ -230,12 +244,14 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
 #' @section Warning:
 #'  This function has gotten too damn big and needs to be split up.
 #'
-#' @param expt Data to analyze (usually exprs(somedataset)).
-#' @param expt_design Dataframe describing the experimental design, containing
+#' @param input Data to analyze (usually exprs(somedataset)).
+#' @param input_design Dataframe describing the experimental design, containing
 #'  columns with useful information like the conditions, batches, number of
 #'  cells, whatever...
-#' @param expt_factors Character list of experimental conditions to query for
+#' @param input_factors Character list of experimental conditions to query for
 #'  R^2 against the fast.svd of the data.
+#' @param colors_chosen Colors to use when comparing fstats etc.
+#' @param input_state State of the input.
 #' @param num_components Number of principle components to compare the design
 #'  factors against. If left null, it will query the same number of components
 #'  as factors asked for.
@@ -258,19 +274,20 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
 #'  pca_info = pca_information(exprs(some_expt), some_design, "all")
 #'  pca_info
 #' }
+#' @include expt.R
 #' @export
-pca_information <- function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
-                            colors_chosen = NULL, expt_state = NULL, num_components = NULL, plot_pcas = FALSE, ...) {
+pca_information <- function(input, input_design = NULL, input_factors = c("condition", "batch"),
+                            colors_chosen = NULL, input_state = NULL, num_components = NULL, plot_pcas = FALSE, ...) {
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
   if (is.null(colors_chosen)) {
-    colors_chosen <- as.numeric(as.factor(expt_design[["condition"]]))
+    colors_chosen <- as.numeric(as.factor(input_design[["condition"]]))
     num_chosen <- max(3, length(levels(as.factor(colors_chosen))))
     colors_chosen <- RColorBrewer::brewer.pal(num_chosen, "Dark2")[colors_chosen]
-    names(colors_chosen) <- rownames(expt_design)
+    names(colors_chosen) <- rownames(input_design)
   }
 
-  initial_pca <- plot_pca(data = expt, design = expt_design, state = expt_state, plot_colors = colors_chosen,
+  initial_pca <- plot_pca(data = input, design = input_design, state = input_state, plot_colors = colors_chosen,
                           ...)
   v <- initial_pca[["result"]][["v"]]
   u <- initial_pca[["result"]][["u"]]
@@ -281,7 +298,7 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
   pca_data <- initial_pca[["table"]]
 
   if (is.null(num_components)) {
-    num_components <- length(expt_factors)
+    num_components <- length(input_factors)
   }
   max_components <- ncol(v)
   if (max_components < num_components) {
@@ -311,7 +328,7 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
           second_name <- glue::glue("PC{second_pc}")
           list_name <- glue::glue("{name}_{second_name}")
           ## Sometimes these plots fail because too many grid operations are happening.
-          tmp_plot <- try(plot_pcs(pca_data, design = expt_design, variances = variance,
+          tmp_plot <- try(plot_pcs(pca_data, design = input_design, variances = variance,
                                    first = name, second = second_name))
           pca_plots[[list_name]] <- tmp_plot
         }
@@ -321,14 +338,14 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
 
   ## Now start filling in data which may be used for correlations/fstats/etc.
   factor_df <- data.frame(
-    "sampleid" = rownames(expt_design))
-  rownames(factor_df) <- rownames(expt_design)
-  for (fact in expt_factors) {
-    if (!is.null(expt_design[[fact]])) {
-      factor_df[[fact]] <- as.numeric(as.factor(as.character(expt_design[, fact])))
+    "sampleid" = rownames(input_design))
+  rownames(factor_df) <- rownames(input_design)
+  for (fact in input_factors) {
+    if (!is.null(input_design[[fact]])) {
+      factor_df[[fact]] <- as.numeric(as.factor(as.character(input_design[, fact])))
     } else {
       message("The column ", fact, " seems to be missing from the design.")
-      message("The available columns are: ", toString(colnames(expt_design)), ".")
+      message("The available columns are: ", toString(colnames(input_design)), ".")
     }
   }
   factor_df <- factor_df[, -1, drop = FALSE]
@@ -341,8 +358,8 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
   anova_p <- data.frame()
   anova_rss <- data.frame()
   anova_fstats <- data.frame()
-  for (f in seq_along(expt_factors)) {
-    fact <- expt_factors[f]
+  for (f in seq_along(input_factors)) {
+    fact <- input_factors[f]
     for (pc in seq_len(num_components)) {
       pc_name <- glue::glue("pc_{pc}")
       tmp_df <- merge(factor_df, pca_data, by = "row.names")
@@ -495,61 +512,77 @@ pca_information <- function(expt, expt_design = NULL, expt_factors = c("conditio
 }
 setGeneric("pca_information")
 
+#' If the pieces used for pca_information are provided as separate
+#' data; dispatch accordingly.
+#'
+#' @inheritParams pca_information
 #' @export
 setMethod(
-  "pca_information", signature = signature(expt = "data.frame"),
-  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+  "pca_information", signature = signature(input = "data.frame"),
+  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    expt <- as.matrix(expt)
-    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
-                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+    input <- as.matrix(input)
+    pca_information(input, input_design = input_design, input_state = input_state,
+                    input_factors = input_factors, colors_chosen = colors_chosen,
                     num_components = num_components,
                     plot_pcas = plot_pcas, ...)
   })
 
+#' If pca_information is invoked on an expt, it should have everything
+#' needed inside it.
+#'
+#' @inheritParams pca_information
 #' @export
 setMethod(
-  "pca_information", signature = signature(expt = "expt"),
-  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+  "pca_information", signature = signature(input = "expt"),
+  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    colors_chosen <- colors(expt)
-    expt_design <- pData(expt)
-    expt_state <- state(expt)
-    expt <- exprs(expt)
-    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
-                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+    colors_chosen <- get_colors(input)
+    input_design <- pData(input)
+    input_state <- state(input)
+    input <- exprs(input)
+    pca_information(input, input_design = input_design, input_state = input_state,
+                    input_factors = input_factors, colors_chosen = colors_chosen,
                     num_components = num_components,
                     plot_pcas = plot_pcas, ...)
   })
 
-    #' @export
+#' If pca_information is run on an expressionset, everything except
+#' perhaps colors should already be there.
+#'
+#' @inheritParams pca_information
+#' @export
 setMethod(
-  "pca_information", signature = signature(expt = "ExpressionSet"),
-  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+  "pca_information", signature = signature(input = "ExpressionSet"),
+  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    colors_chosen <- colors(expt)
-    expt_design <- pData(expt)
-    expt_state <- state(expt)
-    expt <- exprs(expt)
-    pca_information(expt, expt_design = expt_design, expt_state = expt_state,
-                    expt_factors = expt_factors, colors_chosen = colors_chosen,
+    colors_chosen <- get_colors(input)
+    input_design <- pData(input)
+    input_state <- state(input)
+    input <- exprs(input)
+    pca_information(input, input_design = input_design, input_state = input_state,
+                    input_factors = input_factors, colors_chosen = colors_chosen,
                     num_components = num_components,
                     plot_pcas = plot_pcas, ...)
   })
 
+#' If pca_information is invoked on a SE, everything required should
+#' be there already.
+#'
+#' @inheritParams pca_information
 #' @export
 setMethod(
-  "pca_information", signature = signature(expt = "SummarizedExperiment"),
-  definition = function(expt, expt_design = NULL, expt_factors = c("condition", "batch"),
+  "pca_information", signature = signature(input = "SummarizedExperiment"),
+  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    colors_chosen <- colors(expt)
-    expt_design <- colData(expt)
-    expt <- assay(expt)
-    pca_information(expt, expt_design = expt_design, expt_factors = expt_factors,
+    colors_chosen <- get_colors(input)
+    input_design <- colData(input)
+    input <- assay(input)
+    pca_information(input, input_design = input_design, input_factors = input_factors,
                     colors_chosen = colors_chosen, num_components = num_components,
                     plot_pcas = plot_pcas, ...)
   })
@@ -560,7 +593,7 @@ setMethod(
 #' for some data and extracts a dataframe of the top n genes for each
 #' component by score.
 #'
-#' @param expt Experiment to poke.
+#' @param input Experiment to poke.
 #' @param n Number of genes to extract.
 #' @param cor Perform correlations?
 #' @param vs Do a mean or median when getting ready to perform the pca?
@@ -574,14 +607,14 @@ setMethod(
 #'  information$pca_bitplot  ## oo pretty
 #' }
 #' @export
-pca_highscores <- function(expt, n = 20, cor = TRUE, vs = "means", logged = TRUE) {
+pca_highscores <- function(input, n = 20, cor = TRUE, vs = "means", logged = TRUE) {
   if (isTRUE(logged)) {
-    current <- state(expt)
+    current <- state(input)
     if (current[["transform"]] == "raw") {
-      expt <- sm(normalize_expt(expt, transform = "log2", filter = TRUE))
+      input <- sm(normalize(input, transform = "log2", filter = TRUE))
     }
   }
-  data <- as.data.frame(exprs(expt))
+  data <- as.data.frame(exprs(input))
   na_idx <- is.na(data)
   data[na_idx] <- 0
   if (!is.null(vs)) {
@@ -633,7 +666,7 @@ pca_highscores <- function(expt, n = 20, cor = TRUE, vs = "means", logged = TRUE
     "highest" = highest,
     "lowest" = lowest,
     "result" = another_pca)
-  retlist[["score_heat"]] <- plot_disheat(expt_data = another_pca[["scores"]])
+  retlist[["score_heat"]] <- plot_disheat(input_data = another_pca[["scores"]])
   return(retlist)
 }
 
@@ -680,6 +713,7 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
 #'
 #' @param data an expt set of samples.
 #' @param design a design matrix and.
+#' @param state State of the data.
 #' @param plot_colors a color scheme.
 #' @param plot_title a title for the plot.
 #' @param plot_size size for the glyphs on the plot.
@@ -1163,6 +1197,9 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
 }
 setGeneric("plot_pca")
 
+#' Using plot_pca on a SE should not require any extra arguments.
+#'
+#' @inheritParams plot_pca
 #' @export
 setMethod(
   "plot_pca", signature = signature(data = "SummarizedExperiment"),
@@ -1174,16 +1211,19 @@ setMethod(
                         ...) {
     state <- state(data)
     design <- colData(data)
-    plot_colors <- colors(data)
+    plot_colors <- get_colors(data)
     mtrx <- assay(data)
     plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
              plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
              plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
              x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
              expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
-             batch_column = batch_column, ...)
+             ...)
   })
 
+#' Using plot_pca with an expt should not need any extra arguments.
+#'
+#' @inheritParams plot_pca
 #' @export
 setMethod(
   "plot_pca", signature = signature(data = "expt"),
@@ -1195,7 +1235,7 @@ setMethod(
                         ...) {
     state <- state(data)
     design <- pData(data)
-    plot_colors <- colors(data)
+    plot_colors <- get_colors(data)
     mtrx <- exprs(data)
     plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
              plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
@@ -1205,6 +1245,10 @@ setMethod(
              batch_column = batch_column, ...)
   })
 
+#' Using plot_pca with an expressionset may require some
+#' color-specific arguments.
+#'
+#' @inheritParams plot_pca
 #' @export
 setMethod(
   "plot_pca", signature = signature(data = "ExpressionSet"),
@@ -1216,7 +1260,7 @@ setMethod(
                         ...) {
     state <- state(data)
     design <- pData(data)
-    plot_colors <- colors(data)
+    plot_colors <- get_colors(data)
     mtrx <- exprs(data)
     plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
              plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
@@ -1743,7 +1787,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 #' Sometimes it is nice to know what is happening with the genes which have the
 #' greatest effect on a given principal component.  This function provides that.
 #'
-#' @param expt Input expressionset.
+#' @param input Input expressionset.
 #' @param genes How many genes to observe?
 #' @param desired_pc Which component to examine?
 #' @param which_scores Perhaps one wishes to see the least-important genes, if
@@ -1753,10 +1797,10 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 #'  expression.
 #' @seealso [plot_sample_heatmap()]
 #' @export
-plot_pcload <- function(expt, genes = 40, desired_pc = 1, which_scores = "high",
+plot_pcload <- function(input, genes = 40, desired_pc = 1, which_scores = "high",
                         ...) {
   arglist <- list(...)
-  scores <- pca_highscores(expt, n = genes)
+  scores <- pca_highscores(input, n = genes)
 
   desired <- data.frame()
   if (which_scores == "high") {
@@ -1769,7 +1813,7 @@ plot_pcload <- function(expt, genes = 40, desired_pc = 1, which_scores = "high",
 
   comp_genes <- desired[, desired_pc]
   comp_genes <- gsub(pattern = "^\\d+\\.\\d+:", replacement = "", x = comp_genes)
-  comp_genes_subset <- sm(subset_genes(expt, ids = comp_genes, method = "keep"))
+  comp_genes_subset <- sm(subset_genes(input, ids = comp_genes, method = "keep"))
   samples <- plot_sample_heatmap(comp_genes_subset, row_label = NULL)
 
   retlist <- list(

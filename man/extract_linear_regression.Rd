@@ -11,7 +11,10 @@ extract_linear_regression(
   scale = TRUE,
   intercept = FALSE,
   factors = NULL,
-  excel = NULL
+  excel = NULL,
+  family = NULL,
+  conf = NULL,
+  step = FALSE
 )
 }
 \arguments{
@@ -19,13 +22,22 @@ extract_linear_regression(
 
 \item{query}{Factor to query against}
 
-\item{multivariable}{If set to FALSE, this will iterate over every factor individually.}
+\item{multivariable}{If set to FALSE, this will iterate over every
+factor individually.}
+
+\item{scale}{Scale the values before the regression?}
 
 \item{intercept}{Set an intercept? (unused)}
 
 \item{factors}{Set of factors to query}
 
 \item{excel}{output xlsx file.}
+
+\item{family}{Use this model family.}
+
+\item{conf}{Desired confidence interval.}
+
+\item{step}{Perform stepwise comparison?}
 }
 \description{
 Gather the models and perform forest plots to look at various regression analyses.

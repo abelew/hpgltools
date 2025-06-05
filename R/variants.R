@@ -219,11 +219,17 @@ print.classified_mutations <- function(x, ...) {
 #' cyoa.
 #'
 #' @param expt an expressionset from which to extract information.
-#' @param annot_column Column in the metadata for getting the table of bcftools calls.
+#' @param annot_column Column in the metadata for getting the table of
+#'  bcftools calls.
 #' @param tolower Lowercase stuff like 'HPGL'?
-#' @param snp_column Which column of the parsed bcf table contains our interesting material?
-#' @param numerator_column When provided, use this column as the numerator of a proportion.
-#' @param denominator_column When provided, use this column as the denominator of a proportion.#'
+#' @param snp_column Which column of the parsed bcf table contains our
+#'  interesting material?
+#' @param numerator_column When provided, use this column as the
+#'  numerator of a proportion.
+#' @param denominator_column When provided, use this column as the
+#'  denominator of a proportion.
+#' @param reader Method to read the data, readr or read.table.
+#' @param verbose Be verbose?
 #' @return A new expt object
 #' @seealso [Biobase] freebayes:DOI:10.48550/arXiv.1207.3907,
 #'  mpileup:DOI:10.1093/gigascience/giab008
@@ -231,9 +237,10 @@ print.classified_mutations <- function(x, ...) {
 #'   \dontrun{
 #'  expt <- create_expt(metadata, gene_information)
 #'  snp_expt <- count_expt_snps(expt)
-#'  ## This assumes that the metadata has a column named 'bcftable' with one file per
-#'  ## cell.  These files in turn should have a column named 'diff_count' which will
-#'  ## be the source of the numbers found when doing exprs(snp_expt).
+#'  ## This assumes that the metadata has a column named 'bcftable'
+#'  ## with one file per cell.  These files in turn should have a
+#'  ## column named 'diff_count' which will be the source of the
+#'  ## numbers found when doing exprs(snp_expt).
 #' }
 #' @export
 count_expt_snps <- function(expt, annot_column = "bcftable", tolower = TRUE,
@@ -1040,6 +1047,7 @@ snpnames2gr <- function(names, gr = NULL) {
 #' @param file_lst Set of files to read.
 #' @param column Column from the bcf file to read.
 #' @param verbose Print information about the input data.
+#' @param reader Use readr:: or read.table().
 #' @seealso [readr]
 #' @return A big honking data table.
 read_snp_columns <- function(samples, file_lst, column = "diff_count",
@@ -1793,6 +1801,7 @@ xref_regions <- function(sequence_df, gff, bin_width = 600,
                          feature_chr = "seqnames", feature_type_column = "type",
                          feature_id = "ID", feature_name = "description",
                          name_type = NULL, desc_column = "description") {
+  overlap_gene_description <- NULL ## R CMD check
   if (class(gff) == "data.frame") {
     annotation <- gff
   } else {
@@ -1937,7 +1946,7 @@ xref_regions <- function(sequence_df, gff, bin_width = 600,
     }
 
   } ## End iterating over every row of the sequence df.
-  sequence_df <- sequence_df %>% arrange(desc(overlap_gene_description))
+  sequence_df <- sequence_df %>% dplyr::arrange(dplyr::desc(overlap_gene_description))
   return(sequence_df)
 }
 

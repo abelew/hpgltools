@@ -9,12 +9,16 @@
 #' Perform pairwise comparisons using noiseq.
 #'
 #' @param input Expressionset to compare.
-#' @param conditions Set of conditions to query
-#' @param batches known batches in the data, or a surrogate estimator.
-#' @param model_cond Add condition to the model?
-#' @param model_batch Add batch to the model, noiseq has its own combat-like method,
-#'  so maybe not necessary?
+#' @param model_fstring Formula string describing the model of interest.
+#' @param null_fstring Formula string describing the null model.
+#' @param model_svs Surrogate matrix or how to find them.
+#' @param extra_contrasts Extra contrasts beyond the default set to seek.
 #' @param annot_df Extra annotations.
+#' @param force Force the data even if it violates the method's assumptions.
+#' @param keepers Perform the comparison only over these specific
+#'  contrasts instead of all.
+#' @param batch Noiseq batch factor.
+#' @param logtransf noiseq log transformer.
 #' @param k Taken from the noiseq docs.
 #' @param norm Normalization method (noiseq oddly defaults to rpkm).
 #' @param factor Metadata factor over which to iterate.
@@ -23,7 +27,7 @@
 #' @param adj taken from the noiseq docs.
 #' @param a0per taken from the noiseq docs.
 #' @param filter Filter the data?
-#' @param keepers Perform the comparison only over these specific contrasts instead of all.
+#' @param keep_underscore Sanitize out underscores?
 #' @param ... Extra arguments.
 #' @return List similar to deseq_pairwise/edger_pairwise/etc.
 #' @seealso DOI:10.1093/nar/gkv711
@@ -64,16 +68,24 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   batch_table <- table(batches)
   condition_levels <- levels(conditions)
   design[[condition_column]] <- conditions
-  design[["batch"]] <- batches
+  if (length(levels(batches)) > 1) {
+    design[["batch"]] <- batches
+  } else {
+    design[["batch"]] <- NULL
+    batch <- FALSE
+  }
   mesg("This noiseq pairwise comparison should compare across:")
   print(condition_table)
   noiseq_input <- NOISeq::readData(input_data[["data"]], factors = design)
   if (is.null(design[["batch"]])) {
-    norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = NULL, batch = batch,
-                                   norm = norm, logtransf = logtransf)
+    norm_input <- try(NOISeq::ARSyNseq(noiseq_input, factor = NULL, batch = TRUE,
+                                       norm = norm, logtransf = logtransf), silent = TRUE)
   } else {
-    norm_input <- NOISeq::ARSyNseq(noiseq_input, factor = "batch", batch = TRUE,
-                                   norm = norm, logtransf = FALSE)
+    norm_input <- try(NOISeq::ARSyNseq(noiseq_input, factor = "batch", batch = TRUE,
+                                       norm = norm, logtransf = FALSE), silent = TRUE)
+  }
+  if ("try-error" %in% class(norm_input)) {
+    norm_input <- noiseq_input
   }
   model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
   apc <- make_pairwise_contrasts(model_mtrx, conditions, keepers = keepers,
@@ -160,6 +172,10 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   return(retlist)
 }
 
+#' Print the results from noiseq_pairwise().
+#'
+#' @param x result to print.
+#' @param ... arbitrary arguments.
 #' @export
 print.noiseq_pairwise <- function(x, ...) {
   summary_string <- glue("The results from the Noiseq pairwise analysis.")
@@ -167,6 +183,10 @@ print.noiseq_pairwise <- function(x, ...) {
   return(invisible(x))
 }
 
+#' Passes noiseq result to write_de_table.
+#'
+#' @param data noiseq_pairwise() result.
+#' @param ... arbitrary arguments.
 #' @export
 write_noiseq <- function(data, ...) {
   result <- write_de_table(data, type = "noiseq", ...)

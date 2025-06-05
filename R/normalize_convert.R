@@ -12,6 +12,8 @@
 #'
 #' @param count_table Matrix of count data.
 #' @param method Type of conversion to perform: edgecpm/cpm/rpkm/cp_seq_m.
+#' @param annotations Dataframe of gene annotations.
+#' @param length_column Column of the annotations describing the gene lengths.
 #' @param ... Options I might pass from other functions are dropped into
 #'  arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to
 #'  match, and annotation type).
@@ -22,7 +24,8 @@
 #'  converted_table = convert_counts(count_table, method='cbcbcpm')
 #' }
 #' @export
-convert_counts <- function(count_table, method = "raw", annotations = NULL, ...) {
+convert_counts <- function(count_table, method = "raw", annotations = NULL,
+                           length_column = "width", ...) {
   arglist <- list(...)
   if (!is.null(arglist[["convert"]])) {
     method <- arglist[["convert"]]
@@ -33,7 +36,6 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL, ...)
     count_table <- test
     data_class <- class(count_table)[1]
   }
-  annotations <- arglist[["annotations"]]
   if (data_class == "expt" | data_class == "ExpressionSet") {
     if (is.null(annotations)) {
       annotations <- fData(count_table)
@@ -80,11 +82,13 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL, ...)
         count_table <- cpm_counts
       },
       "rpkm" = {
-        count_table <- hpgl_rpkm(count_table, annotations = annotations, ...)
+        count_table <- hpgl_rpkm(count_table, annotations = annotations,
+                                 length_column = length_column, ...)
       },
       "cp_seq_m" = {
         counts <- edgeR::cpm(count_table)
-        count_table <- divide_seq(counts, annotations = annotations, ...)
+        count_table <- divide_seq(counts, annotations = annotations,
+                                  length_column = length_column, ...)
         ## count_table <- divide_seq(counts, annotations = annotations, genome = genome)
       },
       {
@@ -304,6 +308,8 @@ hpgl_log2cpm <- function(counts, lib.size = NULL) {
 #' that the required gene lengths get sent along.
 #'
 #' @param count_table Data frame of counts, alternately an edgeR DGEList.
+#' @param annotations dataframe of annotation information
+#' @param length_column Column in the annotations with gene lengths.
 #' @param ... extra options including annotations for defining gene lengths.
 #' @return Data frame of counts expressed as rpkm.
 #' @seealso [edgeR::rpkm()]
@@ -312,10 +318,8 @@ hpgl_log2cpm <- function(counts, lib.size = NULL) {
 #'  rpkm_df = hpgl_rpkm(df, annotations = gene_annotations)
 #' }
 #' @export
-hpgl_rpkm <- function(count_table, ...) {
+hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   arglist <- list(...)
-  annotations <- arglist[["annotations"]]
-  chosen_column <- arglist[["column"]]
   start_column <- "start"
   if (!is.null(arglist[["start_column"]])) {
     start_column <- arglist[["start_column"]]
@@ -359,7 +363,7 @@ hpgl_rpkm <- function(count_table, ...) {
   ## rownames(count_table_in) = merged_annotations[,"Row.names"]
   ## Sometimes I am stupid and call it length...
   lenvec <- NULL
-  if (is.null(chosen_column) &
+  if (is.null(length_column) &
       is.null(merged_annot[["length"]]) &&
       is.null(merged_annot[["width"]])) {
     message("There appears to be no gene length annotation data, here are the possible columns:")
@@ -368,38 +372,38 @@ hpgl_rpkm <- function(count_table, ...) {
     stop("There appears to be no annotation data providing gene length.")
   }
 
-  if (is.null(chosen_column)) {
-    chosen_column <- "width"
+  if (is.null(length_column)) {
+    length_column <- "width"
   }
 
-  if (chosen_column == "width" && is.null(merged_annot[[chosen_column]])) {
-    chosen_column <- "length"
-    if (is.null(merged_annot[[chosen_column]])) {
+  if (length_column == "width" && is.null(merged_annot[[chosen_column]])) {
+    length_column <- "length"
+    if (is.null(merged_annot[[length_column]])) {
       stop("Found neither width nor length as an annotation column.")
     }
   }
 
-  if (is.null(merged_annot[[chosen_column]])) {
+  if (is.null(merged_annot[[length_column]])) {
     if (!is.null(merged_annot[[start_column]]) &&
         !is.null(merged_annot[[end_column]])) {
       merged_annot[["width"]] <- abs(as.numeric(merged_annot[[start_column]]) -
                                        as.numeric(merged_annot[[end_column]]))
       chosen_column <- "width"
     } else {
-      stop("There is no column, ", chosen_column, ", unable to make a width column.")
+      stop("There is no column, ", length_column, ", unable to make a width column.")
     }
   }
 
   ## Keep in mind that I set missing material to 'undefined'
   ## So lets set those to NA now.
-  na_idx <- is.na(merged_annot[[chosen_column]])
-  merged_annot[na_idx, chosen_column] <- "undefined"
-  undef_idx <- merged_annot[[chosen_column]] == "undefined"
+  na_idx <- is.na(merged_annot[[length_column]])
+  merged_annot[na_idx, length_column] <- "undefined"
+  undef_idx <- merged_annot[[length_column]] == "undefined"
   if (sum(undef_idx) > 0) {
     message("There appear to be ", sum(undef_idx), " genes without a length.")
   }
-  merged_annot[undef_idx, chosen_column] <- NA
-  lenvec <- as.vector(as.numeric(merged_annot[[chosen_column]]))
+  merged_annot[undef_idx, length_column] <- NA
+  lenvec <- as.vector(as.numeric(merged_annot[[length_column]]))
 
   names(lenvec) <- rownames(merged_annot)
   tt <- sm(requireNamespace("edgeR"))

@@ -80,8 +80,22 @@ get_identifier <- function(type) {
   return(id_function)
 }
 
-all_enricher <- function(sig, according_to = "deseq", together = FALSE, plot_type = "dotplot",
-                         excel = "excel/all_en.xlsx", gsc = msigdb_data,
+#' Use clusterProfiler enricher() to query an arbitrary set of genes.
+#'
+#' This has only been used with mSigDB at this time.
+#'
+#' @param sig Set of results from extract_significant_genes()
+#' @param gsc Gene Set Collection; currently only taken from msigdb.
+#' @param according_to Method to trust
+#' @param together Do up and down enrichment together?
+#' @param plot_type Provide these plots -- this should be removed in favor of my arbitrary plotter.
+#' @param excel Output xlsx filename
+#' @param orgdb Orgdb used to extract IDs
+#' @param from ID type from which to convert.
+#' @param to ID type to which to convert.
+#' @export
+all_enricher <- function(sig, gsc, according_to = "deseq", together = FALSE, plot_type = "dotplot",
+                         excel = "excel/all_en.xlsx",
                          orgdb = "org.Hs.eg.db", from = "ENSEMBL", to = "SYMBOL") {
   ret <- list()
   input_up <- list()
@@ -295,10 +309,12 @@ parse_msigdb_xml <- function(filename) {
 load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata",
                                 signature_category = "c2", id_type = "entrez") {
   sig_data <- NULL
-
   id_function <- get_identifier(id_type)
   collection <- toupper(signature_category)
-
+  if (is.null(signatures)) {
+    signatures <- "c2BroadSets"
+  }
+  ## Maybe use dispatch here, what?
   if (class(signatures)[1] == "character" && grepl(pattern = "\\.gmt$", x = signatures)) {
     sig_data <- GSEABase::getGmt(signatures,
                                  collectionType = GSEABase::BroadCollection(category = signature_category),
@@ -352,6 +368,33 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
   }
   mesg("Loaded ", length(sig_data), " gene sets.")
   return(sig_data)
+}
+
+#' Extract the fun stuff from the mSigDB.
+#'
+#' The new mSigDB releases provide the data as a sqlite file, use this
+#' to find fun information from them.
+#'
+#' @param db Database filename
+#' @export
+load_msig_metadata <- function(db = "reference/msigdb_v2024.1.Hs.db") {
+  opened <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = db)
+  gs_query <- "SELECT * FROM gene_set;"
+  sent <- RSQLite::dbSendQuery(conn = opened, gs_query)
+  gene_sets <- RSQLite::fetch(sent)
+  cleared <- RSQLite::dbClearResult(sent)
+  gsd_query <- "SELECT * FROM gene_set_details;"
+  sent <- RSQLite::dbSendQuery(conn = opened, gsd_query)
+  gene_set_details <- RSQLite::fetch(sent)
+  cleared <- RSQLite::dbClearResult(sent)
+  pub_query <- "SELECT * FROM publication;"
+  sent <- RSQLite::dbSendQuery(conn = opened, pub_query)
+  publications <- RSQLite::fetch(sent)
+  cleared <- RSQLite::dbClearResult(sent)
+  merged <- merge(gene_sets, gene_set_details, by.x = "id", by.y = "gene_set_id", all.x = TRUE)
+  merged <- merge(merged, publications, by.x = "publication_id", by.y = "id", all.x = TRUE)
+  closed <- RSQLite::dbDisconnect(opened)
+  return(merged)
 }
 
 #' Create a gene set collection from a set of arbitrary IDs.

@@ -8,6 +8,8 @@ plot_enrichresult(enrichresult, ...)
 }
 \arguments{
 \item{enrichresult}{S4 object of type enrichResult.}
+
+\item{...}{Parameters to pass to the various plotting functions.}
 }
 \description{
 I would like to replace all of my bad ontology plotting functions

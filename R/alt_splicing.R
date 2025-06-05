@@ -114,8 +114,8 @@ gather_rmats_files <- function(file_prefix = NULL, numerator = "t4h", denominato
 #'  suppa_plot <- plot_suppa(dpsi_file, tmp_file)
 #' }
 #' @export
-plot_suppa <- function(file_prefix, file_list = NULL, type = "type", annot = NULL, annot_column = NULL,
-                       sig_threshold = 0.05, label_type = NULL, alpha = 0.3,
+plot_suppa <- function(file_prefix, file_list = NULL, type = "type", annot = NULL,
+                       annot_column = NULL, sig_threshold = 0.05, label_type = NULL, alpha = 0.3,
                        numerator = "infected", denominator = "uninfected") {
   ## A couple variable declarations to keep R CMD check happy when I use NSE syntax with dplyr
   transcripts_1 <- NULL
@@ -459,6 +459,8 @@ write_suppa_table <- function(table, annotations = NULL, by_table = "gene_name",
 plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NULL,
                        sig_threshold = 0.05, dpsi_threshold = 0.7,
                        label_type = NULL, alpha = 0.7) {
+  ijc_numerator <- ijc_denominator <- num_ijc_mean <- den_ijc_mean <- NULL ## R CMD check
+  numerator_inclusion <- denominator_inclusion <- num_mean <- den_mean <- NULL ## Ibid
   if (is.null(se) && is.null(a5ss) && is.null(a3ss) &&
         is.null(mxe) && is.null(ri)) {
     stop("No data was provided.")

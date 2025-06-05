@@ -4,12 +4,22 @@
 \alias{convert_counts}
 \title{Perform a cpm/rpkm/whatever transformation of a count table.}
 \usage{
-convert_counts(count_table, method = "raw", annotations = NULL, ...)
+convert_counts(
+  count_table,
+  method = "raw",
+  annotations = NULL,
+  length_column = "width",
+  ...
+)
 }
 \arguments{
 \item{count_table}{Matrix of count data.}
 
 \item{method}{Type of conversion to perform: edgecpm/cpm/rpkm/cp_seq_m.}
+
+\item{annotations}{Dataframe of gene annotations.}
+
+\item{length_column}{Column of the annotations describing the gene lengths.}
 
 \item{...}{Options I might pass from other functions are dropped into
 arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to

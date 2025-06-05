@@ -4,10 +4,10 @@
 \alias{pca_highscores}
 \title{Get the highest/lowest scoring genes for every principle component.}
 \usage{
-pca_highscores(expt, n = 20, cor = TRUE, vs = "means", logged = TRUE)
+pca_highscores(input, n = 20, cor = TRUE, vs = "means", logged = TRUE)
 }
 \arguments{
-\item{expt}{Experiment to poke.}
+\item{input}{Experiment to poke.}
 
 \item{n}{Number of genes to extract.}
 

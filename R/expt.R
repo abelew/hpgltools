@@ -3,6 +3,10 @@
 ## because I was having annoying problems creating expressionSets.  Thus, >90%
 ## of the logic here is intended to simplify and standardize that process.
 
+## Ensure imports are loaded from 01_hpgltools.R
+#' @include 01_hpgltools.R
+NULL
+
 #' Take two expressionsets and smoosh them together.
 #'
 #' Because of the extra sugar I added to expressionSets, the combine() function
@@ -40,7 +44,7 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
     design1 <- pData(exp1)
     d1_rows <- seq_len(nrow(design1))
     design2 <- pData(exp2)
-    both <- as.data.frame(data.table::rbindlist(list(design1, design2), fill = TRUE))
+    both <- as.data.frame(rbindlist(list(design1, design2), fill = TRUE))
     d2_rows <- (nrow(design1) + 1):nrow(both)
     new_design1 <- both[d1_rows, ]
     rownames(new_design1) <- rownames(design1)
@@ -145,10 +149,10 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
 #'  generate its own colors using colorBrewer.
 #' @param title Provide a title for the expt?
 #' @param notes Additional notes?
-#' @param countdir Directory containing count tables.
 #' @param include_type I have usually assumed that all gff annotations should be
 #'  used, but that is not always true, this allows one to limit to a specific
 #'  annotation type.
+#' @param countdir Directory containing count tables.
 #' @param include_gff Gff file to help in sorting which features to keep.
 #' @param file_column Column to use in a gene information dataframe for
 #' @param id_column Column which contains the sample IDs.
@@ -157,14 +161,20 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
 #' @param low_files Explicitly lowercase the filenames when searching the
 #'  filesystem?
 #' @param handle_na How does one wish to deal with NA values in the data?
-#' @param researcher Used to make the creation of gene sets easier, set the researcher tag.
+#' @param researcher Used to make the creation of gene sets easier,
+#'  set the researcher tag.
 #' @param study_name Ibid, but set the study tag.
 #' @param file_type Explicitly state the type of files containing the
 #'  count data.  I have code which autodetects the method used to
 #'  import count data, this short-circuits it.
 #' @param annotation_name Ibid, but set the orgdb (or other annotation) instance.
-#' @param tx_gene_map Dataframe of transcripts to genes, primarily for tools like salmon.
-#' @param feature_type Make explicit the type of feature used so it may be printed later.
+#' @param tx_gene_map Dataframe of transcripts to genes, primarily for
+#'  tools like salmon.
+#' @param feature_type Make explicit the type of feature used so it
+#'  may be printed later.
+#' @param ignore_tx_version When using tximport, one may strictly
+#'  match the transcript versions, or not.
+#' @param keep_underscore Sanitize out underscores from the columns?
 #' @param ... More parameters are fun!
 #' @return experiment an expressionset
 #' @seealso [Biobase] [cdm_expt_rda] [example_gff] [sb_annot] [sb_data] [extract_metadata()]
@@ -206,6 +216,7 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
 #'   another_expt <- create_expt(metadata = meta, gene_info = annotations, count_dataframe = df_I_downloaded)
 #'  }
 #' @import Biobase
+#' @exportClass expt
 #' @export
 create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                         sanitize_rownames = TRUE, sample_colors = NULL, title = NULL,
@@ -314,7 +325,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
               toString(sort(rownames(sample_definitions))))
       stop("The count table column names are not the same as the sample definition row names.")
     }
-    all_count_tables <- data.table::as.data.table(count_dataframe, keep.rownames = "rownames")
+    all_count_tables <- as.data.table(count_dataframe, keep.rownames = "rownames")
     ## If neither of these cases is true, start looking for the files in the
     ## processed_data/ directory
   } else if (is.null(sample_definitions[[file_column]])) {
@@ -338,9 +349,9 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
     filenames <- as.character(sample_definitions[[file_column]])
     sample_ids <- rownames(sample_definitions)
     count_data <- read_counts(sample_ids, filenames, countdir = countdir,
-                                   tx_gene_map = tx_gene_map, file_type = file_type,
-                                   ignore_tx_version = ignore_tx_version,
-                                   ...)
+                              tx_gene_map = tx_gene_map, file_type = file_type,
+                              ignore_tx_version = ignore_tx_version,
+                              ...)
     if (count_data[["source"]] == "tximport") {
       tximport_data <- list("raw" = count_data[["tximport"]],
                             "scaled" = count_data[["tximport_scaled"]])
@@ -410,7 +421,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
   }
 
   ## There is an important caveat here!!
-  ## data.table::as.data.table(stuff, keep.rownames='column') will change the
+  ## as.data.table(stuff, keep.rownames='column') will change the
   ## rownames to remove punctuation including ':'!  Which means that if I have a
   ## rowname that looks like 'LmjF.01.0010:mRNA', it will get changed to
   ## 'LmjF.01.0010.mRNA' Which will of course kill any downstream analyses which
@@ -454,18 +465,18 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
   if (is.null(gene_info)) {
     ## Including, if all else fails, just grabbing the gene names from the count tables.
     if (is.null(include_gff)) {
-      gene_info <- data.table::as.data.table(all_count_tables[["rownames"]],
+      gene_info <- as.data.table(all_count_tables[["rownames"]],
                                              keep.rownames = "rownames")
       names(gene_info) <- "rownames"
     } else {
       ## Or reading a gff file.
       message("create_expt(): Reading annotation gff, this is slow.")
       annotation <- load_gff_annotations(gff = include_gff, type = gff_type)
-      gene_info <- data.table::as.data.table(annotation, keep.rownames = "rownames")
+      gene_info <- as.data.table(annotation, keep.rownames = "rownames")
     }
   } else if (class(gene_info)[[1]] == "list" && !is.null(gene_info[["genes"]])) {
     ## In this case, it is using the output of reading a OrgDB instance
-    gene_info <- data.table::as.data.table(gene_info[["genes"]], keep.rownames = "rownames")
+    gene_info <- as.data.table(gene_info[["genes"]], keep.rownames = "rownames")
   } else if (class(gene_info)[[1]] == "data.table" || class(gene_info)[[1]] == "tbl_df") {
     ## Try to make the data table usage consistent by rownames.
     ## Sometimes we take these from data which did "keep.rownames='some_column'"
@@ -478,7 +489,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
       message("Both rownames() and $rownames were null.")
     }
   } else {
-    gene_info <- data.table::as.data.table(gene_info, keep.rownames = "rownames")
+    gene_info <- as.data.table(gene_info, keep.rownames = "rownames")
   }
 
   ## It turns out that loading the annotation information from orgdb/etc may not set the
@@ -1204,6 +1215,7 @@ median_by_factor <- function(data, fact = "condition", fun = "median") {
 #' expressionset superclass out of the publicly available fission data set.
 #'
 #' @param annotation Add annotation data?
+#' @param host ensembl host to query.
 #' @return Expressionset/expt of fission.
 #' @seealso [fission] [create_expt()]
 #' @export
@@ -1376,9 +1388,9 @@ If this is not correctly performed, very few genes will be observed")
         files = files, type = "kallisto", tx2gene = tx_gene_map,
         txOut = txout, countsFromAbundance = "lengthScaledTPM"))
     }
-    retlist[["count_table"]] <- data.table::as.data.table(
+    retlist[["count_table"]] <- as.data.table(
       import[["counts"]], keep.rownames = "rownames")
-    retlist[["count_table"]] <- data.table::setkey(retlist[["count_table"]], rownames)
+    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
@@ -1398,7 +1410,7 @@ If this is not correctly performed, very few genes will be observed")
       import_scaled <- tximport::tximport(files = files, type = "rsem", tx2gene = tx_gene_map,
                                           txOut = txout, countsFromAbundance = "lengthScaledTPM")
     }
-    retlist[["count_table"]] <- data.table::as.data.table(import[["counts"]],
+    retlist[["count_table"]] <- as.data.table(import[["counts"]],
                                                           keep.rownames = "rownames")
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
@@ -1443,9 +1455,9 @@ If this is not correctly performed, very few genes will be observed")
       colnames(import_scaled[["counts"]]) <- ids
       colnames(import_scaled[["length"]]) <- ids
     }
-    retlist[["count_table"]] <- data.table::as.data.table(
+    retlist[["count_table"]] <- as.data.table(
       import[["counts"]], keep.rownames = "rownames")
-    retlist[["count_table"]] <- data.table::setkey(retlist[["count_table"]], rownames)
+    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
@@ -1468,8 +1480,8 @@ If this is not correctly performed, very few genes will be observed")
     }
     keepers_idx <- count_table[["rownames"]] != na_rownames
     count_table <- count_table[keepers_idx, ]
-    count_table <- data.table::as.data.table(count_table)
-    count_table <- data.table::setkey(count_table, rownames)
+    count_table <- as.data.table(count_table)
+    count_table <- setkey(count_table, rownames)
     first_rownames <- sort(count_table[["rownames"]])
     if (class(count_table)[1] == "try-error") {
       stop("There was an error reading: ", files[1])
@@ -1496,7 +1508,7 @@ If this is not correctly performed, very few genes will be observed")
         stop("There was an error reading: ", table)
       }
       colnames(tmp_count) <- c("rownames", ids[num])
-      tmp_count <- data.table::as.data.table(tmp_count)
+      tmp_count <- as.data.table(tmp_count)
       pre_merge <- nrow(tmp_count)
       if (merge_type == "merge") {
         count_table <- merge(count_table, tmp_count, by = "rownames",
@@ -1510,7 +1522,67 @@ If this is not correctly performed, very few genes will be observed")
       post_merge <- nrow(count_table)
       mesg(table, " contains ", pre_merge, " rows and merges to ", post_merge, " rows.")
     } ## End for loop
-
+    retlist[["count_table"]] <- count_table
+    retlist[["source"]] <- "featureCounts"
+    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
+  } else if (file_type == "table") {
+    ## Use this codepath when we are working with htseq
+    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE)
+    colnames(count_table) <- c("rownames", ids[1])
+    ## We are going to immediately check for NA, so I think we can suppress warnings.
+    count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))
+    na_idx <- is.na(count_table[[2]])
+    ## This is a bit more circuituous than I would like.
+    ## I want to make sure that na_rownames does not evaluate to something
+    ## annoying like 'logical(0)' which it will if there are no nas in the count
+    ## table and you just ask for is.na(count_table).
+    na_rownames <- ""
+    if (sum(na_idx) > 0) {
+      na_rownames <- count_table[na_idx, "rownames"]
+    }
+    keepers_idx <- count_table[["rownames"]] != na_rownames
+    count_table <- count_table[keepers_idx, ]
+    count_table <- as.data.table(count_table)
+    count_table <- setkey(count_table, rownames)
+    first_rownames <- sort(count_table[["rownames"]])
+    if (class(count_table)[1] == "try-error") {
+      stop("There was an error reading: ", files[1])
+    }
+    mesg(files[1], " contains ", length(rownames(count_table)), " rows.")
+    ## iterate over and append remaining samples
+    for (num in seq(from = 2, to = length(files))) {
+      table <- files[num]
+      if (file.exists(tolower(table))) {
+        table <- tolower(table)
+      }
+      tmp_count <- try(read.table(table, header = header))
+      ## Drop the rows with NAs before coercing to numeric.
+      keepers_idx <- tmp_count[[1]] != na_rownames
+      tmp_count <- tmp_count[keepers_idx, ]
+      current_rownames <- sort(tmp_count[[1]])
+      mismatched_rownames <- sum(first_rownames != current_rownames)
+      if (mismatched_rownames > 0) {
+        warning("The file: ", table, " has mismatched rownames.")
+      }
+      tmp_count[, 2] <- as.numeric(tmp_count[, 2])
+      if (class(tmp_count)[1] == "try-error") {
+        stop("There was an error reading: ", table)
+      }
+      colnames(tmp_count) <- c("rownames", ids[num])
+      tmp_count <- as.data.table(tmp_count)
+      pre_merge <- nrow(tmp_count)
+      if (merge_type == "merge") {
+        count_table <- merge(count_table, tmp_count, by = "rownames",
+                             all.x = all.x, all.y = all.y)
+      } else {
+        count_table <- plyr::join(count_table, tmp_count)
+      }
+      ## rownames(count_table) <- count_table[, "Row.names"]
+      ## count_table <- count_table[, -1, drop = FALSE]
+      ## post_merge <- length(rownames(count_table))
+      post_merge <- nrow(count_table)
+      mesg(table, " contains ", pre_merge, " rows and merges to ", post_merge, " rows.")
+    } ## End iterating over the files to read.
     ## remove summary fields added by HTSeq
     if (!isTRUE(include_summary_rows)) {
       ## Depending on what happens when the data is read in, these rows may get prefixed with 'X'
@@ -1521,10 +1593,11 @@ If this is not correctly performed, very few genes will be observed")
                            "X__not_aligned", "X__alignment_not_unique")
       kept_rows <- !count_table[["rownames"]] %in% htseq_meta_rows
       count_table <- count_table[kept_rows, ]
-      retlist[["count_table"]] <- count_table
-      retlist[["source"]] <- "htseq"
     } ## End the difference between tximport and reading tables.
-    retlist[["count_table"]] <- data.table::setkey(retlist[["count_table"]], rownames)
+    retlist[["count_table"]] <- setkey(count_table, rownames)
+    retlist[["source"]] <- "htseq"
+  } else {
+    stop("I do not understand this count data type.")
   }
   mesg("Finished reading count data.")
   return(retlist)
@@ -1535,6 +1608,7 @@ If this is not correctly performed, very few genes will be observed")
 #'
 #' @param expt An expt object to clean.
 #' @param keep_underscore Sanitize underscores too?
+#' @param factors Specific factors to check.
 sanitize_expt <- function(expt, keep_underscore = TRUE, factors = c("condition", "batch")) {
   design <- pData(expt)
   for (fact in factors) {
@@ -1849,13 +1923,24 @@ subset_expt <- function(expt, subset = NULL, ids = NULL,
 setGeneric("subset_expt")
 
 #' Subset a SummarizedExperiment with some extra syntax.
+#'
+#' @param expt Expt chosen to extract a subset of data.
+#' @param subset Valid R expression which defines a subset of the design to keep.
+#' @param nonzero Look for a minimal number of nonzero genes.
+#' @param ids List of sample IDs to extract.
+#' @param coverage Request a minimum coverage/sample rather than text-based subset.
+#' @param print_excluded Print out the samples which are removed via this filter?
+#' @return metadata Expt class which contains the smaller set of data.
+#' @seealso [Biobase] [pData()] [exprs()] [fData()]
 #' @export
 setMethod(
   "subset_expt", signature = signature(expt = "SummarizedExperiment"),
   definition = function(expt, subset = NULL, ids = NULL,
-                        nonzero = NULL, coverage = NULL) {
+                        nonzero = NULL, coverage = NULL,
+                        print_excluded = TRUE) {
     subset_se(expt, subset = subset, ids = ids,
-              nonzero = nonzero, coverage = coverage)
+              nonzero = nonzero, coverage = coverage,
+              print_excluded = print_excluded)
   })
 
 #' Try a very literal subtraction
@@ -2730,7 +2815,7 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
   nvarpart_plot <- NULL
   npct_plot <- NULL
   if (isTRUE(violin) && isTRUE(do_varpart)) {
-    varpart_norm <- suppressWarnings(try(simple_varpart(norm_data, factors = varpart_factors),
+    varpart_norm <- suppressWarnings(try(simple_varpart(norm_data, fstring = fstring),
                                          silent = TRUE))
     if (! "try-error" %in% class(varpart_norm)) {
       nvarpart_plot <- varpart_norm[["partition_plot"]]
@@ -2893,7 +2978,6 @@ print.written_expt <- function(x, ...) {
 expt <- function(...) {
   create_expt(...)
 }
-#expt_set <- setOldClass("expt")
 setClass("expt")
 
 ## EOF

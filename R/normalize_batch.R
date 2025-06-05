@@ -3,10 +3,36 @@
 ## surrogate estimators and batch correction methods.  These functions attempt
 ## to make that possible.
 
+#' Apply the suite of destructive batch estimate tools
+#'
+#' Combat, limma, RUV and friends provide modified counts but not model estimates.
+#'
+#' @param input Input data structure.
+#' @param model_fstring Formula string describing the relationship of interest
+#' @param null_fstring Model describing the null hypothesis
+#' @param estimate_type The method used to modify the data.
+#' @param batch1 Column containing the primary known batch factor
+#' @param batch2 Column containing a secondary batch factor.
+#' @param num_surrogates Method to guess the number of surrogate variables,
+#'  not likely actually useful for this function.
+#' @param low_to_zero Push all values which are less than zero to
+#'  zero.
+#' @param cpus dedicate a specific number of cpus
+#' @param na_to_zero Push all NA values to zero?
+#' @param confounders Expected confounding factors -- I think only for
+#'  smartsva
+#' @param adjust_method Also not likely used by this.
+#' @param filter Filter the data before applying the method of choice?
+#' @param thresh Threshold when filtering
+#' @param noscale Used by combat, scale the data?
+#' @param prior_plots Perform the various plots provided by combat
+#' @param control_type I do not remember.
+#' @return Adjusted data
+#' @export
 adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
                                  null_fstring = NULL,
                                  estimate_type = "limma", batch1 = "batch",
-                                 batch2 = NULL, surrogates = "be", low_to_zero = FALSE,
+                                 batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE,
                                  cpus = 4, na_to_zero = TRUE, confounders = NULL,
                                  adjust_method = "ruv", filter = "raw", thresh = 1,
                                  noscale = FALSE, prior_plots = FALSE, control_type = "norm") {
@@ -171,17 +197,17 @@ adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
       parallel::stopCluster(cl)
     },
     {
-      svs <- adjuster_expt_svs(input, model_fstring = model_fstring,
-                               null_fstring = null_fstring, estimate_type = estimate_type,
-                               batch1 = batch1, batch2 = batch2, surrogates = surrogates,
-                               low_to_zero = low_to_zero, cpus = cpus,
-                               na_to_zero = na_to_zero, confounders = confounders,
-                               adjust_method = adjust_method, filter = filter,
-                               thresh = thresh, control_type = control_type)
+      svs <- adjuster_expt_svs(
+        input, model_fstring = model_fstring, null_fstring = null_fstring,
+        model_svs = estimate_type, batch1 = batch1, batch2 = batch2,
+        num_surrogates = num_surrogates, low_to_zero = low_to_zero, cpus = cpus,
+        na_to_zero = na_to_zero, confounders = confounders,
+        adjust_method = adjust_method, filter = filter,
+        thresh = thresh, control_type = control_type)
       model_adjust <- svs[["model_adjust"]]
       output_scale <- svs[["output_scale"]]
       mesg("Adjusting counts with method: ", adjust_method, ".")
-      new_counts <- counts_from_surrogates(data = surrogate_input, adjust = model_adjust,
+      new_counts <- counts_from_surrogates(data = input, adjust = model_adjust,
                                            method = adjust_method, design = my_design)
       if (output_scale == "log2") {
         new_counts <- (2 ^ new_counts) - 1
@@ -190,8 +216,32 @@ adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
   return(new_counts)
 }
 
-#' Search for SVs in an expressionset-like object.
+#' Apply the suite of non-destructive batch estimate tools
 #'
+#' SVA and friends by themselves do not modify the data, but provides
+#' a set of modified model parameters.
+#'
+#' @param input Input data structure.
+#' @param model_fstring Formula string describing the relationship of interest.
+#' @param null_fstring Model describing the null hypothesis.
+#' @param model_svs Method to create SVs for the experimental model.
+#' @param batch1 Column containing the primary known batch factor
+#' @param batch2 Column containing a secondary batch factor.
+#' @param num_surrogates Method to guess the number of surrogate variables,
+#'  not likely actually useful for this function.
+#' @param low_to_zero Push all values which are less than zero to
+#'  zero.
+#' @param cpus Explicitly set the number of cpus in the adjuster.
+#' @param na_to_zero Push all NA values to zero?
+#' @param confounders Expected confounding factors -- I think only for
+#'  smartsva
+#' @param filter Filter the data before applying the method of choice?
+#' @param thresh Threshold when filtering
+#' @param adjust_method Also not likely used by this.
+#' @param noscale Used by combat, scale the data?
+#' @param prior_plots Perform the various plots provided by combat
+#' @param control_type I do not remember.
+#' @return Adjusted data
 #' @export
 adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
                               null_fstring = NULL,
@@ -199,6 +249,7 @@ adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
                               batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = NULL,
                               na_to_zero = TRUE, confounders = NULL,
                               filter = "raw", thresh = 1,
+                              adjust_method = "ruv",
                               noscale = FALSE, prior_plots = FALSE,
                               control_type = "norm") {
   ## Gather all the likely pieces we can use
@@ -284,7 +335,7 @@ adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
     dropped_fctr <- droplevels(as.factor(my_design[[f]]))
     dropped_levels <- sort(levels(dropped_fctr))
     current_levels <- sort(levels(as.factor(my_design[[f]])))
-    test_levels <- try(expect_equal(dropped_levels, current_levels))
+    test_levels <- try(testthat::expect_equal(dropped_levels, current_levels))
     if ("try-error" %in% class(test_levels)) {
       warning("The dropped levels and existing levels are not equivalent for: ", f)
       warning("You can expect things to fail shortly.")
@@ -318,7 +369,7 @@ adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
   mesg("The ", num_surrogates, " method chose ",
        chosen_surrogates, " surrogate ", vword, ".")
   } else if (class(num_surrogates) == "numeric") {
-    mesg("A specific number of surrogate variables was chosen: ", surrogates, ".")
+    mesg("A specific number of surrogate variables was chosen: ", num_surrogates, ".")
     chosen_surrogates <- num_surrogates
   }
 
@@ -607,11 +658,19 @@ adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
 
 #' Use methods from sva/RUVseq to guesstimate the number of surrogates.
 #'
+#' @param design Dataframe describing the experimental design
+#' @param linear_mtrx linear scale matrix of the input data
+#' @param log2_mtrx Log2 scale matrix of the input data
+#' @param model_svs Method used to model the surrogate variables.
+#' @param conditional_fstring Formula string describing the variable
+#' of interest.
+#' @param guess_type Method to guess at the number of surrogate variables.
 #' @export
 guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
                                  model_svs = "svaseq",
                                  conditional_fstring = "~ condition",
                                  guess_type = "be") {
+  conditional_fstring <- check_fstring(conditional_fstring)
   if (is.null(model_svs) && is.null(guess_type)) {
     message("Neither an estimate type nor guess was provided, assuming 1.")
     return(1)
@@ -620,7 +679,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
   if (model_svs == "smartsva") {
     full_fstring <- glue("t(linear_mtrx) {conditional_fstring}")
     test_rslt <- lm(as.formula(full_fstring), data = design)
-    sv_estimate_data <- t(resid(lm_rslt))
+    sv_estimate_data <- t(resid(test_rslt))
     estimated_dimensions <- isva::EstDimRMT(sv_estimate_data, FALSE)
     chosen_surrogates <- estimated_dimensions[["dim"]] + 1
   } else if (model_svs == "isva") {
@@ -657,7 +716,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' @param estimate_type Name of the estimator.
 #' @param batch1 Column in the experimental design for the first known batch.
 #' @param batch2 Only used by the limma method, a second batch column.
-#' @param surrogates Either a number of surrogates or a method to
+#' @param num_surrogates Either a number of surrogates or a method to
 #'  search for them.
 #' @param low_to_zero Move elements which are <0 to 0?
 #' @param cpus Use parallel and split intensive operations?
@@ -679,7 +738,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #'  [corpcor] [edgeR] [RUVSeq] [SmartSVA] [variancePartition] [counts_from_surrogates()]
 #' @export
 all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = "batch",
-                          batch2 = NULL, surrogates = "be", low_to_zero = FALSE, cpus = 4,
+                          batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = 4,
                           na_to_zero = TRUE, expt_state = NULL, confounders = NULL,
                           chosen_surrogates = NULL, adjust_method = "ruv",
                           filter = "raw", thresh = 1, noscale = FALSE, prior_plots = FALSE) {
@@ -781,44 +840,45 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   conditions <- droplevels(as.factor(my_design[["condition"]]))
   batches <- droplevels(as.factor(my_design[[batch1]]))
   conditional_model <- model.matrix(~ conditions, data = my_design)
+  conditional_fstring <- "~ 0 + condition"
   sample_names <- colnames(input)
   null_model <- conditional_model[, 1]
 
-  if (is.null(chosen_surrogates) && is.null(surrogates)) {
+  if (is.null(chosen_surrogates) && is.null(num_surrogates)) {
     chosen_surrogates <- 1
-  } else if (is.null(surrogates)) {
-    surrogates <- chosen_surrogates
+  } else if (is.null(num_surrogates)) {
+    num_surrogates <- chosen_surrogates
   }
 
   chosen_surrogates <- 1
-  if (is.null(surrogates)) {
+  if (is.null(num_surrogates)) {
     message("No estimate nor method to find surrogates was provided. ",
             "Assuming you want 1 surrogate variable.")
   } else {
-    if (class(surrogates) == "character") {
+    if (class(num_surrogates) == "character") {
       ## num.sv assumes the log scale.
-      if (surrogates == "smartsva") {
+      if (num_surrogates == "smartsva") {
         lm_rslt <- lm(t(linear_mtrx) ~ condition, data = my_design)
         sv_estimate_data <- t(resid(lm_rslt))
         chosen_surrogates <- isva::EstDimRMT(sv_estimate_data, FALSE)[["dim"]] + 1
-      } else if (surrogates == "isva") {
+      } else if (num_surrogates == "isva") {
         chosen_surrogates <- isva::EstDimRMT(log2_mtrx)
-      } else if (surrogates != "be" && surrogates != "leek") {
+      } else if (num_surrogates != "be" && num_surrogates != "leek") {
         message("A string was provided, but it was neither 'be' nor 'leek', assuming 'be'.")
         chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model))
       } else {
         chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx,
-                                            mod = conditional_model, method = surrogates))
+                                            mod = conditional_model, method = num_surrogates))
       }
       vword <- "variable"
       if (chosen_surrogates > 1) {
         vword <- "variables"
       }
-      mesg("The ", surrogates, " method chose ",
+      mesg("The ", num_surrogates, " method chose ",
            chosen_surrogates, " surrogate ", vword, ".")
-    } else if (class(surrogates) == "numeric") {
-      mesg("A specific number of surrogate variables was chosen: ", surrogates, ".")
-      chosen_surrogates <- surrogates
+    } else if (class(num_surrogates) == "numeric") {
+      mesg("A specific number of surrogate variables was chosen: ", num_surrogates, ".")
+      chosen_surrogates <- num_surrogates
     }
     if (chosen_surrogates < 1) {
       warning("One must have greater than 0 surrogates, setting chosen_surrogates to 1.")
@@ -1110,7 +1170,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
    source_counts <- surrogate_result[["normalizedCounts"]]
  },
  "smartsva" = {
-   mesg("Attempting svaseq estimation with ",
+   mesg("Attempting smartsva estimation with ",
         chosen_surrogates, " ", sword, ".")
    surrogate_result <- SmartSVA::smartsva.cpp(
      dat = linear_mtrx, mod = conditional_model, mod0 = null_model, n.sv = chosen_surrogates)
@@ -1175,8 +1235,11 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   ## Only use counts_from_surrogates if the method does not provide counts on its own
   if (is.null(new_counts)) {
     mesg("Adjusting counts with method: ", adjust_method, ".")
+    ## Note, this function now has an argument 'return_scale'
+    ## which I think means we no longer need the following if statement.
     new_counts <- counts_from_surrogates(data = surrogate_input, adjust = model_adjust,
-                                         method = adjust_method, design = my_design)
+                                         design = my_design, method = adjust_method,
+                                         model_fstring = conditional_fstring)
     if (output_scale == "log2") {
       new_counts <- (2 ^ new_counts) - 1
     }
@@ -1217,7 +1280,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #'
 #' @param count_table Matrix of (pseudo)counts.
 #' @param method Choose the method for batch/surrogate estimation.
-#' @param expt_design Model matrix defining the experimental conditions/batches/etc.
+#' @param design Model matrix defining the experimental conditions/batches/etc.
 #' @param batch1 String describing the method to try to remove the batch effect
 #'  (or FALSE to leave it alone, TRUE uses limma).
 #' @param current_state Current state of the expt in an attempt to avoid
@@ -1226,14 +1289,15 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #'  provides another place for normalize_expt() to send data.
 #' @param expt_state Current state of the data
 #' @param surrogate_method Also redundant for normalize_expt()
-#' @param surrogates Number of surrogates or method to estimate them.
+#' @param num_surrogates Number of surrogates or method to estimate them.
 #' @param low_to_zero Send <0 entries to 0 to avoid shenanigans.
 #' @param cpus Parallelize intensive operations.
 #' @param batch2 Column in the design table describing the second covariant to
 #'  remove (only used by limma at the moment).
 #' @param noscale Used for combatmod, when true it removes the scaling
 #'  parameter from the invocation of the modified combat.
-#' @param ... More options for you!
+#' @param adjust_method Method used to apply the SVs to the matrix and
+#'  change it.
 #' @return The 'batch corrected' count table and new library size.  Please
 #'  remember that the library size which comes out of this may not be what you
 #'  want for voom/limma and would therefore lead to spurious differential
@@ -1247,7 +1311,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' @export
 batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "batch",
                          current_state = NULL, current_design = NULL, expt_state = NULL,
-                         surrogate_method = NULL, surrogates = NULL, low_to_zero = FALSE,
+                         surrogate_method = NULL, num_surrogates = NULL, low_to_zero = FALSE,
                          cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv") {
                        ##, ...) {
   arglist <- list()
@@ -1255,10 +1319,10 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
     method <- arglist[["batch"]]
   }
   chosen_surrogates <- NULL
-  if (is.null(surrogates) && is.null(surrogate_method)) {
+  if (is.null(num_surrogates) && is.null(surrogate_method)) {
     chosen_surrogates <- "be"
-  } else if (!is.null(surrogates)) {
-    chosen_surrogates <- surrogates
+  } else if (!is.null(num_surrogates)) {
+    chosen_surrogates <- num_surrogates
   } else {
     chosen_surrogates <- surrogate_method
   }
@@ -1325,7 +1389,7 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
                                 cpus = cpus, batch1 = batch1, batch2 = batch2,
                                 expt_state = used_state, noscale = noscale,
                                 chosen_surrogates = chosen_surrogates,
-                                surrogates = surrogates,
+                                num_surrogates = num_surrogates,
                                 low_to_zero = low_to_zero)
   count_table <- new_material[["new_counts"]]
 
@@ -1515,7 +1579,7 @@ compare_batches <- function(expt = NULL, methods = NULL) {
 #' @param filter_type Type of filter to use when filtering the input data.
 #' @param do_catplots Include the catplots?  They don't make a lot of sense yet,
 #'  so probably no.
-#' @param surrogates Use 'be' or 'leek' surrogate estimates, or choose a
+#' @param num_surrogates Use 'be' or 'leek' surrogate estimates, or choose a
 #'  number.
 #' @param ... Extra arguments when filtering.
 #' @return List of the results.
@@ -1523,7 +1587,7 @@ compare_batches <- function(expt = NULL, methods = NULL) {
 #' @export
 compare_surrogate_estimates <- function(expt, extra_factors = NULL,
                                         filter_it = TRUE, filter_type = TRUE,
-                                        do_catplots = FALSE, surrogates = "be", ...) {
+                                        do_catplots = FALSE, num_surrogates = "be", ...) {
   arglist <- list(...)
   design <- pData(expt)
   do_batch <- TRUE
@@ -1542,37 +1606,37 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
   pca_plots[["null"]] <- plot_pca(expt)[["plot"]]
 
   pca_adjust <- all_adjusters(expt, estimate_type = "pca",
-                              surrogates = surrogates)
+                              num_surrogates = num_surrogates)
   pca_plots[["pca"]] <- plot_pca(pca_adjust[["new_counts"]],
                                  design = design,
                                  plot_colors = expt[["colors"]])[["plot"]]
 
   sva_supervised <- sm(all_adjusters(expt, estimate_type = "sva_supervised",
-                                     surrogates = surrogates))
+                                     num_surrogates = num_surrogates))
   pca_plots[["svasup"]] <- plot_pca(sva_supervised[["new_counts"]],
                                     design = design,
                                     plot_colors = expt[["colors"]])[["plot"]]
 
   sva_unsupervised <- sm(all_adjusters(expt, estimate_type = "sva_unsupervised",
-                                       surrogates = surrogates))
+                                       num_surrogates = num_surrogates))
   pca_plots[["svaunsup"]] <- plot_pca(sva_unsupervised[["new_counts"]],
                                       design = design,
                                       plot_colors = expt[["colors"]])[["plot"]]
 
   ruv_supervised <- sm(all_adjusters(expt, estimate_type = "ruv_supervised",
-                                     surrogates = surrogates))
+                                     num_surrogates = num_surrogates))
   pca_plots[["ruvsup"]] <- plot_pca(ruv_supervised[["new_counts"]],
                                     design = design,
                                     plot_colors = expt[["colors"]])[["plot"]]
 
   ruv_residuals <- sm(all_adjusters(expt, estimate_type = "ruv_residuals",
-                                    surrogates = surrogates))
+                                    num_surrogates = num_surrogates))
   pca_plots[["ruvresid"]] <- plot_pca(ruv_residuals[["new_counts"]],
                                       design = design,
                                       plot_colors = expt[["colors"]])[["plot"]]
 
   ruv_empirical <- sm(all_adjusters(expt, estimate_type = "ruv_empirical",
-                                    surrogates = surrogates))
+                                    num_surrogates = num_surrogates))
   pca_plots[["ruvemp"]] <- plot_pca(ruv_empirical[["new_counts"]],
                                     design = design,
                                     plot_colors = expt[["colors"]])[["plot"]]
@@ -1734,11 +1798,12 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
 #' @param data Original count table, may be an expt/expressionset or df/matrix.
 #' @param adjust Surrogates with which to adjust the data.
 #' @param design Experimental design if it is not included in the expressionset.
-#' @param method Which methodology to follow, ideally these agree but that seems untrue.
-#' @param cond_column design column containing the condition data.
-#' @param batch_column design column with the batch data, used for
-#'  subtractive methods.
-#' @param matrix_scale Was the input for the surrogate estimator on a log or linear scale?
+#' @param method Which methodology to follow, ideally these agree but
+#'  that seems untrue.
+#' @param model_fstring Formula string describing the statistical
+#'  model of interest.
+#' @param matrix_scale Was the input for the surrogate estimator on a
+#'  log or linear scale?
 #' @param return_scale Does one want the output linear or log?
 #' @param ... Arguments passed to downstream functions.
 #' @return A data frame of adjusted counts.
@@ -1760,22 +1825,29 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
     my_design <- design
     data_mtrx <- as.matrix(data)
   }
-
+  model_fstring <- check_fstring(model_fstring)
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   batch_column <- fctrs[["factors"]][2]
   conditions <- droplevels(as.factor(my_design[[condition_column]]))
-  batches <- droplevels(as.factor(my_design[["batch"]]))
   conditions_table <- table(conditions)
-  batches_table <- table(batches)
   condition_levels <- levels(conditions)
-
   condition_fstring <- glue("~ {condition_column}")
   conditional_model <- model.matrix(as.formula(condition_fstring),
                                     data = my_design)
-  batch_fstring <- glue("~ {batch_column}")
-  batch_model <- model.matrix(as.formula(batch_fstring),
-                              data = my_design)
+
+  batches_table <- NULL
+  batches <- NULL
+  batch_fstring <- ""
+  batch_model <- NULL
+  if (!is.na(batch_column)) {
+    batches_table <- table(batches)
+    batches <- droplevels(as.factor(my_design[["batch"]]))
+    batch_fstring <- glue("~ {batch_column}")
+    batch_model <- model.matrix(as.formula(batch_fstring),
+                                data = my_design)
+  }
+
    new_model <- conditional_model
   ## Explicitly append columns of the adjust matrix to the conditional model.
   ## In the previous code, this was: 'X <- cbind(conditional_model, sva$sv)'
@@ -1791,7 +1863,7 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
     method,
     "cbcb_add" = {
       ## we also have conditional_model which may make this easier
-      new_counts <- cbcb_batch(data_mtrx, full_model,
+      new_counts <- cbcb_batch(data_mtrx, my_design,
                                conditional_model = conditional_model,
                                batch_model = batch_model,
                                method = "add",
@@ -2176,6 +2248,13 @@ Rerun ISVA with cf.m = NULL option")
   ##              pvCF = pv.m, selisv = selisv.idx))
 }
 
+#' Compare a series of SVs to a metadata factor of interest.
+#'
+#' @param sv_meta Dataframe containing SVs and metadata
+#' @param meta_column Metadatum of interest
+#' @param sv SV column number of interest
+#' @param alpha DEgree of transparency
+#' @export
 plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0.75) {
   sv_column <- paste0("SV", sv)
   sv_meta <- ggplot(sv_meta,
@@ -2239,7 +2318,7 @@ sv_fstatistics <- function(expt, num_surrogates = NULL,
     for (sv in sv_vector) {
       sv_name <- paste0("SV", sv)
       sv_lm <- lm(as.numeric(sv_meta[[sv_name]]) ~ as.factor(sv_meta[[fact]]))
-      sv_anova <- anova(sv_lm)
+      sv_anova <- stats::anova(sv_lm)
       sv_f <- sv_anova[["F value"]][1]
       sv_p <- sv_anova[["Pr(>F)"]][1]
       fvals[sv] <- sv_f

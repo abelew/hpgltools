@@ -70,7 +70,8 @@ filesystem?}
 
 \item{handle_na}{How does one wish to deal with NA values in the data?}
 
-\item{researcher}{Used to make the creation of gene sets easier, set the researcher tag.}
+\item{researcher}{Used to make the creation of gene sets easier,
+set the researcher tag.}
 
 \item{study_name}{Ibid, but set the study tag.}
 
@@ -80,9 +81,16 @@ import count data, this short-circuits it.}
 
 \item{annotation_name}{Ibid, but set the orgdb (or other annotation) instance.}
 
-\item{tx_gene_map}{Dataframe of transcripts to genes, primarily for tools like salmon.}
+\item{tx_gene_map}{Dataframe of transcripts to genes, primarily for
+tools like salmon.}
 
-\item{feature_type}{Make explicit the type of feature used so it may be printed later.}
+\item{feature_type}{Make explicit the type of feature used so it
+may be printed later.}
+
+\item{ignore_tx_version}{When using tximport, one may strictly
+match the transcript versions, or not.}
+
+\item{keep_underscore}{Sanitize out underscores from the columns?}
 
 \item{...}{More parameters are fun!}
 }

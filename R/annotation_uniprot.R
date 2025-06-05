@@ -18,10 +18,7 @@
 #' @param first Or perhaps just grab the first hit?
 #' @return A filename/accession tuple.
 #' @seealso [xml2] [rvest]
-#' @examples
-#'  uniprot_sc_downloaded <- load_uniprot_annotations(species = "Saccharomyces cerevisiae S288c")
-#'  uniprot_sc_downloaded$filename
-#'  uniprot_sc_downloaded$species
+#' @example inst/examples/annotation_uniprot.R
 #' @export
 load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
                                      taxonomy = NULL, all = FALSE, first = FALSE) {
@@ -179,23 +176,21 @@ load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
 #' @param ... Whatever args are required for load_uniprot_annotations()
 #' @return Ontology dataframe
 #' @seealso [load_uniprot_annotations()] [stringr] [tidyr]
-#' @examples
-#' \dontrun{
-#'  uniprot_sc_downloaded <- download_uniprot_proteome(species = "Saccharomyces cerevisiae S288c")
-#'  sc_uniprot_annot <- load_uniprot_annotations(file = uniprot_sc_downloaded$filename)
-#'  sc_uniprot_go <- load_uniprot_go(sc_uniprot_annot)
-#'  head(sc_uniprot_go)
-#' }
+#' @example inst/examples/annotation_uniprot.R
 #' @export
 load_uniprot_go <- function(...) {
   input <- load_uniprot_annotations(...)
+  colnames(input) <- tolower(colnames(input))
+  colnames(input) <- gsub(pattern = " ", replacement = "_", x = colnames(input))
+  colnames(input) <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = colnames(input), perl = TRUE)
+  go_column_idx <- grepl(pattern = "go", x = colnames(input))
+  go_column <- colnames(input)[go_column_idx]
+  kept <- input[, c("entry", go_column)] %>%
+    tidyr::separate_rows("entry")
 
-  kept <- input[, c("uniprot_accessions", "go", "aa_length")] %>%
-    tidyr::separate_rows("uniprot_accessions")
-
-  kept[["go"]] <- kept[["go"]] %>%
+  kept[[go_column]] <- kept[[go_column]] %>%
     stringr::str_extract_all(pattern = "GO:\\d+")
-  kept[["go"]] <- I(kept[["go"]])
+  kept[["go"]] <- I(kept[[go_column]])
   kept[["go"]] <- as.character(kept[["go"]])
   kept <- kept %>%
     tidyr::separate_rows("go", sep = ",")
@@ -203,7 +198,8 @@ load_uniprot_go <- function(...) {
   kept[["go"]] <- gsub(pattern = ")", replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = "c\\(", replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = "\\s+", replacement = "", x = kept[["go"]])
-  colnames(kept) <- c("ID", "GO", "length")
+  colnames(kept) <- c("ID", "GO_chr", "GO")
+  kept[["GO_chr"]] <- NULL
   return(kept)
 }
 

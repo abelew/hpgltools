@@ -50,6 +50,12 @@ genes.}
 
 \item{second_col}{If that fails, try a second column.}
 
+\item{do_mf}{Perform MF?}
+
+\item{do_bp}{Perform BP?}
+
+\item{do_cc}{Perform CC?}
+
 \item{do_kegg}{Perform KEGG search?}
 
 \item{do_reactome}{Perform reactome search?}
@@ -83,6 +89,8 @@ longer.}
 
 \item{bg}{Background genes.}
 
+\item{min_genes}{Minimum number of genes required in category.}
+
 \item{ordered}{Is the data in a ranked order by significance?}
 
 \item{id_col}{Which column in the table should be used for gene ID
@@ -93,12 +101,9 @@ entrez or whatever, translate it!}
 
 \item{excel}{Print the results to an excel file?}
 
+\item{min_go_level}{How far down the tree to search.}
+
 \item{...}{Primarily for changing options when writing a xlsx output.}
-
-\item{do_go}{Perform GO search?}
-
-\item{enrich_id_column}{Column from which to extract more readable gene IDs when
-creating a clusterProfiler-compatible enrich object.}
 }
 \value{
 a list of results for go, kegg, reactome, and a few more.

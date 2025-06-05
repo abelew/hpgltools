@@ -51,6 +51,8 @@ and fold-change).}
 \item{color_low}{Color for the genes less than the mean.}
 
 \item{color_high}{Color for the genes greater than the mean.}
+
+\item{coefficient_column}{Where to find the coefficients in the input data.}
 }
 \description{
 Plot the gene abundances for two coefficients in a differential expression

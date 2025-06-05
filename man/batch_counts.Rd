@@ -13,7 +13,7 @@ batch_counts(
   current_design = NULL,
   expt_state = NULL,
   surrogate_method = NULL,
-  surrogates = NULL,
+  num_surrogates = NULL,
   low_to_zero = FALSE,
   cpus = 4,
   batch2 = NULL,
@@ -25,6 +25,8 @@ batch_counts(
 \item{count_table}{Matrix of (pseudo)counts.}
 
 \item{method}{Choose the method for batch/surrogate estimation.}
+
+\item{design}{Model matrix defining the experimental conditions/batches/etc.}
 
 \item{batch1}{String describing the method to try to remove the batch effect
 (or FALSE to leave it alone, TRUE uses limma).}
@@ -39,7 +41,7 @@ provides another place for normalize_expt() to send data.}
 
 \item{surrogate_method}{Also redundant for normalize_expt()}
 
-\item{surrogates}{Number of surrogates or method to estimate them.}
+\item{num_surrogates}{Number of surrogates or method to estimate them.}
 
 \item{low_to_zero}{Send <0 entries to 0 to avoid shenanigans.}
 
@@ -51,9 +53,8 @@ remove (only used by limma at the moment).}
 \item{noscale}{Used for combatmod, when true it removes the scaling
 parameter from the invocation of the modified combat.}
 
-\item{expt_design}{Model matrix defining the experimental conditions/batches/etc.}
-
-\item{...}{More options for you!}
+\item{adjust_method}{Method used to apply the SVs to the matrix and
+change it.}
 }
 \value{
 The 'batch corrected' count table and new library size.  Please

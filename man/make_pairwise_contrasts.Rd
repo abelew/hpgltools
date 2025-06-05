@@ -22,6 +22,8 @@ make_pairwise_contrasts(
 
 \item{conditions}{Factor of conditions in the experiment.}
 
+\item{contrast_factor}{Column containing the factor of interest.}
+
 \item{do_identities}{Include all the identity strings? Limma can
 use this information while edgeR can not.}
 
@@ -34,6 +36,8 @@ need to be set to FALSE, but just in case.}
 \item{keepers}{Only extract this subset of all possible pairwise contrasts.}
 
 \item{extra_contrasts}{Optional string of extra contrasts to include.}
+
+\item{keep_underscore}{Sanitize out underscores?}
 
 \item{...}{Extra arguments passed here are caught by arglist.}
 }

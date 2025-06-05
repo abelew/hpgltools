@@ -157,9 +157,15 @@ plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
 #' @param first First column to plot.
 #' @param second Second column to plot.
 #' @param base_url Base url to add to the plot.
-#' @param pretty_colors Colors!
+#' @param color_weights Apply colors by the weights of the points vs
+#'  the linear model.
 #' @param xlab Alternate x-axis label.
 #' @param ylab Alternate x-axis label.
+#' @param model_type Type of lm to use.
+#' @param add_equation Add the lm equation to the plot.
+#' @param add_rsq Add the rsquared value to the plot.
+#' @param add_cor Add the correlation coefficient to the plot.
+#' @param label_prefix Use this prefix for the axis labels.
 #' @param color_high Chosen color for points significantly above the mean.
 #' @param color_low Chosen color for points significantly below the mean.
 #' @param alpha Choose an alpha channel to define how see-through the dots are.
@@ -453,9 +459,12 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #'  nonzero_plot <- plot_nonzero(expt = expt)
 #' }
 #' @export
-plot_nonzero <- function(data, design = NULL, colors = NULL, plot_labels = "repel",
-                         expt_names = NULL, max_overlaps = 5, label_chars = 10, plot_legend = FALSE,
-                         plot_title = NULL, cutoff = 0.65, ...) {
+plot_nonzero <- function(data, design = NULL, colors = NULL,
+                         plot_labels = "repel", expt_names = NULL,
+                         max_overlaps = 5, label_chars = 10,
+                         plot_legend = FALSE, plot_title = NULL,
+                         cutoff = 0.65,
+                         ...) {
   arglist <- list(...)
 
   condition <- design[["condition"]]
@@ -606,23 +615,59 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
 }
 
 #' Make a nonzero plot given an expt.
+#'
+#' @param data Expt, expressionset, or dataframe.
+#' @param design Eesign matrix.
+#' @param colors Color scheme.
+#' @param plot_labels How do you want to label the graph? 'fancy' will use
+#'  directlabels() to try to match the labels with the positions without
+#'  overlapping anything else will just stick them on a 45' offset next to the
+#'  graphed point.
+#' @param expt_names Column or character list of preferred sample names.
+#' @param max_overlaps Permit this many labels to overlap before dropping some.
+#' @param label_chars How many characters for sample names before abbreviation.
+#' @param plot_legend Print a legend for this plot?
+#' @param plot_title Add a title?
+#' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param ... rawr!
+
 #' @export
 setMethod(
   "plot_nonzero", signature = signature(data = "expt"),
-  definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
-                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
-                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+  definition = function(data, design = NULL, colors = NULL,
+                        plot_labels = "repel", expt_names = NULL,
+                        max_overlaps = 5, label_chars = 10,
+                        plot_legend = FALSE, plot_title = NULL,
+                        cutoff = 0.65, ...) {
     mtrx <- as.matrix(exprs(data))
     pd <- pData(data)
     condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
-    chosen_colors <- colors(data)
-    plot_nonzero(mtrx, design = pd, colors = chosen_colors, plot_labels = plot_labels,
-                 expt_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
-                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65, ...)
+    chosen_colors <- get_colors(data)
+    plot_nonzero(data = mtrx, design = pd, colors = chosen_colors,
+                 plot_labels = plot_labels, expt_names = names,
+                 max_overlaps = max_overlaps,
+                 label_chars = label_chars, plot_legend = plot_legend,
+                 plot_title = plot_title, cutoff = 0.65,
+                 ...)
   })
 
 #' Make a nonzero plot given an ExpressionSet
+#'
+#' @param data Expt, expressionset, or dataframe.
+#' @param design Eesign matrix.
+#' @param colors Color scheme.
+#' @param plot_labels How do you want to label the graph? 'fancy' will use
+#'  directlabels() to try to match the labels with the positions without
+#'  overlapping anything else will just stick them on a 45' offset next to the
+#'  graphed point.
+#' @param expt_names Column or character list of preferred sample names.
+#' @param max_overlaps Permit this many labels to overlap before dropping some.
+#' @param label_chars How many characters for sample names before abbreviation.
+#' @param plot_legend Print a legend for this plot?
+#' @param plot_title Add a title?
+#' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param ... rawr!
 #' @export
 setMethod(
   "plot_nonzero", signature = signature(data = "ExpressionSet"),
@@ -640,6 +685,21 @@ setMethod(
   })
 
 #' Make a nonzero plot given a SummarizedExperiment
+#'
+#' @param data Expt, expressionset, or dataframe.
+#' @param design Eesign matrix.
+#' @param colors Color scheme.
+#' @param plot_labels How do you want to label the graph? 'fancy' will use
+#'  directlabels() to try to match the labels with the positions without
+#'  overlapping anything else will just stick them on a 45' offset next to the
+#'  graphed point.
+#' @param expt_names Column or character list of preferred sample names.
+#' @param max_overlaps Permit this many labels to overlap before dropping some.
+#' @param label_chars How many characters for sample names before abbreviation.
+#' @param plot_legend Print a legend for this plot?
+#' @param plot_title Add a title?
+#' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param ... rawr!
 #' @export
 setMethod(
   "plot_nonzero", signature = signature(data = "SummarizedExperiment"),
@@ -662,6 +722,8 @@ setMethod(
 #' problematic samples.
 #'
 #' @param data Expt expressionset or data frame.
+#' @param colors Vector of colors to use in the plot.
+#' @param design Input design!
 #' @param log Is the data in log format?
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
@@ -671,20 +733,15 @@ setMethod(
 #'  ma_plots = plot_pairwise_ma(expt = some_expt)
 #' }
 #' @export
-plot_pairwise_ma <- function(data, log = NULL, ...) {
-  data_class <- class(data)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
-    colors <- data[["colors"]]
-    data <- exprs(data)
-  } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-    data <- as.data.frame(data)
-  } else {
-    stop("This function understands types: expt, ExpressionSet, data.frame, and matrix.")
+plot_pairwise_ma <- function(data, colors = NULL, design = NULL,
+                             log = NULL, ...) {
+  data <- as.data.frame(data)
+  na_idx <- is.na(data)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " na value, setting them to 0.")
+    data[na_idx] <- 0
   }
+
   plot_list <- list()
   for (c in seq(from = 1, to = length(colnames(data)) - 1)) {
     nextc <- c + 1
@@ -732,17 +789,79 @@ plot_pairwise_ma <- function(data, log = NULL, ...) {
   return(plot_list)
 }
 
+#' Plot all pairwise MA plots in an experiment.
+#'
+#' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
+#' problematic samples.
+#'
+#'
+#' @param data Expt expressionset or data frame.
+#' @param colors Input colors
+#' @param design Experimental design
+#' @param log Is the data in log format?
+#' @param ... Options are good and passed to arglist().
+#' @return List of affy::maplots
+setMethod(
+  "plot_pairwise_ma", signature = signature(data = "expt"),
+  definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
+    mtrx <- exprs(data)
+    design <- pData(data)
+    colors = get_colors(data)
+    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
+                     log = log, ...)
+  })
+
+#' Plot all pairwise MA plots in an experiment.
+#'
+#' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
+#' problematic samples.
+#'
+#' @param data Expt expressionset or data frame.
+#' @param log Is the data in log format?
+#' @param ... Options are good and passed to arglist().
+#' @return List of affy::maplots
+setMethod(
+  "plot_pairwise_ma", signature = signature(data = "ExpressionSet"),
+  definition = function(data, log = NULL, ...) {
+    mtrx <- exprs(data)
+    design <- pData(data)
+    colors = get_colors(data)
+    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
+                     log = log, ...)
+  })
+
+#' Plot all pairwise MA plots in an experiment.
+#'
+#' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
+#' problematic samples.
+#'
+#' @param data Expt expressionset or data frame.
+#' @param log Is the data in log format?
+#' @param ... Options are good and passed to arglist().
+#' @return List of affy::maplots
+setMethod(
+  "plot_pairwise_ma", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, log = NULL, ...) {
+    mtrx <- assay(data)
+    design <- colData(data)
+    colors = get_colors(data)
+    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
+                     log = log, ...)
+  })
+
 #' Make a pretty scatter plot between two sets of numbers.
 #'
 #' This function tries to supplement a normal scatterplot with some information
 #' describing the relationship between the columns of data plotted.
 #'
 #' @param df Dataframe likely containing two columns.
-#' @param size Size of the dots on the graph.
 #' @param color Color of the dots on the graph.
 #' @param xlab Alternate x-axis label.
+#' @param xcol Column of the x data.
 #' @param ylab Alternate x-axis label.
+#' @param ycol Column of trhe y data.
 #' @param alpha Define how see-through the dots are.
+#' @param size Size of the dots on the graph.
 #' @return Ggplot2 scatter plot.
 #' @seealso [plot_linear_scatter()] [all_pairwise()]
 #' @examples

@@ -1,7 +1,7 @@
 start <- as.POSIXlt(Sys.time())
 context("015annotation_genbank.R")
 
-testing <- load_genbank_annotations()
+testing <- suppressWarnings(load_genbank_annotations())
 other_data <- summary(testing[["others"]])
 test_that("Do we get some granges?", {
   expect_equal("GRanges object with 79 ranges and 5 metadata columns", other_data)

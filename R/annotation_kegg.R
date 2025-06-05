@@ -11,6 +11,8 @@
 #'
 #' @param org_code Organism code from KEGG.
 #' @return Dataframe of gene IDs to KEGG IDs.
+#' @example inst/examples/annotation_kegg.R
+#' @export
 make_kegg_df <- function(org_code) {
   pathl <- pathfindR::get_gene_sets_list(source = "KEGG", org_code = org_code)
   genes <- pathl[["gene_sets"]]
@@ -91,9 +93,7 @@ kegg_vector_to_df <- function(vector, final_colname = "first", flatten = TRUE) {
 #' @return dataframe with rows of KEGG gene IDs and columns of NCBI gene IDs
 #'  and KEGG paths.
 #' @seealso [KEGGREST]
-#' @examples
-#'  sc_kegg_annot <- load_kegg_annotations(species = "cerevisiae")
-#'  head(sc_kegg_annot)
+#' @example inst/examples/annotation_kegg.R
 #' @export
 load_kegg_annotations <- function(species = "coli", abbreviation = NULL, flatten = TRUE) {
   chosen <- NULL
@@ -124,16 +124,12 @@ load_kegg_annotations <- function(species = "coli", abbreviation = NULL, flatten
     }
   }
   genes_df <- kegg_vector_to_df(genes_vector, final_colname = "ncbi_geneid", flatten = flatten)
-
   prot_vector <- KEGGREST::keggConv("ncbi-proteinid", chosen)
   prot_df <- kegg_vector_to_df(prot_vector, final_colname = "ncbi_proteinid", flatten = flatten)
-
   uniprot_vector <- KEGGREST::keggConv("uniprot", chosen)
   uniprot_df <- kegg_vector_to_df(uniprot_vector, final_colname = "uniprotid", flatten = flatten)
-
   path_vector <- KEGGREST::keggLink("pathway", chosen)
   path_df <- kegg_vector_to_df(path_vector, final_colname = "pathways", flatten = flatten)
-
   if (isTRUE(flatten)) {
     result <- merge(genes_df, prot_df, by = "GID", all = TRUE)
     rownames(result) <- result[["ID"]]

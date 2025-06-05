@@ -34,6 +34,12 @@ file of interest.}
 
 \item{type}{Add columns for only the genome mapping and/or rRNA by default.}
 
+\item{subtype}{A specific annotation type to seek.}
+
+\item{tag}{GFF tag to use for IDs.}
+
+\item{new_spec}{New specification resulting from this function.}
+
 \item{inverse}{Count the lines that do _not_ match the pattern.}
 }
 \description{

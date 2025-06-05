@@ -5,17 +5,39 @@
 \title{Run plot_heatmap with an expt as input.}
 \usage{
 \S4method{plot_heatmap}{expt}(
-  expt_data,
-  expt_colors = NULL,
-  expt_design = NULL,
+  input_data,
+  column_colors = NULL,
+  design = NULL,
   method = "pearson",
-  expt_names = NULL,
+  sample_names = NULL,
   type = "correlation",
   batch_row = "batch",
   plot_title = NULL,
   label_chars = 10,
   ...
 )
+}
+\arguments{
+\item{input_data}{Dataframe, expt, or expressionset to work with.}
+
+\item{column_colors}{Color scheme for the samples.}
+
+\item{design}{Design matrix describing the experiment vis a vis
+conditions and batches.}
+
+\item{method}{Distance or correlation metric to use.}
+
+\item{sample_names}{Alternate names to use for the samples.}
+
+\item{type}{Defines the use of correlation, distance, or sample heatmap.}
+
+\item{batch_row}{Name of the design row used for 'batch' column colors.}
+
+\item{plot_title}{Title for the plot.}
+
+\item{label_chars}{Limit on the number of label characters.}
+
+\item{...}{I like elipses!}
 }
 \description{
 Run plot_heatmap with an expt as input.

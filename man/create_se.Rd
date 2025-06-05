@@ -13,11 +13,16 @@ create_se(
   title = NULL,
   notes = NULL,
   include_type = "all",
-  count_source = "htseq",
   countdir = NULL,
   include_gff = NULL,
   file_column = "file",
   file_type = NULL,
+  id_column = NULL,
+  handle_na = "drop",
+  researcher = "elsayed",
+  study_name = NULL,
+  feature_type = "gene",
+  ignore_tx_version = TRUE,
   savefile = NULL,
   low_files = FALSE,
   annotation = "org.Hs.eg.db",
@@ -50,6 +55,22 @@ create_se(
 
 \item{file_column}{Metadata column containing the counts for each sample.}
 
+\item{file_type}{Force a specific source of count data instead
+of autodetecting it.}
+
+\item{id_column}{Non-default column containing the sample IDs.}
+
+\item{handle_na}{How to handle NA values in the data.}
+
+\item{researcher}{When creating gene sets, set the researcher.}
+
+\item{study_name}{When creating gene sets, set the study name.}
+
+\item{feature_type}{When matching annotations, use this feature type.}
+
+\item{ignore_tx_version}{tximport can strictly match transcript/gene
+versions, or not.}
+
 \item{savefile}{Filename to which to save a rda file of the data structure.}
 
 \item{low_files}{I don't remember this, I bet it is deprecated.}
@@ -60,14 +81,14 @@ create_se(
 
 \item{round}{Round the data if/when it is not integer?}
 
-\item{tx_gene_map}{When using tximport, use this to convert from transcripts to genes.}
+\item{tx_gene_map}{When using tximport, use this to convert from
+transcripts to genes.}
 
 \item{...}{Extra options.}
-
-\item{id_column}{Non-default column containing the sample IDs.}
 }
 \description{
-This function was taken from create_expt() and repurposed to create SummarizedExperiments.
+This function was taken from create_expt() and repurposed to create
+SummarizedExperiments.
 }
 \seealso{
 [summarizedExperiment]

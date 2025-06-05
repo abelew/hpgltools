@@ -21,11 +21,11 @@ extract_significant_genes(
   excel = NULL,
   fc_column = NULL,
   p_column = NULL,
-  siglfc_cutoffs = c(0, 1, 2),
   column_suffix = TRUE,
   gmt = FALSE,
   category = "category",
   fancy = FALSE,
+  lfc_cutoffs = NULL,
   phenotype_name = "phenotype",
   set_name = "set",
   current_id = "ENSEMBL",
@@ -67,16 +67,16 @@ the deseq, edger, limma, basic, meta, or all.}
 
 \item{p_column}{Column in the DE data containing the pvalues.}
 
-\item{siglfc_cutoffs}{Set of cutoffs used to define levels of 'significant.'}
-
-\item{column_suffix}{Used to help determine which columns are used to find significant
-genes via logfc/p-value.}
+\item{column_suffix}{Used to help determine which columns are used
+to find significant genes via logfc/p-value.}
 
 \item{gmt}{Write a gmt file using this result?}
 
 \item{category}{When writing gmt files, set the category here.}
 
 \item{fancy}{Write fancy plots with the xlsx file?}
+
+\item{lfc_cutoffs}{3 cutoffs for significant bar plots.}
 
 \item{phenotype_name}{When writing gmt files, set the phenotype flag here.}
 
@@ -88,7 +88,8 @@ genes via logfc/p-value.}
 
 \item{required_id}{Choose the desired ID type for an output gmt file.}
 
-\item{min_gmt_genes}{Define the minimum number of genes in a gene set for writing a gmt file.}
+\item{min_gmt_genes}{Define the minimum number of genes in a gene
+set for writing a gmt file.}
 
 \item{...}{Arguments passed into arglist.}
 }

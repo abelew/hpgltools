@@ -40,9 +40,15 @@ or to just get rid of this function.}
 
 \item{verbose}{used for testing regexes.}
 
+\item{new_spec}{New specification resulting from this invocation.}
+
 \item{species}{Choose a specific species for which to search (for filenames generally).}
 
 \item{type}{Set the type of file to search.}
+
+\item{subtype}{Specific annotation type to seek.}
+
+\item{tag}{GFF tag to use when seeking IDs.}
 
 \item{...}{passed to glue to add more variables to the file spec.}
 }

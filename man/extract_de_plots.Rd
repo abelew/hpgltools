@@ -50,6 +50,10 @@ handle other invocations too.}
 
 \item{n}{Choose the top/bottom-n by logFC.}
 
+\item{lfc_cutoff}{What logFC to use for the MA plot horizontal lines.}
+
+\item{p_cutoff}{Cutoff to define 'significant' by p-value.}
+
 \item{adjp}{Use adjusted p-value?}
 
 \item{found_table}{Result from edger to use, left alone it chooses the first.}
@@ -67,10 +71,6 @@ handle other invocations too.}
 \item{label}{Label this number of top-diff genes.}
 
 \item{label_column}{Use this column for labelling genes.}
-
-\item{logfc}{What logFC to use for the MA plot horizontal lines.}
-
-\item{pval}{Cutoff to define 'significant' by p-value.}
 }
 \value{
 a plot!

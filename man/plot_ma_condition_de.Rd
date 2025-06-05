@@ -55,6 +55,10 @@ plot_ma_condition_de(
 
 \item{invert}{Invert the plot?}
 
+\item{outline}{Include the plot outline on the edge of the plot.}
+
+\item{stroke}{Add a stroke around the points.}
+
 \item{label}{Add labels for this number of genes.}
 
 \item{label_column}{Use this column for the labels.}

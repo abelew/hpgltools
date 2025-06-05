@@ -10,7 +10,7 @@ plot_sm(
   colors = NULL,
   method = "pearson",
   plot_legend = FALSE,
-  expt_names = NULL,
+  sample_names = NULL,
   label_chars = 10,
   plot_title = NULL,
   dot_size = 5,
@@ -28,7 +28,7 @@ plot_sm(
 
 \item{plot_legend}{Include a legend on the side?}
 
-\item{expt_names}{Use pretty names for the samples?}
+\item{sample_names}{Use pretty names for the samples?}
 
 \item{label_chars}{Maximum number of characters before abbreviating sample names.}
 

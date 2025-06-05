@@ -4,6 +4,10 @@
 ## 'significant'.  I therefore try in this file to find an appropriate place to
 ## dump each metric into an excel workbook.
 
+## Make sure I pull the imports from 01_hpgltools.R
+#' @include 01_hpgltools.R
+NULL
+
 #' Convert a vector of yes/no by DE method to a list.
 #'
 #' This compiles the set of possible methods to include in an
@@ -61,7 +65,6 @@ check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
 #' @param include_basic Include my stupid basic logFC tables?
 #' @param include_noiseq Include results from NoiSeq?
 #' @param include_dream Include results from the variancePartition 'dream' method?
-#' @param rownames Add rownames to the xlsx printed table?
 #' @param add_plots Add plots to the end of the sheets with expression values?
 #' @param loess Add time intensive loess estimation to plots?
 #' @param plot_dim Number of inches squared for the plot if added.
@@ -70,7 +73,6 @@ check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
 #' @param fancy Save a set of fancy plots along with the xlsx file?
 #' @param lfc_cutoff In this context, only used for plotting volcano/MA plots.
 #' @param p_cutoff In this context, used for volcano/MA plots.
-#' @param de_types Used for plotting pvalue/logFC cutoffs.
 #' @param excel_title Title for the excel sheet(s).  If it has the
 #'  string 'YYY', that will be replaced by the contrast name.
 #' @param increment_start When incrementing the table number for each contrast,
@@ -93,6 +95,9 @@ check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
 #' @param z Use this z-score for defining significant in coefficient
 #'  plots.
 #' @param z_lines Add z-score lines to coefficient plots?
+#' @param wanted_genes Character vector of genes to explicitly keep.
+#' @param scale_p Scale the p-value in order to allow direct comparisons to dream.
+#' @param ... Extra arguments passed to plotters etc.
 #' @return Table combining limma/edger/deseq outputs.
 #' @seealso [all_pairwise()] [extract_significant_genes()]
 #' @examples
@@ -128,7 +133,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     do_excel <- FALSE
   }
 
-  plot_colors <- get_expt_colors(apr[["input"]],
+  plot_colors <- get_input_colors(apr[["input"]],
                                  ...)
   ## Create a list of image files so that they may be properly cleaned up
   ## after writing the xlsx file.
@@ -228,7 +233,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
       denominator <- denominators[x]
       denominator_name <- as.character(denominator[[1]][1])
       written_table <- extracted[["data"]][[tab]]
-      if (! "data.frame" %in% class(written_table)) {
+      if (! tabularp(written_table)) {
         message("There is no data for ", tab, ", skipping it.")
         next
       }
@@ -265,7 +270,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
           current_row <- venn_info[["current_row"]]
           current_column <- venn_info[["current_column"]]
         }
-
         de_plots_written <- write_plots_de_xlsx(includes, extracted, sheetname,
                                                 current_row, current_column, tab,
                                                 xls_result, wb, plot_dim,
@@ -276,11 +280,16 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
         current_column <- de_plots_written[["current_column"]]
       }
     }
-
-    ## Now add some summary data and some plots comparing the tools.
-    xls_result <- write_combined_summary(wb, excel_basename, apr, extracted, compare_plots,
+    xls_result <- NULL
+    if (nrow(extracted[["data"]][[1]]) < 50) {
+      message("The result table is too small for meaningful comparisons.")
+      message("The first table has only: ", nrow(extracted[["data"]][[1]]), ".")
+    } else {
+      ## Now add some summary data and some plots comparing the tools.
+      xls_result <- write_combined_summary(wb, excel_basename, apr, extracted, compare_plots,
                                          lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff)
-    image_files <- c(image_files, xls_result[["image_files"]])
+      image_files <- c(image_files, xls_result[["image_files"]])
+    }
 
     ## Finish up.
     if (!is.null(apr[["original_pvalues"]])) {
@@ -369,16 +378,10 @@ print.combined_de <- function(x, ...) {
 #' @param denominator Name of the denominator coefficient.
 #' @param numerator Name of the numerator coefficient.
 #' @param plot_inputs The individual outputs from limma etc.
-#' @param plot_basic Add basic data?
-#' @param plot_deseq Add deseq data?
-#' @param plot_edger Add edger data?
-#' @param plot_limma Add limma data?
-#' @param plot_ebseq Add ebseq data?
-#' @param plot_noiseq Add noiseq plots?
 #' @param loess Add a loess estimation?
-#' @param logfc For Volcano/MA plot lines.
-#' @param pval For Volcano/MA plot lines.
-#' @param found_table The table name actually used.
+#' @param lfc_cutoff For Volcano/MA plot lines.
+#' @param p_cutoff For Volcano/MA plot lines.
+#' @param found_table Table name when there are multiple possible choices.
 #' @param p_type Use this/these methods' p-value for determining
 #'  significance.
 #' @param plot_colors Use these colors for numerators/denominators.
@@ -556,6 +559,9 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 #' @param format_sig Use this many significant digits for some of the
 #'  unwieldy numbers.
 #' @param sheet_count Start with these sheet number and increment for excel.
+#' @param keep_underscore Sanitize underscores?
+#' @param wanted_genes Vector of explicitly wanted genes.
+#' @param scale_p Scale p-values to provide explicit comparison to dream.
 combine_mapped_table <- function(entry, includes, adjp = TRUE, padj_type = "fdr",
                                  annot_df = NULL, excludes = NULL, lfc_cutoff = 1,
                                  p_cutoff = 0.05, format_sig = 4, sheet_count = 0,
@@ -643,8 +649,8 @@ Defaulting to fdr.")
           ## account when working with these tables.  For the moment, I think I will simply rename
           ## the column to _median to avoid confusion.
           colnames(badf) <- c("basic_num", "basic_den", "basic_numvar",
-                              "basic_denvar", "basic_logfc", "basic_t",
-                              "basic_p", "basic_adjp")
+                              "basic_denvar", "basic_t", "basic_p",
+                              "basic_logfc", "basic_adjp")
           ba_stats <- badf[, c("basic_num", "basic_den", "basic_numvar", "basic_denvar",
                                "basic_t", "basic_p")]
           ba_lfc_adjp <- badf[, c("basic_logfc", "basic_adjp")]
@@ -757,45 +763,45 @@ Defaulting to fdr.")
   datalst <- list()
   statslst <- list()
   if (isTRUE(includes[["basic"]])) {
-    datalst[["basic"]] <- data.table::as.data.table(ba_lfc_adjp)
+    datalst[["basic"]] <- as.data.table(ba_lfc_adjp)
     datalst[["basic"]][["rownames"]] <- rownames(ba_lfc_adjp)
-    statslst[["basic"]] <- data.table::as.data.table(ba_stats)
+    statslst[["basic"]] <- as.data.table(ba_stats)
     statslst[["basic"]][["rownames"]] <- rownames(ba_stats)
   }
   if (isTRUE(includes[["deseq"]])) {
-    datalst[["deseq"]] <- data.table::as.data.table(de_lfc_adjp)
+    datalst[["deseq"]] <- as.data.table(de_lfc_adjp)
     datalst[["deseq"]][["rownames"]] <- rownames(de_lfc_adjp)
-    statslst[["deseq"]] <- data.table::as.data.table(de_stats)
+    statslst[["deseq"]] <- as.data.table(de_stats)
     statslst[["deseq"]][["rownames"]] <- rownames(de_stats)
   }
   if (isTRUE(includes[["dream"]])) {
-    datalst[["dream"]] <- data.table::as.data.table(dr_lfc_adjp)
+    datalst[["dream"]] <- as.data.table(dr_lfc_adjp)
     datalst[["dream"]][["rownames"]] <- rownames(dr_lfc_adjp)
-    statslst[["dream"]] <- data.table::as.data.table(dr_stats)
+    statslst[["dream"]] <- as.data.table(dr_stats)
     statslst[["dream"]][["rownames"]] <- rownames(dr_stats)
   }
   if (isTRUE(includes[["ebseq"]])) {
-    datalst[["ebseq"]] <- data.table::as.data.table(eb_lfc_adjp)
+    datalst[["ebseq"]] <- as.data.table(eb_lfc_adjp)
     datalst[["ebseq"]][["rownames"]] <- rownames(eb_lfc_adjp)
-    statslst[["ebseq"]] <- data.table::as.data.table(eb_stats)
+    statslst[["ebseq"]] <- as.data.table(eb_stats)
     statslst[["ebseq"]][["rownames"]] <- rownames(eb_stats)
   }
   if (isTRUE(includes[["edger"]])) {
-    datalst[["edger"]] <- data.table::as.data.table(ed_lfc_adjp)
+    datalst[["edger"]] <- as.data.table(ed_lfc_adjp)
     datalst[["edger"]][["rownames"]] <- rownames(ed_lfc_adjp)
-    statslst[["edger"]] <- data.table::as.data.table(ed_stats)
+    statslst[["edger"]] <- as.data.table(ed_stats)
     statslst[["edger"]][["rownames"]] <- rownames(ed_stats)
   }
   if (isTRUE(includes[["limma"]])) {
-    datalst[["limma"]] <- data.table::as.data.table(li_lfc_adjp)
+    datalst[["limma"]] <- as.data.table(li_lfc_adjp)
     datalst[["limma"]][["rownames"]] <- rownames(li_lfc_adjp)
-    statslst[["limma"]] <- data.table::as.data.table(li_stats)
+    statslst[["limma"]] <- as.data.table(li_stats)
     statslst[["limma"]][["rownames"]] <- rownames(li_stats)
   }
   if (isTRUE(includes[["noiseq"]])) {
-    datalst[["noiseq"]] <- data.table::as.data.table(no_lfc_adjp)
+    datalst[["noiseq"]] <- as.data.table(no_lfc_adjp)
     datalst[["noiseq"]][["rownames"]] <- rownames(no_lfc_adjp)
-    statslst[["noiseq"]] <- data.table::as.data.table(no_stats)
+    statslst[["noiseq"]] <- as.data.table(no_stats)
     statslst[["noiseq"]][["rownames"]] <- rownames(no_stats)
   }
 
@@ -950,10 +956,12 @@ Defaulting to fdr.")
   if (isTRUE(includes[["limma"]]) &&
         isTRUE(includes[["deseq"]]) &&
         isTRUE(includes[["edger"]])) {
+    ## Why did I rename this to temp_helpfc?
+    ## I think this should be removed.
     temp_helpfc <- cbind(as.numeric(comb[["limma_logfc"]]),
                      as.numeric(comb[["edger_logfc"]]),
                      as.numeric(comb[["deseq_logfc"]]))
-    temp_fc <- preprocessCore::normalize.quantiles(as.matrix(temp_fc))
+    temp_fc <- preprocessCore::normalize.quantiles(as.matrix(temp_helpfc))
     comb[["lfc_meta"]] <- rowMeans(temp_fc, na.rm = TRUE)
     comb[["lfc_var"]] <- genefilter::rowVars(temp_fc, na.rm = TRUE)
     comb[["lfc_varbymed"]] <- comb[["lfc_var"]] / comb[["lfc_meta"]]
@@ -1054,450 +1062,6 @@ exclude_genes_from_combined_list <- function(comb, excludes) {
     }  ## End iterating through every string to exclude
   }  ## End iterating through every element of the exclude list
   return(comb)
-}
-
-#' Given a limma, edger, and deseq table, combine them into one.
-#'
-#' This combines the outputs from the various differential expression
-#' tools and formalizes some column names to make them a little more
-#' consistent.
-#'
-#' @param li Limma output table.
-#' @param ed Edger output table.
-#' @param eb EBSeq output table
-#' @param de DESeq2 output table.
-#' @param ba Basic output table.
-#' @param table_name Name of the table to merge.
-#' @param final_table_names Vector of the final table names.
-#' @param wanted_numerator The numerator we would like to find.
-#' @param wanted_denominator The denominator we would like to find.
-#' @param invert_table Boolean to see if we already think we should
-#'  switch n/d
-#' @param invert_plots Conversely, we can invert the plots.
-#' @param annot_df Add some annotation information?
-#' @param adjp Use adjusted p-values?
-#' @param padj_type Add this consistent p-adjustment.
-#' @param include_deseq Include tables from deseq?
-#' @param include_edger Include tables from edger?
-#' @param include_ebseq Include tables from ebseq?
-#' @param include_limma Include tables from limma?
-#' @param include_basic Include the basic table?
-#' @param lfc_cutoff Preferred logfoldchange cutoff.
-#' @param p_cutoff Preferred pvalue cutoff.
-#' @param format_sig How many significant digits to print?  Set it to something not
-#'  numeric to not use any significant digit formatting.
-#' @param do_inverse Dead parameter? invert the data?
-#' @param excludes Set of genes to exclude from the output.
-#' @param sheet_count What sheet is being written?
-#' @return List containing a) Dataframe containing the merged
-#'  limma/edger/deseq/basic tables, and b) A summary of how many
-#'  genes were observed as up/down by output table.
-#' @seealso [data.table] [hpgl_padjust()] [extract_keepers_all()] [extract_keepers_lst()]
-#'  [extract_keepers_single()]
-combine_single_de_table <- function(li = NULL, ed = NULL, eb = NULL, de = NULL, ba = NULL,
-                                    table_name = "", final_table_names = c(),
-                                    wanted_numerator = NULL, wanted_denominator = NULL,
-                                    invert_table = FALSE, invert_plots = FALSE,
-                                    annot_df = NULL, adjp = TRUE, padj_type = "fdr",
-                                    include_deseq = TRUE, include_edger = TRUE,
-                                    include_ebseq = TRUE, include_limma = TRUE,
-                                    include_basic = TRUE, lfc_cutoff = 1.0,
-                                    p_cutoff = 0.05, format_sig = 4, do_inverse = FALSE,
-                                    excludes = NULL, sheet_count = 0, invert_exclude = TRUE, wanted_genes = NULL) {
-  if (padj_type[1] != "ihw" && (!padj_type %in% p.adjust.methods)) {
-    warning("The p adjustment ", padj_type, " is not in the set of p.adjust.methods.
-Defaulting to fdr.")
-    padj_type <- "fdr"
-  }
-
-  num_den_names <- strsplit(x = table_name, split = "_vs_")[[1]]
-  extra <- FALSE
-  if (length(num_den_names) == 1) {
-    ## Then this should be coming from extra_contrasts
-    num_name = NULL
-    den_name = NULL
-    inverse_name = NULL
-    extra <- TRUE
-  } else {
-    num_name <- num_den_names[[1]]
-    den_name <- num_den_names[[2]]
-    inverse_name <- glue("{den_name}_vs_{num_name}")
-  }
-
-  lidf <- data.frame("limma_logfc" = 0, "limma_ave" = 0, "limma_t" = 0,
-                     "limma_p" = 0, "limma_adjp" = 0, "limma_b" = 0)
-  rownames(lidf) <- "dropme"
-  dedf <- data.frame("deseq_basemean" = 0, "deseq_logfc" = 0, "deseq_lfcse" = 0,
-                     "deseq_stat" = 0, "deseq_p" = 0, "deseq_adjp" = 0,
-                     "deseq_num" = 0, "deseq_den" = 0)
-  rownames(dedf) <- "dropme"
-  eddf <- data.frame("edger_logfc" = 0, "edger_logcpm" = 0, "edger_lr" = 0,
-                     "edger_p" = 0, "edger_adjp" = 0)
-  rownames(eddf) <- "dropme"
-  ebdf <- data.frame("ebseq_fc" = 0, "ebseq_logfc" = 0, "ebseq_c1mean" = 0,
-                     "ebseq_c2mean" = 0, "ebseq_mean" = 0, "ebseq_var" = 0,
-                     "ebseq_postfc" = 0, "ebseq_ppee" = 0, "ebseq_ppde" = 0,
-                     "ebseq_adjp" = 0)
-  rownames(ebdf) <- "dropme"
-  badf <- data.frame("numerator" = 0, "denominator" = 0, "numerator_var" = 0,
-                     "denominator_var" = 0, "logFC" = 0, "t" = 0, "p" = 0, "adjp" = 0)
-  rownames(badf) <- "dropme"
-
-  ## I am changing the logic of this function so that the inversion of the values
-  ## is no longer connected to the inversion of colors
-  invert_colors <- c()
-  invert_limma <- invert_edger <- invert_deseq <- invert_ebseq <- invert_basic <- FALSE
-  limma_table <- check_single_de_table(li, table_name, wanted_numerator,
-                                       wanted_denominator, extra = extra, type = "limma")
-  include_limma <- limma_table[["include"]]
-  if (isTRUE(include_limma)) {
-    lidf <- limma_table[["table"]]
-    if (limma_table[["data_orientation"]] != limma_table[["tablename_orientation"]]) {
-      invert_limma <- TRUE
-      invert_colors <- c("limma", invert_colors)
-    }
-  }
-  deseq_table <- check_single_de_table(de, table_name, wanted_numerator,
-                                       wanted_denominator, extra = extra, type = "deseq")
-  include_deseq <- deseq_table[["include"]]
-  if (isTRUE(include_deseq)) {
-    dedf <- deseq_table[["table"]]
-    if (deseq_table[["data_orientation"]] != deseq_table[["tablename_orientation"]]) {
-      invert_deseq <- TRUE
-      invert_colors <- c("deseq", invert_colors)
-    }
-  }
-  edger_table <- check_single_de_table(ed, table_name, wanted_numerator,
-                                       wanted_denominator, extra = extra, type = "edger")
-  include_edger <- edger_table[["include"]]
-  if (isTRUE(include_edger)) {
-    eddf <- edger_table[["table"]]
-    if (edger_table[["data_orientation"]] != edger_table[["tablename_orientation"]]) {
-      invert_edger <- TRUE
-      invert_colors <- c("edger", invert_colors)
-    }
-  }
-  ebseq_table <- check_single_de_table(eb, table_name, wanted_numerator,
-                                       wanted_denominator, extra = extra, type = "ebseq")
-  include_ebseq <- ebseq_table[["include"]]
-  if (isTRUE(include_ebseq)) {
-    ebdf <- ebseq_table[["table"]]
-    if (ebseq_table[["data_orientation"]] != ebseq_table[["tablename_orientation"]]) {
-      invert_ebseq <- TRUE
-      invert_colors <- c("ebseq", invert_colors)
-    }
-  }
-  basic_table <- check_single_de_table(ba, table_name, wanted_numerator,
-                                       wanted_denominator, extra = extra, type = "basic")
-  include_basic <- basic_table[["include"]]
-  if (isTRUE(include_basic)) {
-    badf <- basic_table[["table"]]
-    if (basic_table[["data_orientation"]] != basic_table[["tablename_orientation"]]) {
-      invert_basic <- TRUE
-      invert_colors <- c("basic", invert_colors)
-    }
-  }
-  if (isTRUE(include_limma)) {
-    colnames(lidf) <- c("limma_logfc", "limma_ave", "limma_t", "limma_p",
-                        "limma_adjp", "limma_b")
-    li_stats <- lidf[, c("limma_ave", "limma_t", "limma_b", "limma_p")]
-    li_lfc_adjp <- lidf[, c("limma_logfc", "limma_adjp")]
-  }
-
-  if (isTRUE(include_deseq)) {
-    colnames(dedf) <- c("deseq_basemean", "deseq_logfc", "deseq_lfcse",
-                        "deseq_stat", "deseq_p", "deseq_adjp",
-                        "deseq_num", "deseq_den")
-    de_stats <- dedf[, c("deseq_basemean", "deseq_lfcse", "deseq_stat", "deseq_p",
-                         "deseq_num", "deseq_den")]
-    de_lfc_adjp <- dedf[, c("deseq_logfc", "deseq_adjp")]
-  }
-
-  if (isTRUE(include_edger)) {
-    colnames(eddf) <- c("edger_logfc", "edger_logcpm", "edger_lr", "edger_p", "edger_adjp")
-    ed_stats <- eddf[, c("edger_logcpm", "edger_lr", "edger_p")]
-    ed_lfc_adjp <- eddf[, c("edger_logfc", "edger_adjp")]
-    colnames(ebdf) <- c("ebseq_fc", "ebseq_logfc", "ebseq_c1mean",
-                        "ebseq_c2mean", "ebseq_mean", "ebseq_var",
-                        "ebseq_postfc", "ebseq_ppee", "ebseq_ppde",
-                        "ebseq_adjp")
-  }
-
-  ## I recently changed basic to optionally do means or medians.  I need to take that into
-  ## account when working with these tables.  For the moment, I think I will simply rename
-  ## the column to _median to avoid confusion.
-  if (isTRUE(include_basic)) {
-    colnames(badf) <- gsub(pattern = "_mean|_avg|_median", replacement = "", x = colnames(badf))
-    ba_stats <- badf[, c("numerator", "denominator", "numerator_var",
-                         "denominator_var", "logFC", "t", "p", "adjp")]
-    colnames(ba_stats) <- c("basic_num", "basic_den", "basic_numvar", "basic_denvar",
-                            "basic_logfc", "basic_t", "basic_p", "basic_adjp")
-  }
-
-  datalst <- list()
-  statslst <- list()
-  if (isTRUE(include_basic)) {
-    statslst[["basic"]] <- data.table::as.data.table(ba_stats)
-    statslst[["basic"]][["rownames"]] <- rownames(ba_stats)
-  }
-  if (isTRUE(include_deseq)) {
-    datalst[["deseq"]] <- data.table::as.data.table(de_lfc_adjp)
-    datalst[["deseq"]][["rownames"]] <- rownames(de_lfc_adjp)
-    statslst[["deseq"]] <- data.table::as.data.table(de_stats)
-    statslst[["deseq"]][["rownames"]] <- rownames(de_stats)
-  }
-  if (isTRUE(include_ebseq)) {
-    statslst[["ebseq"]] <- data.table::as.data.table(ebdf)
-    statslst[["ebseq"]][["rownames"]] <- rownames(ebdf)
-  }
-  if (isTRUE(include_edger)) {
-    datalst[["edger"]] <- data.table::as.data.table(ed_lfc_adjp)
-    datalst[["edger"]][["rownames"]] <- rownames(ed_lfc_adjp)
-    statslst[["edger"]] <- data.table::as.data.table(ed_stats)
-    statslst[["edger"]][["rownames"]] <- rownames(ed_stats)
-  }
-  if (isTRUE(include_limma)) {
-    datalst[["limma"]] <- data.table::as.data.table(li_lfc_adjp)
-    datalst[["limma"]][["rownames"]] <- rownames(li_lfc_adjp)
-    statslst[["limma"]] <- data.table::as.data.table(li_stats)
-    statslst[["limma"]][["rownames"]] <- rownames(li_stats)
-  }
-
-  ## Make the initial data structure
-  wanted <- names(datalst)[[1]]
-  num_stats <- length(statslst)
-  num_data <- length(datalst)
-  if (num_data == 1) {
-    if (num_stats == 1) {
-      ## Then this is a chunk of data and associated stats.
-      comb <- merge(datalst[[1]], statslst[[1]], by = "rownames", all = TRUE)
-    } else {
-      ## Then there must only be a chunk of data.
-      comb <- datalst[[1]]
-    }
-  } else {
-    ## There is more than one set of data to merge.
-    comb <- datalst[[1]]
-    for (i in seq(from = 2, to = length(datalst))) {
-      comb <- merge(comb, datalst[[i]], by = "rownames", all = TRUE)
-    }
-    if (length(statslst) > 0) {
-      for (j in seq_along(statslst)) {
-        comb <- merge(comb, statslst[[j]], by = "rownames", all = TRUE)
-      }
-    }
-  }
-  ## Doing the merge in the way above will lead to a single row which is essentially blank
-  ## It is probably the first row.
-
-  ## The next lines are intended to drop that blank row.
-  comb <- as.data.frame(comb)
-  rownames(comb) <- comb[["rownames"]]
-  dropme <- rownames(comb) == "dropme"
-  comb <- comb[!dropme, ]
-
-  keepers <- colnames(comb) != "rownames"
-  comb <- comb[, keepers, drop = FALSE]
-  comb[is.na(comb)] <- 0
-  if (isTRUE(invert_basic)) {
-    comb[["basic_logfc"]] <- comb[["basic_logfc"]] * -1.0
-  }
-  if (isTRUE(invert_limma)) {
-    comb[["limma_logfc"]] <- comb[["limma_logfc"]] * -1.0
-  }
-  if (isTRUE(invert_deseq)) {
-    comb[["deseq_logfc"]] <- comb[["deseq_logfc"]] * -1.0
-    comb[["deseq_stat"]] <- comb[["deseq_stat"]] * -1.0
-    tmp <- comb[["deseq_num"]]
-    comb[["deseq_num"]] <- comb[["deseq_den"]]
-    comb[["deseq_den"]] <- tmp
-  }
-  if (isTRUE(invert_edger)) {
-    comb[["edger_logfc"]] <- comb[["edger_logfc"]] * -1.0
-  }
-  if (isTRUE(invert_ebseq)) {
-    comb[["ebseq_logfc"]] <- comb[["ebseq_logfc"]] * -1.0
-  }
-
-  ## Add one final p-adjustment to ensure a consistent and user defined value.
-  if (!is.null(comb[["limma_p"]])) {
-    colname <- glue("limma_adjp_{padj_type}")
-    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "limma_p",
-                                    mean_column = "limma_ave",
-                                    method = padj_type, significance = p_cutoff)
-    if (is.numeric(format_sig)) {
-      comb[[colname]] <- format(x = comb[[colname]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-    }
-  }
-  if (!is.null(comb[["deseq_p"]])) {
-    colname <- glue("deseq_adjp_{padj_type}")
-    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "deseq_p",
-                                    mean_column = "deseq_basemean",
-                                    method = padj_type, significance = p_cutoff)
-    if (is.numeric(format_sig)) {
-      comb[[colname]] <- format(x = comb[[colname]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-    }
-  }
-  if (!is.null(comb[["edger_p"]])) {
-    colname <- glue("edger_adjp_{padj_type}")
-    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "edger_p",
-                                    mean_column = "edger_logcpm",
-                                    method = padj_type, significance = p_cutoff)
-    if (is.numeric(format_sig)) {
-      comb[[colname]] <- format(x = comb[[colname]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-    }
-  }
-  if (!is.null(comb[["ebseq_ppde"]])) {
-    colname <- glue("ebseq_adjp_{padj_type}")
-    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "ebseq_ppde",
-                                    mean_column = "ebseq_mean",
-                                    method = padj_type, significance = p_cutoff)
-    if (is.numeric(format_sig)) {
-      comb[[colname]] <- format(x = comb[[colname]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-    }
-  }
-  if (!is.null(comb[["basic_p"]])) {
-    colname <- glue("basic_adjp_{padj_type}")
-    comb[[colname]] <- hpgl_padjust(comb, pvalue_column = "basic_p",
-                                    mean_column = "basic_num",
-                                    method = padj_type, significance = p_cutoff)
-    if (is.numeric(format_sig)) {
-      comb[[colname]] <- format(x = comb[[colname]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-    }
-  }
-
-  ## I made an odd choice in a moment to normalize.quantiles the combined fold changes
-  ## This should be reevaluated
-  temp_fc <- data.frame()
-  if (isTRUE(include_limma) && isTRUE(include_deseq) && isTRUE(include_edger)) {
-    temp_fc <- cbind(as.numeric(comb[["limma_logfc"]]),
-                     as.numeric(comb[["edger_logfc"]]),
-                     as.numeric(comb[["deseq_logfc"]]))
-    temp_fc <- preprocessCore::normalize.quantiles(as.matrix(temp_fc))
-    comb[["lfc_meta"]] <- rowMeans(temp_fc, na.rm = TRUE)
-    comb[["lfc_var"]] <- genefilter::rowVars(temp_fc, na.rm = TRUE)
-    comb[["lfc_varbymed"]] <- comb[["lfc_var"]] / comb[["lfc_meta"]]
-    temp_p <- cbind(as.numeric(comb[["limma_p"]]),
-                    as.numeric(comb[["edger_p"]]),
-                    as.numeric(comb[["deseq_p"]]))
-    comb[["p_meta"]] <- rowMeans(temp_p, na.rm = TRUE)
-    comb[["p_var"]] <- genefilter::rowVars(temp_p, na.rm = TRUE)
-    if (is.numeric(format_sig)) {
-      comb[["lfc_meta"]] <- signif(x = comb[["lfc_meta"]], digits = format_sig)
-      comb[["lfc_var"]] <- format(x = comb[["lfc_var"]], digits = format_sig,
-                                  scientific = TRUE, trim = TRUE)
-      comb[["lfc_varbymed"]] <- format(x = comb[["lfc_varbymed"]], digits = format_sig,
-                                       scientific = TRUE, trim = TRUE)
-      comb[["p_var"]] <- format(x = comb[["p_var"]], digits = format_sig,
-                                scientific = TRUE, trim = TRUE)
-      comb[["p_meta"]] <- format(x = comb[["p_meta"]], digits = format_sig,
-                                 scientific = TRUE, trim = TRUE)
-    }
-  }
-  if (!is.null(annot_df)) {
-    if (isTRUE(keep_underscore)) {
-      colnames(annot_df) <- gsub(pattern = "[^_[:^punct:]]",
-                                 replacement = "", x = colnames(annot_df), perl = TRUE)
-
-    } else {
-      colnames(annot_df) <- gsub(pattern = "[[:punct:]]",
-                                 replacement = "", x = colnames(annot_df), perl = TRUE)
-    }
-    comb <- merge(annot_df, comb, by = "row.names", all.y = TRUE)
-    rownames(comb) <- comb[["Row.names"]]
-    comb[["Row.names"]] <- NULL
-    colnames(comb) <- make.names(tolower(colnames(comb)), unique = TRUE)
-  }
-
-  ## Exclude rows based on a list of unwanted columns/strings
-  if (!is.null(excludes)) {
-    for (colnum in seq_along(excludes)) {
-      col <- names(excludes)[colnum]
-      for (exclude_num in seq_along(excludes[[col]])) {
-        exclude <- excludes[[col]][exclude_num]
-        remove_column <- comb[[col]]
-        remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE,
-                           invert = invert_exclude)
-        removed_num <- sum(as.numeric(remove_idx))
-        mesg("Removed ", removed_num, " genes using ",
-                exclude, " as a string against column ", col, ".")
-        comb <- comb[remove_idx, ]
-      }  ## End iterating through every string to exclude
-    }  ## End iterating through every element of the exclude list
-  }
-
-  ## Exclude rows based on a set of IDs
-  if (!is.null(wanted_genes)) {
-    wanted_idx <- rownames(comb) %in% wanted_genes
-    mesg("Found ", sum(wanted_idx), " genes in the set of ",
-         length(wanted_genes), " wanted genes.")
-    comb <- comb[wanted_idx, ]
-  }
-
-  up_fc <- lfc_cutoff
-  down_fc <- -1.0 * lfc_cutoff
-  summary_table_name <- table_name
-  if (isTRUE(do_inverse)) {
-    summary_table_name <- glue("{summary_table_name}-inverted")
-  }
-  limma_p_column <- "limma_adjp"
-  deseq_p_column <- "deseq_adjp"
-  edger_p_column <- "edger_adjp"
-  if (!isTRUE(adjp)) {
-    limma_p_column <- "limma_p"
-    deseq_p_column <- "deseq_p"
-    edger_p_column <- "edger_p"
-  }
-  summary_lst <- list(
-    "table" = summary_table_name,
-    "total" = nrow(comb),
-    "limma_up" = sum(comb[["limma_logfc"]] >= up_fc),
-    "limma_sigup" = sum(
-      comb[["limma_logfc"]] >= up_fc & as.numeric(comb[[limma_p_column]]) <= p_cutoff),
-    "deseq_up" = sum(comb[["deseq_logfc"]] >= up_fc),
-    "deseq_sigup" = sum(
-      comb[["deseq_logfc"]] >= up_fc & as.numeric(comb[[deseq_p_column]]) <= p_cutoff),
-    "edger_up" = sum(comb[["edger_logfc"]] >= up_fc),
-    "edger_sigup" = sum(
-      comb[["edger_logfc"]] >= up_fc & as.numeric(comb[[edger_p_column]]) <= p_cutoff),
-    "basic_up" = sum(comb[["basic_logfc"]] >= up_fc),
-    "basic_sigup" = sum(
-      comb[["basic_logfc"]] >= up_fc & as.numeric(comb[["basic_p"]]) <= p_cutoff),
-    "limma_down" = sum(comb[["limma_logfc"]] <= down_fc),
-    "limma_sigdown" = sum(
-      comb[["limma_logfc"]] <= down_fc & as.numeric(comb[[limma_p_column]]) <= p_cutoff),
-    "deseq_down" = sum(comb[["deseq_logfc"]] <= down_fc),
-    "deseq_sigdown" = sum(
-      comb[["deseq_logfc"]] <= down_fc & as.numeric(comb[[deseq_p_column]]) <= p_cutoff),
-    "edger_down" = sum(comb[["edger_logfc"]] <= down_fc),
-    "edger_sigdown" = sum(
-      comb[["edger_logfc"]] <= down_fc & as.numeric(comb[[edger_p_column]]) <= p_cutoff),
-    "basic_down" = sum(comb[["basic_logfc"]] <= down_fc),
-    "basic_sigdown" = sum(
-      comb[["basic_logfc"]] <= down_fc & as.numeric(comb[["basic_p"]]) <= p_cutoff),
-    "meta_up" = sum(comb[["fc_meta"]] >= up_fc),
-    "meta_sigup" = sum(
-      comb[["lfc_meta"]] >= up_fc & as.numeric(comb[["p_meta"]]) <= p_cutoff),
-    "meta_down" = sum(comb[["lfc_meta"]] <= down_fc),
-    "meta_sigdown" = sum(
-      comb[["lfc_meta"]] <= down_fc & as.numeric(comb[["p_meta"]]) <= p_cutoff))
-
-  ret <- list(
-    "data" = comb,
-    "include_basic" = include_basic,
-    "include_deseq" = include_deseq,
-    "include_limma" = include_limma,
-    "include_edger" = include_edger,
-    "include_ebseq" = include_ebseq,
-    "invert_colors" = invert_colors,
-    "summary" = summary_lst)
-  class(ret) <- c("combined_table", "list")
-  return(ret)
 }
 
 #' Find the correct tables given a set of definitions of desired tables, numerators/denominators.
@@ -1625,12 +1189,15 @@ print.mapped_keepers <- function(x, ...) {
 #' @param table_names The set of tables produced by all_pairwise().
 #' @param all_coefficients The set of all experimental conditions in the
 #'  experimental metadata.
-#' @param apr The result from all_pairwise(), containing the limma/edger/deseq/etc data.
+#' @param apr The result from all_pairwise(), containing the
+#'  limma/edger/deseq/etc data.
 #' @param adjp Pull out the adjusted p-values from the data?
 #' @param annot_df What annotations should be added to the table?
 #' @param includes List of predicates by method.
 #' @param excludes Set of genes to exclude.
 #' @param padj_type Choose a specific p adjustment.
+#' @param min_genes Minimum number of genes below which no plots will
+#'  be generated.
 #' @param fancy Include larger pdf/svg plots with the xlsx output?
 #' @param loess Add a loess to plots?
 #' @param lfc_cutoff Passed for volcano/MA plots and defining 'significant'
@@ -1645,11 +1212,13 @@ print.mapped_keepers <- function(x, ...) {
 #' @param z_lines Include lines denoting significant z-scores?
 #' @param label When not NULL, label this many genes.
 #' @param label_column Try using this column for labeling genes.
+#' @param wanted_genes Genes explicited desired.
+#' @param scale_p Scale the pvalues to compare against dream?
 #' @return The extracted, but with more stuff at the end!
 extract_keepers <- function(extracted, keepers, table_names,
                             all_coefficients, apr,
                             adjp, annot_df, includes,
-                            excludes, padj_type,
+                            excludes, padj_type, min_genes = 10,
                             fancy = FALSE, loess = FALSE,
                             lfc_cutoff = 1.0, p_cutoff = 0.05,
                             format_sig = 4, plot_colors = plot_colors,
@@ -1814,17 +1383,20 @@ extract_keepers <- function(extracted, keepers, table_names,
       label_column <- NULL
     }
 
-    ## Changing this to a try() for when we have weirdo extra_contrasts.
-    some_plots <- suppressWarnings(combine_extracted_plots(
-      entry_name, combined, wanted_denominator, wanted_numerator, plot_inputs,
-      loess = loess, lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
-      adjp = adjp, found_table = found_table, p_type = padj_type,
-      plot_colors = plot_colors, fancy = fancy,
-      do_inverse = FALSE, invert_colors = invert_colors,
-      z = z, alpha = alpha, z_lines = z_lines,
-      label = label, label_column = label_column))
+    ## Do not bother plotting if there are less than min_genes
+    some_plots <- NULL
+    if (nrow(combined[["data"]]) >= min_genes) {
+      ## Changing this to a try() for when we have weirdo extra_contrasts.
+      some_plots <- suppressWarnings(combine_extracted_plots(
+        entry_name, combined, wanted_denominator, wanted_numerator, plot_inputs,
+        loess = loess, lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
+        adjp = adjp, found_table = found_table, p_type = padj_type,
+        plot_colors = plot_colors, fancy = fancy,
+        do_inverse = FALSE, invert_colors = invert_colors,
+        z = z, alpha = alpha, z_lines = z_lines,
+        label = label, label_column = label_column))
+    }
     extracted[["plots"]][[entry_name]] <- some_plots
-
     extracted[["summaries"]] <- rbind(extracted[["summaries"]],
                                       as.data.frame(combined[["summary"]]))
   } ## Ending the for loop of elements in the keepers list.
@@ -2040,18 +1612,19 @@ extract_siggenes <- function(...) {
 #' @param excel Write the results to this excel file, or NULL.
 #' @param fc_column Column in the DE data containing the foldchange values.
 #' @param p_column Column in the DE data containing the pvalues.
-#' @param siglfc_cutoffs Set of cutoffs used to define levels of 'significant.'
-#' @param column_suffix Used to help determine which columns are used to find significant
-#'  genes via logfc/p-value.
+#' @param column_suffix Used to help determine which columns are used
+#'  to find significant genes via logfc/p-value.
 #' @param gmt Write a gmt file using this result?
 #' @param category When writing gmt files, set the category here.
 #' @param fancy Write fancy plots with the xlsx file?
+#' @param lfc_cutoffs 3 cutoffs for significant bar plots.
 #' @param phenotype_name When writing gmt files, set the phenotype flag here.
 #' @param set_name When writing gmt files, assign the set here.
 #' @param current_id Choose the current ID type for an output gmt file.
 #' @param comparison The cutoff may be '>|<' or '<=|>='.
 #' @param required_id Choose the desired ID type for an output gmt file.
-#' @param min_gmt_genes Define the minimum number of genes in a gene set for writing a gmt file.
+#' @param min_gmt_genes Define the minimum number of genes in a gene
+#'  set for writing a gmt file.
 #' @param ... Arguments passed into arglist.
 #' @return The set of up-genes, down-genes, and numbers therein.
 #' @seealso \code{\link{combine_de_tables}}
@@ -2061,15 +1634,22 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
                                       min_mean_exprs = NULL, exprs_column = NULL,
                                       top_percent = NULL, p_type = "adj",
                                       invert_barplots = FALSE, excel = NULL, fc_column = NULL,
-                                      p_column = NULL, siglfc_cutoffs = c(0, 1, 2),
-                                      column_suffix = TRUE, gmt = FALSE, category = "category",
-                                      fancy = FALSE, phenotype_name = "phenotype",
-                                      set_name = "set", current_id = "ENSEMBL",
+                                      p_column = NULL, column_suffix = TRUE, gmt = FALSE,
+                                      category = "category", fancy = FALSE, lfc_cutoffs = NULL,
+                                      phenotype_name = "phenotype", set_name = "set",
+                                      current_id = "ENSEMBL",
                                       comparison = "orequal", required_id = "ENTREZID",
                                       min_gmt_genes = 10, ...) {
   arglist <- list(...)
   image_files <- c()  ## For cleaning up tmp image files after saving the xlsx file.
 
+  if (is.null(lfc_cutoffs)) {
+    if (lfc == 0) {
+      lfc_cutoffs <- c(0, 1, 2)
+    } else {
+      lfc_cutoffs <- c(0, lfc, lfc * 2)
+    }
+  }
   ## The following two if statements are a little silly, but will be used later
   ## To check for the existence of a column in the input data via p_column %in% colnames()
   if (is.null(fc_column)) {
@@ -2230,10 +1810,10 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
       this_table <- all_tables[[table_name]]
       ## Added this try() because I am not sure how I want to deal with
       ## extra contrasts, and until I decide it is easier to skip them
-      trimming <- try(get_sig_genes(
+      trimming <- get_sig_genes(
         this_table, lfc = lfc, p = p, z = z, n = n, column = this_fc_column,
         min_mean_exprs = min_mean_exprs, exprs_column = exprs_column,
-        comparison = comparison, p_column = this_p_column), silent = TRUE)
+        comparison = comparison, p_column = this_p_column)
       if ("try-error" %in% class(trimming)) {
         trimmed_up[[table_name]] <- data.frame()
         trimmed_down[[table_name]] <- data.frame()
@@ -2301,9 +1881,10 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   if (isTRUE(do_excel) && isTRUE(sig_bar)) {
     ## This needs to be changed to get_sig_genes()
     sig_bar_plots <- significant_barplots(
-      combined, lfc_cutoffs = siglfc_cutoffs, invert = invert_barplots,
+      combined, lfc_cutoffs = lfc_cutoffs, invert = invert_barplots,
       p = p, z = z, p_type = p_type,
-      according_to = according_to, ...)
+      according_to = according_to,
+      ...)
     plot_row <- 1
     plot_col <- 1
     mesg("Adding significance bar plots.")
@@ -3178,7 +2759,10 @@ write_combined_summary <- function(wb, excel_basename, apr, extracted, compare_p
 #'
 #' @param data Output from results().
 #' @param type Which DE tool to write.
+#' @param coef Add coefficients
+#' @param table_type Contrasts or identities
 #' @param excel Filename into which to save the xlsx data.
+#' @param n Limit to the top n genes.
 #' @param ... Parameters passed downstream, dumped into arglist and passed,
 #'  notably the number of genes (n), the coefficient column (coef)
 #' @return List of data frames comprising the toptable output for each

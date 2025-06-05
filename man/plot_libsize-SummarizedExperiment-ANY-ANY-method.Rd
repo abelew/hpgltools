@@ -16,6 +16,19 @@
   label_chars = 10,
   ...
 )
+
+\S4method{plot_libsize}{SummarizedExperiment,ANY,ANY}(
+  data,
+  condition = NULL,
+  colors = NULL,
+  text = TRUE,
+  order = NULL,
+  plot_title = NULL,
+  yscale = NULL,
+  expt_names = NULL,
+  label_chars = 10,
+  ...
+)
 }
 \arguments{
 \item{data}{SummarizedExperiment presumably created by create_se().}
@@ -41,7 +54,11 @@ the metadata in the SE.}
 }
 \value{
 Plot of library sizes and a couple tables describing the data.
+
+Plot of library sizes and a couple tables describing the data.
 }
 \description{
 Send a SummarizedExperiment to plot_libsize().
+
+Run plot_libsize() with an expt as input.
 }

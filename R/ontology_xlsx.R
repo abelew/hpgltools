@@ -177,6 +177,9 @@ gather_ontology_genes <- function(result, ontology = NULL,
 #' @param width and their width.
 #' @param decreasing which direction?
 #' @param primary_key Use this annotation column to keep track of annotation IDs.
+#' @param new ORF?
+#' @param add_gsea Add some gsea results
+#' @param pval_column what column to use for pvalues?
 #' @param ... Extra arguments are passed to arglist.
 #' @return The result from openxlsx in a prettyified xlsx file.
 #' @seealso [openxlsx]
@@ -452,6 +455,20 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   return(res)
 }
 
+#' Write the results of an arbitrary enricher() result.
+#'
+#' @param enricher_result Return from  all_enricher()
+#' @param excel xlsx output filename.
+#' @param add_trees Add tree plots
+#' @param order_by Row order by this column
+#' @param pval P cutoff
+#' @param add_plots Add some plots to the xlsx output.
+#' @param height Plot height in the xlsx file.
+#' @param width Plot width in the xlsx file.
+#' @param decreasing Reverse order of the results?
+#' @param primary_key Use this column as the primary key.
+#' @param ... Arbitrary options passed along.
+#' @export
 write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
                                 add_trees = TRUE, order_by = "qvalue", pval = 0.1, add_plots = TRUE,
                                 height = 15, width = 10, decreasing = FALSE, primary_key = 1,
@@ -521,8 +538,8 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
       upset <- enrich_plots[["up"]]
       plot_try <- xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_bp) + 12, start_row = 80,
-        plotname = "BP_upset", savedir = excel_basename)
+        start_col = ncol(enrich_df) + 12, start_row = 80,
+        plotname = "enrich_upset", savedir = excel_basename)
       if (! "try-error" %in% class(plot_try)) {
         image_list <- c(image_list, plot_try[["filename"]])
       }

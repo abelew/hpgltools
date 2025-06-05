@@ -21,6 +21,8 @@ iterate_logistic_regression(
 \item{factors}{Set of factors to query against (if not set, then query will be
 the first design column, and these will be 2:end)}
 
+\item{family}{model family to use.}
+
 \item{conf}{Choose the confidence interval.}
 
 \item{excel}{Write the results to this file.}

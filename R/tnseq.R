@@ -135,10 +135,10 @@ tnseq_saturation <- function(data, column = "Reads", ylimit = 100, adjust = 2) {
 #' This provides a plot of the essentiality metrics 'zbar' with respect to
 #' gene.  In my pipeline, I use their stand alone mh_ess and tn_hmm packages.
 #' The result files produced are named
-#' mh_ess-{sequence_prefix}-{mapping_parameters}_gene_tas_{m_parameter}.csv
-#' where {sequence_prefix} is the basename() of the input sequence file,
-#' {mapping_parameters} are a string describing the bowtie mapping used,
-#' and {m_parameter} is usually one of 1,2,4,8,16,32 and defines the lower limit
+#' mh_ess-sequence_prefix-mapping_parameters_gene_tas_m_parameter.csv
+#' where sequence_prefix is the basename() of the input sequence file,
+#' mapping_parameters are a string describing the bowtie mapping used,
+#' and m_parameter is usually one of 1,2,4,8,16,32 and defines the lower limit
 #' of read depth to be considered useful by the mh_ess package.  Thus, before
 #' using this, one may want to look at the result from tnseq_saturation() to see
 #' if there is a most-appropriate m_parameter.  I think I should figure out a

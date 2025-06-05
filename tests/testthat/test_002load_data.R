@@ -7,9 +7,11 @@ library(pasilla)
 ## data(pasillaGenes)
 ## Try loading some annotation information for this species.
 
-gene_info <- sm(load_biomart_annotations(species = "dmelanogaster",
-                                      year = "2020", month = "jan",
-                                      overwrite = TRUE))[["annotation"]]
+## The jan 2020 stopped responding.
+gene_info <- load_biomart_annotations(species = "dmelanogaster",
+                                      year = "2021", month = "feb",
+                                      overwrite = TRUE)
+gene_info <- gene_info[["annotation"]]
 info_idx <- gene_info[["gene_biotype"]] == "protein_coding"
 gene_info <- gene_info[info_idx, ]
 rownames(gene_info) <- make.names(gene_info[["ensembl_gene_id"]], unique = TRUE)
@@ -31,15 +33,15 @@ colnames(metadata) <- c("condition", "batch")
 save(list = ls(), file = "pasilla_df.rda")
 
 ## Make sure it is still possible to create an expt
-pasilla_expt <- create_expt(count_dataframe = counts, metadata = metadata,
-                            savefile = "pasilla.rda", gene_info = gene_info)
-pasilla_expt <- sanitize_expt_fData(pasilla_expt,
-                                    columns = c("start_position", "end_position"),
-                                    na_value = 0, numeric = TRUE)
+pasilla_se <- create_se(count_dataframe = counts, metadata = metadata,
+                        savefile = "pasilla.rda", gene_info = gene_info)
+pasilla_se <- sanitize_annotations(pasilla_se,
+                                   columns = c("start_position", "end_position"),
+                                   na_value = 0, numeric = TRUE)
 ## Recent changes to how my expressionsets are created mean that the order of
 ## genes is hard-set to the order of annotations in the annotation data and
 ## therefore _not_ the order of genes found in the count tables.
-actual <- exprs(pasilla_expt)
+actual <- exprs(pasilla_se)
 actual <- actual[ order(row.names(actual)), ]
 expected <- as.matrix(counts)
 expected <- expected[ order(row.names(expected)), ]
@@ -48,12 +50,12 @@ test_that("Does data from an expt equal a raw dataframe?", {
 })
 
 ## The set of annotations should be in a consistent order.
-hpgl_annotations <- fData(pasilla_expt)
+annotations <- rowData(pasilla_se)
 chosen_genes <- c("FBgn0000008", "FBgn0000014", "FBgn0000017",
                   "FBgn0000018", "FBgn0000024", "FBgn0000032")
 
 expected <- 10100
-actual <- nrow(exprs(pasilla_expt))
+actual <- nrow(assay(pasilla_se))
 test_that("Was the annotation information imported into the expressionset? (static rownames?)", {
     expect_gt(actual, expected)
 })
@@ -63,30 +65,30 @@ test_that("Was the annotation information imported into the expressionset? (stat
 ## 202107: It switched again!
 ## expected <- c(3987, 990, 4860, 1617, 1947, 1314)
 ## This is a weird thing to change!
-expected <- c(3990, 993, 4569, 1620, 1911, 1368)
+expected <- c(857, 1672, 1188, 269, 393, 163)
 ## Sometimes the cds lengths don't get added to the annotations...
-if (is.null(hpgl_annotations[["cds_length"]])) {
-  hpgl_annotations[["cds_length"]] <- abs(as.numeric(hpgl_annotations[["start_position"]]) -
-                                            as.numeric(hpgl_annotations[["end_position"]]))
-}
-actual <- as.numeric(hpgl_annotations[chosen_genes, "cds_length"])
-##  head(sm(sort(as.numeric(hpgl_annotations[["cds_length"]]))))
+annotations[["subtracted_cds_length"]] <- abs(as.numeric(annotations[["start_position"]]) -
+                                                as.numeric(annotations[["end_position"]]))
+subtracted_actual <- as.numeric(annotations[chosen_genes, "subtracted_cds_length"])
+provided_actual <- as.numeric(annotations[chosen_genes, "cds_length"])
+
+##  head(sm(sort(as.numeric(annotations[["cds_length"]]))))
 test_that("Was the annotation information imported into the expressionset? (static lengths?)", {
-    expect_equal(expected, actual)
+    expect_equal(expected, provided_actual)
 })
 
 ## By the same token, the start positions of genes should remain consistent.
 ##expected <- c(18822604, 30212156, 7782797, 19116483, 19116483, 19116483)
 expected <- c(22136968, 16807214, 16615866, 10973443, 13222951, 29991144)
-actual <- as.numeric(hpgl_annotations[chosen_genes, "start_position"])
+actual <- as.numeric(annotations[chosen_genes, "start_position"])
 test_that("Was the annotation information imported into the expressionset? (static starts?)", {
     expect_equal(expected, actual)
 })
 
 ## As should the chromosome arms of these genes.
 ##expected <- c("3L", "3R", "2R", "2L", "2L", "2L")
-expected <- c("2R", "3R", "3L", "2L", "3R", "3R")
-actual <- hpgl_annotations[chosen_genes, "chromosome_name"]
+expected <- c("2r", "3r", "3l", "2l", "3r", "3r")
+actual <- as.character(annotations[chosen_genes, "chromosome_name"])
 test_that("Was the annotation information imported into the expressionset? (static chromosomes?)", {
     expect_equal(expected, actual)
 })
@@ -94,7 +96,7 @@ test_that("Was the annotation information imported into the expressionset? (stat
 ## Test that the expt has a design which makes sense.
 expected <- c("untreated1", "untreated2", "untreated3",
               "untreated4", "treated1", "treated2", "treated3")
-actual <- as.character(pData(pasilla_expt)[["sampleid"]])
+actual <- as.character(colData(pasilla_se)[["sampleid"]])
 test_that("Is the experimental design maintained for samples?", {
     expect_equal(expected, actual)
 })
@@ -102,7 +104,7 @@ test_that("Is the experimental design maintained for samples?", {
 ## The conditions specified by the pasilla data set are treated and untreated and should not change.
 expected <- c("untreated", "untreated", "untreated",
               "untreated", "treated", "treated", "treated")
-actual <- as.character(pData(pasilla_expt)[["condition"]])
+actual <- as.character(colData(pasilla_se)[["condition"]])
 test_that("Is the experimental design maintained for conditions?", {
     expect_equal(expected, actual)
 })
@@ -110,7 +112,7 @@ test_that("Is the experimental design maintained for conditions?", {
 ## Some sequencing runs of pasilla are paired, and some are single ended; this should not change.
 expected <- c("single_end", "single_end", "paired_end",
               "paired_end", "single_end", "paired_end", "paired_end")
-actual <-  as.character(pData(pasilla_expt)[["batch"]])
+actual <-  as.character(colData(pasilla_se)[["batch"]])
 test_that("Is the experimental design maintained for batches?", {
     expect_equal(expected, actual)
 })
@@ -119,7 +121,7 @@ test_that("Is the experimental design maintained for batches?", {
 expected <- c(13971670, 21909886, 8357876, 9840745, 18668667, 9571213, 10343219)
 names(expected) <- c("untreated1", "untreated2", "untreated3", "untreated4",
                      "treated1", "treated2", "treated3")
-actual <- pasilla_expt[["libsize"]]
+actual <- libsize(pasilla_se)
 test_that("Are the library sizes intact?", {
     expect_equal(expected, actual)
 })

@@ -16,7 +16,7 @@ edger_pairwise(
   filter = FALSE,
   edger_method = "long",
   edger_test = "lrt",
-  keep_underscore = FALSE,
+  keep_underscore = TRUE,
   num_surrogates = "be",
   ...
 )
@@ -24,6 +24,12 @@ edger_pairwise(
 \arguments{
 \item{input}{Dataframe/vector or expt class containing data, normalization
 state, etc.}
+
+\item{model_fstring}{Formula string describing the model of interest.}
+
+\item{null_fstring}{Formula string describing the null hypothesis.}
+
+\item{model_svs}{Matrix or character describing the SVs or how to get them.}
 
 \item{extra_contrasts}{Add some extra contrasts to add to the list of
 pairwise contrasts. This can be pretty neat, lets say one has conditions
@@ -37,23 +43,18 @@ de_vs_cb = (E-D)-(C-B),"}
 
 \item{keepers}{Ask for a specific set of contrasts instead of all.}
 
+\item{filter}{Filter the data before seeking SVs?}
+
 \item{edger_method}{I found a couple/few ways of doing edger in the manual,
 choose with this.}
 
+\item{edger_test}{Test type used to define differential expression.}
+
+\item{keep_underscore}{Sanitize out the underscores?}
+
+\item{num_surrogates}{Explicit number of SVs to seek or a way to guesstimate it.}
+
 \item{...}{The elipsis parameter is fed to write_edger() at the end.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Include condition in the experimental model?}
-
-\item{model_batch}{Include batch in the model?  In most cases this is a good
-thing(tm).}
-
-\item{model_intercept}{Use an intercept containing model?}
-
-\item{alt_model}{Alternate experimental model to use?}
 }
 \value{
 List including the following information:

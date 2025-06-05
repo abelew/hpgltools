@@ -8,8 +8,8 @@ get_sig_gsva_categories(
   gsva_result,
   cutoff = 0.95,
   excel = "excel/gsva_subset.xlsx",
-  model_batch = FALSE,
-  factor_column = "condition",
+  model_svs = NULL,
+  model_fstring = "~ 0 + condition",
   factor = NULL,
   label_size = NULL,
   col_margin = 6,
@@ -24,10 +24,9 @@ get_sig_gsva_categories(
 
 \item{excel}{Excel file to write the results.}
 
-\item{model_batch}{Add batch to limma's model.}
+\item{model_svs}{Add batch to limma's model.}
 
-\item{factor_column}{When extracting significance information, use this
-metadata factor.}
+\item{model_fstring}{Formula string describing the model of interest.}
 
 \item{factor}{Use this metadata factor as the reference.}
 

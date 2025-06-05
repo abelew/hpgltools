@@ -31,6 +31,10 @@ simple_proper(
 \item{de_tables}{A set of differential expression results, presumably from
 EdgeR or DESeq2.}
 
+\item{de}{FIXME, I think not used}
+
+\item{mtrx}{FIXME, I think not used.}
+
 \item{p}{Cutoff}
 
 \item{experiment}{The default data set in PROPER is entitled 'cheung'.}

@@ -8,6 +8,8 @@ make_pombe_se(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 }
 \arguments{
 \item{annotation}{Include annotations?}
+
+\item{host}{ensembl host to query}
 }
 \description{
 Analagous function to make_pombe_expt()

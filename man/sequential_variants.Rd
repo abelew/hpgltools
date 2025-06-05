@@ -24,7 +24,7 @@ with respect to known conditions.}
 \item{minimum}{Minimum number of variants required for a candiate.}
 
 \item{maximum_separation}{How far apart from each other are these
->={minimum} variants allowed to be?}
+>=minimum variants allowed to be?}
 
 \item{one_away_file}{Location to write variants that are no more than 1 base apart.}
 

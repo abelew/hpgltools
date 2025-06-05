@@ -14,7 +14,7 @@
 #' @param order Set the order of boxen.
 #' @param violin  Print this as a violin rather than a just box/whiskers?
 #' @param scale Whether to log scale the y-axis.
-#' @param expt_names Another version of the sample names for printing.
+#' @param sample_names Another version of the sample names for printing.
 #' @param label_chars  Maximum number of characters for abbreviating sample names.
 #' @param ... More parameters are more fun!
 #' @return Ggplot2 boxplot of the samples.  Each boxplot
@@ -33,23 +33,10 @@
 #' }
 #' @export
 plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
-                         violin = FALSE, scale = NULL, expt_names = NULL, label_chars = 10,
+                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
                          ...) {
   arglist <- list(...)
-  data_class <- class(data)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
-    colors <- data[["colors"]]
-    data <- as.data.frame(exprs(data))
-  } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-    design <- pData(data)
-  } else if (data_class == "matrix" | data_class == "data.frame") {
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-    data <- as.data.frame(data)
-  } else {
-    stop("This function understands types: expt, ExpressionSet, data.frame, and matrix.")
-  }
+  data <- as.data.frame(data)
 
   ## I am now using this check of the data in a few places, so I function'd it.
   scale_data <- check_plot_scale(data, scale)
@@ -61,13 +48,22 @@ plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
   }
   data_matrix <- as.matrix(data)
   ## Likely only needed when using quantile norm/batch correction and it sets a value to < 0
-  data[data < 0] <- 0
+  invalid_idx <- data < 0
+  if (sum(invalid_idx) > 0) {
+    warning("There are ", sum(invalid_idx), " entries less than 0.")
+    data[invalid_idx] <- 0
+  }
+  invalid_idx <- is.na(data)
+    if (sum(invalid_idx) > 0) {
+    warning("There are ", sum(invalid_idx), " entries less than 0.")
+    data[invalid_idx] <- 0
+  }
 
-  if (!is.null(expt_names) & class(expt_names) == "character") {
-    if (length(expt_names) == 1) {
-      colnames(data) <- make.names(design[[expt_names]], unique = TRUE)
+  if (!is.null(sample_names) & class(sample_names) == "character") {
+    if (length(sample_names) == 1) {
+      colnames(data) <- make.names(design[[sample_names]], unique = TRUE)
     } else {
-      colnames(data) <- expt_names
+      colnames(data) <- sample_names
     }
   }
   if (!is.null(label_chars) & is.numeric(label_chars)) {
@@ -140,6 +136,91 @@ plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
   return(boxplot)
 }
 
+#' Make a ggplot boxplot of a set of samples.
+#'
+#' Boxplots and density plots provide complementary views of data distributions.
+#' The general idea is that if the box for one sample is significantly shifted
+#' from the others, then it is likely an outlier in the same way a density plot
+#' shifted is an outlier.
+#'
+#' @param data Expt or data frame set of samples.
+#' @param colors Color scheme, if not provided will make its own.
+#' @param plot_title A title!
+#' @param order Set the order of boxen.
+#' @param violin  Print this as a violin rather than a just box/whiskers?
+#' @param scale Whether to log scale the y-axis.
+#' @param sample_names Another version of the sample names for printing.
+#' @param label_chars  Maximum number of characters for abbreviating sample names.
+#' @param ... More parameters are more fun!
+setMethod(
+  "plot_boxplot", signature = signature(data = "expt"),
+  definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
+                        violin = FALSE, scale = NULL,
+                        sample_names = NULL, label_chars = 10,
+                        ...) {
+    mtrx <- exprs(data)
+    colors = get_colors(data)
+    plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
+                 violin = violin, scale = scale, sample_names = sample_names,
+                 label_chars = label_chars, ...)
+  })
+
+#' Make a ggplot boxplot of a set of samples.
+#'
+#' Boxplots and density plots provide complementary views of data distributions.
+#' The general idea is that if the box for one sample is significantly shifted
+#' from the others, then it is likely an outlier in the same way a density plot
+#' shifted is an outlier.
+#'
+#' @param data Expt or data frame set of samples.
+#' @param colors Color scheme, if not provided will make its own.
+#' @param plot_title A title!
+#' @param order Set the order of boxen.
+#' @param violin  Print this as a violin rather than a just box/whiskers?
+#' @param scale Whether to log scale the y-axis.
+#' @param sample_names Another version of the sample names for printing.
+#' @param label_chars  Maximum number of characters for abbreviating sample names.
+#' @param ... More parameters are more fun!
+setMethod(
+  "plot_boxplot", signature = signature(data = "ExpressionSet"),
+  definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
+                        violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
+                        ...) {
+    mtrx <- exprs(data)
+    colors = get_colors(data)
+    plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
+                 violin = violin, scale = scale, sample_names = sample_names,
+                 label_chars = label_chars, ...)
+  })
+
+#' Make a ggplot boxplot of a set of samples.
+#'
+#' Boxplots and density plots provide complementary views of data distributions.
+#' The general idea is that if the box for one sample is significantly shifted
+#' from the others, then it is likely an outlier in the same way a density plot
+#' shifted is an outlier.
+#'
+#' @param data Expt or data frame set of samples.
+#' @param colors Color scheme, if not provided will make its own.
+#' @param plot_title A title!
+#' @param order Set the order of boxen.
+#' @param violin  Print this as a violin rather than a just box/whiskers?
+#' @param scale Whether to log scale the y-axis.
+#' @param sample_names Another version of the sample names for printing.
+#' @param label_chars  Maximum number of characters for abbreviating sample names.
+#' @param ... More parameters are more fun!
+setMethod(
+  "plot_boxplot", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
+                        violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
+                        ...) {
+    mtrx <- assay(data)
+    colors = get_colors(data)
+    plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
+                 violin = violin, scale = scale, sample_names = sample_names,
+                 label_chars = label_chars, ...)
+  })
+
 #' Create a density plot, showing the distribution of each column of data.
 #'
 #' Density plots and boxplots are cousins and provide very similar views of data
@@ -148,14 +229,15 @@ plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
 #'
 #' @param data Expt, expressionset, or data frame.
 #' @param colors Color scheme to use.
-#' @param expt_names Names of the samples.
-#' @param position How to place the lines, either let them overlap (identity), or stack them.
+#' @param colors_by Factor for coloring the lines.
+#' @param design Experimental design.
 #' @param direct Use direct.labels for labeling the plot?
 #' @param fill Fill the distributions?  This might make the plot unreasonably colorful.
-#' @param plot_title Title for the plot.
-#' @param scale Plot on the log scale?
-#' @param colors_by Factor for coloring the lines
 #' @param label_chars Maximum number of characters in sample names before abbreviation.
+#' @param plot_title Title for the plot.
+#' @param position How to place the lines, either let them overlap (identity), or stack them.
+#' @param sample_names Names of the samples.
+#' @param scale Plot on the log scale?
 #' @param ... sometimes extra arguments might come from graph_metrics()
 #' @return ggplot2 density plot!
 #' @seealso [ggplot2]
@@ -164,24 +246,17 @@ plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
 #'  funkytown <- plot_density(data)
 #' }
 #' @export
-plot_density <- function(data, colors = NULL, expt_names = NULL, position = "identity",
-                         direct = NULL, fill = NULL, plot_title = NULL, scale = NULL,
-                         colors_by = "condition", label_chars = 10, ...) {
-  ## also position='stack'
-  data_class <- class(data)[1]
-  design <- NULL
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
-    colors <- data[["colors"]]
-    data <- exprs(data)
-  } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-    design <- pData(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-    data <- as.matrix(data)
-  } else {
-    stop("This function understands types: expt, ExpressionSet, data.frame, and matrix.")
+plot_density <- function(data, colors = NULL, colors_by = "condition",
+                         design = NULL, direct = NULL, fill = NULL,
+                         label_chars = 10, plot_title = NULL,
+                         position = "identity", sample_names = NULL, scale = NULL,
+                         ...) {
+  data <- as.matrix(data)
+
+  na_idx <- is.na(data)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " na value in the data, setting them to 0.")
+    data[na_idx] <- 0
   }
 
   if (is.null(direct)) {
@@ -213,12 +288,12 @@ plot_density <- function(data, colors = NULL, expt_names = NULL, position = "ide
     }
   }
 
-  if (!is.null(expt_names)) {
-    if (class(expt_names) == "character" && length(expt_names) == 1) {
+  if (!is.null(sample_names)) {
+    if (class(sample_names) == "character" && length(sample_names) == 1) {
       ## Then this refers to an experimental metadata column.
-      colnames(data) <- design[[expt_names]]
+      colnames(data) <- design[[sample_names]]
     } else {
-      colnames(data) <- expt_names
+      colnames(data) <- sample_names
     }
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
@@ -326,6 +401,111 @@ plot_density <- function(data, colors = NULL, expt_names = NULL, position = "ide
   class(retlist) <- "density_plot"
   return(retlist)
 }
+
+#' Create a density plot, showing the distribution of each column of data.
+#'
+#' Density plots and boxplots are cousins and provide very similar views of data
+#' distributions. Some people like one, some the other.  I think they are both
+#' colorful and fun!
+#'
+#' @param data Expt, expressionset, or data frame.
+#' @param colors Color scheme to use.'
+#' @param design Experimental design
+#' @param sample_names Names of the samples.
+#' @param position How to place the lines, either let them overlap (identity), or stack them.
+#' @param direct Use direct.labels for labeling the plot?
+#' @param fill Fill the distributions?  This might make the plot unreasonably colorful.
+#' @param plot_title Title for the plot.
+#' @param scale Plot on the log scale?
+#' @param colors_by Factor for coloring the lines
+#' @param label_chars Maximum number of characters in sample names before abbreviation.
+#' @param ... sometimes extra arguments might come from graph_metrics()
+setMethod(
+  "plot_density", signature = signature(data = "expt"),
+  definition = function(data, colors = NULL, colors_by = "condition",
+                        design = NULL, direct = NULL, fill = NULL,
+                        label_chars = 10, plot_title = NULL,
+                        position = "identity", sample_names = NULL, scale = NULL,
+                        ...) {
+    mtrx <- exprs(data)
+    design <- pData(data)
+    colors <- get_colors(data)
+    plot_density(data = mtrx, colors = colors, colors_by = colors_by,
+                 design = design, direct = direct, fill = fill, label_chars = label_chars,
+                 plot_title = plot_title, position = position,
+                 sample_names = sample_names, scale = scale,
+                 ...)
+  })
+
+#' Create a density plot, showing the distribution of each column of data.
+#'
+#' Density plots and boxplots are cousins and provide very similar views of data
+#' distributions. Some people like one, some the other.  I think they are both
+#' colorful and fun!
+#'
+#' @param data ExpressionSet
+#' @param colors Color scheme to use.'
+#' @param design Experimental design
+#' @param sample_names Names of the samples.
+#' @param position How to place the lines, either let them overlap (identity), or stack them.
+#' @param direct Use direct.labels for labeling the plot?
+#' @param fill Fill the distributions?  This might make the plot unreasonably colorful.
+#' @param plot_title Title for the plot.
+#' @param scale Plot on the log scale?
+#' @param colors_by Factor for coloring the lines
+#' @param label_chars Maximum number of characters in sample names before abbreviation.
+#' @param ... sometimes extra arguments might come from graph_metrics()
+setMethod(
+  "plot_density", signature = signature(data = "ExpressionSet"),
+  definition = function(data, colors = NULL, colors_by = "condition",
+                        design = NULL, direct = NULL, fill = NULL,
+                        label_chars = 10, plot_title = NULL,
+                        position = "identity", sample_names = NULL, scale = NULL,
+                        ...) {
+    mtrx <- exprs(data)
+    colors <- get_colors(data)
+    design <- pData(data)
+    plot_density(data = mtrx, colors = colors, colors_by = colors_by,
+                 design = design, direct = direct, fill = fill, label_chars = label_chars,
+                 plot_title = plot_title, position = position,
+                 sample_names = sample_names, scale = scale,
+                 ...)
+  })
+
+#' Create a density plot, showing the distribution of each column of data.
+#'
+#' Density plots and boxplots are cousins and provide very similar views of data
+#' distributions. Some people like one, some the other.  I think they are both
+#' colorful and fun!
+#'
+#' @param data SummarizedExperiment
+#' @param colors Color scheme to use.'
+#' @param design Experimental design
+#' @param sample_names Names of the samples.
+#' @param position How to place the lines, either let them overlap (identity), or stack them.
+#' @param direct Use direct.labels for labeling the plot?
+#' @param fill Fill the distributions?  This might make the plot unreasonably colorful.
+#' @param plot_title Title for the plot.
+#' @param scale Plot on the log scale?
+#' @param colors_by Factor for coloring the lines
+#' @param label_chars Maximum number of characters in sample names before abbreviation.
+#' @param ... sometimes extra arguments might come from graph_metrics()
+setMethod(
+  "plot_density", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, colors = NULL, colors_by = "condition",
+                        design = NULL, direct = NULL, fill = NULL,
+                        label_chars = 10, plot_title = NULL,
+                        position = "identity", sample_names = NULL, scale = NULL,
+                        ...) {
+    mtrx <- assay(data)
+    design <- colData(data)
+    colors <- get_colors(data)
+    plot_density(data = mtrx, colors = colors, colors_by = colors_by,
+                 design = design, direct = direct, fill = fill, label_chars = label_chars,
+                 plot_title = plot_title, position = position,
+                 sample_names = sample_names, scale = scale,
+                 ...)
+  })
 
 #' Print the result from plot_density().
 #'
@@ -577,14 +757,14 @@ plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
 #' @param data Dataframe/matrix/whatever for performing topn-plot.
 #' @param plot_title A title for the plot.
 #' @param num The N in top-n genes, if null, do them all.
-#' @param expt_names Column or character list of sample names.
+#' @param sample_names Column or character list of sample names.
 #' @param plot_labels Method for labelling the lines.
 #' @param label_chars Maximum number of characters before abbreviating samples.
 #' @param plot_legend Add a legend to the plot?
 #' @param ... Extra arguments, currently unused.
 #' @return List containing the ggplot2
 #' @export
-plot_topn <- function(data, plot_title = NULL, num = 100, expt_names = NULL,
+plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
                       plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
   arglist <- list(...)
   data_class <- class(data)
@@ -635,11 +815,11 @@ plot_topn <- function(data, plot_title = NULL, num = 100, expt_names = NULL,
     smoother <- arglist[["smoother"]]
   }
 
-  if (!is.null(expt_names) && class(expt_names) == "character") {
-    if (length(expt_names) == 1) {
-      colnames(newdf) <- make.names(design[[expt_names]], unique = TRUE)
+  if (!is.null(sample_names) && class(sample_names) == "character") {
+    if (length(sample_names) == 1) {
+      colnames(newdf) <- make.names(design[[sample_names]], unique = TRUE)
     } else {
-      colnames(newdf) <- expt_names
+      colnames(newdf) <- sample_names
     }
     colnames(newdf)[ncol(newdf)] <- "rank"
   }
@@ -717,6 +897,12 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
   plot_legend <- FALSE
   if (!is.null(arglist[["plot_legend"]])) {
     plot_legend <- arglist[["plot_legend"]]
+  }
+
+  na_idx <- is.na(data)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " na values in the data, setting them to zero.")
+    data[na_idx] <- 0
   }
 
   melted <- data.table::as.data.table(reshape2::melt(data))
@@ -848,32 +1034,56 @@ print.varcoef_plot <- function(x, ...) {
 }
 
 #' Plot the coefficient of variance values of a SummarizedExperiment.
+#'
+#' @param data Expressionset/epxt to poke at.
+#' @param design Specify metadata if necessary.
+#' @param x_axis Factor in the experimental design we may use to group the data
+#'  and calculate the dispersion metrics.
+#' @param colors Set of colors to use when making the violins
+#' @param plot_title Optional title to include with the plot.
+#' @param ... Extra arguments to pass along.
 #' @export
 setMethod(
   "plot_variance_coefficients", signature = signature(data = "expt"),
   definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
                         plot_title = NULL, ...) {
     design <- pData(data)
-    colors <- colors(data)
+    colors <- get_colors(data)
     mtrx <- exprs(data)
     plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
                                colors = colors, plot_title = plot_title, ...)
   })
 
 #' Plot the coefficient of variance values of a SummarizedExperiment.
+#'
+#' @param data Expressionset/epxt to poke at.
+#' @param design Specify metadata if necessary.
+#' @param x_axis Factor in the experimental design we may use to group the data
+#'  and calculate the dispersion metrics.
+#' @param colors Set of colors to use when making the violins
+#' @param plot_title Optional title to include with the plot.
+#' @param ... Extra arguments to pass along.
 #' @export
 setMethod(
   "plot_variance_coefficients", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
                         plot_title = NULL, ...) {
     design <- pData(data)
-    colors <- colors(data)
+    colors <- get_colors(data)
     mtrx <- exprs(data)
     plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
                                colors = colors, plot_title = plot_title, ...)
   })
 
 #' Plot the coefficient of variance values of an ExpressionSet.
+#'
+#' @param data Expressionset/epxt to poke at.
+#' @param design Specify metadata if necessary.
+#' @param x_axis Factor in the experimental design we may use to group the data
+#'  and calculate the dispersion metrics.
+#' @param colors Set of colors to use when making the violins
+#' @param plot_title Optional title to include with the plot.
+#' @param ... Extra arguments to pass along.
 #' @export
 setMethod(
   "plot_variance_coefficients", signature = signature(data = "ExpressionSet"),
@@ -884,6 +1094,5 @@ setMethod(
     plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
                                colors = colors, plot_title = plot_title, ...)
   })
-
 
 ## EOF

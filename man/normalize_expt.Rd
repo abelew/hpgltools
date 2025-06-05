@@ -29,7 +29,8 @@ normalize_expt(
   na_to_zero = FALSE,
   adjust_method = "ruv",
   verbose = TRUE,
-  surrogates = "be",
+  num_surrogates = "be",
+  length_column = NULL,
   ...
 )
 }
@@ -81,9 +82,12 @@ normalize_expt(
 \item{verbose}{Print what is happening while the normalization is performed?
 I am not sure why, but I think they should be 0.}
 
-\item{...}{more options}
+\item{num_surrogates}{Explicit number of way to seek the number
+of surrogates.}
 
-\item{use_original}{Use the backup data in the expt class?}
+\item{length_column}{annotation column containing gene lengths for rpkm.}
+
+\item{...}{more options}
 }
 \value{
 Expt object with normalized data and the original data saved as

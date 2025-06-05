@@ -30,23 +30,93 @@ all_cprofiler(
   padj_type = "BH",
   plot_type = "all",
   do_reactome = TRUE,
+  organism = "human",
+  max_groupsize = 500,
+  do_dose = TRUE,
+  do_mesh = TRUE,
+  do_msigdb = TRUE,
+  mesh_category = "C",
+  mesh_dbname = "gendoo",
+  msigdb_category = "C2",
+  msig_db = NULL,
   excel = "excel/all_cp.xlsx",
   ...
 )
 }
 \arguments{
-\item{sig}{Result from extract_significant_genes}
+\item{sig}{Result from extract_significant_genes.}
 
-\item{tables}{Result from combine_de_tables}
+\item{tables}{Result from combine_de_tables.}
 
 \item{according_to}{Use this result type for the clusterprofiler searches.}
 
 \item{together}{Concatenate the up/down genes into one set?}
 
-\item{plot_type}{Choose a plot method as the default.}
+\item{orgdb}{Name of the DBI containing the annotations for this organism.}
+
+\item{orgdb_from}{Column from which to convert the gene IDs.}
+
+\item{orgdb_to}{Column to which to convert, this must match the ontology IDS.}
+
+\item{go_level}{Ignore categories above this level in the ontology tree.}
+
+\item{pcutoff}{p-value significance cutoff.}
+
+\item{qcutoff}{FDR adjusted significance cutoff.}
+
+\item{fc_column}{Column containing the fold-change values.}
+
+\item{second_fc_column}{A fallback column for FC values.}
+
+\item{internal}{I dunno}
+
+\item{updown}{Seek out categories with increased enrichment,  or decreased.}
+
+\item{permutations}{Run x permutations in clusterProfiler.}
+
+\item{min_groupsize}{Ignore groups with less than x genes.}
+
+\item{kegg_prefix}{Prefix of this kegg organism ID.}
+
+\item{kegg_organism}{Full name of this organism when querying KEGG.}
+
+\item{do_gsea}{Perform a full gene set enrichment analysis.}
+
+\item{categories}{Plot this number of categories by default.}
+
+\item{do_david}{Do a david over representation search? (the java
+DAVID interface is kind of broken, this should stay FALSE)}
+
+\item{do_kegg}{Attempt a KEGG over representation analysis.}
+
+\item{padj_type}{Use this FDR}
+
+\item{plot_type}{Choose specific plot(s).}
+
+\item{do_reactome}{what it says on the tin.}
+
+\item{organism}{String name of the organism.}
+
+\item{max_groupsize}{Ignore groups which are too big.}
+
+\item{do_dose}{Attempt disease ontology search.}
+
+\item{do_mesh}{Attempt MESH search.}
+
+\item{do_msigdb}{Attempt mSigDB search.}
+
+\item{mesh_category}{Use this category for MESH.}
+
+\item{mesh_dbname}{Use this MESH sub-database.}
+
+\item{msigdb_category}{Use this mSigDB sub-database.}
+
+\item{msig_db}{Use this database file for the msigdb data.}
+
+\item{excel}{Output xlsx filename.}
 
 \item{...}{Arguments to pass to simple_clusterprofiler().}
 }
 \description{
-Run simple_clusterprofiler on every table from extract_significant_genes()
+Most of the options are taken from simple_cprofiler and passed directly down.
 }

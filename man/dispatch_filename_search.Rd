@@ -26,9 +26,16 @@ file of interest.}
 
 \item{species}{Specify a species to search for, or '*' for anything.}
 
-\item{type}{Some likely filename searches may be for genome vs. rRNA vs other feature types.}
+\item{type}{Some likely filename searches may be for genome
+vs. rRNA vs other feature types.}
+
+\item{subtype}{Specific annotation type to seek.}
+
+\item{tag}{GFF tag from which to seek IDs.}
 
 \item{basedir}{Root directory containing the files/logs of metadata.}
+
+\item{new_spec}{New specification resulting from this.}
 }
 \description{
 This is useful for putting the count table name into a metadata file.

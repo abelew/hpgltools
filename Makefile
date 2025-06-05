@@ -15,6 +15,7 @@ check: roxygen
 
 clean:
 	@echo "Cleaning up"
+	rm -f NAMESPACE
 	rm -rf hpgltools
 	rm -rf ./..Rcheck &
 	rm -rf hpgltools.Rcheck/
@@ -57,7 +58,7 @@ deps:
 
 document: roxygen vignette reference
 
-install: reference roxygen clean
+install: clean reference roxygen 
 	@echo "Performing R CMD INSTALL hpgltools."
 	@R CMD INSTALL --install-tests .
 

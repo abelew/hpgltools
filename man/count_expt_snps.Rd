@@ -18,15 +18,23 @@ count_expt_snps(
 \arguments{
 \item{expt}{an expressionset from which to extract information.}
 
-\item{annot_column}{Column in the metadata for getting the table of bcftools calls.}
+\item{annot_column}{Column in the metadata for getting the table of
+bcftools calls.}
 
 \item{tolower}{Lowercase stuff like 'HPGL'?}
 
-\item{snp_column}{Which column of the parsed bcf table contains our interesting material?}
+\item{snp_column}{Which column of the parsed bcf table contains our
+interesting material?}
 
-\item{numerator_column}{When provided, use this column as the numerator of a proportion.}
+\item{numerator_column}{When provided, use this column as the
+numerator of a proportion.}
 
-\item{denominator_column}{When provided, use this column as the denominator of a proportion.#'}
+\item{denominator_column}{When provided, use this column as the
+denominator of a proportion.}
+
+\item{reader}{Method to read the data, readr or read.table.}
+
+\item{verbose}{Be verbose?}
 }
 \value{
 A new expt object
@@ -48,9 +56,10 @@ cyoa.
   \dontrun{
  expt <- create_expt(metadata, gene_information)
  snp_expt <- count_expt_snps(expt)
- ## This assumes that the metadata has a column named 'bcftable' with one file per
- ## cell.  These files in turn should have a column named 'diff_count' which will
- ## be the source of the numbers found when doing exprs(snp_expt).
+ ## This assumes that the metadata has a column named 'bcftable'
+ ## with one file per cell.  These files in turn should have a
+ ## column named 'diff_count' which will be the source of the
+ ## numbers found when doing exprs(snp_expt).
 }
 }
 \seealso{

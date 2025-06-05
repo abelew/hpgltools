@@ -151,6 +151,8 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #'
 #' @param de_tables A set of differential expression results, presumably from
 #'  EdgeR or DESeq2.
+#' @param de FIXME, I think not used
+#' @param mtrx FIXME, I think not used.
 #' @param p Cutoff
 #' @param experiment The default data set in PROPER is entitled 'cheung'.
 #' @param nsims Number of simulations to perform.
@@ -424,10 +426,23 @@ print.proper_estimate <- function(x, ...) {
 
 #' Use my cheater infix ::: to handle some unexported stuff from PROPER.
 #'
+#' @param sim.opts Used by PROPER
 #' @export
 update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
+
+#' Another hidden function from PROPER
+#' @importFrom edgeR
+#'  DGEList calcNormFactors estimateCommonDisp estimateTagwiseDisp
+#'  exactTest topTags
 run.edgeR <- "PROPER" %:::% "run.edgeR"
+
+#' PROPER uses this privately but really make it available I think.
+#' @importFrom DSS newSeqCountSet estNormFactors estDispersion waldTest
 run.DSS <- "PROPER" %:::% "run.DSS"
+
+#' PROPER uses this function privately, but should not.
+#' @importFrom DESeq2 DESeqDataSetFromMatrix results
+#' @importFrom S4Vectors DataFrame
 run.DESeq2 <- "PROPER" %:::% "run.DESeq2"
 
 #' A version of PROPER:::runsims which is (hopefully) a little more robust.

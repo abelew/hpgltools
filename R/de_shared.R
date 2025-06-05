@@ -2,18 +2,23 @@
 ## The functionsin this file seek to make it possible to treat all the DE
 ## methods identically and/or simultaneously.
 
-#' Perform limma, DESeq2, EdgeR pairwise analyses.
+#' Perform limma, DESeq2, EdgeR, basic, noiseq, dream, and ebseq
+#' pairwise analyses.
 #'
 #' This takes an expt object, collects the set of all possible pairwise
 #' comparisons, sets up experimental models appropriate for the differential
 #' expression analyses, and performs them.
 #'
-#' This runs limma_pairwise(), deseq_pairwise(), edger_pairwise(),
-#' basic_pairwise() each in turn. It collects the results and does some simple
-#' comparisons among them.
+#' This runs the various x_pairwise() functions each in turn. It
+#' collects the results and does some simple comparisons among them.
 #'
-#' @param input Dataframe/vector or expt class containing count tables,
-#'  normalization state, etc.
+#' @param input Input data structure with count data, annotations, and
+#'  metadata.
+#' @param model_fstring Formula string describing the statistical
+#'  model of interest.
+#' @param null_fstring Formula string describing the null hypothesis.
+#' @param model_svs Surrogate variable(s) to add to the model; this is
+#'  commonly a character describing the method used to extract them (sva).
 #' @param modify_p Depending on how it is used, sva may require a modification
 #'  of the p-values.
 #' @param filter Added because I am tired of needing to filter the data before
@@ -39,14 +44,22 @@
 #' @param convert Modify the data with a 'conversion' method for PCA?
 #' @param norm Modify the data with a 'normalization' method for PCA?
 #' @param verbose Print extra information while running?
-#' @param surrogates Either a number of surrogates or method to estimate it.
+#' @param num_surrogates Either a number of surrogates or method to
+#'  estimate it.
+#' @param methods I want to replace the various do_x arguments with
+#' this.
+#' @param keep_underscore Do not sanitize underscores from the model.
+#' @param dream_model Dream models are a superset of everything else,
+#'  so one may provide them here.
+#' @param force Force the input data into the methods even if it is
+#'  expected to violate their assumptions/rules (e.g. integers for DESeq)
 #' @param ...  Picks up extra arguments into arglist.
 #' @return A list of limma, deseq, edger results.
 #' @seealso [limma_pairwise()] [edger_pairwise()] [deseq_pairwise()] [ebseq_pairwise()]
 #'  [basic_pairwise()]
 #' @examples
 #' \dontrun{
-#'  lotsodata <- all_pairwise(input = expt, model_batch = "svaseq")
+#'  lotsodata <- all_pairwise(input = expt)
 #'  summary(lotsodata)
 #'  ## limma, edger, deseq, basic results; plots; and summaries.
 #' }
@@ -60,9 +73,10 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
                          do_noiseq = TRUE, do_dream = TRUE, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          num_surrogates = "be", methods = NULL,
-                         keep_underscore = TRUE, dream_model = NULL,
+                         keep_underscore = TRUE, dream_model = NULL, force = FALSE,
                          ...) {
   arglist <- list(...)
+  model_fstring <- check_fstring(model_fstring)
   svs_method <- "Existing surrogate matrix"
   if (!is.null(model_svs) && isFALSE(filter)) {
     message("model_svs is on and filter is off.")
@@ -102,14 +116,15 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   assumed_batch <- fctrs[["assumed_batch"]]
   factors <- fctrs[["factors"]]
   model_type <- fctrs[["type"]]
+  meta <- pData(input)
+
   for (f in factors) {
-    if (is.null(pData(input)[[f]])) {
+    if (is.null(meta[[f]])) {
       stop("The column: ", f, " is not in the metadata.")
     }
   }
   ## Use the fctrs to sanitize the data.
   input <- sanitize_expt(input, factors = factors)
-  meta <- pData(input)
 
   ## Unlink DESeq2, I use the first factor as the contrast by default.
   contrast_col <- factors[1]
@@ -144,6 +159,8 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
          filter, " argument.")
     input <- normalize(input, filter = filter)
   }
+  original_fstring <- model_fstring
+  original_input <- input
   if (class(model_svs)[1] == "character") {
     svs_method <- model_svs
     model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
@@ -154,13 +171,8 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
-    ## Add the SVs to the expressionset.
-    for (sv in seq_len(ncol(model_svs))) {
-      name <- glue("{estimate_type}_SV{sv}")
-      if (is.null(pData(input)[[name]])) {
-        pData(input)[[name]] <- model_svs[, sv]
-      }
-    }
+    model_fstring <- model_params[["appended_fstring"]]
+    input <- model_params[["modified_input"]]
   }
 
   ## Add a little logic to do a before/after batch PCA plot.
@@ -168,7 +180,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   post_pca <- NULL
   if (isTRUE(test_pca)) {
     pre_batch <- sm(normalize(input, filter = TRUE, batch = FALSE,
-                                   transform = "log2", convert = convert, norm = norm))
+                              transform = "log2", convert = convert, norm = norm))
     mesg("Plotting a PCA before surrogate/batch inclusion.")
     pre_pca <- try(plot_pca(pre_batch, plot_labels = FALSE,
                              ...))
@@ -184,10 +196,10 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
         test_norm <- "raw"
       }
       mesg("Performing a test normalization with: ", test_norm)
-      if (!isFALSE(model_batch)) {
+      if (!isFALSE(model_svs)) {
         post_batch <- sm(try(normalize(input, filter = TRUE, batch = model_svs,
-                                            transform = "log2", convert = "cpm",
-                                            norm = test_norm, surrogates = surrogates)))
+                                       transform = "log2", convert = "cpm",
+                                       norm = test_norm, num_surrogates = num_surrogates)))
       }
     } else if ("batch" %in% fctrs[["factors"]]) {
       model_type <- "batch in model/limma"
@@ -200,7 +212,6 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
         message("Assuming an intended batch factor of: ", assumed_batch, ".")
         input <- set_expt_batches(input, assumed_batch)
         post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
-
       } else {
         post_batch <- NULL
       }
@@ -215,13 +226,12 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     if ("try-error" %in% class(post_pca)) {
       post_pca <- NULL
     }
-
   }
 
   ## do_ebseq defaults to NULL, this is so that we can query the number of
   ## conditions and choose accordingly. EBSeq is very slow, so if there are more
   ## than 3 or 4 conditions I do not think I want to wait for it.
-  num_conditions <- length(conditions)
+  num_conditions <- length(levels(droplevels(as.factor(conditions))))
   num_comparisons <- 0
   if (is.null(keepers)) {
     num_comparisons <- choose(num_conditions, k = 2)
@@ -247,12 +257,21 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
 
   for (type in names(results)) {
     mesg("Starting ", type, "_pairwise().")
+    pairwise_input <- input
+    pairwise_fstring <- model_fstring
+    pairwise_svs <- model_svs
+    ## These methods do not work with SV containing models
+    if (type == "noiseq" || type == "basic" || type == "ebseq") {
+      pairwise_input <- original_input
+      pairwise_fstring <- original_fstring
+      pairwise_svs <- NULL
+    }
     results[[type]] <- do_pairwise(
-      type, input = input, model_fstring = model_fstring, null_fstring = null_fstring,
-      modify_p = modify_p, model_svs = model_svs, filter = filter,
+      type, input = pairwise_input, model_fstring = pairwise_fstring, null_fstring = null_fstring,
+      modify_p = modify_p, model_svs = pairwise_svs, filter = filter,
       extra_contrasts = extra_contrasts, libsize = libsize,
       annot_df = annot_df, num_surrogates = num_surrogates, keepers = keepers,
-      keep_underscore = keep_underscore, dream_model = dream_model,
+      keep_underscore = keep_underscore, dream_model = dream_model, force = force,
       ...)
   }
 
@@ -283,7 +302,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     "edger" = results[["edger"]],
     "limma" = results[["limma"]],
     "noiseq" = results[["noiseq"]],
-    "batch_type" = model_type,
+    "batch_type" = svs_method,
     "comparison" = result_comparison,
     "extra_contrasts" = extra_contrasts,
     "input" = input,
@@ -320,7 +339,7 @@ print.all_pairwise <- function(x, ...) {
   message("A pairwise differential expression with results from: ",
           toString(included), ".")
   message("This used a surrogate/batch estimate from: ", x[["batch_type"]], ".")
-  message("The primary analysis performed ", nrow(x[["comparison"]][["comp"]]), " comparisons.")
+  message("The primary analysis performed ", ncol(x[["comparison"]][["comp"]]), " comparisons.")
   if (is.null(x[["comparison"]][["heat"]])) {
     message("The logFC agreement among the methods follows:")
     print(x[["comparison"]][["comp"]])
@@ -854,8 +873,8 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...
 #' @seealso [all_pairwise()]
 #' @examples
 #' \dontrun{
-#'  first <- all_pairwise(expt, model_batch = FALSE, excel = "first.xlsx")
-#'  second <- all_pairwise(expt, model_batch = "svaseq", excel = "second.xlsx")
+#'  first <- all_pairwise(expt, model_svs = FALSE, excel = "first.xlsx")
+#'  second <- all_pairwise(expt, model_svs = "svaseq", excel = "second.xlsx")
 #'  comparison <- compare_de_results(first$combined, second$combined)
 #' }
 #' @export
@@ -1948,6 +1967,7 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #'
 #' @param model Describe the conditions/batches/etc in the experiment.
 #' @param conditions Factor of conditions in the experiment.
+#' @param contrast_factor Column containing the factor of interest.
 #' @param do_identities Include all the identity strings? Limma can
 #'  use this information while edgeR can not.
 #' @param do_extras Include extra contrasts?  This seems redundant with extra_contrasts
@@ -1956,6 +1976,7 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
 #'  need to be set to FALSE, but just in case.
 #' @param keepers Only extract this subset of all possible pairwise contrasts.
 #' @param extra_contrasts Optional string of extra contrasts to include.
+#' @param keep_underscore Sanitize out underscores?
 #' @param ... Extra arguments passed here are caught by arglist.
 #' @return List including the following information:
 #' \enumerate{
@@ -2365,6 +2386,42 @@ semantic_copynumber_filter <- function(input, max_copies = 2, use_files = FALSE,
   input[["numbers_removed"]] <- numbers_removed
   input[["type"]] <- type
   return(input)
+}
+
+#' On very rare occasions, one might want to directly compare logFC values
+#'
+#' @param first_table First DE table
+#' @param second_table The second DE table
+#' @param first_lfc logFC column from the first table
+#' @param second_lfc and the second table.
+#' @param first_p p-value column from the first table.
+#' @param second_p and the second...
+#' @param first_name Name of the first table.
+#' @param second_name and the second...
+#' @param excel Write the result here
+#' @export
+subtract_de_results <- function(first_table, second_table,
+                                first_lfc = "deseq_logfc", second_lfc = "deseq_logfc",
+                                first_p = "deseq_adjp", second_p = "deseq_adjp",
+                                first_name = "first", second_name = "second",
+                                excel = NULL) {
+  first_fragment <- first_table[, c(first_lfc, first_p)]
+  second_fragment <- second_table[, c(second_lfc, second_p)]
+  comparison <- merge(first_fragment, second_fragment, by = "row.names")
+  rownames(comparison) <- comparison[["Row.names"]]
+  comparison[["Row.names"]] <- NULL
+  new_names <- c(glue("{first_name}_deseq_logfc"), glue("{first_name}_deseq_adjp"),
+                 glue("{second_name}_deseq_logfc"), glue("{second_name}_deseq_adjp"))
+  colnames(comparison) <- new_names
+  logfc_name <- glue("{first_name}_vs_{second_name}_logfc")
+  comparison[[logfc_name]] <- comparison[[1]] - comparison[[3]]
+  p_name <- glue("{first_name}_vs_{second_name}_p")
+  p_vector <- mapply(max, comparison[[2]], comparison[[4]])
+  comparison[[p_name]] <- p_vector
+  if (!is.null(excel)) {
+    written <- write_xlsx(data = comparison, excel = excel)
+  }
+  return(comparison)
 }
 
 ## EOF

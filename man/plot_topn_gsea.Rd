@@ -10,6 +10,10 @@ plot_topn_gsea(gse, topn = 20, id = NULL, add_score = TRUE)
 \item{gse}{clusterProfiler GSEA result.}
 
 \item{topn}{Number of enrichments to plot.}
+
+\item{id}{Focus on a specific category.}
+
+\item{add_score}{Add the score to the plot.}
 }
 \value{
 List of plots.

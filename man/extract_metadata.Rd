@@ -26,6 +26,8 @@ extract_metadata(
 
 \item{fill_batch}{Add a batch column if there is not one?}
 
+\item{keep_underscore}{Sanitize underscores?}
+
 \item{sanitize}{Perform my various sanitizers on the data?}
 
 \item{...}{Arguments to pass to the child functions (read_csv etc).}

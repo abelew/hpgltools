@@ -22,6 +22,10 @@ plot_scatter(
 
 \item{xlab}{Alternate x-axis label.}
 
+\item{xcol}{Column of the x data.}
+
+\item{ycol}{Column of trhe y data.}
+
 \item{ylab}{Alternate x-axis label.}
 
 \item{alpha}{Define how see-through the dots are.}

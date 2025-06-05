@@ -18,6 +18,9 @@ plot_forest_from_regression(
 )
 }
 \arguments{
+\item{plot_df}{The primary dataframe from one of the sister
+regression functions above.}
+
 \item{percent}{Confidence interval chosen.}
 
 \item{type}{Either linear or logistic.}
@@ -28,7 +31,13 @@ plot_forest_from_regression(
 
 \item{intercept}{Include the intercept in the plot?}
 
-\item{df}{The primary dataframe from one of the sister regression functions above.}
+\item{base_size}{Glyph size for the plot}
+
+\item{title_size}{Text size for the title}
+
+\item{axis_size}{Axis label size}
+
+\item{query}{Compare the data against what metadata column.}
 }
 \description{
 Given the result from one of the regression testers, plot it!

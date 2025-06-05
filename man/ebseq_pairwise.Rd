@@ -28,6 +28,12 @@ state, etc.}
 
 \item{patterns}{Set of expression patterns to query.}
 
+\item{model_fstring}{Formula string describing the model of interest.}
+
+\item{null_fstring}{Formula string describing the null model.}
+
+\item{model_svs}{Matrix of SVs or character describing how to find them.}
+
 \item{keepers}{Perform a specific set of contrasts instead of all?}
 
 \item{ng_vector}{I think this is for isoform quantification, but am not yet
@@ -44,21 +50,12 @@ data into pairs of conditions.}
 
 \item{norm}{Normalization method to use.}
 
-\item{force}{Force ebseq to accept bad data (notably NA containing stuff from proteomics.}
+\item{force}{Force ebseq to accept bad data (notably NA containing
+stuff from proteomics.}
+
+\item{keep_underscore}{Sanitize away underscores?}
 
 \item{...}{Extra arguments currently unused.}
-
-\item{conditions}{Not currently used, but passed from all_pairwise()}
-
-\item{batches}{Not currently used, but passed from all_pairwise()}
-
-\item{model_cond}{Not currently used, but passed from all_pairwise()}
-
-\item{model_intercept}{Not currently used, but passed from all_pairwise()}
-
-\item{alt_model}{Not currently used, but passed from all_pairwise()}
-
-\item{model_batch}{Not currently used, but passed from all_pairwise()}
 }
 \value{
 List containing tables from ebseq, the conditions tested, and the

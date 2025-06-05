@@ -41,6 +41,8 @@ outputs if this changes, but for the moment I am sort of assuming
 
 \item{which}{Usually 'first', which means grab the first match and get out.}
 
+\item{new_spec}{New specification resulting from this invocation.}
+
 \item{as}{Coerce the output to a specific data type (numeric/character/etc).}
 
 \item{verbose}{For testing regexes.}

@@ -22,6 +22,8 @@ design. (conditions/batches/etc)}
 'sf|quant|qsmooth|tmm|upperquartile|tmm|rle' I keep wishy-washing on
 whether design is a required argument.}
 
+\item{condition_column}{metadata column with the factor of interest.}
+
 \item{...}{More arguments might be necessary.}
 }
 \value{

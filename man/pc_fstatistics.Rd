@@ -15,6 +15,10 @@ pc_fstatistics(
 \arguments{
 \item{expt}{Input expressionset, redo everything to use SE, stupid.}
 
+\item{pc_df}{dataframe of PCs}
+
+\item{num_pcs}{How many PCs to query?}
+
 \item{queries}{List of metadata factors to query.}
 
 \item{...}{Parameters to plot_pca.}

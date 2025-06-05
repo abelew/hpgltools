@@ -8,6 +8,8 @@ make_pombe_expt(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 }
 \arguments{
 \item{annotation}{Add annotation data?}
+
+\item{host}{ensembl host to query.}
 }
 \value{
 Expressionset/expt of fission.

@@ -6,6 +6,11 @@
 \usage{
 get_degrees(design, fctrs)
 }
+\arguments{
+\item{design}{experimental design.}
+
+\item{fctrs}{vector of factors to count up.}
+}
 \description{
-Use a vector of factors and design to count up the levels.
+This implements a quick and dirty degrees of freedom counter.
 }

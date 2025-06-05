@@ -31,6 +31,8 @@ plot_pca(
 
 \item{design}{a design matrix and.}
 
+\item{state}{State of the data.}
+
 \item{plot_colors}{a color scheme.}
 
 \item{plot_title}{a title for the plot.}

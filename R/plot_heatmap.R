@@ -1,16 +1,19 @@
 ## plot_heatmap.r: Heatmaps separated by usage
 
+#' @include plot_shared.R
+NULL
+
 #' Make a heatmap.3 description of the correlation between samples.
 #'
 #' Given a set of count tables and design, this will calculate the pairwise
 #' correlations and plot them as a heatmap.  It attempts to standardize the
 #' inputs and eventual output.
 #'
-#' @param expt_data Dataframe, expt, or expressionset to work with.
-#' @param expt_colors Color scheme for the samples, not needed if this is an expt.
-#' @param expt_design Design matrix describing the experiment, not needed if this is an expt.
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples, not needed if this is an expt.
+#' @param design Design matrix describing the experiment, not needed if this is an expt.
 #' @param method Correlation statistic to use. (pearson, spearman, kendall, robust).
-#' @param expt_names Alternate names to use for the samples.
+#' @param sample_names Alternate names to use for the samples.
 #' @param batch_row Name of the design row used for 'batch' column colors.
 #' @param plot_title Title for the plot.
 #' @param label_chars  Limit on the number of label characters.
@@ -23,11 +26,11 @@
 #'  corheat_plot <- hpgl_corheat(expt = expt, method = "robust")
 #' }
 #' @export
-plot_corheat <- function(expt_data, expt_colors = NULL, expt_design = NULL,
-                         method = "pearson", expt_names = NULL,
+plot_corheat <- function(input_data, column_colors = NULL, design = NULL,
+                         method = "pearson", sample_names = NULL,
                          batch_row = "batch", plot_title = NULL, label_chars = 10, ...) {
-  map_list <- plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
-                           method = method, expt_names = expt_names, type = "correlation",
+  map_list <- plot_heatmap(input_data, column_colors = column_colors, design = design,
+                           method = method, sample_names = sample_names, type = "correlation",
                            batch_row = batch_row, plot_title = plot_title, label_chars = label_chars, ...)
   class(map_list) <- "correlation_heatmap"
   return(map_list)
@@ -57,11 +60,11 @@ print.correlation_heatmap <- function(x, ...) {
 #' distances and plot them as a heatmap.  It attempts to standardize the inputs
 #' and eventual output.
 #'
-#' @param expt_data Dataframe, expt, or expressionset to work with.
-#' @param expt_colors Color scheme (not needed if an expt is provided).
-#' @param expt_design Design matrix (not needed if an expt is provided).
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme (not needed if an expt is provided).
+#' @param design Design matrix (not needed if an expt is provided).
 #' @param method Distance metric to use.
-#' @param expt_names Alternate names to use for the samples.
+#' @param sample_names Alternate names to use for the samples.
 #' @param batch_row Name of the design row used for 'batch' column colors.
 #' @param plot_title Title for the plot.
 #' @param label_chars Limit on the number of label characters.
@@ -73,11 +76,11 @@ print.correlation_heatmap <- function(x, ...) {
 #'  disheat_plot = plot_disheat(expt = expt, method = "euclidean")
 #' }
 #' @export
-plot_disheat <- function(expt_data, expt_colors = NULL, expt_design = NULL,
-                         method = "euclidean", expt_names = NULL,
+plot_disheat <- function(input_data, column_colors = NULL, design = NULL,
+                         method = "euclidean", sample_names = NULL,
                          batch_row = "batch",  plot_title = NULL, label_chars = 10, ...) {
-  map_list <- plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
-                           method = method, expt_names = expt_names, type = "distance",
+  map_list <- plot_heatmap(input_data, column_colors = column_colors, design = design,
+                           method = method, sample_names = sample_names, type = "distance",
                            batch_row = batch_row, plot_title = plot_title,
                            label_chars = label_chars, ...)
   class(map_list) <- "distance_heatmap"
@@ -108,12 +111,12 @@ print.distance_heatmap <- function(x, ...) {
 #' distance heatmaps, handles the calculation of the relevant metrics, and plots
 #' the heatmap.
 #'
-#' @param expt_data Dataframe, expt, or expressionset to work with.
-#' @param expt_colors Color scheme for the samples.
-#' @param expt_design Design matrix describing the experiment vis a vis
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples.
+#' @param design Design matrix describing the experiment vis a vis
 #'  conditions and batches.
 #' @param method Distance or correlation metric to use.
-#' @param expt_names Alternate names to use for the samples.
+#' @param sample_names Alternate names to use for the samples.
 #' @param type Defines the use of correlation, distance, or sample heatmap.
 #' @param batch_row Name of the design row used for 'batch' column colors.
 #' @param plot_title Title for the plot.
@@ -122,8 +125,8 @@ print.distance_heatmap <- function(x, ...) {
 #' @return a recordPlot() heatmap describing the distance between samples.
 #' @seealso [gplots::heatmap.2()]
 #' @export
-plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
-                         method = "pearson", expt_names = NULL,
+plot_heatmap <- function(input_data, column_colors = NULL, design = NULL,
+                         method = "pearson", sample_names = NULL,
                          type = "correlation", batch_row = "batch", plot_title = NULL,
                          label_chars = 10, ...) {
   arglist <- list(...)
@@ -145,23 +148,23 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
     remove_equal <- arglist[["remove_equal"]]
   }
 
-  if (is.null(expt_colors)) {
-    num_cols <- ncol(expt_data)
-    expt_colors <- sm(grDevices::colorRampPalette(
+  if (is.null(column_colors)) {
+    num_cols <- ncol(input_data)
+    column_colors <- sm(grDevices::colorRampPalette(
       RColorBrewer::brewer.pal(num_cols, chosen_palette))(num_cols))
   }
-  expt_colors <- as.character(expt_colors)
+  column_colors <- as.character(column_colors)
 
-  if (is.null(expt_names)) {
-    expt_names <- colnames(expt_data)
+  if (is.null(sample_names)) {
+    sample_names <- colnames(input_data)
   } else {
-    if (class(expt_names) == "character" && length(expt_names) == 1) {
+    if (class(sample_names) == "character" && length(sample_names) == 1) {
       ## Then this refers to an experimental metadata column.
-      expt_names <- expt_design[[expt_names]]
+      sample_names <- design[[sample_names]]
     }
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
-    expt_names <- abbreviate(expt_names, minlength = label_chars)
+    sample_names <- abbreviate(sample_names, minlength = label_chars)
   }
 
   if (isTRUE(remove_equal)) {
@@ -175,14 +178,14 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
     }
     test <- genefilter::cv(cv_min, cv_max)
     filter_list <- genefilter::filterfun(test)
-    answer <- genefilter::genefilter(expt_data, filter_list)
-    expt_data <- expt_data[answer, ]
+    answer <- genefilter::genefilter(input_data, filter_list)
+    input_data <- input_data[answer, ]
   }
 
   heatmap_data <- NULL
   heatmap_colors <- NULL
   if (type == "correlation") {
-    heatmap_data <- hpgl_cor(expt_data, method = method)
+    heatmap_data <- hpgl_cor(input_data, method = method)
     heatmap_colors <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "OrRd"))(100)
     if (method == "cordist") {
       heatmap_colors <- grDevices::colorRampPalette(
@@ -190,26 +193,26 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
         bias = 0.5)(100)
     }
   } else if (type == "distance") {
-    heatmap_data <- as.matrix(dist(t(expt_data)), method = method)
+    heatmap_data <- as.matrix(dist(t(input_data)), method = method)
     heatmap_colors <- grDevices::colorRampPalette(
       RColorBrewer::brewer.pal(9, "GnBu"))(100)
   } else {
     heatmap_colors <- gplots::redgreen(75)
-    heatmap_data <- as.matrix(expt_data)
+    heatmap_data <- as.matrix(input_data)
   }
   ## Set the batch colors depending on # of observed batches
-  if (is.null(expt_design)) {
-    row_colors <- rep("white", length(expt_colors))
-  } else if (is.null(expt_design[[batch_row]])) {
-    row_colors <- rep("white", length(expt_colors))
-  } else if (length(levels(as.factor(expt_design[[batch_row]]))) >= 2) {
+  if (is.null(design)) {
+    row_colors <- rep("white", length(column_colors))
+  } else if (is.null(design[[batch_row]])) {
+    row_colors <- rep("white", length(column_colors))
+  } else if (length(levels(as.factor(design[[batch_row]]))) >= 2) {
     ## We have >= 2 batches, and so will fill in the column colors
-    num_batch_colors <- length(levels(as.factor(expt_design[[batch_row]])))
-    batch_color_assignments <- as.integer(as.factor(expt_design[[batch_row]]))
+    num_batch_colors <- length(levels(as.factor(design[[batch_row]])))
+    batch_color_assignments <- as.integer(as.factor(design[[batch_row]]))
     row_colors <- RColorBrewer::brewer.pal(12, "Set3")[batch_color_assignments]
   } else {
     ## If we just have 1 batch, make it... white (to disappear).
-    row_colors <- rep("white", length(expt_colors))
+    row_colors <- rep("white", length(column_colors))
   }
 
   map <- NULL
@@ -219,14 +222,14 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
   if (type == "correlation") {
-    map <- heatmap.3(heatmap_data, keysize = keysize, labRow = expt_names,
-                     labCol = expt_names, ColSideColors = expt_colors,
+    map <- heatmap.3(heatmap_data, keysize = keysize, labRow = sample_names,
+                     labCol = sample_names, ColSideColors = column_colors,
                      RowSideColors = row_colors, margins = margin_list,
                      scale = "none", trace = "none",
                      linewidth = 0.5, main = plot_title, ...)
   } else {
-    map <- heatmap.3(heatmap_data, keysize = keysize, labRow = expt_names,
-                     labCol = expt_names, ColSideColors = expt_colors,
+    map <- heatmap.3(heatmap_data, keysize = keysize, labRow = sample_names,
+                     labCol = sample_names, ColSideColors = column_colors,
                      RowSideColors = row_colors, margins = margin_list,
                      scale = "none", trace = "none",
                      linewidth = 0.5, main = plot_title,
@@ -245,84 +248,137 @@ plot_heatmap <- function(expt_data, expt_colors = NULL, expt_design = NULL,
 setGeneric("plot_heatmap")
 
 #' Run plot_heatmap with an expt as input.
+#'
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples.
+#' @param design Design matrix describing the experiment vis a vis
+#'  conditions and batches.
+#' @param method Distance or correlation metric to use.
+#' @param sample_names Alternate names to use for the samples.
+#' @param type Defines the use of correlation, distance, or sample heatmap.
+#' @param batch_row Name of the design row used for 'batch' column colors.
+#' @param plot_title Title for the plot.
+#' @param label_chars Limit on the number of label characters.
+#' @param ... I like elipses!
 #' @export
 setMethod(
-  "plot_heatmap", signature = signature(expt_data = "expt"),
-  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
-                        expt_names = NULL, type = "correlation", batch_row = "batch",
-                        plot_title = NULL, label_chars = 10, ...) {
-    expt_design <- pData(expt_data)
-    expt_colors <- expt_data[["colors"]]
-    expt_names <- expt_data[["expt_names"]]
-    expt_data <- exprs(expt_data)
+  "plot_heatmap", signature = signature(input_data = "expt"),
+  definition = function(input_data, column_colors = NULL,
+                        design = NULL, method = "pearson",
+                        sample_names = NULL, type = "correlation",
+                        batch_row = "batch", plot_title = NULL, label_chars = 10,
+                        ...) {
+    design <- pData(input_data)
+    column_colors <- get_colors(input_data)
+    sample_names <- input_data[["sample_names"]]
+    input <- exprs(input_data)
     ## If plot_title is NULL, print nothing, if it is TRUE
     ## Then give some information about what happened to the data to make the plot.
     ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
     ## my expt containing the normalization state of the data.
     if (isTRUE(plot_title)) {
-      plot_title <- what_happened(expt_data)
+      plot_title <- what_happened(input_data)
     } else if (!is.null(plot_title)) {
-      data_title <- what_happened(expt_data)
+      data_title <- what_happened(input_data)
       plot_title <- glue("{plot_title}; {data_title}")
     } else {
       ## Leave the title blank.
     }
-    plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
-      method = method, expt_names = expt_names, type = type,
+    plot_heatmap(input, column_colors = column_colors, design = design,
+      method = method, sample_names = sample_names, type = type,
       batch_row = batch_row, plot_title = plot_title,
       label_chars = label_chars, ...)
   })
 
 #' Run plot_heatmap with a SummarizedExperiment as input.
+#'
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples.
+#' @param design Design matrix describing the experiment vis a vis
+#'  conditions and batches.
+#' @param method Distance or correlation metric to use.
+#' @param sample_names Alternate names to use for the samples.
+#' @param type Defines the use of correlation, distance, or sample heatmap.
+#' @param batch_row Name of the design row used for 'batch' column colors.
+#' @param plot_title Title for the plot.
+#' @param label_chars Limit on the number of label characters.
+#' @param ... I like elipses!
 #' @export
 setMethod(
-  "plot_heatmap", signature = signature(expt_data = "SummarizedExperiment"),
-  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
-                        expt_names = NULL, type = "correlation", batch_row = "batch",
+  "plot_heatmap", signature = signature(input_data = "SummarizedExperiment"),
+  definition = function(input_data, column_colors = NULL, design = NULL,
+                        method = "pearson", sample_names = NULL,
+                        type = "correlation", batch_row = "batch",
                         plot_title = NULL, label_chars = 10, ...) {
-    expt_design <- pData(expt_data)
-    expt_colors <- S4Vectors::metadata(expt_data)[["colors"]]
-    expt_names <- S4Vectors::metadata(expt_data)[["expt_names"]]
-    expt_data <- exprs(expt_data)
+    design <- colData(input_data)
+    column_colors <- S4Vectors::metadata(input_data)[["colors"]]
+    sample_names <- sampleNames(input_data)
+    input <- assay(input_data)
     if (isTRUE(plot_title)) {
-      plot_title <- what_happened(expt_data)
+      plot_title <- what_happened(input_data)
     } else if (!is.null(plot_title)) {
-      data_title <- what_happened(expt_data)
+      data_title <- what_happened(input_data)
       plot_title <- glue("{plot_title}; {data_title}")
     } else {
       ## Leave the title blank.
     }
-    plot_heatmap(expt_data, expt_colors = expt_colors, expt_design = expt_design,
-      method = method, expt_names = expt_names, type = type,
+    plot_heatmap(input, column_colors = column_colors, design = design,
+      method = method, sample_names = sample_names, type = type,
       batch_row = batch_row, plot_title = plot_title,
       label_chars = label_chars, ...)
   })
 
 #' Run plot_heatmap with a dataframe as input.
+#'
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples.
+#' @param design Design matrix describing the experiment vis a vis
+#'  conditions and batches.
+#' @param method Distance or correlation metric to use.
+#' @param sample_names Alternate names to use for the samples.
+#' @param type Defines the use of correlation, distance, or sample heatmap.
+#' @param batch_row Name of the design row used for 'batch' column colors.
+#' @param plot_title Title for the plot.
+#' @param label_chars Limit on the number of label characters.
+#' @param ... I like elipses!
 #' @export
 setMethod(
-  "plot_heatmap", signature = signature(expt_data = "data.frame"),
-  definition = function(expt_data, expt_colors = NULL, expt_design = NULL,
-                        method = "pearson", expt_names = NULL, type = "correlation",
-                        batch_row = "batch", plot_title = NULL, label_chars = 10, ...) {
-    expt_mtrx <- as.matrix(expt_data)
-    plot_heatmap(expt_mtrx, expt_colors = expt_colors, expt_design = expt_design,
-                 method = method, expt_names = expt_names, type = type,
+  "plot_heatmap", signature = signature(input_data = "data.frame"),
+  definition = function(input_data, column_colors = NULL, design = NULL,
+                        method = "pearson", sample_names = NULL,
+                        type = "correlation", batch_row = "batch",
+                        plot_title = NULL, label_chars = 10, ...) {
+    mtrx <- as.matrix(input_data)
+    plot_heatmap(mtrx, column_colors = column_colors, design = design,
+                 method = method, sample_names = sample_names, type = type,
                  batch_row = batch_row, plot_title = plot_title,
                  label_chars = label_chars, ...)
   })
 
 #' Run plot_heatmap with an ExpressionSet as input.
+#'
+#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param column_colors Color scheme for the samples.
+#' @param design Design matrix describing the experiment vis a vis
+#'  conditions and batches.
+#' @param method Distance or correlation metric to use.
+#' @param sample_names Alternate names to use for the samples.
+#' @param type Defines the use of correlation, distance, or sample heatmap.
+#' @param batch_row Name of the design row used for 'batch' column colors.
+#' @param plot_title Title for the plot.
+#' @param label_chars Limit on the number of label characters.
+#' @param ... I like elipses!
 #' @export
 setMethod(
-  "plot_heatmap", signature = signature(expt_data = "ExpressionSet"),
-  definition = function(expt_data, expt_colors = NULL, expt_design = NULL, method = "pearson",
-                        expt_names = NULL, type = "correlation", batch_row = "batch",
+  "plot_heatmap", signature = signature(input_data = "ExpressionSet"),
+  definition = function(input_data, column_colors = NULL, design = NULL,
+                        method = "pearson", sample_names = NULL,
+                        type = "correlation", batch_row = "batch",
                         plot_title = NULL, label_chars = 10, ...) {
-    expt_design <- pData(expt_data)
-    expt_mtrx <- exprs(expt_data)
-    plot_heatmap(expt_mtrx, expt_colors = expt_colors, expt_design = expt_design,
-      method = method, expt_names = expt_names, type = type,
+    design <- pData(input_data)
+    mtrx <- exprs(input_data)
+    plot_heatmap(mtrx, column_colors = column_colors, design = design,
+      method = method, sample_names = sample_names, type = type,
       batch_row = batch_row, plot_title = plot_title,
       label_chars = label_chars, ...)
   })
@@ -332,10 +388,12 @@ setMethod(
 #' Heatplus is an interesting tool, I have a few examples of using it and intend
 #' to include them here.
 #'
-#' @param expt Experiment to try plotting.
-#' @param type What comparison method to use on the data (distance or correlation)?
+#' @param input Experiment to try plotting.
+#' @param type What comparison method to use on the data (distance or
+#'  correlation)?
 #' @param method What distance/correlation method to perform?
-#' @param annot_columns Set of columns to include as terminal columns next to the heatmap.
+#' @param annot_columns Set of columns to include as terminal columns
+#'  next to the heatmap.
 #' @param annot_rows Set of columns to include as terminal rows below the heatmap.
 #' @param cutoff Cutoff used to define color changes in the annotated clustering.
 #' @param cluster_colors Choose colors for the clustering?
@@ -343,14 +401,15 @@ setMethod(
 #' @param cluster_width How much space to include between clustering?
 #' @param cluster_function Choose an alternate clustering function than hclust()?
 #' @param heatmap_colors Choose your own heatmap cluster palette?
-#' @return List containing the returned heatmap along with some parameters used to create it.
+#' @return List containing the returned heatmap along with some
+#'  parameters used to create it.
 #' @seealso [Heatplus] [fastcluster]
 #' @export
-plot_heatplus <- function(expt, type = "correlation", method = "pearson", annot_columns = "batch",
+plot_heatplus <- function(input, type = "correlation", method = "pearson", annot_columns = "batch",
                           annot_rows = "condition", cutoff = 1.0,
                           cluster_colors = NULL, scale = "none",
                           cluster_width = 2.0, cluster_function = NULL, heatmap_colors = NULL) {
-  data <- exprs(expt)
+  data <- exprs(input)
   if (type == "correlation") {
     data <- hpgl_cor(data, method = method)
   } else {
@@ -364,7 +423,7 @@ plot_heatplus <- function(expt, type = "correlation", method = "pearson", annot_
   mydendro <- list(
       "clustfun" = cluster_function,
       "lwd" = cluster_width)
-  des <- pData(expt)
+  des <- pData(input)
   col_data <- as.data.frame(des[, annot_columns])
   colnames(col_data) <- annot_columns
   row_data <- as.data.frame(des[, annot_rows])
@@ -433,11 +492,11 @@ plot_heatplus <- function(expt, type = "correlation", method = "pearson", annot_
 #' be replaced with neatmaps or heatplus or whatever it is, as the annotation
 #' dataframes in them are pretty awesome.
 #'
-#' @param data Expt/expressionset/dataframe set of samples.
-#' @param colors Color scheme of the samples (not needed if input is an expt).
-#' @param design Design matrix describing the experiment (gotten for free if an expt).
+#' @param data Input/expressionset/dataframe set of samples.
+#' @param colors Color scheme of the samples (not needed if input is an input).
+#' @param design Design matrix describing the experiment (gotten for free if an input).
 #' @param heatmap_colors Specify a colormap.
-#' @param expt_names Alternate samples names.
+#' @param input_names Alternate samples names.
 #' @param dendrogram Where to put dendrograms?
 #' @param row_label Passed through to heatmap.2.
 #' @param plot_title Title of the plot!
@@ -450,7 +509,7 @@ plot_heatplus <- function(expt, type = "correlation", method = "pearson", annot_
 #' @seealso [gplots::heatmap.2()]
 #' @export
 plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
-                                expt_names = NULL, dendrogram = "column",
+                                input_names = NULL, dendrogram = "column",
                                 row_label = NA, plot_title = NULL, Rowv = TRUE,
                                 Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
   data <- as.data.frame(data)
@@ -462,16 +521,16 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   }
   data <- as.matrix(data)
 
-  if (is.null(expt_names)) {
-    expt_names <- colnames(data)
+  if (is.null(input_names)) {
+    input_names <- colnames(data)
   } else {
-    if (class(expt_names) == "character" && length(expt_names) == 1) {
+    if (class(input_names) == "character" && length(input_names) == 1) {
       ## Then this refers to an experimental metadata column.
-      expt_names <- design[[expt_names]]
+      input_names <- design[[input_names]]
     }
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
-    expt_names <- abbreviate(expt_names, minlength = label_chars)
+    input_names <- abbreviate(input_names, minlength = label_chars)
   }
 
   ## drop NAs to help hclust()
@@ -480,76 +539,118 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
-  heatmap.3(data, keysize = 0.8, labRow = row_label, col = heatmap_colors, dendrogram = dendrogram,
-            labCol = expt_names, margins = c(12, 8), trace = "none", ColSideColors = colors,
-            linewidth = 0.5, main = plot_title, Rowv = Rowv, Colv = Colv)
-  hpgl_heatmap_plot <- grDevices::recordPlot()
+  heatmap.3(data, keysize = 0.8, labRow = row_label, col = heatmap_colors,
+            dendrogram = dendrogram, labCol = input_names, margins = c(12, 8),
+            trace = "none", ColSideColors = colors, linewidth = 0.5,
+            main = plot_title, Rowv = Rowv, Colv = Colv)
+  sample_heatmap_plot <- grDevices::recordPlot()
   dev.off()
   removed <- suppressWarnings(file.remove(tmp_file))
   removed <- unlink(dirname(tmp_file))
-
-  return(hpgl_heatmap_plot)
+  return(sample_heatmap_plot)
 }
 setGeneric("plot_sample_heatmap")
 
 
-#' Plot the sample heatmap of an expt.
+#' Plot the sample heatmap of an input.
+#'
+#' @param data Input/expressionset/dataframe set of samples.
+#' @param colors Color scheme of the samples (not needed if input is an input).
+#' @param design Design matrix describing the experiment (gotten for free if an input).
+#' @param heatmap_colors Specify a colormap.
+#' @param input_names Alternate samples names.
+#' @param dendrogram Where to put dendrograms?
+#' @param row_label Passed through to heatmap.2.
+#' @param plot_title Title of the plot!
+#' @param Rowv Reorder the rows by expression?
+#' @param Colv Reorder the columns by expression?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param filter Filter the data before performing this plot?
+#' @param ... More parameters for a good time!
 #' @export
 setMethod(
-  "plot_sample_heatmap", signature = signature(data = "expt"),
+  "plot_sample_heatmap", signature = (data = "expt"),
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
-                        expt_names = NULL, dendrogram = "column",
+                        input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
                         Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    expt_design <- pData(data)
-    expt_colors <- data[["colors"]]
-    expt_names <- data[["expt_names"]]
-    expt_data <- exprs(data)
-    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
-      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+    input_design <- pData(data)
+    input_names <- colnames(input_design)
+    input_data <- exprs(data)
+    input_colors <- get_colors(data)
+    plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
+      input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
       Colv = Colv, label_chars = label_chars, filter = filter, ...)
   })
 
 #' Plot a sample heatmap of an ExpressionSet.
+#'
+#' @param data Input/expressionset/dataframe set of samples.
+#' @param colors Color scheme of the samples (not needed if input is an input).
+#' @param design Design matrix describing the experiment (gotten for free if an input).
+#' @param heatmap_colors Specify a colormap.
+#' @param input_names Alternate samples names.
+#' @param dendrogram Where to put dendrograms?
+#' @param row_label Passed through to heatmap.2.
+#' @param plot_title Title of the plot!
+#' @param Rowv Reorder the rows by expression?
+#' @param Colv Reorder the columns by expression?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param filter Filter the data before performing this plot?
+#' @param ... More parameters for a good time!
 #' @export
 setMethod(
   "plot_sample_heatmap", signature = (data = "ExpressionSet"),
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
-                        expt_names = NULL, dendrogram = "column",
+                        input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
                         Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    expt_design <- pData(data)
-    expt_names <- colnames(expt_design)
-    expt_data <- exprs(data)
-    expt_colors <- colors(data)
-    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
-      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+    input_design <- pData(data)
+    input_names <- colnames(input_design)
+    input_data <- exprs(data)
+    input_colors <- get_colors(data)
+    plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
+      input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
       Colv = Colv, label_chars = label_chars, filter = filter, ...)
   })
 
 #' Plot a sample heatmap with a SummarizedExperiment.
+#'
+#' @param data Input/expressionset/dataframe set of samples.
+#' @param colors Color scheme of the samples (not needed if input is an input).
+#' @param design Design matrix describing the experiment (gotten for free if an input).
+#' @param heatmap_colors Specify a colormap.
+#' @param input_names Alternate samples names.
+#' @param dendrogram Where to put dendrograms?
+#' @param row_label Passed through to heatmap.2.
+#' @param plot_title Title of the plot!
+#' @param Rowv Reorder the rows by expression?
+#' @param Colv Reorder the columns by expression?
+#' @param label_chars Maximum number of characters before abbreviating sample names.
+#' @param filter Filter the data before performing this plot?
+#' @param ... More parameters for a good time!
 #' @export
 setMethod(
   "plot_sample_heatmap", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
-                        expt_names = NULL, dendrogram = "column",
+                        input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
                         Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    expt_design <- pData(data)
-    expt_colors <- S4Vectors::metadata(data)[["colors"]]
-    expt_names <- S4Vectors::metadata(data)[["expt_names"]]
-    expt_data <- exprs(data)
-    plot_sample_heatmap(expt_data, colors = expt_colors, design = expt_design,
-      expt_names = expt_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
+    input_design <- pData(data)
+    input_colors <- S4Vectors::metadata(data)[["colors"]]
+    input_names <- S4Vectors::metadata(data)[["input_names"]]
+    input_data <- exprs(data)
+    plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
+      input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
       Colv = Colv, label_chars = label_chars, filter = filter, ...)
   })
 
 #' An experiment to see if I can visualize the genes with the highest variance.
 #'
-#' @param expt ExpressionSet
+#' @param input ExpressionSet
 #' @param fun mean or median
 #' @param fact Which factor to slice/dice the data?
 #' @param row_label Label the rows?
@@ -566,26 +667,26 @@ setMethod(
 #' @param cv_max Maximum cV to examine (I think this should be limited to ~ 0.7?)
 #' @param remove_equal Filter uninteresting genes.
 #' @export
-plot_sample_cvheatmap <- function(expt, fun = "mean", fact = "condition",
+plot_sample_cvheatmap <- function(input, fun = "mean", fact = "condition",
                                   row_label = NA, plot_title = NULL, Rowv = TRUE,
                                   Colv = TRUE, label_chars = 10, dendrogram = "column",
                                   min_delta = 0.5, x_factor = 1, y_factor = 2, min_cvsd = NULL,
                                   cv_min = 1, cv_max = Inf, remove_equal = TRUE) {
   ## I am certain there is a better way to do this, but I am tired and not thinking well.
-  colors <- c()
-  expt_colors <- expt[["colors"]]
-  fact_info <- pData(expt)[[fact]]
-  names(expt_colors) <- fact_info
-  for (i in seq_along(expt_colors)) {
-    name <- names(expt_colors)[i]
-    this_color <- as.character(expt_colors[i])
-    colors[name] <- this_color
+  column_colors <- c()
+  input_colors <- get_colors(input)
+  fact_info <- pData(input)[[fact]]
+  names(input_colors) <- fact_info
+  for (i in seq_along(input_colors)) {
+    name <- names(input_colors)[i]
+    this_color <- as.character(input_colors[i])
+    column_colors[name] <- this_color
   }
 
   if (isTRUE(remove_equal)) {
-    expt <- normalize_expt(expt, filter = "cv", cv_min = 1, cv_max = Inf)
+    input <- normalize(input, filter = "cv", cv_min = 1, cv_max = Inf)
   }
-  cvs <- as.matrix(median_by_factor(expt, fun = fun, fact = fact)[["cvs"]])
+  cvs <- as.matrix(median_by_factor(input, fun = fun, fact = fact)[["cvs"]])
   if (!is.null(min_cvsd)) {
     cv_sds <- matrixStats::rowSds(cvs)
     if (is.numeric(min_cvsd)) {
@@ -609,7 +710,7 @@ plot_sample_cvheatmap <- function(expt, fun = "mean", fact = "condition",
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
   heatmap.3(cvs, keysize = 0.8, labRow = rownames(cvs), col = heatmap_colors, dendrogram = dendrogram,
-            margins = c(12, 8), trace = "none", ColSideColors = colors,
+            margins = c(12, 8), trace = "none", ColSideColors = column_colors,
             linewidth = 0.5, main = plot_title, Rowv = Rowv, Colv = Colv)
   cv_heatmap_plot <- grDevices::recordPlot()
   dev.off()

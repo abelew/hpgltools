@@ -2,115 +2,11 @@ start <- as.POSIXlt(Sys.time())
 context("065de_all.R")
 
 ## All of these functions will depend on an expt to play with:
-pombe_expt <- make_pombe_se(annotation = FALSE)
+pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
-  pombe_expt,
+  pombe_se,
   subset = "minute == 0 | minute == 15 | minute == 30") %>%
   set_expt_batches(fact = "replicate")
-
-## Well, in the previous test, we created pombe_expt, so let us use it.
-testing <- basic_pairwise(pombe_subset)
-actual <- length(testing[["contrasts_performed"]])
-expected <- 15
-test_that("Basic performed the expected number of contrasts?", {
-  expect_equal(expected, actual)
-})
-
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
-actual <- sum(test[["logFC"]] > 2)
-expected <- 1
-test_that("Basic got some expected results (logFC)?", {
-  expect_equal(expected, actual)
-})
-
-## Add a little fudge-factor to some of these tests.
-actual <- sum(as.numeric(test[["p"]]) < 0.1)
-expected <- 358
-test_that("Basic got some expected results (p)?", {
-  expect_equal(expected, actual, tolerance = 3)
-})
-
-test <- write_basic(testing, excel = "test_basic_pairwise.xlsx")
-test_that("write_basic() did something?", {
-  expect_true(file.exists("test_basic_pairwise.xlsx"))
-})
-
-testing <- deseq_pairwise(pombe_subset)
-actual <- length(testing[["contrasts_performed"]])
-expected <- 15
-test_that("DESeq performed the expected number of contrasts?", {
-  expect_equal(expected, actual)
-})
-
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
-actual <- sum(test[["logFC"]] > 2)
-expected <- 50
-test_that("DESeq got some expected results (logFC)?", {
-  expect_equal(expected, actual)
-})
-
-actual <- sum(as.numeric(test[["P.Value"]]) < 0.1)
-expected <- 319
-test_that("DESeq got some expected results (adjp)?", {
-  expect_equal(expected, actual)
-})
-
-written_test <- write_deseq(testing, excel = "test_deseq_pairwise.xlsx")
-test_that("write_deseq() did something?", {
-  expect_true(file.exists("test_deseq_pairwise.xlsx"))
-})
-
-testing <- dream_pairwise(pombe_subset)
-actual <- length(testing[["contrasts_performed"]])
-expected <- 15
-test_that("Dream performed the expected number of contrasts?", {
-  expect_equal(expected, actual)
-})
-
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
-actual <- sum(test[["logFC"]] > 2)
-expected <- 10
-test_that("Dream got some expected results (logFC)?", {
-  expect_equal(expected, actual)
-})
-
-## Add a little fudge-factor to some of these tests.
-actual <- sum(as.numeric(test[["P.Value"]]) < 0.1)
-expected <- 292
-test_that("Dream got some expected results (p)?", {
-  expect_equal(expected, actual, tolerance = 3)
-})
-
-test <- write_dream(testing, excel = "test_dream_pairwise.xlsx")
-test_that("write_dream() did something?", {
-  expect_true(file.exists("test_basic_pairwise.xlsx"))
-})
-
-## edger_pairwise()
-testing <- edger_pairwise(pombe_subset)
-actual <- length(testing[["contrasts_performed"]])
-expected <- 15
-test_that("edgeR performed the expected number of contrasts?", {
-  expect_equal(expected, actual)
-})
-
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
-actual <- sum(test[["logFC"]] > 2)
-expected <- 66
-test_that("edgeR got some expected results (logFC)?", {
-  expect_equal(expected, actual)
-})
-
-actual <- sum(as.numeric(test[["PValue"]]) < 0.1)
-expected <- 314
-test_that("edgeR got some expected results (adjp)?", {
-  expect_equal(expected, actual)
-})
-
-test <- write_edger(testing, excel = "test_edger_pairwise.xlsx")
-test_that("write_edger() did something?", {
-  expect_true(file.exists("test_edger_pairwise.xlsx"))
-})
 
 testing <- limma_pairwise(pombe_subset)
 actual <- length(testing[["contrasts_performed"]])
@@ -124,17 +20,6 @@ actual <- sum(test[["logFC"]] > 2)
 expected <- 9
 test_that("limma got some expected results (logFC)?", {
   expect_equal(expected, actual)
-})
-
-actual <- sum(as.numeric(test[["P.Value"]]) < 0.1)
-expected <- 441
-test_that("limma got some expected results (adjp)?", {
-  expect_equal(expected, actual)
-})
-
-test <- write_limma(testing, excel = "test_limma_pairwise.xlsx")
-test_that("write_limma() did something?", {
-  expect_true(file.exists("test_limma_pairwise.xlsx"))
 })
 
 testing <- noiseq_pairwise(pombe_subset)

@@ -5,7 +5,7 @@
 \title{An experiment to see if I can visualize the genes with the highest variance.}
 \usage{
 plot_sample_cvheatmap(
-  expt,
+  input,
   fun = "mean",
   fact = "condition",
   row_label = NA,
@@ -24,7 +24,7 @@ plot_sample_cvheatmap(
 )
 }
 \arguments{
-\item{expt}{ExpressionSet}
+\item{input}{ExpressionSet}
 
 \item{fun}{mean or median}
 

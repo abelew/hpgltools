@@ -16,6 +16,7 @@ extract_keepers(
   includes,
   excludes,
   padj_type,
+  min_genes = 10,
   fancy = FALSE,
   loess = FALSE,
   lfc_cutoff = 1,
@@ -66,7 +67,8 @@ extract_keepers(
 \item{all_coefficients}{The set of all experimental conditions in the
 experimental metadata.}
 
-\item{apr}{The result from all_pairwise(), containing the limma/edger/deseq/etc data.}
+\item{apr}{The result from all_pairwise(), containing the
+limma/edger/deseq/etc data.}
 
 \item{adjp}{Pull out the adjusted p-values from the data?}
 
@@ -77,6 +79,9 @@ experimental metadata.}
 \item{excludes}{Set of genes to exclude.}
 
 \item{padj_type}{Choose a specific p adjustment.}
+
+\item{min_genes}{Minimum number of genes below which no plots will
+be generated.}
 
 \item{fancy}{Include larger pdf/svg plots with the xlsx output?}
 
@@ -102,6 +107,10 @@ coefficient plot.}
 \item{label}{When not NULL, label this many genes.}
 
 \item{label_column}{Try using this column for labeling genes.}
+
+\item{wanted_genes}{Genes explicited desired.}
+
+\item{scale_p}{Scale the pvalues to compare against dream?}
 }
 \value{
 The extracted, but with more stuff at the end!

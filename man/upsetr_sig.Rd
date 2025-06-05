@@ -31,7 +31,13 @@ upsetr_sig(
 
 \item{both}{Make a plot of the up+down genes?}
 
+\item{all}{Do all combinations?}
+
 \item{scale}{Make the numbers larger and easier to read?}
+
+\item{intersections}{Calculate all intersections?}
+
+\item{num_sets}{Plot only this number of sets.}
 
 \item{...}{Other parameters to pass to upset().}
 }

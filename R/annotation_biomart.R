@@ -2,19 +2,26 @@
 ## from biomart. Most of our projects use Ensembl gene IDs, thus having
 ## consistent access to the ensembl annotations is quite useful.
 
+#' Pull the dataframe from load_biomart_annotations()
+#'
+#' @param x Result from load_biomart_annotations()
+#' @param row.names Not currently used
+#' @param optional I am not sure
+#' @param ... Unused optional parameters.
+#' @importFrom BiocGenerics as.data.frame
 #' @export
-as.data.frame.annotations_biomart <- function(x, row.names = NULL, optional = FALSE, ...) {
-  message("Defauting to the gene annotations.")
-  x[["gene_annotations"]]
-}
-
+setMethod(
+  "as.data.frame", signature = signature(x = "annotations_biomart"),
+  definition = function(x, row.names = NULL, optional = FALSE, ...) {
+    as.data.frame(x[["gene_annotations"]])
+  })
 
 #' Search a mart for a usable dataset.
 #'
 #' @param mart Biomart instance to poke at in an attempt to find a dataset.
 #' @param trydataset Dataset to attempt to query.
 #' @param species Species at the mart for which to search.
-#' @export
+#' @return A mart instance.
 find_working_dataset <- function(mart, trydataset, species) {
   chosen_dataset <- NULL
   dataset <- NULL
@@ -62,6 +69,7 @@ find_working_dataset <- function(mart, trydataset, species) {
 #' @param month Choose specific month(s) for the archive servers?
 #' @return Either a mart instance or NULL if no love was forthcoming.
 #' @seealso [biomaRt::useMart()] [biomaRt::listMarts()]
+#' @example inst/examples/annotation_biomart.R
 #' @export
 find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                                 "www.ensembl.org", "asia.ensembl.org"),
@@ -158,12 +166,23 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.en
   return(retlist)
 }
 
+#' Extract a single gene from biomart in order to check out the various annotations.
+#'
+#' @param species Using this species
+#' @param attributes and these attributes
+#' @param host auto choose a host, or specify one.
+#' @param trymart The default mart
+#' @param archive Use an archive server
+#' @param default_hosts A set of likely host candidates.
+#' @param gene_requests The two most common columns to query.
+#' @example inst/examples/annotation_biomart.R
+#' @return A monster list of key->value pairs for a single gene.
+#' @export
 get_biomart_example_gene <- function(species = "mmusculus", attributes = "feature_page",
                                      host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
                                      default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                                        "www.ensembl.org", "asia.ensembl.org"),
                                      gene_requests = c("ensembl_gene_id", "version")) {
-  message("Grabbing all gene IDs from biomart for ", species, ".")
   start <- load_biomart_annotations(species = species, overwrite = TRUE, do_save = FALSE,
                                     gene_requests = gene_requests, include_lengths = FALSE)
   mart <- start[["mart"]]
@@ -174,12 +193,12 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
   wanted <- all[wanted_idx, "name"]
   final <- sum(wanted_idx)
   min <- 1
-  result <- c()
+  result <- list()
   while (min <= final) {
     example <- biomaRt::getBM(attributes = wanted[min], filters = "ensembl_gene_id",
                               mart = mart, values = example_gene)[1, ]
     message("Column: ", wanted[min], " has value: ", example)
-    result <- c(result, example)
+    result[wanted[min]] <- example
     min <- min + 1
   }
   return(result)
@@ -227,11 +246,7 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
 #'  name of the mart queried, a vector of rows queried, vector of the available
 #'  attributes, and the ensembl dataset queried.
 #' @seealso [biomaRt::listDatasets()] [biomaRt::getBM()] [find_working_mart()]
-#' @examples
-#'  ## This downloads the hsapiens annotations by default.
-#'  hs_biomart_annot <- load_biomart_annotations()
-#'  summary(hs_biomart_annot)
-#'  dim(hs_biomart_annot$annotation)
+#' @example inst/examples/annotation_biomart.R
 #' @export
 load_biomart_annotations <- function(
   species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
@@ -276,14 +291,27 @@ load_biomart_annotations <- function(
       "month" = month,
       "species" = species)
 
+    gene_annotations <- biomart_annotations
     if (!is.null(gene_id_column)) {
-      gene_annotations <- biomart_annotations
       kept <- !duplicated(gene_annotations[[gene_id_column]])
       gene_annotations <- gene_annotations[kept, ]
       rownames(gene_annotations) <- gene_annotations[[gene_id_column]]
       gene_annotations[[gene_id_column]] <- NULL
       retlist[["gene_annotations"]] <- gene_annotations
     }
+    if (isTRUE(gene_tx_map)) {
+      gene_tx_map <- biomart_annotations
+      if (gene_id_column %in% colnames(gene_tx_map)) {
+        kept <- !duplicated(gene_tx_map[[gene_id_column]])
+        gene_tx_map <- gene_tx_map[kept, ]
+        gene_tx_map[["transcript"]] <- paste0(gene_tx_map[[tx_id_column]],
+                                              ".", gene_tx_map[[gene_version_column]])
+        gene_tx_map <- gene_tx_map[, c("transcript", gene_id_column)]
+        retlist[["gene_tx_map"]] <- gene_tx_map
+      } else {
+        warning("The column ", gene_id_column, " is not in the annotations.")
+      }
+  }
 
     class(retlist) <- "annotations_biomart"
     return(retlist)
@@ -367,9 +395,11 @@ load_biomart_annotations <- function(
 
   added_symbols <- NULL
   if (is.null(symbol_columns)) {
-    message("symbol columns is null, pattern matching 'symbol'.")
+    message("symbol columns is null, pattern matching 'symbol' and taking the first.")
     symbol_columns_idx <- grepl(x = available_attribs, pattern = "symbol")
-    symbol_columns <- available_attribs[symbol_columns_idx]
+    ## I am only taking the first because there is some weird error with
+    ## the uniprot symbol when I ask for it.
+    symbol_columns <- available_attribs[symbol_columns_idx[1]]
   }
   symbol_columns <- c(gene_id_column, symbol_columns)
   symbol_annotations <- try(biomaRt::getBM(
@@ -502,7 +532,6 @@ genes/transcripts downloaded from {x[['host']]}.")
 #' what I want. I recently found the *.archive.ensembl.org, and so this function
 #' uses that to try to keep things predictable, if not consistent.
 #'
-#' Tested in test_40ann_biomart.R
 #' This function makes a couple of attempts to pick up the correct tables from
 #' biomart.  It is worth noting that it uses the archive.ensembl host(s) because
 #' of changes in table organization after December 2015 as well as an attempt to
@@ -527,10 +556,7 @@ genes/transcripts downloaded from {x[['host']]}.")
 #'  queried, a vector providing the attributes queried, and the ensembl dataset
 #'  queried.
 #' @seealso [biomaRt::listMarts()] [biomaRt::useDatasets()] [biomaRt::getBM()]
-#' @examples
-#'  hs_biomart_ontology <-load_biomart_go()
-#'  summary(hs_biomart_ontology)
-#'  dim(hs_biomart_ontology$go)
+#' @example inst/examples/annotation_biomart.R
 #' @export
 load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE,
                             host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
@@ -742,6 +768,7 @@ load_biomart_orthologs <- function(gene_ids = NULL, first_species = "hsapiens",
 #' @param transcript_column Column containing the transcript IDs.
 #' @param tx_version_column Salmon uses tx version numbers, find them here.
 #' @param new_column Add the new combined IDs here.
+#' @example inst/examples/annotation_biomart.R
 #' @export
 make_tx_gene_map <- function(annotations, gene_column = "ensembl_gene_id",
                              transcript_column = "ensembl_transcript_id",

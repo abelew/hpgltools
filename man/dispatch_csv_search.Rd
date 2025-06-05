@@ -36,6 +36,10 @@ file of interest.}
 
 \item{type}{Specify a type of search, usually genome and/or rRNA.}
 
+\item{subtype}{Specific annotation type to seek.}
+
+\item{tag}{GFF tag to use for IDs.}
+
 \item{basedir}{Root directory containing the files/logs of metadata.}
 
 \item{which}{Take the first entry, or some subset.}

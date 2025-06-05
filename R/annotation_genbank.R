@@ -21,9 +21,7 @@
 #' @return List containing a txDb, sequences, and some other stuff which I
 #'  haven't yet finalized.
 #' @seealso [Biostrings] [GenomicFeatures] [genbankr::import()] [genbankr::readGenBank()]
-#' @examples
-#'  sagalacticae_genbank_annot <- load_genbank_annotations(accession = "AE009948")
-#'  dim(as.data.frame(sagalacticae_genbank_annot$cds))
+#' @example inst/examples/annotation_genbank.R
 #' @export
 load_genbank_annotations <- function(accession = "AE009949", file = NULL, sequence = TRUE,
                                      reread = TRUE, savetxdb = FALSE) {
@@ -98,7 +96,7 @@ download_gbk <- function(accessions = "AE009949", write = TRUE) {
         paste(accessions[a:b], collapse = ","), "&rettype=gb&retmode=text&report=gbwithparts")
 
     dl_file <- glue("{accession}.gb")
-    data <- try(download.file(url = url, destfile = dl_file, method = "wget", quiet = TRUE))
+    data <- try(download.file(url = url, destfile = dl_file, quiet = TRUE))
     scanned <- NULL
     if (class(data) != "try-error") {
       scanned <- try(scan(file = dl_file, what = "", sep = "\n", quiet = TRUE))

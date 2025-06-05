@@ -3,8 +3,9 @@
 #' @param sig Result from extract_significant_genes
 #' @param according_to Use this result type for the gprofiler searches.
 #' @param together Concatenate the up/down genes into one set?
-#' @param plot_type Choose a plot method as the default.
 #' @param sleep Give the gProfiler servers a break between queries.
+#' @param plot_type Choose a plot method as the default.
+#' @param excel Output xlsx filename.
 #' @param ... Arguments to pass to simple_gprofiler().
 #' @export
 all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
@@ -66,7 +67,8 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       ret[[retname_up]] <- simple_gprofiler2(up, first_col = fc_col,
                                              plot_type = plot_type,
-                                             excel = chosen_up_xlsx, ...)
+                                             excel = chosen_up_xlsx,
+                                             ...)
       #ret[[retname_up]] <- sm(simple_gprofiler(up, first_col = fc_col))
     } else {
       ret[[retname_up]] <- NULL
@@ -116,7 +118,9 @@ print.all_gprofiler <- function(x, ...) {
 #' @param convert Use gProfileR's conversion utility?
 #' @param first_col First place used to define the order of 'significant'.
 #' @param second_col If that fails, try a second column.
-#' @param do_go Perform GO search?
+#' @param do_mf Perform MF?
+#' @param do_bp Perform BP?
+#' @param do_cc Perform CC?
 #' @param do_kegg Perform KEGG search?
 #' @param do_reactome Perform reactome search?
 #' @param do_mi Do miRNA search?
@@ -130,6 +134,8 @@ print.all_gprofiler <- function(x, ...) {
 #' @param do_under Perform under-representation search?
 #' @param evcodes Get the set of evcodes in the data?  This makes it take
 #'  longer.
+#' @param min_genes Minimum number of genes required in category.
+#' @param min_go_level How far down the tree to search.
 #' @param threshold p-value 'significance' threshold.
 #' @param adjp Method to adjust p-values.
 #' @param domain_scope Passed to gprofiler2.
@@ -140,8 +146,6 @@ print.all_gprofiler <- function(x, ...) {
 #'  entrez or whatever, translate it!
 #' @param plot_type Use this plot type for images.
 #' @param excel Print the results to an excel file?
-#' @param enrich_id_column Column from which to extract more readable gene IDs when
-#'  creating a clusterProfiler-compatible enrich object.
 #' @param ... Primarily for changing options when writing a xlsx output.
 #' @return a list of results for go, kegg, reactome, and a few more.
 #' @seealso [gProfiler]
@@ -159,14 +163,13 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               threshold = 0.05, adjp = "g_SCS", domain_scope = "annotated",
                               bg = NULL, min_genes = 10, ordered = TRUE, id_col = "row.names",
                               plot_type = "dotplot", excel = NULL, min_go_level = 3, ...) {
-
   gene_list <- NULL
   num_genes <- 0
   gene_ids <- NULL
   if (is.null(id_col)) {
     id_col <- "row.names"
   }
-  if ("data.frame" %in% class(sig_genes)) {
+  if (tabularp(sig_genes)) {
     if (id_col == "row.names") {
       gene_ids <- rownames(sig_genes)
     } else {
@@ -385,6 +388,7 @@ simple_gprofiler <- function(...) {
 #'  categories?
 #' @param organism Set the orgdb organism name?
 #' @param padjust_method what it says on the tin.
+#' @param min_go_level Ignore the tree above this level.
 #' @return The same 'enrich' datastructure produced by clusterProfiler.
 #' @export
 gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
@@ -403,7 +407,7 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
   ##}
   if (class(sig_genes_input)[1] == "character") {
     sig_genes <- sig_genes_input
-  } else if ("data.frame" %in% class(sig_genes_input)) {
+  } else if (tabularp(sig_genes_input)) {
     sig_genes <- rownames(retlst[["input"]])
   } else {
     stop("I do not know this input data type when extracting the input genes.")

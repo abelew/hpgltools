@@ -5,7 +5,7 @@
 \title{Produce plots of metadata factor(s) of interest.}
 \usage{
 plot_metadata_factors(
-  expt,
+  input,
   column = "hisatsinglemapped",
   second_column = NULL,
   norm_column = NULL,
@@ -14,7 +14,7 @@ plot_metadata_factors(
 )
 }
 \arguments{
-\item{expt}{Input expressionset.}
+\item{input}{Input expressionset.}
 
 \item{column}{Currently a single, but soon multiple column(s) of metadata.}
 

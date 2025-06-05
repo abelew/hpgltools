@@ -21,14 +21,17 @@ ebseq_pairwise_subset(
 \arguments{
 \item{input}{Expressionset/expt to perform de upon.}
 
+\item{model_fstring}{Formula string describing the model of interest.}
+
 \item{ng_vector}{Passed on to ebseq, I forget what this does.}
 
 \item{rounds}{Passed on to ebseq, I think it defines how many iterations to
 perform before return the de estimates}
 
-\item{target_fdr}{If we reach this fdr before iterating rounds times, return.}
+\item{target_fdr}{If we reach this fdr before iterating rounds
+times, return.}
 
-\item{keepers}{Specify a set of contrasts to perform here.}
+\item{keepers}{Specify a set of contrasts to perform here.#'}
 
 \item{conditions}{Factor of conditions in the data, used to define the
 contrasts.}
@@ -37,17 +40,9 @@ contrasts.}
 
 \item{force}{Flag used to force inappropriate data into the various methods.}
 
+\item{keep_underscore}{Sanitize away underscores?}
+
 \item{...}{Extra arguments passed downstream.}
-
-\item{model_batch}{Provided by all_pairwise()  I do not think a Bayesian
-analysis really cares about models, but if one wished to try to add a batch
-factor, this would be the place to do it.  It is currently ignored.}
-
-\item{model_cond}{Provided by all_pairwise(), ibid.}
-
-\item{model_intercept}{Ibid.}
-
-\item{alt_model}{Ibid.}
 }
 \value{
 A pairwise comparison of the various conditions in the data.

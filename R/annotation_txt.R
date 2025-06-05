@@ -3,6 +3,10 @@
 ## information.  For the moment it only handles trinotate, which is quite a
 ## bizarre format.
 
+## Ensure imports are loaded from 01_hpgltools.R
+#' @include 01_hpgltools.R
+NULL
+
 #' Read a csv file from trinotate and make an annotation data frame.
 #'
 #' Trinotate performs some neat sequence searches in order to seek out likely
@@ -14,10 +18,7 @@
 #' @param collapse Collapse isoforms to genes?
 #' @return Dataframe of fun data.
 #' @seealso [tidyr] [readr]
-#' @examples
-#'  sb_annot <- get_sbetaceum_data()[["annot"]]
-#'  a_few_trinotate <- load_trinotate_annotations(trinotate = sb_annot)
-#'  dim(a_few_trinotate)
+#' @example /inst/examples/annotation_txt.R
 #' @export
 load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", collapse = FALSE) {
   split_data <- sm(readr::read_tsv(trinotate))
@@ -156,7 +157,6 @@ load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", co
     split_data[["collapsed_gid"]] <- gsub(x = rownames(split_data), pattern = "^(.*_c\\d+_g\\d+)_i\\d+$",
                                           replacement = "\\1")
   }
-
   return(split_data)
 }
 
@@ -176,12 +176,7 @@ load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", co
 #' @return List of the extracted GO data, a table of it, length data, and the
 #'  resulting length table.
 #' @seealso [load_trinotate_annotations()]
-#' @import data.table
-#' @examples
-#'  sb_annot <- get_sbetaceum_data()[["annot"]]
-#'  trinotate_go <- load_trinotate_go(trinotate = sb_annot)
-#'  dim(trinotate_go$go_data)
-#'  dim(trinotate_go$go_table)
+#' @example inst/examples/annotation_txt.R
 #' @export
 load_trinotate_go <- function(trinotate = "reference/trinotate.csv",
                               blast2go_column = "gene_ontology_BLASTX",

@@ -5,11 +5,11 @@
 \title{Make a heatmap.3 description of the correlation between samples.}
 \usage{
 plot_corheat(
-  expt_data,
-  expt_colors = NULL,
-  expt_design = NULL,
+  input_data,
+  column_colors = NULL,
+  design = NULL,
   method = "pearson",
-  expt_names = NULL,
+  sample_names = NULL,
   batch_row = "batch",
   plot_title = NULL,
   label_chars = 10,
@@ -17,15 +17,15 @@ plot_corheat(
 )
 }
 \arguments{
-\item{expt_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, expt, or expressionset to work with.}
 
-\item{expt_colors}{Color scheme for the samples, not needed if this is an expt.}
+\item{column_colors}{Color scheme for the samples, not needed if this is an expt.}
 
-\item{expt_design}{Design matrix describing the experiment, not needed if this is an expt.}
+\item{design}{Design matrix describing the experiment, not needed if this is an expt.}
 
 \item{method}{Correlation statistic to use. (pearson, spearman, kendall, robust).}
 
-\item{expt_names}{Alternate names to use for the samples.}
+\item{sample_names}{Alternate names to use for the samples.}
 
 \item{batch_row}{Name of the design row used for 'batch' column colors.}
 

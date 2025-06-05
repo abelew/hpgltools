@@ -27,7 +27,6 @@ filter_counts <- function(count_table, method = "cbcb", p = 0.01, A = 1, k = 1,
                           cv_min = 0.01, cv_max = 1000, thresh = 2, min_samples = 2, ...) {
   arglist <- list(...)
   start <- count_table
-  message("TESTME, starting filter_counts: ", thresh)
   ## Make sure I catch it if the argument provided is 'threshold' and not 'thresh'.
   if (!is.null(arglist[["threshold"]])) {
     message("This function generally expects the threshold argument to be used with 'thresh'.")

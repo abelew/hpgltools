@@ -4,7 +4,7 @@
 \alias{[.expt}
 \title{Subset an expt}
 \usage{
-\method{[}{expt}(expt, i, j, ...)
+\method{[}{expt}(expt, i, j, ..., value)
 }
 \arguments{
 \item{expt}{expt to subset}
@@ -14,6 +14,8 @@
 \item{j}{Set of samples to keep.}
 
 \item{...}{Parameters to pass to subset_genes/subset_expt.}
+
+\item{value}{New subset value}
 }
 \description{
 Working on improving my understanding of how R sets up functions by type.

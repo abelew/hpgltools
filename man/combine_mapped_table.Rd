@@ -44,6 +44,12 @@ significance cutoff.}
 unwieldy numbers.}
 
 \item{sheet_count}{Start with these sheet number and increment for excel.}
+
+\item{keep_underscore}{Sanitize underscores?}
+
+\item{wanted_genes}{Vector of explicitly wanted genes.}
+
+\item{scale_p}{Scale p-values to provide explicit comparison to dream.}
 }
 \description{
 This is part of an ongoing attempt to simplify and clean up the

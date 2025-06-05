@@ -57,7 +57,9 @@ plot_volcano_condition_de(
 
 \item{shapes_by_state}{Change point shapes according to their states?}
 
-\item{stroke}{Include the geom_color to get the outline of the dots?}
+\item{stroke}{Add a stroke to the dots.}
+
+\item{fill}{Fill the dots.}
 
 \item{color_high}{Color for the ups.}
 
@@ -69,9 +71,17 @@ plot_volcano_condition_de(
 
 \item{label}{Label some points?}
 
+\item{label_type}{What kind of label to apply.}
+
 \item{label_column}{Using this column in the data.}
 
 \item{label_size}{Use this font size for the labels on the plot.}
+
+\item{nudge_x}{Nudge the label on the x axis.}
+
+\item{nudge_y}{Nudge the label on the y axis.}
+
+\item{...}{Arbitrary args.}
 }
 \description{
 I therefore took a modified copy of her implementation and added it here.

@@ -14,6 +14,7 @@
 #' @param method Normalization to perform:
 #'  'sf|quant|qsmooth|tmm|upperquartile|tmm|rle' I keep wishy-washing on
 #'  whether design is a required argument.
+#' @param condition_column metadata column with the factor of interest.
 #' @param ... More arguments might be necessary.
 #' @return Dataframe of normalized(counts)
 #' @seealso [edgeR] [limma] [DESeq2] [preprocessCore] [BiocGenerics]
@@ -22,7 +23,8 @@
 #'  norm_table = normalize_counts(count_table, design = design, norm='qsmooth')
 #' }
 #' @export
-normalize_counts <- function(data, design = NULL, method = "raw", condition_column = "condition",
+normalize_counts <- function(data, design = NULL, method = "raw",
+                             condition_column = "condition",
                              ...) {
   arglist <- list(...)
   if (!is.null(arglist[["norm"]])) {
@@ -111,7 +113,7 @@ This works with: expt, ExpressionSet, data.frame, and matrices.
       },
       "sf" = {
         original_cols <- colnames(count_table)
-        conds <- design[["conditions"]]
+        conds <- design[["condition"]]
         if (is.null(conds)) {
           conds <- original_cols
         }

@@ -22,7 +22,18 @@ deseq2_pairwise(
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing data, normalization state, etc.}
+\item{input}{Dataframe/vector or expt class containing data,
+normalization state, etc.}
+
+\item{model_fstring}{Formula string describing the statistical
+model of interest.}
+
+\item{null_fstring}{Formula string describing the null model.}
+
+\item{model_svs}{Either a matrix of surrogates or character telling
+how to search for them.}
+
+\item{filter}{Filter the data before SV searching?}
 
 \item{extra_contrasts}{Provide extra contrasts here.}
 
@@ -37,19 +48,12 @@ deseq2_pairwise(
 
 \item{fittype}{Method to fir the data.}
 
+\item{num_surrogates}{Either an explicit number of method to guess
+at the number of SVs to seek.}
+
+\item{keep_underscore}{Filter out underscores from the metadata?}
+
 \item{...}{Triple dots!  Options are passed to arglist.}
-
-\item{conditions}{Factor of conditions in the experiment.}
-
-\item{batches}{Factor of batches in the experiment.}
-
-\item{model_cond}{Is condition in the experimental model?}
-
-\item{model_batch}{Is batch in the experimental model?}
-
-\item{model_intercept}{Use an intercept model?}
-
-\item{alt_model}{Provide an arbitrary model here.}
 }
 \value{
 List including the following information:

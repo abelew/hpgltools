@@ -6,6 +6,15 @@
 \usage{
 \S4method{plot_topn_gsea}{clusterprofiler_result}(gse, topn = 20, id = NULL, add_score = TRUE)
 }
+\arguments{
+\item{gse}{clusterProfiler GSEA result.}
+
+\item{topn}{Number of enrichments to plot.}
+
+\item{id}{Focus on a specific category.}
+
+\item{add_score}{Add the score to the plot.}
+}
 \description{
 Plot topn GSEA results given the result from simple_clusterprofiler
 }

@@ -253,16 +253,10 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #'
 #' @param input Dataframe/vector or expt class containing count tables,
 #'  normalization state, etc.
-#' @param conditions Factor of conditions in the experiment.
-#' @param batches Factor of batches in the experiment.
-#' @param model_cond Include condition in the model?
-#' @param model_batch Include batch in the model?  If this is a character
-#'  instead of a logical, then it is passed to all_adjusers() to attempt to find
-#'  model parameters which describe surrogate variables in the data.
-#' @param model_intercept Perform a cell-means or intercept model? A little more
-#'  difficult for me to understand.  I have tested and get the same answer
-#'  either way.
-#' @param alt_model Separate model matrix instead of the normal condition/batch.
+#' @param model_fstring Formula string describing the statistical model of interest.
+#' @param null_fstring Formula string describing the null model.
+#' @param model_svs Matrix of surrogates or method to seek them.
+#' @param filter Filter the data before seeking SVs?
 #' @param extra_contrasts Some extra contrasts to add to the list.
 #'  This can be pretty neat, lets say one has conditions A,B,C,D,E
 #'  and wants to do (C/B)/A and (E/D)/A or (E/D)/(C/B) then use this
@@ -271,12 +265,15 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #' @param annot_df Data frame for annotations.
 #' @param libsize I've recently figured out that libsize is far more important
 #'  than I previously realized.  Play with it here.
+#' @param adjust Use this p-value adjustment.
 #' @param which_voom Try out different invocations of voom.
 #' @param limma_method And different invocations of limma itself.
 #' @param limma_robust Pass along the robust args for limma?
 #' @param voom_norm Use a specific normalization for voom?
 #' @param limma_trend Include a trendline in the limma plot?
 #' @param force Force data which may not be appropriate for limma into it?
+#' @param keep_underscore Sanitize away model underscores?
+#' @param num_surrogates Explicit number of surrogates or way to find them.
 #' @param keepers Choose a set of contrasts instead of all.
 #' @param ... Use the elipsis parameter to feed options to write_limma().
 #' @return List including the following information:
@@ -459,8 +456,8 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     voom_result <- edgeR::cpm(count_mtrx, log = TRUE, prior.count = 3)
   } else if (which_voom == "none") {
     ## Then this is microarray-ish data.
-    mesg("Assuming this data is similar to a micro array and not performign voom.")
-    voom_result <- data
+    mesg("Assuming this data is similar to a microarray and not performing voom.")
+    voom_result <- count_mtrx
   } else {
     mesg("Limma step 1/5: running limma::voom(), switch with the argument 'which_voom'.")
     mesg("Using normalize.method = ", voom_norm, " for voom.")

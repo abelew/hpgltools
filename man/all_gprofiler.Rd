@@ -25,6 +25,8 @@ all_gprofiler(
 
 \item{plot_type}{Choose a plot method as the default.}
 
+\item{excel}{Output xlsx filename.}
+
 \item{...}{Arguments to pass to simple_gprofiler().}
 }
 \description{

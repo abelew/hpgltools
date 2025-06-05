@@ -5,11 +5,11 @@
 \title{Make a heatmap.3 plot, does the work for plot_disheat and plot_corheat.}
 \usage{
 plot_heatmap(
-  expt_data,
-  expt_colors = NULL,
-  expt_design = NULL,
+  input_data,
+  column_colors = NULL,
+  design = NULL,
   method = "pearson",
-  expt_names = NULL,
+  sample_names = NULL,
   type = "correlation",
   batch_row = "batch",
   plot_title = NULL,
@@ -18,16 +18,16 @@ plot_heatmap(
 )
 }
 \arguments{
-\item{expt_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, expt, or expressionset to work with.}
 
-\item{expt_colors}{Color scheme for the samples.}
+\item{column_colors}{Color scheme for the samples.}
 
-\item{expt_design}{Design matrix describing the experiment vis a vis
+\item{design}{Design matrix describing the experiment vis a vis
 conditions and batches.}
 
 \item{method}{Distance or correlation metric to use.}
 
-\item{expt_names}{Alternate names to use for the samples.}
+\item{sample_names}{Alternate names to use for the samples.}
 
 \item{type}{Defines the use of correlation, distance, or sample heatmap.}
 
