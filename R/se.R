@@ -37,13 +37,13 @@
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, include_type = "all",
+                      notes = NULL, include_type = "all", count_source = "htseq",
                       countdir = NULL, include_gff = NULL, file_column = "file",
                       file_type = NULL, id_column = NULL, handle_na = "drop",
                       researcher = "elsayed", study_name = NULL, feature_type = "gene",
-                      ignore_tx_version = TRUE,
-                      savefile = NULL, low_files = FALSE, annotation = "org.Hs.eg.db",
-                      palette = "Dark2", round = FALSE, tx_gene_map = NULL,
+                      ignore_tx_version = TRUE, savefile = NULL, low_files = FALSE,
+                      annotation = "org.Hs.eg.db", palette = "Dark2", round = FALSE,
+                      tx_gene_map = NULL,
                       ...) {
   arglist <- list(...)  ## pass stuff like sep=, header=, etc here
   if (is.null(metadata)) {
