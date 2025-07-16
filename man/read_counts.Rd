@@ -66,7 +66,7 @@ speed things along.
 }
 \examples{
 \dontrun{
- count_tables <- hpgl_read_files(as.character(sample_ids), as.character(count_filenames))
+ count_tables <- read_counts(as.character(sample_ids), as.character(count_filenames))
 }
 }
 \seealso{

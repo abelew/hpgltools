@@ -14,47 +14,51 @@
 #' txdb instance.
 #'
 #' @param accession Accession to download and import.
+#' @param db Entrez Database to query
 #' @param file Use a file instead of downloading the accession?
 #' @param sequence Download the sequence with the annotations?
-#' @param reread Re-read (download) the file from genbank.
+#' @param type Extract entries of this type.
 #' @param savetxdb Attempt saving a txdb object?
+#' @param restez_db Location of local genbank used by restez.
 #' @return List containing a txDb, sequences, and some other stuff which I
 #'  haven't yet finalized.
 #' @seealso [Biostrings] [GenomicFeatures] [genbankr::import()] [genbankr::readGenBank()]
 #' @example inst/examples/annotation_genbank.R
 #' @export
-load_genbank_annotations <- function(accession = "AE009949", file = NULL, sequence = TRUE,
-                                     reread = TRUE, savetxdb = FALSE) {
-  gbk <- NULL
-  if (!is.null(file)) {
-    gbk <- genbankr::import(file)
+load_genbank_annotations <- function(accession = "AE009949", db = "nucleotide",
+                                     file = NULL, sequence = TRUE, type = "CDS",
+                                     savetxdb = FALSE, restez_db = "/sw/local/genbank/current") {
+  restez::restez_path_set(filepath = restez_db)
+  all_ids <- restez::list_db_ids(n = NULL)
+  res <- list()
+  if (accession %in% all_ids) {
+    res <- restez::gb_record_get(accession)
   } else {
-    input_file <- glue("{accession}.gb")
-    if (!isTRUE(reread) & file.exists(input_file)) {
-      gbk <- genbankr::import(input_file)
-      ## The file exists, read it
+    res <- restez::entrez_fetch(db = db, id = accession, rettype = db)
+  }
+  data <- restez::gb_extract(record = res, what = "features")
+  ret <- data.frame()
+  hits <- 0
+  for (i in seq_along(data)) {
+    element <- data[[i]]
+    if (element[["type"]] == type) {
+      hits <- hits + 1
+      row <- as.data.frame(element)
+      if (hits == 1) {
+        ret <- row
+      } else {
+        ret <- as.data.frame(data.table::rbindlist(list(ret, row), fill = TRUE))
+      }
     } else {
-      ## Note that different versions of genbankr require somewhat different
-      ## methods of querying here.
-      mesg("Downloading accession from genbank.")
-      gba <- genbankr::GBAccession(accession)
-      mesg("Reading genbank file.")
-      gbk <- genbankr::readGenBank(gba, partial = TRUE, verbose = TRUE, ret.seq = sequence)
+      next
     }
   }
-  gbr <- try(genbankr::makeTxDbFromGenBank(gbk))
-  seq <- genbankr::getSeq(gbk)
-  others <- genbankr::otherFeatures(gbk)
-  genes <- GenomicFeatures::genes(gbk)
-  exons <- GenomicFeatures::exons(gbk)
-  cds <- GenomicFeatures::cds(gbk)
-  ret <- list(
-      "others" = others,
-      "exons" = exons,
-      "cds" = cds,
-      "genes" = genes,
-      "txdb" = gbr,
-      "seq" = seq)
+  if (!is.null(ret[["location"]]) && is.null(ret[["start"]])) {
+    ret[["start"]] <- gsub(x = ret[["location"]], pattern = "^([[:digit:]]+).*$",
+                           replacement = "\\1")
+    ret[["end"]] <- gsub(x = ret[["location"]], pattern = "^.*\\.\\.([[:digit:]]+)$",
+                         replacement = "\\1")
+  }
   return(ret)
 }
 

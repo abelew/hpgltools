@@ -33,9 +33,11 @@ or species name and does its best to find the appropriate uniprot data.  This
 is therefore primarily used by load_uniprot_annotations().
 }
 \examples{
- uniprot_sc_downloaded <- load_uniprot_annotations(species = "Saccharomyces cerevisiae S288c")
- uniprot_sc_downloaded$filename
- uniprot_sc_downloaded$species
+uniprot_sc <- load_uniprot_annotations(species = "Saccharomyces cerevisiae S288c")
+head(uniprot_sc)
+
+uniprot_go <- load_uniprot_go(species = "Saccharomyces cerevisiae S288c")
+head(uniprot_go)
 }
 \seealso{
 [xml2] [rvest]

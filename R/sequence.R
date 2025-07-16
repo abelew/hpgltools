@@ -466,6 +466,84 @@ setMethod(
     get_inter_txdb(txdb)
   })
 
+#' Find how many times a given pattern occurs in every gene of a genome.
+#'
+#' There are times when knowing how many times a given string appears in a
+#' genome/CDS is helpful. This function provides that information and is
+#' primarily used by cp_seq_m().
+#'
+#' This is once again a place where mcols() usage might improve the overall
+#' quality of life.
+#'
+#' @param fasta Genome sequence.
+#' @param gff Gff of annotation information from which to acquire CDS (if not
+#'  provided it will just query the entire genome).
+#' @param pattern What to search for? This was used for tnseq and TA is the
+#'  mariner insertion point.
+#' @param type Column to use in the gff file.
+#' @param id_col Column containing the gene IDs.
+#' @param key What type of entry of the gff file to key from?
+#' @return Data frame of gene names and number of times the pattern appears/gene.
+#' @seealso [Biostrings] [Rsamtools::FaFile()] [Biostrings::PDict()]
+#' @examples
+#'  pa_data <- get_paeruginosa_data()
+#'  pa_fasta <- pa_data[["fasta"]]
+#'  pa_gff <- pa_data[["gff"]]
+#'  ta_count <- pattern_count_genome(pa_fasta, pa_gff)
+#'  head(ta_count)
+#' @export
+pattern_count_genome <- function(fasta, gff = NULL, pattern = "TA",
+                                 type = "gene", id_col = "ID", key = NULL) {
+  rawseq <- Rsamtools::FaFile(fasta)
+  if (is.null(key)) {
+    key <- c("ID", "locus_tag")
+  }
+  if (is.null(gff)) {
+    entry_sequences <- Biostrings::getSeq(rawseq)
+  } else {
+    ## Note, I use import.gff here instead of import.gff3 or one of
+    ## the other more sensible functions because import.gff sets the
+    ## seqnames to match the chromosome; I have not figured out how to
+    ## do that properly using import.gff3 without some annoying shenanigans.
+    entries <- rtracklayer::import.gff(gff)
+    meta <- mcols(entries)
+    wanted <- meta[["type"]] == type
+    ## keep only the ones of the type of interest (gene).
+    type_entries <- entries[wanted, ]
+    ## Get the sequence from the genome for them.
+    entry_sequences <- Biostrings::getSeq(rawseq, type_entries)
+    tmp_entries <- as.data.frame(type_entries)
+    ## Give them some sensible names
+    for (k in key) {
+      if (!is.null(tmp_entries[[k]])) {
+        names(entry_sequences) <- tmp_entries[[k]]
+      }
+    }
+  }
+  dict <- Biostrings::PDict(pattern, max.mismatch = 0)
+  result <- Biostrings::vcountPDict(dict, entry_sequences)
+  num_pattern <- data.frame(
+      "name" = names(entry_sequences),
+      "num" = as.data.frame(t(result)),
+      stringsAsFactors = FALSE)
+  colnames(num_pattern) <- c("name", "number")
+  class(num_pattern) <- "pattern_counted"
+  return(num_pattern)
+}
+
+#' Print some information about a pattern counted genome
+#'
+#' @param x Dataframe containing how many instances of the pattern
+#'  were observed in every gene.
+#' @param ... Other args to match the generic.
+#' @export
+print.pattern_counted <- function(x, ...) {
+  summary_string <-
+    glue("The pattern was observed {sum(x[['number']])} times ober {nrow(x)} genes.")
+  message(summary_string)
+  return(invisible(x))
+}
+
 #' Gather some simple sequence attributes.
 #'
 #' This extends the logic of the pattern searching in pattern_count_genome() to

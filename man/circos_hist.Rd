@@ -19,7 +19,8 @@ circos_hist(
   orientation = "out",
   outer = 0.9,
   width = 0.08,
-  spacing = 0
+  spacing = 0,
+  df_merge_column = "row.names"
 )
 }
 \arguments{
@@ -54,6 +55,8 @@ arbitrary dataframe of other annotation information.}
 \item{width}{Radial width of each tile.}
 
 \item{spacing}{Distance between outer, inner, and inner to whatever follows.}
+
+\item{df_merge_column}{Merge the annotations/data on this columns.}
 }
 \value{
 Radius after adding the histogram and the spacing.

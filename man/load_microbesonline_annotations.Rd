@@ -28,8 +28,35 @@ annoying to download. This function makes that rather easier, or so I hope at
 least.
 }
 \examples{
- pa14_microbesonline_annot <- load_microbesonline_annotations(species = "PA14")
- colnames(pa14_microbesonline_annot)
+## On those relatively rare occasions when the internet is being
+## cranky, these tests will most certainly fail.
+
+## Get the numeric ID from microbesonline for a species of interest.
+## When microbesonline is under maintenance/etc this fails.
+ecoli_id <- try(get_microbesonline_taxid(species = "S88"))
+ecoli_id
+
+if (! "try-error" \%in\% class(ecoli_id)) {
+  ## Download a genbank/fasta/etc file for that species.
+  ecoli_files <- try(download_microbesonline_files(id = ecoli_id, type = "gbk"))
+  ecoli_files
+  if (! "try-error" \%in\% class(ecoli_files)) {
+    removed <- file.remove(ecoli_files[["gbk"]])
+  }
+
+  ## Download a species annotations to a dataframe
+  ecoli_annot <- try(load_microbesonline_annotations(id = ecoli_id))
+  if (! "try-error" \%in\% class(ecoli_annot)) {
+    dim(ecoli_annot)
+    colnames(ecoli_annot)
+  }
+
+  ## Get gene ontology data from microbesonline
+  ecoli_go <- try(load_microbesonline_go(id = ecoli_id))
+  if (! "try-error" \%in\% class(ecoli_go)) {
+    dim(ecoli_go)
+  }
+}
 }
 \seealso{
 [rvest] [xml2] [readr]

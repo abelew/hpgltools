@@ -10,7 +10,7 @@
 #' @param gff Input gff file.
 #' @param type Feature type to extract.
 #' @param type_column Tag from the gff file to use when extracting the type.
-#' @example inst/examples_annotation_gff.R
+#' @example inst/examples/annotation_gff.R
 #' @return GRanges represenatation of the gff portion of interest.
 #' @export
 gff2gr <- function(gff, type = NULL, type_column = "type") {

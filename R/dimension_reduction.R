@@ -762,7 +762,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     message("Using ", batch_column, " as the batch column in the experimental design.")
   }
   if (!is.null(arglist[["base_size"]])) {
-    base_size <<- arglist[["base_size"]]
+    base_size <- arglist[["base_size"]]
   }
 
   ## The following if() series is used to check the type of data provided and
@@ -1863,7 +1863,7 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
                      x_label = NULL, y_label = NULL, plot_size = 5, outlines = TRUE,
                      plot_alpha = NULL, size_column = NULL, rug = TRUE, max_overlaps = 20,
                      cis = c(0.95, 0.9), ellipse_type = "t", ellipse_geom = "polygon",
-                     label_size = 4, ...) {
+                     label_size = 5, ...) {
   arglist <- list(...)
   batches <- pca_data[["batch"]]
   if (class(batches)[1] != "factor") {
@@ -2079,6 +2079,9 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
     pca_plot <- pca_plot + ggplot2::geom_rug(colour = "gray50", alpha = 0.7)
   }
 
+  if (isTRUE(plot_labels)) {
+    plot_labels <- "repel"
+  }
   if (is.null(plot_labels)) {
     plot_labels <- "repel"
   }
@@ -2100,7 +2103,7 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
       directlabels::geom_dl(aes(label = .data[["labels"]]), method = "smart.grid")
   } else {
     pca_plot <- pca_plot +
-      directlabels::geom_dl(aes(label = .data[["labels"]]), method = "first.qp")
+      directlabels::geom_dl(aes(label = .data[["labels"]]))
   }
 
   legend_position <- "right"

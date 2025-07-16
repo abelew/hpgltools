@@ -189,44 +189,54 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
     stop("This accepts only 'edger' or 'deseq'.")
   }
   ## FIXME: Do this via dispatch
+  genes <- NULL
   exprs_mtrx <- matrix()
   if (is.null(mtrx)) {
     exprs_mtrx <- exprs(de_tables[["input"]][["input"]])
+  } else if ("matrix" %in% class(mtrx)) {
+    exprs_mtrx <- mtrx
   } else {
     exprs_mtrx <- exprs(mtrx)
   }
+  genes <- nrow(exprs_mtrx)
   datum <- NULL
+  contrasts <- NULL
+  tables <- NULL
   if (is.null(de)) {
-    datum <- de_tables[["input"]][[de_method]]
+    datum <- de_tables[["data"]][[de_method]]
+    contrasts <- as.character(de_tables[["table_names"]])
+    tables <- datum[["all_tables"]]
+  } else if ("deseq_pairwise" %in% class(de_tables)) {
+    datum <- de_tables
+    contrasts <- names(de_tables[["all_tables"]])
+    tables <- datum[["all_tables"]]
   } else {
     datum <- de[[de_method]]
+    contrasts <- as.character(de_tables[["table_names"]])
+    tables <- de_tables[["all_tables"]]
   }
 
-  genes <- nrow(de_tables[["data"]][[1]])
-  contrasts <- as.character(de_tables[["table_names"]])
+  numerators <- c()
+  denominators <- c()
+  for (con in contrasts) {
+    pair <- strsplit(con, "_vs_")
+    numerators <- c(numerators, paste0("condition", pair[[1]][1]))
+    denominators <- c(denominators, paste0("condition", pair[[1]][2]))
+  }
+
   result_list <- list()
   ## For the moment this will hard-assume edger, but should be trivially changed for the others.
+  model_used <- datum[["model"]]
+  all_samples <- rownames(model_used)
   count <- 0
-  for (con in contrasts) {
-    invertedp <- grepl(x = con, pattern = "-inverted$")
-    short <- gsub(x = con, pattern = "-inverted$", replacement = "")
-    invert_con <- short
-    used <- short
-    if (isTRUE(invertedp)) {
-      invert_con <- gsub(x = short, pattern = "^(\\w+)_vs_(\\w+)", replacement = "\\2_vs_\\1")
-    }
-    count <- count + 1
-    samples <- datum[["contrast_list"]][[short]]
-    if (is.null(samples)) {
-      used <- invert_con
-      samples <- datum[["contrast_list"]][[invert_con]]
-    }
-    model <- datum[["model"]]
-    used_levels_idx <- samples != 0
-    used_levels <- rownames(samples)[used_levels_idx]
-    all_samples <- rownames(model)
-    used_samples_idx <- rowSums(model[, used_levels]) > 0
-    used_samples <- all_samples[used_samples_idx]
+  for (con_num in seq_along(contrasts)) {
+    ## cheesing out with a paste0 for now.
+    num <- numerators[con_num]
+    den <- denominators[con_num]
+    used_num_sample_idx <- model_used[, num] != 0
+    used_den_sample_idx <- model_used[, den] != 0
+    used_sample_idx <- used_num_sample_idx | used_den_sample_idx
+    used_samples <- all_samples[used_sample_idx]
     used_mtrx <- exprs_mtrx[, used_samples]
     sample_coverages <- NULL
     all_coverage <- NULL
@@ -248,7 +258,6 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
         x_intercept <- adder + ((all_coverage - cutoffs[adder]) / cutoff)
       }
     }
-
     message("Working on contrast ", count, "/", clen, ": ", con, ".")
     simulation_options <- list(
       "ngenes" = genes,
@@ -260,9 +269,9 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
       simulation_options[["lOD"]] = log2(datum[["lrt"]][[used]][["dispersion"]])
       simulation_options[["lfc"]] = datum[["all_tables"]][[used]][["logFC"]]
     } else {
-      simulation_options[["lBaselineExpr"]] = datum[["all_tables"]][[used]][["baseMean"]]
-      simulation_options[["lOD"]] = datum[["all_tables"]][[used]][["lfcSE"]]
-      simulation_options[["lfc"]] = datum[["all_tables"]][[used]][["logFC"]]
+      simulation_options[["lBaselineExpr"]] = tables[[used]][["baseMean"]]
+      simulation_options[["lOD"]] = tables[[used]][["lfcSE"]]
+      simulation_options[["lfc"]] = tables[[used]][["logFC"]]
     }
 
     simulation_result <- my_runsims(Nreps = reps,
@@ -431,16 +440,22 @@ print.proper_estimate <- function(x, ...) {
 update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 
 #' Another hidden function from PROPER
+#'
+#' @param dat Input data
 #' @importFrom edgeR
 #'  DGEList calcNormFactors estimateCommonDisp estimateTagwiseDisp
 #'  exactTest topTags
 run.edgeR <- "PROPER" %:::% "run.edgeR"
 
-#' PROPER uses this privately but really make it available I think.
+#' PROPER uses this privately but should make it available I think.
+#'
+#' @param dat Input data
 #' @importFrom DSS newSeqCountSet estNormFactors estDispersion waldTest
 run.DSS <- "PROPER" %:::% "run.DSS"
 
 #' PROPER uses this function privately, but should not.
+#'
+#' @param dat Input data
 #' @importFrom DESeq2 DESeqDataSetFromMatrix results
 #' @importFrom S4Vectors DataFrame
 run.DESeq2 <- "PROPER" %:::% "run.DESeq2"

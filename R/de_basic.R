@@ -133,9 +133,10 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     t_data <- vector("list", nrow(xdata))
     p_data <- vector("list", nrow(xdata))
     for (j in seq_len(nrow(xdata))) {
-      test_result <- try(stats::wilcox.test(x = as.numeric(xdata[j, ]),
-                                     y = as.numeric(ydata[j, ]), alternative = "two.sided"),
-                         silent = TRUE)
+      test_result <- try(suppressWarnings(
+        stats::wilcox.test(x = as.numeric(xdata[j, ]), y = as.numeric(ydata[j, ]),
+                           exact = FALSE, alternative = "two.sided")),
+        silent = TRUE)
       if (class(test_result) == "htest") {
         t_data[[j]] <- test_result[[1]]
         p_data[[j]] <- test_result[[3]]

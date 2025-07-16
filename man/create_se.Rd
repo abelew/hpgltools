@@ -13,12 +13,10 @@ create_se(
   title = NULL,
   notes = NULL,
   include_type = "all",
+  count_source = "htseq",
   countdir = NULL,
   include_gff = NULL,
   file_column = "file",
-  id_column = NULL,
-  researcher = "elsayed",
-  study_name = NULL,
   file_type = NULL,
   id_column = NULL,
   handle_na = "drop",
@@ -52,13 +50,14 @@ create_se(
 
 \item{include_type}{Used to specify types of genes/annotations to use.}
 
+\item{count_source}{Explicitly specify the method used to create the text table.}
+
 \item{countdir}{(deprecated) Directory containing count tables.}
 
 \item{include_gff}{Keep a copy of the gff with the data?}
 
 \item{file_column}{Metadata column containing the counts for each sample.}
 
-<<<<<<< HEAD
 \item{file_type}{Force a specific source of count data instead
 of autodetecting it.}
 
@@ -75,10 +74,6 @@ of autodetecting it.}
 \item{ignore_tx_version}{tximport can strictly match transcript/gene
 versions, or not.}
 
-=======
-\item{id_column}{Non-default column containing the sample IDs.}
-
->>>>>>> refs/remotes/origin/main
 \item{savefile}{Filename to which to save a rda file of the data structure.}
 
 \item{low_files}{I don't remember this, I bet it is deprecated.}

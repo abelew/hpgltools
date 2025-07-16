@@ -80,7 +80,7 @@ setMethod(
   "concatenate_runs", signature(expt = "SummarizedExperiment", column = "character"),
   definition = function(expt, column = "replicate") {
     design <- colData(expt)
-    message("The original expressionset has ", nrow(design), " samples.")
+    message("The original SE has ", nrow(design), " samples.")
     replicates <- levels(as.factor(design[[column]]))
     final_expt <- expt
     final_data <- NULL
@@ -98,7 +98,7 @@ setMethod(
       final_data <- cbind(final_data, tmp_data)
       final_design <- rbind(final_design, tmp_design)
       column_names[[rep]] <- as.character(tmp_design[, "sampleid"])
-      colors[[rep]] <- as.character(colors(sub)[1])
+      colors[[rep]] <- as.character(get_colors(sub)[1])
       batches[[rep]] <- as.character(batches(sub)[1])
       conditions[[rep]] <- as.character(conditions(sub)[1])
       samplenames[[rep]] <- paste(conditions[[rep]], batches[[rep]], sep = "-")
@@ -113,6 +113,6 @@ setMethod(
                                        colData = as.data.frame(final_design),
                                        rowData = as.data.frame(rowData(expt)))
     colors(experiment) <- colors
-    message("The final expressionset has ", nrow(colData(experiment)), " samples.")
+    message("The final SE has ", nrow(colData(experiment)), " samples.")
     return(experiment)
   })

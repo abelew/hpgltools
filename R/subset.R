@@ -39,10 +39,12 @@ setMethod(
 #'
 #' @param x an expt
 #' @param i Column to extract
+#' @param j not sure
+#' @param ... extra args.
 #' @export
 setMethod(
   "[[", signature = c(x = "expt", i = "ANY"),
-  definition = function(x, i) {
+  definition = function(x, i, j, ...) {
     pData(x)[[i]]
   })
 
@@ -65,10 +67,11 @@ setMethod(
 #' @param i Column to extract
 #' @param j not sure
 #' @param ... extra arguments.
+#' @param value new value
 #' @export
 setReplaceMethod(
   "[[", c("expt", "ANY", "missing"),
   function(x, i, j, ..., value) {
     pData(x)[[i, ...]] <- value
-    x
+    return(x)
   })

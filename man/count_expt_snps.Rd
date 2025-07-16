@@ -7,7 +7,6 @@
 count_expt_snps(
   expt,
   annot_column = "bcftable",
-  tolower = TRUE,
   snp_column = NULL,
   numerator_column = "PAO",
   denominator_column = "DP",
@@ -21,8 +20,6 @@ count_expt_snps(
 \item{annot_column}{Column in the metadata for getting the table of
 bcftools calls.}
 
-\item{tolower}{Lowercase stuff like 'HPGL'?}
-
 \item{snp_column}{Which column of the parsed bcf table contains our
 interesting material?}
 
@@ -35,6 +32,8 @@ denominator of a proportion.}
 \item{reader}{Method to read the data, readr or read.table.}
 
 \item{verbose}{Be verbose?}
+
+\item{tolower}{Lowercase stuff like 'HPGL'?}
 }
 \value{
 A new expt object

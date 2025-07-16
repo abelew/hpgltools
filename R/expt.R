@@ -37,9 +37,7 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
   exp1 <- expt1[["expressionset"]]
   exp2 <- expt2[["expressionset"]]
   fData(exp2) <- fData(exp1)
-
   ##testthat::expect_equal(rownames(exprs(exp1)), rownames(exprs(exp2)))
-
   if (isTRUE(merge_meta)) {
     design1 <- pData(exp1)
     d1_rows <- seq_len(nrow(design1))
@@ -123,7 +121,6 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
     shared_second_ids <- rownames(exprs(expt1))[found_second]
     expt1 <- subset_genes(expt1, ids = shared_second_ids, method = "keep")
   }
-
   return(expt1)
 }
 
@@ -180,34 +177,8 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
 #' @seealso [Biobase] [cdm_expt_rda] [example_gff] [sb_annot] [sb_data] [extract_metadata()]
 #'  [set_expt_conditions()] [set_expt_batches()] [set_expt_samplenames()] [subset_expt()]
 #'  [set_expt_colors()] [set_expt_genenames()] [tximport] [load_annotations()]
+#' @example inst/examples/expt.R
 #' @examples
-#'  cdm_expt_rda <- system.file("share", "cdm_expt.rda", package = "hpgldata")
-#'  load(file = cdm_expt_rda)
-#'  head(cdm_counts)
-#'  head(cdm_metadata)
-#'  ## The gff file has differently labeled locus tags than the count tables, also
-#'  ## the naming standard changed since this experiment was performed, therefore I
-#'  ## downloaded a new gff file.
-#'  example_gff <- system.file("share", "gas.gff", package = "hpgldata")
-#'  gas_gff_annot <- load_gff_annotations(example_gff)
-#'  rownames(gas_gff_annot) <- make.names(gsub(pattern = "(Spy)_", replacement = "\\1",
-#'                                             x = gas_gff_annot[["locus_tag"]]), unique = TRUE)
-#'  mgas_expt <- create_expt(metadata = cdm_metadata, gene_info = gas_gff_annot,
-#'                           count_dataframe = cdm_counts)
-#'  head(pData(mgas_expt))
-#'  ## An example using count tables referenced in the metadata.
-#'  sb_annot <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
-#'  sb_annot <- load_trinotate_annotations(trinotate = sb_annot)
-#'  sb_annot <- as.data.frame(sb_annot)
-#'  rownames(sb_annot) <- make.names(sb_annot[["transcript_id"]], unique = TRUE)
-#'  sb_annot[["rownames"]] <- NULL
-#'  sb_data <- system.file("share", "sb", "preprocessing.tar.xz", package = "hpgldata")
-#'  untarred <- utils::untar(tarfile = sb_data)
-#'  sb_expt <- create_expt(metadata = "preprocessing/kept_samples.xlsx",
-#'                         gene_info = sb_annot)
-#'  dim(exprs(sb_expt))
-#'  dim(fData(sb_expt))
-#'  pData(sb_expt)
 #'  ## There are lots of other ways to use this, for example:
 #'  \dontrun{
 #'   new_experiment <- create_expt(metadata = "some_csv_file.csv", gene_info = gene_df)
@@ -843,7 +814,6 @@ synchronize_expt <- function(expt, previous = NULL, ...) {
       expt[["tximport"]][["scaled"]][["length"]] <- df
     }
   }
-
   if (!is.null(arglist[["researcher"]])) {
     expt[["researcher"]] <- arglist[["researcher"]]
   }
@@ -859,7 +829,6 @@ synchronize_expt <- function(expt, previous = NULL, ...) {
   if (!is.null(arglist[["study"]])) {
     expt[["study"]] <- arglist[["study"]]
   }
-
   return(expt)
 }
 
@@ -888,11 +857,7 @@ features_less_than <- function(...) {
 #' @return A list of two elements, the first comprised of the number of genes
 #'   greater than the cutoff, the second with the identities of said genes.
 #' @seealso [Biobase]
-#' @examples
-#' \dontrun{
-#'  features <- features_greater_than(expt)
-#'  fewer <- features_greater_than(expt, cutoff = 100)
-#' }
+#' @example inst/examples/expt.R
 #' @export
 features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE) {
   if ("expt" %in% class(data) ||
@@ -945,10 +910,7 @@ features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE
 #' @param chosen Either choose a subset or all conditions to query.
 #' @return A set of features.
 #' @seealso [subset_expt()]
-#' @examples
-#'  \dontrun{
-#'   unique_genes
-#' }
+#' @example inst/examples/expt.R
 #' @export
 features_in_single_condition <- function(expt, cutoff = 2, factor = "condition", chosen = NULL) {
   condition_set <- levels(as.factor(pData(expt)[[factor]]))
@@ -1096,10 +1058,7 @@ mean_by_factor <- function(data, fact = "condition") {
 #' @param fun Optionally choose mean or another function.
 #' @return Data frame of the medians.
 #' @seealso [Biobase] [matrixStats]
-#' @examples
-#' \dontrun{
-#'  compressed = median_by_factor(data, experiment$condition)
-#' }
+#' @example inst/examples/expt.R
 #' @export
 median_by_factor <- function(data, fact = "condition", fun = "median") {
   if (length(fact) == 1) {
@@ -1218,6 +1177,7 @@ median_by_factor <- function(data, fact = "condition", fun = "median") {
 #' @param host ensembl host to query.
 #' @return Expressionset/expt of fission.
 #' @seealso [fission] [create_expt()]
+#' @example inst/examples/create_pombe.R
 #' @export
 make_pombe_expt <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org") {
   fission <- new.env()
@@ -1292,7 +1252,7 @@ make_pombe_expt <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org
 #' @seealso [data.table] [create_expt()] [tximport]
 #' @examples
 #' \dontrun{
-#'  count_tables <- hpgl_read_files(as.character(sample_ids), as.character(count_filenames))
+#'  count_tables <- read_counts(as.character(sample_ids), as.character(count_filenames))
 #' }
 #' @export
 read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
@@ -1649,6 +1609,7 @@ sanitize_expt <- function(expt, keep_underscore = TRUE, factors = c("condition",
 #' @param semantic_column Column in the annotations to search.
 #' @return A presumably smaller expt.
 #' @seealso [Biobase]
+#' @example inst/examples/expt.R
 #' @export
 semantic_expt_filter <- function(input, invert = FALSE, topn = NULL,
                                  semantic = c("mucin", "sialidase", "RHS", "MASP", "DGF", "GP63"),
@@ -1732,11 +1693,7 @@ semantic_expt_filter <- function(input, invert = FALSE, topn = NULL,
 #' @param print_excluded Print out the samples which are removed via this filter?
 #' @return metadata Expt class which contains the smaller set of data.
 #' @seealso [Biobase] [pData()] [exprs()] [fData()]
-#' @examples
-#' \dontrun{
-#'  smaller_expt <- expt_subset(big_expt, "condition=='control'")
-#'  all_expt <- expt_subset(expressionset, "")  ## extracts everything
-#' }
+#' @example inst/examples/expt.R
 #' @export
 subset_expt <- function(expt, subset = NULL, ids = NULL,
                         nonzero = NULL, coverage = NULL,
@@ -1943,90 +1900,6 @@ setMethod(
               print_excluded = print_excluded)
   })
 
-#' Try a very literal subtraction
-#'
-#' @param expt Input expressionset.
-#' @param new_meta dataframe containing the new metadata.
-#' @param sample_column Column in the sample sheet to use to acquire the sample IDs given the
-#'  subtractions.
-#' @param convert_state Expected state of the input data vis a vis conversion (rpkm/cpm).
-#' @param transform_state Expected state of the input data vis a vis transformation (log/linear).
-#' @param handle_negative Set negative subtracted values to zero?
-#' @param savefile Save the new expt data to this file.
-#' @param ... Parameters to pass to normalize_expt()
-#' @return New expt
-#' @export
-subtract_expt <- function(expt, new_meta, sample_column = "sample",
-                          convert_state = "cpm", transform_state = "raw",
-                          handle_negative = "zero", savefile = "subtracted.rda",
-                          ...) {
-  arglist <- list(...)
-  if (expt[["state"]][["conversion"]] != convert_state) {
-    expt <- normalize_expt(expt, convert = convert_state)
-  }
-  if (expt[["state"]][["transform"]] != transform_state) {
-    expt <- normalize_expt(expt, transform = transform_state)
-  }
-
-  meta <- pData(expt)
-  mtrx <- as.data.frame(exprs(expt))
-  samples <- colnames(mtrx)
-  new_exprs <- data.frame(row.names = rownames(mtrx))
-  new_pdata <- data.frame()
-  sub_names <- rownames(new_meta)
-  for (s in seq_len(nrow(new_meta))) {
-    sub_name <- sub_names[s]
-    numerator <- new_meta[sub_name, "numerator"]
-    denominator <- new_meta[sub_name, "denominator"]
-    s1_idx <- meta[[sample_column]] == numerator
-    s1 <- samples[s1_idx]
-    s2_idx <- meta[[sample_column]] == denominator
-    s2 <- samples[s2_idx]
-    if (sum(s1_idx) != 1) {
-      stop("Do not have 1 sample for subtraction: ", sub_name, ", ", numerator, "." )
-    }
-    if (sum(s2_idx) != 1) {
-      stop("Do not have 1 sample for subtraction: ", sub_name, ", ", denominator, ".")
-    }
-    new_exprs[[sub_name]] <- mtrx[[s1]] - mtrx[[s2]]
-    new_pdatum <- meta[s1, ]
-    new_pdatum[["condition"]] <- new_meta[s, "condition"]
-    new_pdatum[["batch"]] <- new_meta[s, "batch"]
-    new_pdatum[["numerator"]] <- numerator
-    new_pdatum[["denominator"]] <- denominator
-    new_pdata <- rbind(new_pdata, new_pdatum)
-  }
-  rownames(new_pdata) <- sub_names
-  colnames(new_exprs) <- sub_names
-
-  negative_idx <- new_exprs < 0
-  negative_pct <- (sum(negative_idx) / (nrow(new_exprs) * ncol(new_exprs))) * 100.0
-  message("There are ", sum(negative_idx), " elements which are less than 0, (",
-          signif(negative_pct, 3), "%)")
-  if (is.null(handle_negative)) {
-    message("Leaving negative values alone.")
-  } else if (handle_negative[1] == "zero") {
-    message("Setting negative values to zero.")
-    new_exprs[negative_idx] <- 0
-  } else if (handle_negative[1] == "na") {
-    message("Setting negative values to NA.")
-    new_exprs[negative_idx] <- NA
-  } else {
-    message("I do not understand this option, leaving negative values alone.")
-  }
-
-  new_pdata[["subtracted_samplenames"]] <- sub_names
-  ## Now add the number of negative values observed.
-  new_pdata[["negative_values"]] <- colSums(negative_idx)
-  new_expt <- sm(create_expt(metadata = as.data.frame(new_pdata),
-                             gene_info = fData(expt),
-                             count_dataframe = as.matrix(new_exprs),
-                             savefile = savefile,
-                             id_column = "subtracted_samplenames"))
-  new_expt[["na_values"]] <- as.data.frame(negative_idx)
-  return(new_expt)
-}
-
 #' I want an easy way to sum counts in eupathdb-derived data sets.
 #' These have a few things which should make this relatively easy.
 #' Notably: The gene IDs look like: "exon_ID-1 exon_ID-2 exon_ID-3"
@@ -2063,6 +1936,7 @@ sum_eupath_exon_counts <- function(counts) {
 #' @param transform and transformation,
 #' @param norm and normalization.
 #' @return Slightly modified gene annotations including the mean/variance.
+#' @example inst/examples/expt.R
 #' @export
 variance_expt <- function(expt, convert = "cpm", transform = "raw", norm = "raw") {
   start <- normalize_expt(expt, convert = convert,
@@ -2125,10 +1999,7 @@ variance_expt <- function(expt, convert = "cpm", transform = "raw", norm = "raw"
 #' @param ... Parameters passed down to methods called here (graph_metrics, etc).
 #' @return A big honking excel file and a list including the dataframes and images created.
 #' @seealso [openxlsx] [Biobase] [normalize_expt()] [graph_metrics()]
-#' @examples
-#' \dontrun{
-#'  excel_sucks <- write_expt(expt)
-#' }
+#' @example inst/examples/expt.R
 #' @export
 write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
                        violin = TRUE, sample_heat = NULL, convert = "cpm", transform = "log2",
@@ -2595,7 +2466,6 @@ write_expt <- function(expt, excel = "excel/pretty_counts.xlsx", norm = "quant",
                                  convert = convert, batch = batch,
                                  filter = actual_filter,
                                  ...))
-
   norm_reads <- exprs(norm_data)
   info <- fData(norm_data)
   read_info <- merge(norm_reads, info, by = "row.names")

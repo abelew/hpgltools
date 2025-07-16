@@ -339,7 +339,8 @@ make_quartile_factor <- function(numeric_vector) {
 #' @return Factor with levels from q1 to q4.
 #' @export
 make_ntile_factor <- function(numeric_vector, n) {
-  new_factor <- as.factor(paste0("n", dplyr::ntile(numeric_vector), n))
+  ntiles <- dplyr::ntile(numeric_vector, n)
+  new_factor <- as.factor(paste0("n", ntiles))
   return(new_factor)
 }
 

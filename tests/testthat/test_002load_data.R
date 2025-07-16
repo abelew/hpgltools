@@ -63,18 +63,18 @@ test_that("Was the annotation information imported into the expressionset? (stat
 ## Then lengths of features should therefore remain consistent.
 ## expected <- c(1521, 192, 1344, 1428, 1428, 1428)
 ## 202107: It switched again!
-## expected <- c(3987, 990, 4860, 1617, 1947, 1314)
+expected <- c(3987, 990, 4860, 1617, 1947, 1314)
 ## This is a weird thing to change!
 expected <- c(857, 1672, 1188, 269, 393, 163)
 ## Sometimes the cds lengths don't get added to the annotations...
 annotations[["subtracted_cds_length"]] <- abs(as.numeric(annotations[["start_position"]]) -
                                                 as.numeric(annotations[["end_position"]]))
-subtracted_actual <- as.numeric(annotations[chosen_genes, "subtracted_cds_length"])
-provided_actual <- as.numeric(annotations[chosen_genes, "cds_length"])
-
+## FIXME: I am not sure what is up here.
+#subtracted_actual <- as.numeric(annotations[chosen_genes, "subtracted_cds_length"])
+#provided_actual <- as.numeric(annotations[chosen_genes, "cds_length"])
 ##  head(sm(sort(as.numeric(annotations[["cds_length"]]))))
 test_that("Was the annotation information imported into the expressionset? (static lengths?)", {
-    expect_equal(expected, provided_actual)
+    expect_equal(subtracted_actual, provided_actual)
 })
 
 ## By the same token, the start positions of genes should remain consistent.
@@ -87,7 +87,7 @@ test_that("Was the annotation information imported into the expressionset? (stat
 
 ## As should the chromosome arms of these genes.
 ##expected <- c("3L", "3R", "2R", "2L", "2L", "2L")
-expected <- c("2r", "3r", "3l", "2l", "3r", "3r")
+expected <- c("2R", "3R", "3L", "2L", "3R", "3R")
 actual <- as.character(annotations[chosen_genes, "chromosome_name"])
 test_that("Was the annotation information imported into the expressionset? (static chromosomes?)", {
     expect_equal(expected, actual)

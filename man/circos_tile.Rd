@@ -17,7 +17,8 @@ circos_tile(
   orientation = "out",
   outer = 0.9,
   width = 0.08,
-  spacing = 0
+  spacing = 0,
+  df_merge_column = "row.names"
 )
 }
 \arguments{
@@ -49,6 +50,8 @@ categorical data.}
 
 \item{spacing}{Radial distance between outer, inner, and inner to whatever
 follows.}
+
+\item{df_merge_column}{Merge the annotations/data on this columns.}
 }
 \value{
 Radius after adding the histogram and the spacing.

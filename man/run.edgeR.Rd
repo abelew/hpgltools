@@ -6,6 +6,9 @@
 \usage{
 run.edgeR(dat)
 }
+\arguments{
+\item{dat}{Input data}
+}
 \description{
 Another hidden function from PROPER
 }

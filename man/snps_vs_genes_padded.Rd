@@ -7,13 +7,13 @@
 snps_vs_genes_padded(
   expt,
   snp_result,
-  start_col = "start",
+  start_column = "start",
   end_col = "end",
-  strand_col = "strand",
+  strand_column = "strand",
   padding = 200,
   normalize = TRUE,
-  snp_name_col = "seqnames",
-  expt_name_col = "chromosome",
+  snp_name_column = "seqnames",
+  chr_column = "chromosome",
   observed_in = NULL,
   ignore_strand = TRUE
 )
@@ -23,23 +23,23 @@ snps_vs_genes_padded(
 
 \item{snp_result}{The result from get_snp_sets().}
 
-\item{start_col}{Which column provides the start of each gene?}
-
 \item{end_col}{and the end column of each gene?}
-
-\item{strand_col}{Define strands.}
 
 \item{padding}{Add this amount to each CDS.}
 
 \item{normalize}{Normalize the returns to the length of the putative CDS.}
 
-\item{snp_name_col}{Name of the column in the metadata with the sequence names.}
-
-\item{expt_name_col}{Name of the metadata column with the chromosome names.}
-
 \item{observed_in}{Print some information about how many variants were observed.}
 
 \item{ignore_strand}{Ignore the strand information when returning?}
+
+\item{start_col}{Which column provides the start of each gene?}
+
+\item{strand_col}{Define strands.}
+
+\item{snp_name_col}{Name of the column in the metadata with the sequence names.}
+
+\item{expt_name_col}{Name of the metadata column with the chromosome names.}
 }
 \value{
 List with some information by gene.

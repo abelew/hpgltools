@@ -19,7 +19,8 @@ circos_heatmap(
   outer = 0.9,
   rules = NULL,
   width = 0.08,
-  spacing = 0.02
+  spacing = 0.02,
+  df_merge_column = "row.names"
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ respect to the values in the data.}
 \item{width}{Width of each tile in the heatmap.}
 
 \item{spacing}{Radial distance between outer, inner, and inner to whatever follows.}
+
+\item{df_merge_column}{Merge the annotations/data on this columns.}
 }
 \value{
 Radius after adding the histogram and the spacing.

@@ -489,9 +489,9 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     ## 2020 04: Adding a pvalue cutoff argument causes an error, I do not know why.
     ## Arguments used by gseGO of interest: exponent, minGSSize/maxGSSize, eps, by(fgsea)
     ## Also, apparently the nperm argument is deprecated.
-    gse <- suppressWarnings(clusterProfiler::gseGO(geneList = genelist, OrgDb = org,
-                                                   keyType = orgdb_to, ont = "ALL",
-                                                   minGSSize = min_groupsize))
+    gse <- sm(suppressWarnings(clusterProfiler::gseGO(geneList = genelist, OrgDb = org,
+                                                      keyType = orgdb_to, ont = "ALL",
+                                                      minGSSize = min_groupsize)))
     gse_go <- as.data.frame(gse)
     mesg("Found ", nrow(gse_go), " enriched hits.")
   } else {
@@ -599,11 +599,11 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     if (orgdb == "org.Mm.eg.db") {
       reactome_organism <- "mouse"
     }
-    reactome_data <- ReactomePA::enrichPathway(
+    reactome_data <- sm(ReactomePA::enrichPathway(
       gene = sig_gene_list, pvalueCutoff = pcutoff, readable = TRUE,
       pAdjustMethod = padj_type, qvalueCutoff = qcutoff, universe = universe_to,
       organism = reactome_organism,
-      minGSSize = min_groupsize, maxGSSize = max_groupsize)
+      minGSSize = min_groupsize, maxGSSize = max_groupsize))
   }
 
   dose_data <- NULL
@@ -619,11 +619,11 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     } else {
       warning("I do not know this DOSE organism, leaving it as human.")
     }
-    dose_data <- DOSE::enrichDO(
+    dose_data <- sm(DOSE::enrichDO(
       gene = sig_gene_list, ont = do_db, organism = orgn,
       pvalueCutoff = pcutoff, pAdjustMethod = padj_type, universe = universe_to,
       minGSSize = min_groupsize, maxGSSize = max_groupsize,
-      qvalueCutoff = qcutoff, readable = TRUE)
+      qvalueCutoff = qcutoff, readable = TRUE))
   }
 
   mesh_data <- NULL
@@ -641,15 +641,15 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     } else {
       warning("I do not know this mesh organism, leaving it as human.")
     }
-    ah_data <- AnnotationHub::query(ah, c("MeSHDb", mesh_org))
-    orgn_db <- ah_data[[1]]
-    mesh_db <- MeSHDbi::MeSHDb(orgn_db)
+    ah_data <- sm(AnnotationHub::query(ah, c("MeSHDb", mesh_org)))
+    orgn_db <- sm(ah_data[[1]])
+    mesh_db <- sm(MeSHDbi::MeSHDb(orgn_db))
 
-    mesh_data <- try(meshes::enrichMeSH(
+    mesh_data <- sm(try(meshes::enrichMeSH(
       gene = sig_gene_list, MeSHDb = mesh_db, database = mesh_dbname,
       pvalueCutoff = pcutoff, pAdjustMethod = padj_type, universe = universe_to,
       minGSSize = min_groupsize, maxGSSize = max_groupsize,
-      qvalueCutoff = qcutoff))
+      qvalueCutoff = qcutoff), silent = TRUE))
     if ("try-error" %in% class(mesh_data)) {
       mesh_data <- data.frame()
     }
@@ -668,7 +668,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                                   toType = expected_term_type, OrgDb = org),
                             silent = TRUE))
     }
-    msigdb_data <- clusterProfiler::enricher(sig_gene_list, TERM2GENE = signature_df)
+    msigdb_data <- sm(clusterProfiler::enricher(
+      sig_gene_list, TERM2GENE = signature_df))
   }
 
   mesg("Plotting results, removing most of this.")
@@ -734,7 +735,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 #' @param ... Other args to match the generic.
 #' @export
 print.clusterprofiler_result <- function(x, ...) {
-  message("A set of ontologies produced by clusterprofiler.")
+  mesg("A set of ontologies produced by clusterprofiler.")
   return(invisible(x))
 }
 

@@ -1,3 +1,33 @@
+
+#' Coerce a df of gene IDs and GO categories to the topGO list
+#'
+#' The read_mappings function in topGO produces a list of x element
+#' where x is named by the gene IDs and the value of each element
+#' is a character vector comprised of the categories associated with it.
+#' @param go_db The df used by goseq and most commonly by me.
+df_to_mappings <- function(go_db) {
+  gene_ids <- unique(go_db[["ID"]])
+  go_lst <- list()
+  for (id in seq_along(gene_ids)) {
+    id_name <- gene_ids[id]
+    id_vector <- c()
+    categories <- go_db[["ID"]] == id_name
+    category_names <- go_db[categories, "GO"]
+    if (sum(categories) > 0) {
+      vector <- go_db[categories, "GO"]
+      na <- is.na(vector)
+      vector[!na]
+      empty <- vector == ""
+      vector <- vector[!empty]
+      if (length(vector) == 0) {
+        next
+      }
+      go_lst[[id_name]] <- vector
+    }
+  } ## End iterating over genes
+  return(go_lst)
+}
+
 #' Perform a simplified topgo analysis.
 #'
 #' This will attempt to make it easier to run topgo on a set of genes.
@@ -44,14 +74,18 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   ## set up the GOdata object like this: mf_GOdata = new("topGOdata",
   ## description = "something", ontology = "BP", allGenes = entire_geneList,
   ## geneSel = topDiffGenes, annot = annFUN.gene2GO, gene2GO = geneID2GO, nodeSize = 2)
+
+  ## What I should do: create the data structure returned by readMappings()
+  ## Creating this file denovo is dumb
   if (isTRUE(overwrite) && file.exists(goid_map)) {
     removed <- file.remove(goid_map)
   }
-  gomap_info <- make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
-  if (is.null(gomap_info)) {
-    warning("There appears to have been a problem generating the gomap.")
-  }
-  geneID2GO <- topGO::readMappings(file = goid_map)
+  #gomap_info <- make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
+  #if (is.null(gomap_info)) {
+  #  warning("There appears to have been a problem generating the gomap.")
+  #}
+  #geneID2GO <- topGO::readMappings(file = goid_map)
+  geneID2GO <- df_to_mappings(go_db)
   annotated_genes <- names(geneID2GO)
   if (is.null(go_db)) {
     go_db <- reshape2::melt(geneID2GO)
@@ -249,6 +283,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
     excel_ret <- sm(try(write_topgo_data(retlist, excel = excel)))
     retlist[["excel"]] <- excel_ret
   }
+  retlist[["goid_map"]] <- goid_map
   class(retlist) <- "topgo_result"
   return(retlist)
 }
@@ -427,7 +462,7 @@ print.topgo_result <- function(x, ...) {
   bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
   mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
   cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])
-  summary_string <- glue("topgo found {bp_entries} BP categories, {mf_entries} MF categories, and \\
+  summary_string <- glue("TopGO found {bp_entries} BP categories, {mf_entries} MF categories, and \\
 {cc_entries} CC categories.")
   message(summary_string)
   enrichplot::dotplot(x[["enrich_results"]][["bp"]])

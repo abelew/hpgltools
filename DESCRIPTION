@@ -19,33 +19,34 @@ Description: This is a set of functions I have been using in my various analyses
 License: GPL-2 | file LICENSE
 Suggests:
   affy, AnnotationDbi, AnnotationForge, AnnotationHub, ape,
-  BiocManager, biomaRt, Biostrings, bluster,
+  BiocManager, BiocParallel, biomaRt, Biostrings, bluster,
   BRAIN, BSgenome,
   caret, Category, cleaver, clusterProfiler, corpcor, corrplot, curl,
   DALEX, DBI, DEGreport, desc, devEMF, devtools, digest, directlabels,
   doParallel, dorothea, doSNOW, dotwhisker,
-  EBSeq, EDASeq, enrichplot,
+  EBSeq, EDASeq, enrichplot, EuPathDB,
   fastcluster, fastICA, ffpe, fission, flashClust,
-  genefilter, GenomicRanges, GenomeInfoDb, genoPlotR, ggdendro,
+  genefilter, generics, GenomicRanges, GenomeInfoDb, genoPlotR, ggdendro,
   ggrepel, ggsankey, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
   graph, GSVA, GSVAdata, gtools, gplots, gProfileR, gprofiler2,
-  Heatplus, Hmisc, Homo.sapiens, htmlwidgets, hpgldata, httr,
+  HDO.db, Heatplus, Hmisc, Homo.sapiens, htmlwidgets, hpgldata, httr,
   iDA, igraph, IHW, inflection, isva, iterators,
   jsonlite,
   KEGGREST, KEGGgraph, kmer,
   lattice, limma, locfit, lubridate,
-  MatrixGenerics, matrixStats, miscTools, motifRG, MSnbase, mygene, mzR,
+  MatrixGenerics, matrixStats, meshes, MeSHDbi, MeSH.Hsa.eg.db, MeSH.Mm.eg.db, MPO.db, miscTools,
+  motifRG, MSnbase, mygene, mzR,
   networkD3, NOISeq, numform,
   openxlsx, OrganismDbi,
   pander, parallel, pasilla, pathfindR, pathview, pcaMethods, Peptides,
   pheatmap, plyr, preprocessCore, pROC, PROPER, purrr,
   qvalue,
   R.utils, RColorBrewer, RCurl, readr, reactome.db, ReactomePA, readODS, readxl,
-  reshape2, rGADEM, Rgraphviz, rhdf5, Rhdf5lib, rjson, rmarkdown, robust,
+  reshape2, restez, rGADEM, Rgraphviz, rhdf5, Rhdf5lib, rjson, rmarkdown, robust,
   robustbase, Rsamtools, Rtsne,
   rtracklayer, ruv, RUVSeq, rvest,
   scales, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,
-  stringr, SWATH2stats,
+  stringr, survJamda, SWATH2stats,
   taxize, testthat, tibble, tidyr, tidymodels, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
   Vennerable,
@@ -81,6 +82,7 @@ Collate:
     'annotation_shared.R'
     'annotation_txt.R'
     'annotation_uniprot.R'
+    'attributes.R'
     'classify.R'
     'counts.R'
     'de_basic.R'
@@ -97,6 +99,7 @@ Collate:
     'dimension_reduction.R'
     'gene_sets.R'
     'genes.R'
+    'grange.R'
     'gsva.R'
     'helpers_misc.R'
     'metadata.R'
@@ -126,8 +129,7 @@ Collate:
     'plot_circos.R'
     'plot_distribution.R'
     'plot_dotplot.R'
-    'plot_genplot.R'
-    'zzz_attributes.R'
+    'plot_genome.R'
     'plot_shared.R'
     'plot_heatmap.R'
     'plot_hist.R'
@@ -142,8 +144,8 @@ Collate:
     'sequence.R'
     'shiny.R'
     'singlecell.R'
+    'subset.R'
     'tf.R'
     'tnseq.R'
     'variants.R'
     'xlsx.R'
-    'zzz_subset.R'

@@ -101,7 +101,7 @@ print.all_gprofiler <- function(x, ...) {
   }
   rownames(summary_df) <- names(x)
   colnames(summary_df) <- names(x[[1]][["num_hits"]])
-  message("Running gProfiler on every set of significant genes found:")
+  mesg("Running gProfiler on every set of significant genes found:")
   print(summary_df)
   return(invisible(x))
 }
@@ -264,7 +264,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   names(num_hits) <- type_names
   num_genes <- length(gene_ids)
   if (num_genes <= min_genes) {
-    message("There are only, ", num_genes, " returning null.")
+    mesg("There are only, ", num_genes, " returning null.")
     return(NULL)
   }
   for (t in seq_along(type_names)) {
@@ -363,7 +363,7 @@ print.gprofiler_result <- function(x, ...) {
   hit_string <- glue("A set of ontologies produced by gprofiler using {x[['num_genes']]}
 genes against the {x[['species']]} annotations and significance cutoff {x[['threshold']]}.
 There are: {num_string} hits.")
-  message(hit_string)
+  mesg(hit_string)
   return(invisible(x))
 }
 

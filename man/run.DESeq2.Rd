@@ -6,6 +6,9 @@
 \usage{
 run.DESeq2(dat)
 }
+\arguments{
+\item{dat}{Input data}
+}
 \description{
 PROPER uses this function privately, but should not.
 }

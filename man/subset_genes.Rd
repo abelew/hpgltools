@@ -5,7 +5,7 @@
 \title{Exclude some genes given a pattern match}
 \usage{
 subset_genes(
-  expt,
+  input,
   column = "txtype",
   method = "remove",
   ids = NULL,
@@ -16,8 +16,6 @@ subset_genes(
 )
 }
 \arguments{
-\item{expt}{Expressionset containing expt object.}
-
 \item{column}{fData column to use for subsetting.}
 
 \item{method}{Either remove explicit rows, or keep them.}
@@ -31,6 +29,8 @@ subset_genes(
 \item{patterns}{Character list of patterns to remove/keep}
 
 \item{...}{Extra arguments are passed to arglist, currently unused.}
+
+\item{expt}{Expressionset containing expt object.}
 }
 \value{
 A smaller expt

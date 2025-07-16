@@ -547,8 +547,10 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     pairwise_results <- make_limma_tables(fit = all_pairwise_comparisons, adjust = adjust,
                                           n = 0, coef = NULL, annot_df = NULL)
     limma_tables <- pairwise_results[["contrasts"]]
-    identity_results <- make_limma_tables(fit = all_identity_comparisons, adjust = adjust,
-                                          n = 0, coef = NULL, annot_df = NULL)
+    ## Stop limma from complaining about already evaluated tables.
+    identity_results <- suppressWarnings(
+      make_limma_tables(fit = all_identity_comparisons, adjust = adjust,
+                        n = 0, coef = NULL, annot_df = NULL))
     limma_identities <- identity_results[["identities"]]
 
     contrasts_performed <- names(limma_tables)

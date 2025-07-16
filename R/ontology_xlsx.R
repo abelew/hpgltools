@@ -71,7 +71,7 @@ gather_ontology_genes <- function(result, ontology = NULL,
 
   if (is.null(ontology)) {
     retlist <- list()
-    message("No ontology provided, performing all.")
+    mesg("No ontology provided, performing all.")
     for (type in c("MF", "BP", "CC")) {
       retlist[[type]] <- gather_ontology_genes(
         result, ontology = type, column = column,
@@ -87,7 +87,7 @@ gather_ontology_genes <- function(result, ontology = NULL,
     categories <- table_list[["cc_subset"]]
   } else {
     retlist <- list()
-    message("No ontology provided, performing all.")
+    mesg("No ontology provided, performing all.")
     for (type in c("MF", "BP", "CC")) {
       retlist[[type]] <- gather_ontology_genes(
         result, column = column, ontology = type, pval = pval,
@@ -209,7 +209,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                                textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
-    message("Writing a sheet containing the legend.")
+    mesg("Writing a sheet containing the legend.")
     legend <- data.frame(rbind(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
@@ -330,7 +330,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   if (isFALSE(skip_bp)) {
     new_row <- 1
-    message("Writing the BP data.")
+    mesg("Writing the BP data.")
     sheet <- "BP"
     dfwrite <- write_xlsx(data = cp_bp, wb = wb, sheet = sheet,
                           title = "BP REsults from cp.", start_row = new_row)
@@ -364,7 +364,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   if (isFALSE(skip_mf)) {
     new_row <- 1
-    message("Writing the MF data.")
+    mesg("Writing the MF data.")
     sheet <- "MF"
     dfwrite <- write_xlsx(data = cp_mf, wb = wb, sheet = sheet, title = "MF Results from cp.",
                           start_row = new_row)
@@ -396,7 +396,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   if (isFALSE(skip_cc)) {
     new_row <- 1
-    message("Writing the CC data.")
+    mesg("Writing the CC data.")
     sheet <- "CC"
     dfwrite <- write_xlsx(data = cp_cc, wb = wb, sheet = sheet,
                           title = "CC Results from cp.",
@@ -429,7 +429,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   if (isFALSE(skip_kegg)) {
     new_row <- 1
-    message("Writing the KEGG data.")
+    mesg("Writing the KEGG data.")
     sheet <- "KEGG"
     dfwrite <- write_xlsx(data = cp_kegg, wb = wb, sheet = sheet,
                           title = "KEGG Results from cp.",
@@ -439,7 +439,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   if (isFALSE(skip_david)) {
     new_row <- 1
-    message("Writing the DAVID data.")
+    mesg("Writing the DAVID data.")
     sheet <- "DAVID"
     dfwrite <- write_xlsx(data = cp_david, wb = wb, sheet = sheet,
                           title = "DAVID Results from cp.",
@@ -447,7 +447,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   }
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
-  message("Finished writing excel file.")
+  mesg("Finished writing excel file.")
   for (img in image_list) {
     removed <- file.remove(img)
   }
@@ -498,7 +498,7 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
                                textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
-    message("Writing a sheet containing the legend.")
+    mesg("Writing a sheet containing the legend.")
     legend <- data.frame(rbind(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
@@ -522,7 +522,7 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
                              title = "Summary of the cp search.", start_row = 1, start_col = 4)
 
     new_row <- 1
-    message("Writing enricher data.")
+    mesg("Writing enricher data.")
     sheet <- "enrich"
     dfwrite <- write_xlsx(data = enrich_df, wb = wb, sheet = sheet,
                           title = "Enrichment REsults.", start_row = new_row)
@@ -548,7 +548,7 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
                      silent = TRUE)
   }
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
-  message("Finished writing excel file.")
+  mesg("Finished writing excel file.")
   for (img in image_list) {
     removed <- file.remove(img)
   }
@@ -603,7 +603,7 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
   }
 
   if (!is.null(wb)) {
-    message("Writing a sheet containing the legend.")
+    mesg("Writing a sheet containing the legend.")
     legend <- data.frame(rbind(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
@@ -665,7 +665,7 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
     keeper_idx <- categories[["over_represented_pvalue"]] <= pval
     categories <- categories[keeper_idx, ]
     if (sum(keeper_idx) == 0) {
-      message("No data survived to be written for the ", ont, " ontology.")
+      mesg("No data survived to be written for the ", ont, " ontology.")
       next
     }
 
@@ -690,7 +690,7 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
 
     ## Now write the data.
     new_row <- 1
-    message("Writing the ", ont, " data.")
+    mesg("Writing the ", ont, " data.")
     ## Added the suppresswarnings in case a category has too many genes to be written without complaint.
     written <- suppressWarnings(write_xlsx(data = categories, wb = wb, sheet = ont,
                                            title = glue("{ont} Results from goseq.")))
@@ -722,7 +722,7 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
   } ## End of the for loop
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
-  message("Finished writing excel file.")
+  mesg("Finished writing excel file.")
   for (img in image_files) {
     removed <- file.remove(img)
   }
@@ -772,7 +772,7 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
   }
 
   if (!is.null(wb)) {
-    message("Writing a sheet containing the legend.")
+    mesg("Writing a sheet containing the legend.")
     legend <- data.frame(rbind(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
@@ -846,7 +846,7 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
 
     ## Now write the data
     new_row <- 1
-    message("Writing the ", ont, " data.")
+    mesg("Writing the ", ont, " data.")
     dfwrite <- write_xlsx(data = categories, wb = wb, sheet = ont, title = glue("{ont} Results from gostats."))
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
@@ -875,7 +875,7 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
   }  ## End of the for loop
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
-  message("Finished writing excel file.")
+  mesg("Finished writing excel file.")
   for (img in image_files) {
     removed <- file.remove(img)
   }
@@ -947,7 +947,7 @@ sig_ontologies <- function(significant_result,
           down_table, first_col = chosen_column, excel = down_name, ...))
       },
       {
-        message("It appears you did not choose a type. Doing nothing.")
+        mesg("It appears you did not choose a type. Doing nothing.")
         return(NULL)
       }
     )
@@ -1119,7 +1119,7 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
   result_list <- topgo_result[["results"]]
   trees <- NULL
   if (!is.null(wb)) {
-    message("Writing a sheet containing the legend.")
+    mesg("Writing a sheet containing the legend.")
     legend <- rbind.data.frame(
       c("Ontology", "Molecular Function, Biological Process, or Cellular Component."),
       c("Category", "Gene ontology Identifier."),
@@ -1201,7 +1201,7 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
     colnames(categories) <- better_column_names
 
     ## Now write the data.
-    message("Writing the ", ont, " data.")
+    mesg("Writing the ", ont, " data.")
     new_row <- 1
     dfwrite <- write_xlsx(data = categories, wb = wb, sheet = ont,
                           title = glue("{ont} Results from topgo."),
@@ -1237,7 +1237,7 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
   } ## End of the for loop MF/BP/CC
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
-  message("Finished writing excel file.")
+  mesg("Finished writing excel file.")
   for (img in image_files) {
     if (file.exists(img)) {
       removed <- file.remove(img)
@@ -1662,7 +1662,7 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
     ## and mf
     if (!is.null(up_stuff[["gostats_mf"]])) {
       openxlsx::writeData(wb, sheet, x = links, startRow = new_row + 1, startCol = 10)
-      message("The previous line was a warning about overwriting existing data because of a link.")
+      mesg("The previous line was a warning about overwriting existing data because of a link.")
       new_row <- new_row + nrow(up_stuff[["gostats_bp"]]) + 2
       dfwrite <- write_xlsx(data = up_stuff[["gostats_mf"]], wb = wb, sheet = sheet,
                             title = glue("MF Results from {sheet}."),

@@ -13,6 +13,9 @@ find_working_dataset(mart, trydataset, species)
 
 \item{species}{Species at the mart for which to search.}
 }
+\value{
+A mart instance.
+}
 \description{
 Search a mart for a usable dataset.
 }

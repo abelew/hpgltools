@@ -483,7 +483,7 @@ print.gostats_result <- function(x, ...) {
   bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
   mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
   cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])
-  summary_string <- glue("topgo found {bp_entries} BP categories, {mf_entries} MF categories, and \\
+  summary_string <- glue("Gostats found {bp_entries} BP categories, {mf_entries} MF categories, and \\
 {cc_entries} CC categories.")
   message(summary_string)
   enrichplot::dotplot(x[["enrich_results"]][["bp"]])

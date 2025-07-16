@@ -6,22 +6,28 @@
 \usage{
 load_genbank_annotations(
   accession = "AE009949",
+  db = "nucleotide",
   file = NULL,
   sequence = TRUE,
-  reread = TRUE,
-  savetxdb = FALSE
+  type = "CDS",
+  savetxdb = FALSE,
+  restez_db = "/sw/local/genbank/current"
 )
 }
 \arguments{
 \item{accession}{Accession to download and import.}
 
+\item{db}{Entrez Database to query}
+
 \item{file}{Use a file instead of downloading the accession?}
 
 \item{sequence}{Download the sequence with the annotations?}
 
-\item{reread}{Re-read (download) the file from genbank.}
+\item{type}{Extract entries of this type.}
 
 \item{savetxdb}{Attempt saving a txdb object?}
+
+\item{restez_db}{Location of local genbank used by restez.}
 }
 \value{
 List containing a txDb, sequences, and some other stuff which I
@@ -38,8 +44,18 @@ facilitate downloading genomes from genbank and dumping them into a local
 txdb instance.
 }
 \examples{
- sagalacticae_genbank_annot <- load_genbank_annotations(accession = "AE009948")
- dim(as.data.frame(sagalacticae_genbank_annot$cds))
+## 202601 eutils seems to be having some trouble.
+
+test_accession <- "AE009948"
+gbk_file <- try(download_gbk(accessions = test_accession))
+if (! "try-error" \%in\% class(gbk_file)) {
+  removed <- file.remove(gbk_file[["written_file"]])
+}
+
+sagalacticae_genbank_annot <- load_genbank_annotations(accession = test_accession, type = "CDS")
+if (! "try-error" \%in\% class(sagalacticae_genbank_annot)) {
+  dim(sagalacticae_genbank_annot)
+}
 }
 \seealso{
 [Biostrings] [GenomicFeatures] [genbankr::import()] [genbankr::readGenBank()]

@@ -7,12 +7,7 @@
 #' @param data Dataframe/expt/exprs with count data
 #' @return Plot of the BCV a la ggplot2.
 #' @seealso [edgeR::plotBCV()] [ggplot2]
-#' @examples
-#' \dontrun{
-#'  bcv <- plot_bcv(expt)
-#'  summary(bcv$data)
-#'  bcv$plot
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_bcv <- function(data) {
   data_class <- class(data)[1]
@@ -84,10 +79,7 @@ plot_bcv <- function(data) {
 #'  they are far from 'normal.'  This will make a fun clicky googleVis
 #'  graph if requested.
 #' @seealso [ggplot2::geom_point()] [plot_linear_scatter()]
-#' @examples
-#' \dontrun{
-#'  dist_scatter(lotsofnumbers_intwo_columns)
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
   df <- data.frame(df[, c(1, 2)])
@@ -182,10 +174,7 @@ plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
 #'  single cdf to allow tests of distribution similarity.  This will make a fun
 #'  clicky googleVis graph if requested.
 #' @seealso [robust] [stats] [ggplot2] [robust::lmRob] [stats::weights] [plot_histogram()]
-#' @examples
-#' \dontrun{
-#'  plot_linear_scatter(lotsofnumbers_intwo_columns)
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FALSE,
                                 xcol = NULL, ycol = NULL, text_col = NULL, logfc = 2.0,
@@ -454,10 +443,7 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #' @return a ggplot2 plot of the number of non-zero genes with respect to each
 #'  library's CPM.
 #' @seealso [ggplot2]
-#' @examples
-#' \dontrun{
-#'  nonzero_plot <- plot_nonzero(expt = expt)
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_nonzero <- function(data, design = NULL, colors = NULL,
                          plot_labels = "repel", expt_names = NULL,
@@ -728,10 +714,7 @@ setMethod(
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
 #' @seealso [affy::ma.plot()]
-#' @examples
-#' \dontrun{
-#'  ma_plots = plot_pairwise_ma(expt = some_expt)
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_pairwise_ma <- function(data, colors = NULL, design = NULL,
                              log = NULL, ...) {
@@ -817,12 +800,14 @@ setMethod(
 #' problematic samples.
 #'
 #' @param data Expt expressionset or data frame.
+#' @param colors Explicit colors to use.
+#' @param design df of experimental design.
 #' @param log Is the data in log format?
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
 setMethod(
   "plot_pairwise_ma", signature = signature(data = "ExpressionSet"),
-  definition = function(data, log = NULL, ...) {
+  definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
     mtrx <- exprs(data)
     design <- pData(data)
     colors = get_colors(data)
@@ -837,11 +822,13 @@ setMethod(
 #'
 #' @param data Expt expressionset or data frame.
 #' @param log Is the data in log format?
+#' @param colors Explicit colors to use.
+#' @param design df of experimental design.
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
 setMethod(
   "plot_pairwise_ma", signature = signature(data = "SummarizedExperiment"),
-  definition = function(data, log = NULL, ...) {
+  definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
     mtrx <- assay(data)
     design <- colData(data)
     colors = get_colors(data)
@@ -864,10 +851,7 @@ setMethod(
 #' @param size Size of the dots on the graph.
 #' @return Ggplot2 scatter plot.
 #' @seealso [plot_linear_scatter()] [all_pairwise()]
-#' @examples
-#' \dontrun{
-#'  plot_scatter(lotsofnumbers_intwo_columns)
-#' }
+#' @example inst/examples/plot_point.R
 #' @export
 plot_scatter <- function(df, color = "black", xlab = NULL, xcol = NULL, ycol = NULL,
                          ylab = NULL, alpha = 0.6, size = 2) {

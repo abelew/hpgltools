@@ -177,34 +177,40 @@ circos_check_chromosomes <- function(cfg, df, annot_chr_column = "chr",
 #' @param rules some extra rules?
 #' @param width Width of each tile in the heatmap.
 #' @param spacing Radial distance between outer, inner, and inner to whatever follows.
+#' @param df_merge_column Merge the annotations/data on this columns.
 #' @return Radius after adding the histogram and the spacing.
 #' @export
 circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
                            color_mapping = 0, min_value = NULL, max_value = NULL,
                            basename = "", colors = NULL,
                            color_choice = "spectral-9-div", scale_log_base = 1, outer = 0.9, rules = NULL,
-                           width = 0.08, spacing = 0.02) {
+                           width = 0.08, spacing = 0.02, df_merge_column = "row.names") {
   annot <- cfg@annot
   df <- data.frame()
   if ("combined_de" %in% class(input)) {
     if (is.null(tablename)) {
-      message("Using the first table of the combined tables, this may be incorrect.")
+      mesg("Using the first table of the combined tables, this may be incorrect.")
       df <- input[["data"]][[1]]
     } else {
+
       df <- input[["data"]][[tablename]]
     }
   } else {
-    message("Assuming the input is a dataframe.")
+    mesg("Assuming the input is a dataframe.")
     df <- input
   }
-  full_table <- merge(df, annot, by = "row.names")
+  full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
   if (nrow(full_table) == 0) {
     stop("Merging the annotations and data failed.")
   }
   start_colnames <- colnames(full_table)
   new_colnames <- gsub(x = start_colnames, pattern = "\\.x$", replacement = "")
   colnames(full_table) <- new_colnames
-  rownames(full_table) <- full_table[["Row.names"]]
+  if (df_merge_column == "row.names") {
+    rownames(full_table) <- full_table[["Row.names"]]
+  } else {
+    rownames(full_table) <- full_table[[df_merge_column]]
+  }
   full_table[["Row.names"]] <- NULL
 
   full_table <- full_table[, c("chr", "start", "stop", colname)]
@@ -339,13 +345,14 @@ circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
 #' @param outer Floating point radius of the circle into which to place the data.
 #' @param width Radial width of each tile.
 #' @param spacing Distance between outer, inner, and inner to whatever follows.
+#' @param df_merge_column Merge the annotations/data on this columns.
 #' @return Radius after adding the histogram and the spacing.
 #' @export
 circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
                         colname = "logFC", basename = "",
                         color = "blue", fill_color = "blue", fill_under = "yes",
                         extend_bin = "no", thickness = "0", orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0) {
+                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
   ## I am going to have this take as input a data frame with genes as rownames
   ## starts, ends, and functional calls
   ## I will tell R to print out a suitable stanza for circos while I am at it
@@ -353,13 +360,13 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   df <- data.frame()
   if ("combined_de" %in% class(input)) {
     if (is.null(tablename)) {
-      message("Using the first table of the combined tables, this may be incorrect.")
+      mesg("Using the first table of the combined tables, this may be incorrect.")
       df <- input[["data"]][[1]]
     } else {
       df <- input[["data"]][[tablename]]
     }
   } else {
-    message("Assuming the input is a dataframe.")
+    mesg("Assuming the input is a dataframe.")
     df <- input
   }
 
@@ -369,7 +376,8 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
     full_table <- df
   } else {
     annot <- cfg@annot
-    full_table <- merge(df, annot, by = "row.names")
+    full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
+
     if (nrow(full_table) == 0) {
       stop("Merging the annotations and data failed.")
     }
@@ -377,7 +385,11 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
     start_colnames <- colnames(full_table)
     new_colnames <- gsub(x = start_colnames, pattern = "\\.x$", replacement = "")
     colnames(full_table) <- new_colnames
-    rownames(full_table) <- full_table[["Row.names"]]
+    if (df_merge_column == "row.names") {
+      rownames(full_table) <- full_table[["Row.names"]]
+    } else {
+      rownames(full_table) <- full_table[[df_merge_column]]
+    }
     full_table[["Row.names"]] <- NULL
 
     full_table <- full_table[, c("chr", "start", "stop", colname)]
@@ -403,7 +415,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   hist_cfg_file <- paste0(hist_cfg_file, "_", basename, colname, "_hist.conf")
   hist_data_file <- file.path(cfg@data_dir, basename(hist_cfg_file))
   hist_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = hist_data_file)
-  message("Writing data file: ", hist_data_file, " with the ", basename, colname, " column.")
+  mesg("Writing data file: ", hist_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = hist_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 
   num_colors <- 1
@@ -449,8 +461,8 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   close(master_cfg_out)
 
   new_outer <- inner - spacing
-  message("Returning the inner width: ", new_outer,
-          ".  Use it as the outer for the next ring.")
+  mesg("Returning the inner width: ", new_outer,
+       ".  Use it as the outer for the next ring.")
   return(new_outer)
 }
 
@@ -643,7 +655,10 @@ CIRCOS=\"%s\"
 \t$(CIRCOS) -conf $< -outputfile $*.png 2>$*_png.stderr 1>$*_png.stdout
 
 clean:
-\trm -rf conf data *.conf *.png *.svg *.html
+\trm -rf  *.png *.svg *.html
+
+realclean:
+\trm -rf conf data *.conf *.png *.svg *.html *.stderr *.stdout
 
 %%.svg:\t%%.conf
 \t$(CIRCOS) -conf $< -outputfile $*.svg
@@ -1046,21 +1061,21 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
                           strand_column = "strand", id_column = NULL,
                           cog_map = NULL,
                           radius = 1800, chr_units = 1000, band_url = NULL, ...) {
-  message("This assumes you have a colors.conf in circos/colors/ ",
-          "and fonts.conf in circos/fonts/")
-  message("It also assumes you have conf/ideogram.conf, conf/ticks.conf, ",
-          "and conf/housekeeping.conf")
+  mesg("This assumes you have a colors.conf in circos/colors/ ",
+       "and fonts.conf in circos/fonts/")
+  mesg("It also assumes you have conf/ideogram.conf, conf/ticks.conf, ",
+       "and conf/housekeeping.conf")
   conf_dir <- file.path(base_dir, "conf")
   data_dir <- file.path(base_dir, "data")
   cfgout <- paste0(file.path(conf_dir, name), ".conf")
-  message("It will write ", cfgout, " with a reasonable first approximation config file.")
+  mesg("It will write ", cfgout, " with a reasonable first approximation config file.")
 
   if (!file.exists(data_dir)) {
-    message("Creating the data directory: ", data_dir)
+    mesg("Creating the data directory: ", data_dir)
     created <- suppressWarnings(dir.create(data_dir, recursive = TRUE))
   }
   if (!file.exists(conf_dir)) {
-    message("The circos directory does not exist, creating: ", conf_dir)
+    mesg("The circos directory does not exist, creating: ", conf_dir)
     created <- suppressWarnings(dir.create(conf_dir, recursive = TRUE))
   }
 
@@ -1075,9 +1090,17 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
     plus_string <- 1
     minus_string <- -1
   }
-  if (is.null(annotation[[start_column]]) | is.null(annotation[[stop_column]]) |
-        is.null(annotation[[strand_column]])) {
-    stop("This function assumes columns for start, stop, strand, chromosome names, and cog.")
+  if (is.null(annotation[[start_column]])) {
+    message("Here are the available columns: ", colnames(annotation))
+    stop("There is no information in the start column: ", start_column, ".")
+  }
+  if (is.null(annotation[[stop_column]])) {
+    message("Here are the available columns: ", colnames(annotation))
+    stop("There is no information in the stop column: ", stop_column, ".")
+  }
+  if (is.null(annotation[[strand_column]])) {
+    message("Here are the available columns: ", colnames(annotation))
+    stop("There is no information in the stop column: ", strand_column, ".")
   }
   plus_cfg_file <- cfgout
   minus_cfg_file <- cfgout
@@ -1099,17 +1122,17 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
   null_idx <- is.null(annotation[[strand_column]])
   if (sum(null_idx) > 0) {
     annotation[null_idx, strand_column] <- "+"
-    message("Setting ", sum(null_idx), " null entries to the plus strand.")
+    mesg("Setting ", sum(null_idx), " null entries to the plus strand.")
   }
   na_idx <- is.na(annotation[[strand_column]])
   if (sum(na_idx) > 0) {
     annotation[na_idx, strand_column] <- "+"
-    message("Setting ", sum(null_idx), " NA entries to the plus strand.")
+    mesg("Setting ", sum(null_idx), " NA entries to the plus strand.")
   }
   undef_idx <- annotation[[strand_column]] == "undefined"
   if (sum(undef_idx) > 0) {
     annotation[undef_idx, strand_column] <- "+"
-    message("Setting ", sum(undef_idx), " undefined entries to the plus strand.")
+    mesg("Setting ", sum(undef_idx), " undefined entries to the plus strand.")
   }
 
   plus_idx <- annotation[[strand_column]] == plus_string
@@ -1153,18 +1176,18 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
   minus_df[["value"]] <- glue("value={minus_df[['cog']]}0")
 
   needed_columns <- c(chr_column, start_column, stop_column, strand_column)
-  annot <- annotation[, needed_columns]
+  annot <- as.data.frame(annotation[, needed_columns])
   rownames(annot) <- gids
   colnames(annot) <- c("chr", "start", "stop", "strand")
 
   karyotype_dir <- file.path(conf_dir, "karyotypes")
   if (!file.exists(karyotype_dir)) {
-    message("The karyotype directory does not exist, creating: ", karyotype_dir)
+    mesg("The karyotype directory does not exist, creating: ", karyotype_dir)
     created <- suppressWarnings(dir.create(karyotype_dir, recursive = TRUE))
   }
   ideogram_dir <- file.path(conf_dir, "ideograms")
   if (!file.exists(ideogram_dir)) {
-    message("The ideogram directory does not exist, creating: ", ideogram_dir)
+    mesg("The ideogram directory does not exist, creating: ", ideogram_dir)
     created <- suppressWarnings(dir.create(ideogram_dir, recursive = TRUE))
   }
 
@@ -1462,14 +1485,15 @@ grid_end = dims(ideogram,radius_inner)
 #' @param width Width of each tile.
 #' @param spacing Radial distance between outer, inner, and inner to whatever
 #'  follows.
+#' @param df_merge_column Merge the annotations/data on this columns.
 #' @return Radius after adding the histogram and the spacing.
 #' @export
 circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL,
                         thickness = 80, padding = 1, margin = 0.00, stroke_thickness = 0.00,
                         orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0) {
+                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
   annot <- cfg@annot
-  full_table <- merge(df, annot, by = "row.names")
+  full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
   if (nrow(full_table) == 0) {
     stop("Merging the annotations and data failed.")
   }
@@ -1479,7 +1503,11 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   start_colnames <- colnames(full_table)
   new_colnames <- gsub(x = start_colnames, pattern = "\\.x$", replacement = "")
   colnames(full_table) <- new_colnames
-  rownames(full_table) <- full_table[["Row.names"]]
+  if (df_merge_column == "row.names") {
+    rownames(full_table) <- full_table[["Row.names"]]
+  } else {
+    rownames(full_table) <- full_table[[df_merge_column]]
+  }
   full_table[["Row.names"]] <- NULL
 
   full_table <- full_table[, c("chr", "start", "stop", colname)]
@@ -1494,9 +1522,13 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   keep_idx <- !is.na(full_table[["stop"]])
   full_table <- full_table[keep_idx, ]
 
+  ## Add a check that we pulled the same chromosomes as exist in the annotations.
+  happyp <- circos_check_chromosomes(cfg, full_table,
+                                     df_chr_column = "chr", df_gene_column = "rownames")
+
   tile_cfg_file <- cfg@cfg_file
   tile_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = tile_cfg_file)
-  tile_cfg_file <- paste0(tile_cfg_file, colname, "_tile.conf")
+  tile_cfg_file <- paste0(tile_cfg_file, "_", basename,  colname, "_tile.conf")
   tile_data_file <- file.path(cfg@data_dir, basename(tile_cfg_file))
   tile_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = tile_data_file)
   message("Writing data file: ", tile_data_file, " with the ", basename, colname, " column.")
@@ -1541,15 +1573,21 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   tile_cfg_out <- file(tile_cfg_file, open = "w+")
   cat(tile_cfg_string, file = tile_cfg_out, sep = "")
   for (c in seq_len(num_colors)) {
-    red_component <- "0x00"
-    green_component <- "0x00"
-    blue_compnent <- "0x00"
-    this_color <- gsub(pattern = "^#", replacement = "", x = colors[[c]])
-    red_component <- strtoi(glue("0x{substr(this_color, 1, 2)}"))
-    green_component <- strtoi(glue("0x{substr(this_color, 3, 4)}"))
-    blue_component <- strtoi(glue("0x{substr(colors[[c]], 5, 6)}"))
-    color_string <- glue("{red_component},{green_component},{blue_component}")
-    color_name <- names(colors)[[c]]
+    hashp <- grepl(pattern = "^#", x = colors[[c]])
+    if (isTRUE(hashp)) {
+      red_component <- "0x00"
+      green_component <- "0x00"
+      blue_compnent <- "0x00"
+      this_color <- gsub(pattern = "^#", replacement = "", x = colors[[c]])
+      red_component <- strtoi(glue("0x{substr(this_color, 1, 2)}"))
+      green_component <- strtoi(glue("0x{substr(this_color, 3, 4)}"))
+      blue_component <- strtoi(glue("0x{substr(colors[[c]], 5, 6)}"))
+      color_string <- glue("{red_component},{green_component},{blue_component}")
+      color_name <- names(colors)[[c]]
+    } else {
+      color_name <- colors[[c]]
+      color_string <- colors[[c]]
+    }
     new_string <- glue("
    <rule>
     condition = var(value) =~ \"^{color_name}\"

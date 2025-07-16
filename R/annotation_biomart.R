@@ -678,10 +678,7 @@ for species {x[['species']]} provided {prettyNum(nrow(x[['go']]), big.mark = ','
 #'  to always send them all; the second is the subset corresponding to the
 #'  actual ids of interest, and the 3rd/4th are other, optional ids from other datasets.
 #' @seealso [biomaRt::getLDS()]
-#' @examples
-#'  mouse_yeast_orthologs <- load_biomart_orthologs(gene_ids = NULL, first_species = "mmusculus",
-#'                                                  second_species = "scerevisiae")
-#'  head(mouse_yeast_orthologs$all_linked_genes)
+#' @example inst/examples/annotation_biomart.R
 #' @export
 load_biomart_orthologs <- function(gene_ids = NULL, first_species = "hsapiens",
                                    second_species = "mmusculus",

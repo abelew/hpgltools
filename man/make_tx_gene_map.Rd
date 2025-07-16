@@ -33,3 +33,48 @@ This helps when I have a combined transcriptome and get confused.
 \details{
 This probably doesn't belong in this file.
 }
+\examples{
+## Provide examples of the biomart annotation functions.
+
+## Search for a biomart instance which will accept queries.
+archive_mart <- try(find_working_mart(archive = TRUE, year = 2023, month = 02))
+class(archive_mart)
+archive_mart
+
+## I should probably change this function to accept the mart from
+## find_working_mart()
+hs_annot <- try(load_biomart_annotations(year = 2023, month = 02))
+class(hs_annot)
+
+## I keep forgetting that load_biomart_annotations() returns a list
+## so I made a method to coerce it for me.
+dim(as.data.frame(hs_annot))
+
+## I also added a S3 print method to try to avoid being made sad if I
+## print the result from load_annotations.
+hs_annot
+
+## If one wishes to check out all of the possible data types for a
+## single gene, try this:
+## However, this function is painfully slow and likely annoying to the
+## ensembl servers.
+## single_gene <- get_biomart_example_gene()
+
+## Grab gene ontology data for a species:
+hs_go <- try(load_biomart_go(year = 2023, month = 02))
+hs_go
+
+## The following example is fragile I think because multiple
+## ensembl instances must be responding properly to work
+## If it fails; check that the examples for biomaRt::getLDS are
+## functioning -- most likely they are failing due to an upstream
+## error.
+hs_mm_ortho <- try(load_biomart_orthologs(gene_ids = "ENSMUSG00000000001",
+                                          year = 2023, month = 02,
+                                          first_species = "mmusculus",
+                                          second_species = "scerevisiae"))
+
+## Create salmon-like ID.version strings using ensembl annotations.
+tx_gene_map <- try(make_tx_gene_map(as.data.frame(hs_annot)))
+head(tx_gene_map)
+}

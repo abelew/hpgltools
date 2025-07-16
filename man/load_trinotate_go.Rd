@@ -39,10 +39,16 @@ annotations for the trinity contigs.  This function extracts ontology data
 from it.  Keep in mind that this data is primarily from Blast2GO.
 }
 \examples{
- sb_annot <- get_sbetaceum_data()[["annot"]]
- trinotate_go <- load_trinotate_go(trinotate = sb_annot)
- dim(trinotate_go$go_data)
- dim(trinotate_go$go_table)
+example_txt <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
+
+## Create a dataframe from the peculiarly formatted tsv/csv from trinotate.
+trinotate_df <- load_trinotate_annotations(example_txt)
+head(trinotate_df)
+
+## Extract the gene ontology information from trinotate.
+trinotate_go <- load_trinotate_go(example_txt,
+                                  blast2go_column = "gene_ontology_blast")
+head(trinotate_go[["go_table"]])
 }
 \seealso{
 [load_trinotate_annotations()]

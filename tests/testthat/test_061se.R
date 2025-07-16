@@ -97,7 +97,7 @@ test_that("Did we change the batches?", {
 })
 
 testing <- set_se_colors(pombe_se, chosen_palette = "Accent")
-new_actual <- levels(as.factor(colors(testing)))
+new_actual <- levels(as.factor(get_colors(testing)))
 new_expected <- c("#5C86AB", "#666666", "#7FC97F", "#8B3B99", "#9E5F33", "#A7B7B5",
                   "#CC4233", "#CFB2BE", "#DAE49D", "#EB0A75", "#F7BE8D", "#FEE290")
 test_that("Did we get some old/new colors?", {

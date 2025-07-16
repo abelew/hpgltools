@@ -14,3 +14,6 @@ map_species_orgdb(species, genus = NULL)
 \description{
 Given a name like 'mmusculus', guess the orgdb package name.
 }
+\examples{
+ guess <- map_species_orgdb("hsapiens")
+}

@@ -2,10 +2,13 @@
 % Please edit documentation in R/power_estimation.R
 \name{run.DSS}
 \alias{run.DSS}
-\title{PROPER uses this privately but really make it available I think.}
+\title{PROPER uses this privately but should make it available I think.}
 \usage{
 run.DSS(dat)
 }
+\arguments{
+\item{dat}{Input data}
+}
 \description{
-PROPER uses this privately but really make it available I think.
+PROPER uses this privately but should make it available I think.
 }

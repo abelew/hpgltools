@@ -104,9 +104,9 @@ fission_data <- fission@assays[["data"]][["counts"]]
 ## This will make an experiment superclass called 'expt' and it contains
 ## an ExpressionSet along with any arbitrary additional information one might want to include.
 ## Along the way it writes a Rdata file which is by default called 'expt.Rdata'
-fission_expt <- create_expt(metadata = meta,
-                            count_dataframe = fission_data,
-                            gene_info = annotations)
+fission_se <- create_se(metadata = meta,
+                        count_dataframe = fission_data,
+                        gene_info = annotations)
 ```
 
 # Some simple differential expression analyses
@@ -115,8 +115,8 @@ My tools by default attempt all possible pairwise comparisons, this
 can take a long time.
 
 ```{r}
-fun_data <- subset_expt(fission_expt,
-                        subset = "condition=='wt.120'|condition=='wt.30'")
+fun_data <- subset_se(fission_se,
+                      subset = "condition=='wt.120'|condition=='wt.30'")
 fun_filt <- normalize(fun_data, filter = "simple")
 fun_norm <- sm(normalize(fun_filt, batch = "limma", norm = "quant",
                          transform = "log2", convert = "cpm"))
@@ -136,7 +136,7 @@ names(limma_comparison[["all_tables"]])
 summary(limma_comparison[["all_tables"]][["wt30_vs_wt120"]])
 scatter_wt_mut <- extract_coefficient_scatter(limma_comparison, type = "limma",
                                               x = "wt30", y = "wt120")
-scatter_wt_mut[["scatter"]]
+scatter_wt_mut
 scatter_wt_mut[["both_histogram"]][["plot"]] +
   ggplot2::scale_y_continuous(limits = c(0, 0.20))
 ma_wt_mut <- extract_de_plots(limma_comparison, type = "limma")
@@ -157,7 +157,7 @@ deseq_comparison <- deseq2_pairwise(fun_filt)
 summary(deseq_comparison[["all_tables"]][["wt30_vs_wt120"]])
 scatter_wt_mut <- extract_coefficient_scatter(deseq_comparison, type = "deseq",
                                               x = "wt30", y = "wt120")
-scatter_wt_mut[["scatter"]]
+scatter_wt_mut
 #plots_wt_mut <- extract_de_plots(deseq_comparison, type = "deseq")
 #plots_wt_mut[["ma"]][["plot"]]
 #plots_wt_mut[["volcano"]][["plot"]]
@@ -177,7 +177,7 @@ edger_comparison <- edger_pairwise(fun_filt, model_batch = TRUE)
 #plots_wt_mut <- extract_de_plots(edger_comparison, type = "edger")
 scatter_wt_mut <- extract_coefficient_scatter(edger_comparison, type = "edger",
                                               x = "wt30", y = "wt120")
-scatter_wt_mut[["scatter"]]
+scatter_wt_mut
 #plots_wt_mut[["ma"]][["plot"]]
 #plots_wt_mut[["volcano"]][["plot"]]
 ```
@@ -208,7 +208,7 @@ basic_comparison <- basic_pairwise(fun_filt)
 summary(basic_comparison$all_tables$wt30_vs_wt120)
 scatter_wt_mut <- extract_coefficient_scatter(basic_comparison, type = "basic",
                                               x = "wt30", y = "wt120")
-scatter_wt_mut[["scatter"]]
+scatter_wt_mut
 #plots_wt_mut <- extract_de_plots(basic_comparison, type = "basic")
 #plots_wt_mut[["ma"]][["plot"]]
 #plots_wt_mut[["volcano"]][["plot"]]
@@ -240,7 +240,7 @@ dream_pairwise also ignores the model_batch parameter.
 ## Combine them all
 
 ```{r}
-all_comparisons <- all_pairwise(fun_data, model_batch = TRUE)
+all_comparisons <- all_pairwise(fun_data)
 all_comparisons
 all_combined <- combine_de_tables(all_comparisons, excel = "excel/wt30_vs_wt120.xlsx")
 all_combined
@@ -259,15 +259,14 @@ slide_de_threshold(all_combined)
 
 ## Back to regularly scheduled programming
 
-```{r all_comparisons}
+```{r}
 ## Here we see that edger and deseq agree the least:
 all_comparisons[["comparison"]][["comp"]]
 
 ## And here we can look at the set of 'significant' genes according to various tools:
-yeast_sig <- sm(extract_significant_genes(all_combined, excel = FALSE))
+yeast_sig <- extract_significant_genes(all_combined, excel = FALSE)
+dim(yeast_sig[["deseq"]][["ups"]][["wt30_vs_wt120"]])
 yeast_barplots <- sm(significant_barplots(combined = all_combined))
-yeast_barplots[["limma"]]
-yeast_barplots[["edger"]]
 yeast_barplots[["deseq"]]
 ```
 
@@ -278,7 +277,7 @@ gff file which may be used by clusterprofiler, topgo, and gostats.
 
 Therefore, I am going to make use of TxDb to make the requisite gff file.
 
-```{r ontology_setup}
+```{r}
 limma_results <- limma_comparison[["all_tables"]]
 ## The set of comparisons performed
 names(limma_results)
@@ -287,17 +286,9 @@ dim(table)
 gene_names <- rownames(table)
 
 updown_genes <- get_sig_genes(table, p = 0.05, lfc = 0.4, p_column = "P.Value")
-available_marts <- biomaRt::listMarts(host = "fungi.ensembl.org")
-available_marts
-ensembl_mart <- biomaRt::useMart("fungi_mart", host = "fungi.ensembl.org")
-available_datasets <- biomaRt::listDatasets(ensembl_mart)
-pombe_hit <- grep(pattern = "pombe", x = available_datasets[["description"]])
-pombe_name <- available_datasets[pombe_hit, "dataset"]
-pombe_mart <- biomaRt::useDataset(pombe_name, mart = ensembl_mart)
 
-pombe_goids <- biomaRt::getBM(attributes = c("pombase_transcript", "go_id"),
-                              values = gene_names, mart = pombe_mart)
-colnames(pombe_goids) <- c("ID", "GO")
+pombe_go <- load_biomart_go(host = "fungi.ensembl.org", species = "spombe")
+pombe_goids <- pombe_go[["go"]]
 ```
 
 ### Setting up with hpgltools
@@ -305,24 +296,12 @@ colnames(pombe_goids) <- c("ID", "GO")
 The above worked, it provided a table of ID and ontology.  It was however a bit fraught.
 Here is another way.
 
-```{r ontology_setup_hpgltools}
-## In theory, the above should work with a single function call:
-pombe_goids_simple <- load_biomart_go(species = "spombe", overwrite = TRUE,
-                                      dl_rows = c("pombase_transcript", "go_id"),
-                                      host = "fungi.ensembl.org")
-head(pombe_goids_simple[["go"]])
-head(pombe_goids)
-
-## This used to work, but does so no longer and I do not know why.
-## pombe <- sm(GenomicFeatures::makeTxDbFromBiomart(biomart = "fungal_mart",
-##                                                  dataset = "spombe_eg_gene",
-##                                                  host = "fungi.ensembl.org"))
-
+```{r}
 ## I bet I can get all this information from ensembl now.
 ## This was found at the bottom of: https://www.biostars.org/p/232005/
 link <- "ftp://ftp.ensemblgenomes.org/pub/release-34/fungi/gff3/schizosaccharomyces_pombe/Schizosaccharomyces_pombe.ASM294v2.34.gff3.gz"
-pombe <- GenomicFeatures::makeTxDbFromGFF(link, format = "gff3", taxonomyId = 4896,
-                                          organism = "Schizosaccharomyces pombe")
+pombe <- txdbmaker::makeTxDbFromGFF(link, format = "gff3", taxonomyId = 4896,
+                                    organism = "Schizosaccharomyces pombe")
 
 pombe_transcripts <- as.data.frame(GenomicFeatures::transcriptsBy(pombe))
 lengths <- pombe_transcripts[, c("group_name","width")]
@@ -338,24 +317,17 @@ written_gff <- rtracklayer::export.gff3(gff_from_txdb, con = "pombe.gff")
 
 ## GOSeq test
 
-```{r test_goseq}
+```{r}
 summary(updown_genes)
 test_genes <- updown_genes[["down_genes"]]
-##rownames(test_genes) <- paste0(rownames(test_genes), ".1")
-##lengths[["ID"]] <- paste0(lengths[["ID"]], ".1")
 goseq_result <- simple_goseq(sig_genes = test_genes, go_db = pombe_goids,
-                                length_db = lengths)
-head(goseq_result[["all_data"]])
-goseq_result[["pvalue_plots"]][["mfp_plot_over"]]
-goseq_result[["pvalue_plots"]][["bpp_plot_over"]]
+                             length_db = lengths)
+goseq_result
 
 test_genes <- updown_genes[["up_genes"]]
-##rownames(test_genes) <- paste0(rownames(test_genes), ".1")
 goseq_result <- simple_goseq(sig_genes = test_genes, go_db = pombe_goids,
-                                length_db = lengths)
-head(goseq_result[["all_data"]])
-goseq_result[["pvalue_plots"]][["mfp_plot_over"]]
-goseq_result[["pvalue_plots"]][["bpp_plot_over"]]
+                             length_db = lengths)
+goseq_result
 ```
 
 ## ClusterProfiler test
@@ -364,6 +336,8 @@ clusterProfiler really prefers an orgdb instance to use, which is probably smart
 pretty nice.  Sadly, there is no pre-defined orgdb for pombe...
 
 ```{r test_cp, eval = FALSE}
+##org.Spombe.eg.db <- orgdb_from_ah(species = "pombe")
+
 ## holy crap makeOrgPackageFromNCBI is slow, no slower than some of mine, so who am I to complain.
 if (! "org.Spombe.eg.db" %in% installed.packages()) {
   orgdb <- AnnotationForge::makeOrgPackageFromNCBI(
@@ -386,19 +360,18 @@ cp_result[["pvalue_plots"]][["ego_all_mf"]]
 ## Yay bar plots!
 ```
 
-```{r test_tp}
-## Get rid of those stupid terminal .1s.
-#rownames(test_genes) <- gsub(pattern = ".1$", replacement = "", x = rownames(test_genes))
-#pombe_goids[["ID"]] <- gsub(pattern = ".1$", replacement = "", x = pombe_goids[["ID"]])
+## Try out topgo
+
+```{r}
 tp_result <- simple_topgo(sig_genes = test_genes,
                           go_db = pombe_goids, pval_column = "limma_adjp")
 tp_result
+enrichplot::dotplot(tp_result[["enrich_results"]][["bp"]])
 ```
 
-```{r gst_test}
-## Get rid of those stupid terminal .1s.
-##rownames(test_genes) <- gsub(pattern = ".1$", replacement = "", x = rownames(test_genes))
-##pombe_goids[["ID"]] <- gsub(pattern = ".1$", replacement = "", x = pombe_goids[["ID"]])
+## And gostats
+
+```{r}
 ## universe_merge is the column in the final data frame when.
 ## gff_type is the field in the gff file providing the id, this may be redundant with
 ## universe merge, that is something to check on...

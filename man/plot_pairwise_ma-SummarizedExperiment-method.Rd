@@ -9,6 +9,10 @@
 \arguments{
 \item{data}{Expt expressionset or data frame.}
 
+\item{colors}{Explicit colors to use.}
+
+\item{design}{df of experimental design.}
+
 \item{log}{Is the data in log format?}
 
 \item{...}{Options are good and passed to arglist().}

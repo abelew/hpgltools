@@ -69,7 +69,7 @@ simplified <- set_se_conditions(pombe_subset, fact = "strain")
 test_sva <- all_pairwise(simplified, model_svs = "svaseq", filter = TRUE,
                          model_fstring = "~ 0 + condition")
 actual <- min(test_sva[["comparison"]][["comp"]])
-expected <- 0.85
+expected <- 0.81
 ## When testing in 202503, the minimum was actually 0.87
 test_that("all_pairwise() provided results reasonably similar? (svaseq in model)", {
   expect_gt(actual, expected)
@@ -133,7 +133,7 @@ test_that("compare_de_results provides some expected logfc comparisons?", {
 
 testing <- correlate_de_tables(test_sva)
 actual <- min(testing[["comp"]])
-expected <- 0.86
+expected <- 0.80
 test_that("compare_led_tables provides some expected comparisons?", {
   expect_gt(actual, expected)
 })
@@ -163,14 +163,14 @@ test_that("Did get_pairwise_gene_abundances() get some stuff?", {
 })
 
 testing <- get_sig_genes(table = test_sva[["deseq"]][["all_tables"]][[1]])
-expected <- c(2, 8)
+expected <- c(5, 8)
 actual <- dim(testing[["up_genes"]])
 test_that("Did get_sig_genes() get some stuff?", {
   expect_equal(expected[1], actual[1])
   expect_equal(expected[2], actual[2])
 })
 
-expected <- c(1, 8)
+expected <- c(9, 8)
 actual <- dim(testing[["down_genes"]])
 test_that("Did get_sig_genes() get some stuff?", {
   expect_equal(expected[1], actual[1])

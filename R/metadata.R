@@ -588,6 +588,12 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         meta, input_file_spec, verbose = verbose, new_spec = new_spec,
         species = species, type = type, basedir = basedir)
     },
+    "deeptools_coverage" = {
+      mesg("Searching for deeptools coverage values.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec,
+        species = species, type = type, basedir = basedir)
+    },
     "fastqc_pct_gc" = {
       ## %GC     62
       search <- "^%GC	\\d+$"
@@ -705,6 +711,12 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the number of - strand entries observed by glimmer.")
       entries <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose, basedir = basedir, new_spec = new_spec)
+    },
+    "hisat_alignment" = {
+      mesg("Searching for the hisat2 bam output.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, type = type,
+        subtype = subtype, tag = tag, basedir = basedir, new_spec = new_spec)
     },
     "hisat_count_table" = {
       mesg("Searching for the count tables from hisat->htseq.")
@@ -1662,12 +1674,17 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, species = species_name,
-        type = type, subtype = subtype, tag = tag, basedir = basedir)
+        type = type, subtype = subtype, tag = tag, basedir = basedir, new_spec = new_spec)
     }
     return(output_entries)
   }
 
   filenames_with_wildcards <- glue(input_file_spec)
+  new_filenames <- NULL
+  if (!is.null(new_spec)) {
+    new_filenames <- glue(new_spec)
+    print(new_filenames)
+  }
   if (isTRUE(verbose)) {
     message("Example filename: ", filenames_with_wildcards[1], ".")
   }
@@ -1676,18 +1693,37 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
     found <- 0
     ## Just in case there are multiple matches
     input_file <- Sys.glob(filenames_with_wildcards[row])[1]
+    input_new <- NULL
+    if (!is.null(new_spec)) {
+      input_new <- Sys.glob(new_filenames[row])[1]
+    }
     if (length(input_file) == 0) {
       mesg("There is no file matching: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
-      next
+      if (!is.null(input_new)) {
+        if (length(input_new) > 0) {
+          input_file <- input_new
+        } else {
+          input_file <- ''
+        }
+      } else {
+        input_file <- ''
+      }
     }
     if (is.na(input_file)) {
       mesg("The input file is NA for: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
-      next
+      if (!is.null(input_new)) {
+        if (!is.na(input_new)) {
+          input_file <- input_new
+        } else {
+          input_file <- ''
+        }
+      } else {
+        input_file <- ''
+      }
     }
     output_entries[row] <- input_file
   }
+
   return(output_entries)
 }
 
@@ -2500,6 +2536,15 @@ read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "
   return(definitions)
 }
 
+
+#' Synonym for sanitize_expt_fData()
+#'
+#' @param ... Passed along
+#' @export
+sanitize_annotations <- function(...) {
+  sanitize_expt_fData(...)
+}
+
 #' Given an expressionset, sanitize the gene information data.
 #'
 #' @param expt Input expressionset.
@@ -2620,7 +2665,9 @@ sanitize_metadata <- function(meta, columns = NULL, na_value = "notapplicable",
       ## I think punctuation needs to go
       if (isTRUE(punct)) {
         mesg("Removing punctuation.")
-        meta[[todo]] <- gsub(pattern = "[[:punct:]]", replacement = "", x = meta[[todo]])
+        meta[[todo]] <- gsub(pattern = "[^_[:^punct:]]",
+                             replacement = "", x = meta[[todo]],
+                             perl = TRUE)
       }
       if (!is.null(numbers)) {
         if (isTRUE(numbers)) {
@@ -2655,6 +2702,36 @@ sanitize_metadata <- function(meta, columns = NULL, na_value = "notapplicable",
 
   return(meta)
 }
+
+setMethod(
+  "sanitize_metadata", signature = signature(meta = "expt"),
+  definition = function(meta, columns = NULL, na_value = "notapplicable",
+                        lower = TRUE, punct = TRUE, factorize = "heuristic", max_levels = NULL,
+                        spaces = FALSE, numbers = NULL, numeric = TRUE) {
+    exp_meta <- pData(meta)
+    sanitized <- sanitize_metadata(exp_meta, columns = columns, na_value = na_value,
+                                   lower = lower, punct = punct, factorize = factorize,
+                                   max_levels = max_levels, spaces = spaces,
+                                   numbers = numbers, numeric = numeric)
+    pData(meta) <- sanitized
+    return(meta)
+  })
+
+setMethod(
+  "sanitize_metadata", signature = signature(meta = "SummarizedExperiment"),
+  definition = function(meta, columns = NULL, na_value = "notapplicable",
+                        lower = TRUE, punct = TRUE, factorize = "heuristic", max_levels = NULL,
+                        spaces = FALSE, numbers = NULL, numeric = FALSE) {
+    se_meta <- colData(meta)
+    sanitized <- sanitize_metadata(se_meta, columns = columns, na_value = na_value,
+                                   lower = lower, punct = punct, factorize = factorize,
+                                   max_levels = max_levels, spaces = spaces,
+                                   numbers = numbers, numeric = numeric)
+    colData(meta) <- sanitized
+
+    return(meta)
+  })
+
 
 #' Make an archive using a column from the metadata.
 #'
@@ -2818,6 +2895,10 @@ make_assembly_spec <- function() {
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
       "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
+    "hisat_alignment" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
+    "deeptools_coverage" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bw"),
     "jellyfish_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*jellyfish_*/*_matrix.csv.xz"),
     "jellyfish_observed" = list(
@@ -2980,6 +3061,10 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "hisat_observed_median_exprs" = list(
       "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
+    "hisat_alignment" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
+    "deeptools_coverage" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bw"),
     "salmon_stranded" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
     "salmon_mapped" = list(
@@ -3099,6 +3184,10 @@ make_dnaseq_spec <- function() {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*{type}*.stderr"),
     "hisat_genome_pct_vs_trimmed" = list(
       "column" = "hisat_genome_percent_log"),
+    "hisat_alignment" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
+    "deeptools_coverage" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bw"),
     "gatk_unpaired" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),
     "gatk_paired" = list(

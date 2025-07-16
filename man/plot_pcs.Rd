@@ -23,7 +23,7 @@ plot_pcs(
   cis = c(0.95, 0.9),
   ellipse_type = "t",
   ellipse_geom = "polygon",
-  label_size = 4,
+  label_size = 5,
   ...
 )
 }

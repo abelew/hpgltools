@@ -18,6 +18,15 @@ Expressionset/expt of fission.
 This just saves some annoying typing if one wishes to make a standard
 expressionset superclass out of the publicly available fission data set.
 }
+\examples{
+
+## Check if some input data is loaded; if not, load it!
+pombe_se <- get0("pombe_se")
+if (is.null(pombe_se)) {
+  pombe_se <- make_pombe_se()
+}
+summary(pombe_se)
+}
 \seealso{
 [fission] [create_expt()]
 }

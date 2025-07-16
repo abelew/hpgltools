@@ -8,7 +8,7 @@
 ## where this is a danger, it is a likely good idea to cast it as a
 ## data frame.
 
-#' @include zzz_attributes.R
+#' @include attributes.R
 NULL
 
 #' Look at the range of the data for a plot and use it to suggest if a plot
@@ -446,7 +446,7 @@ plot_legend <- function(stuff) {
 #' @export
 print.legend_plot <- function(x, ...) {
   summary_string <- glue("The colors used in the expressionset are: \\
-{toString(x[['color_fact']])}.")
+{toString(levels(as.factor(x[['color_fact']])))}.")
   message(summary_string)
   print(x[["plot"]])
   return(invisible(x))

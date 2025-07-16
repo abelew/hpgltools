@@ -88,14 +88,11 @@ including the data required to make an expressionset.  Using this information, I
 expressionset.
 
 ```{r}
-cdm_expt <- create_expt(count_dataframe = cdm$cdm_counts,
-                        metadata = cdm$cdm_metadata,
-                        gene_info = cdm$gene_info)
 cdm_se <- create_se(metadata = cdm$cdm_metadata,
                     gene_info = cdm$gene_info,
                     count_dataframe = cdm$cdm_counts)
 
-knitr::kable(head(pData(cdm_expt)))
+knitr::kable(head(pData(cdm_se)))
 ```
 
 # Introduction
@@ -133,8 +130,8 @@ included as well.
 With the above in mind, once we have the various metadata and count data loaded into memory, a most
 common next step is examine the data before molesting it:
 
-```{r fig.show = "hide"}
-raw_metrics <- graph_metrics(cdm_expt, qq = TRUE, cis = NULL)
+```{r}
+raw_metrics <- graph_metrics(cdm_se, qq = TRUE, cis = NULL)
 ```
 
 The function graph_metrics() performs all of the likely plots one might want.  Some of which are not
@@ -190,11 +187,11 @@ experimental design.
 Once we have a smaller data set, we can more easily use PCA to see how
 the sample separate.
 
-```{r fig.show='hide'}
-head(pData(cdm_expt))
+```{r}
+head(pData(cdm_se))
 ## elt stands for: "early/late in thy"
 batch_a <- subset_se(cdm_se, subset = "batch=='a'")
-batch_b <- subset_expt(cdm_expt, subset = "batch=='b'")
+batch_b <- subset_expt(cdm_se, subset = "batch=='b'")
 
 a_metrics <- graph_metrics(batch_a, cis = NULL)
 b_metrics <- graph_metrics(batch_b, cis = NULL)
@@ -204,7 +201,7 @@ PCA plots of these subsetted data are not likely to be very interesting, as it
 has been reduced to a single sample per condition, but we can look at them
 anyhow.
 
-```{r subset_show_plots}
+```{r}
 a_metrics[["pc_plot"]]
 b_metrics[["pc_plot"]]
 a_metrics[["tsne_plot"]]
@@ -217,21 +214,21 @@ suprising since we didn't normalize it at all.  Therefore, in this block I will 
 ways and follow up with some visualizations of showing how the apparent relationships change in the
 data.
 
-```{r, fig.show = "hide"}
+```{r}
 ## doing nothing to the data except log2 transforming it has a surprisingly large effect
-norm_test <- normalize(cdm_expt, transform = "log2")
+norm_test <- normalize(cdm_se, transform = "log2")
 l2_metrics <- sm(graph_metrics(norm_test, cis = NULL))
 ## a quantile normalization alone affect some, but not all of the data
-norm_test <- normalize(cdm_expt, norm = "quant")
+norm_test <- normalize(cdm_se, norm = "quant")
 q_metrics <- sm(graph_metrics(norm_test, cis = NULL))  ## q for quant, who quaffed nightshade.
 ## cpm alone brings out some samples, too
-norm_test <- normalize(cdm_expt, convert = "cpm")
+norm_test <- normalize(cdm_se, convert = "cpm")
 c_metrics <- sm(graph_metrics(norm_test, cis = NULL))  ## c for cpm, who could not see the train.
 ## low count filtering has some effect, too
-norm_test <- normalize(cdm_expt, filter = "pofa")
+norm_test <- normalize(cdm_se, filter = "pofa")
 f_metrics <- sm(graph_metrics(norm_test, cis = NULL))  ## f for filter, flogged with a spade.
 ## how about if we mix and match methods?
-norm_test <- normalize(cdm_expt, transform = "log2", convert = "cpm",
+norm_test <- normalize(cdm_se, transform = "log2", convert = "cpm",
                        norm = "quant", batch = "combat_scale", filter = TRUE,
                        batch_step = 4, low_to_zero = TRUE)
 ## Some metrics are not very useful on (especially quantile) normalized data
@@ -276,12 +273,6 @@ which may be used to explicitly include/exclude a batch factor in the model, or 
 including batch factors from sva/ruv/etc.  By default it will attempt to include a column from the
 experimental design named 'batch'.
 
-```{r de_test}
-spyogenes_de <- all_pairwise(cdm_expt, filter = TRUE)
-spyogenes_de
-## Even the lowest correlations are quite high.
-```
-
 The result of all_pairwise() is a list of the results from limma, edger, and deseq.  In addition, I
 implemented a very simplistic, differential expression function named 'basic()'.  It also provides
 some simple measurements of how well the various analyses agree (ergo the black and white heatmap).
@@ -297,7 +288,13 @@ one actually wishes to see.  Therefore, the argument keepers takes a list of con
 my_keepers <- list(
   ## name    =   numerator / denominator
   "wt_media" = c("wt_ll_cf", "wt_ll_cg"),
-  "mga_media" = c("mga_ll_cf", "mga_ll_cg"))
+  "mga_media" = c("mga1_ll_cf", "mga1_ll_cg"))
+```
+
+```{r}
+spyogenes_de <- all_pairwise(cdm_se, filter = TRUE, keepers = my_keepers)
+spyogenes_de
+## Even the lowest correlations are quite high.
 ```
 
 In the above example, if the keepers argument to combine_de_tables() is given as my_keepers, then
@@ -317,7 +314,7 @@ Finally, extract_significant_genes() may choose 'significant' genes based upon a
 including z-score vs. the distribution of logFC; a logFC cutoff, (ajusted)p-value cutoff, and/or
 top/bottom n genes.
 
-```{r, fig.show = "hide"}
+```{r}
 spyogenes_sig <- extract_significant_genes(spyogenes_tables, lfc = 0,
                                            according_to = "deseq", excel = FALSE)
 knitr::kable(head(spyogenes_sig$deseq$ups[[1]]))
@@ -343,8 +340,8 @@ mgas_gff_df[["sysName"]] <- gsub(pattern = "Spy_", replacement = "Spy",
 rownames(mgas_gff_df) <- make.names(mgas_gff_df[["sysName"]], unique = TRUE)
 
 mgas_microbes_df <- load_microbesonline_annotations(id = 293653)
-mgas_microbes_df$sysName <- gsub(pattern = "Spy_", replacement = "Spy",
-                                 x = mgas_microbes_df$sysName)
+mgas_microbes_df[["sysName"]] <- gsub(pattern = "Spy_", replacement = "Spy",
+                                      x = mgas_microbes_df[["sysName"]])
 mgas_microbes_df <- as.data.frame(mgas_microbes_df)
 rownames(mgas_microbes_df) <- make.names(mgas_microbes_df$sysName, unique = TRUE)
 

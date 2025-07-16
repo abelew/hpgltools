@@ -26,11 +26,7 @@
 #' the non-outliers), and single dots for each gene which is outside
 #' that range.  A single dot is transparent.
 #' @seealso [ggplot2]
-#' @examples
-#' \dontrun{
-#'  a_boxplot <- plot_boxplot(expt)
-#'  a_boxplot  ## ooo pretty boxplot look at the lines
-#' }
+#' @example inst/examples/plot_distribution.R
 #' @export
 plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
                          violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
@@ -241,10 +237,7 @@ setMethod(
 #' @param ... sometimes extra arguments might come from graph_metrics()
 #' @return ggplot2 density plot!
 #' @seealso [ggplot2]
-#' @examples
-#' \dontrun{
-#'  funkytown <- plot_density(data)
-#' }
+#' @example inst/examples/plot_distribution.R
 #' @export
 plot_density <- function(data, colors = NULL, colors_by = "condition",
                          design = NULL, direct = NULL, fill = NULL,
@@ -527,6 +520,8 @@ print.density_plot <- function(x, ...) {
 #' than the cloud.
 #'
 #' @param data Expressionset, expt, or dataframe of samples.
+#' @param design Experimental design
+#' @param colors Input colors
 #' @param labels What kind of labels to print?
 #' @param ... Arguments passed presumably from graph_metrics().
 #' @return List containing:
@@ -534,23 +529,10 @@ print.density_plot <- function(x, ...) {
 #'  ratios = a recordPlot() of the pairwise ratio qq plots.
 #'  means = a table of the median values of all the summaries of the qq plots.
 #' @seealso [Biobase]
+#' @example inst/examples/plot_distribution.R
 #' @export
-plot_qq_all <- function(data, labels = "short", ...) {
+plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ...) {
   arglist <- list(...)
-  data_class <- class(data)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
-    colors <- data[["colors"]]
-    data <- as.data.frame(exprs(data))
-  } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-    design <- pData(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    data <- as.data.frame(data)
-  } else {
-    stop("This understands classes of type: expt, ExpressionSet, data.frame, and matrix.")
-  }
-
   sample_data <- data[, c(1, 2)]
   means <- rowMeans(data)
   sample_data[["mean"]] <- means
@@ -567,6 +549,8 @@ plot_qq_all <- function(data, labels = "short", ...) {
     message("Making plot of ", ith, "(", i, ") vs. a sample distribution.")
     tmpdf <- data.frame("ith" = data[, i],
                         "mean" = sample_data[["mean"]])
+    complete_idx <- complete.cases(tmpdf)
+    tmpdf <- tmpdf[complete_idx, ]
     colnames(tmpdf) <- c(ith, "mean")
     tmpqq <- plot_single_qq(tmpdf, x = 1, y = 2, labels = labels)
     logs[[count]] <- tmpqq[["log"]]
@@ -596,6 +580,57 @@ plot_qq_all <- function(data, labels = "short", ...) {
   plots <- list(logs = log_plots, ratios = ratio_plots, medians = means)
   return(plots)
 }
+setGeneric("plot_qq_all")
+
+#' Invoke plot_qq_all using an expt
+#'
+#' @param data Input expt
+#' @param design provided by the expt
+#' @param colors also from the expt
+#' @param labels shorten the sample IDs?
+#' @param ... passed along
+setMethod(
+  "plot_qq_all", signature = signature(data = "expt"),
+  definition = function(data, design = NULL, colors = NULL, labels = "short", ...) {
+    design <- pData(data)
+    colors <- get_colors(data)
+    exprs <- as.data.frame(exprs(data))
+    plot_qq_all(data = exprs, design = design, colors =  colors, labels = labels, ...)
+  })
+
+#' Invoke plot_qq_all using an ExpressionSet
+#'
+#' @param data Input exprs
+#' @param design provided by the exprs
+#' @param colors also from the exprs
+#' @param labels shorten the sample IDs?
+#' @param ... passed along
+setMethod(
+  "plot_qq_all", signature = signature(data = "ExpressionSet"),
+  definition = function(data, design = NULL, colors = NULL, labels = "short", ...) {
+    design <- pData(data)
+    colors <- get_colors(data)
+    exprs <- as.data.frame(exprs(data))
+    plot_qq_all(data = exprs, design = design, colors =  colors, labels = labels, ...)
+  })
+
+#' Invoke plot_qq_all using a SE
+#'
+#' @param data Input SE
+#' @param design provided by the SE
+#' @param colors also from the SE
+#' @param labels shorten the sample IDs?
+#' @param ... passed along
+setMethod(
+  "plot_qq_all", signature = signature(data = "SummarizedExperiment"),
+  definition = function(data, design = NULL, colors = NULL, labels = "short", ...) {
+    design <- colData(data)
+    colors <- get_colors(data)
+    exprs <- as.data.frame(assay(data))
+    plot_qq_all(data = exprs, design = design, colors =  colors, labels = labels, ...)
+  })
+
+
 
 #' Perform a qqplot between two columns of a matrix.
 #'
@@ -763,6 +798,7 @@ plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
 #' @param plot_legend Add a legend to the plot?
 #' @param ... Extra arguments, currently unused.
 #' @return List containing the ggplot2
+#' @example inst/examples/plot_distribution.R
 #' @export
 plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
                       plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
@@ -890,6 +926,7 @@ print.topn_plot <- function(x, ...) {
 #' @param plot_title Optional title to include with the plot.
 #' @param ... Extra arguments to pass along.
 #' @return List of plots showing the coefficients vs. genes along with the data.
+#' @example inst/examples/plot_distribution.R
 #' @export
 plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition", colors = NULL,
                                        plot_title = NULL, ...) {

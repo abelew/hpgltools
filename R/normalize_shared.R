@@ -719,6 +719,23 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     current_state[["impute"]] <- impute
   }
 
+  if (isTRUE(low_to_zero)) {
+    low_idx <- count_table < 0
+    ## Do not forget that na does not count when looking for numbers < x.
+    na_idx <- is.na(count_table)
+    low_idx[na_idx] <- FALSE
+    low_num <- sum(low_idx)
+    if (low_num > 0) {
+      message("Setting ", low_num, " entries to zero.")
+      count_table[low_idx] <- 0
+    }
+  }
+
+  if (isTRUE(na_to_zero)) {
+    na_idx <- is.na(count_table)
+    count_table[na_idx] <- 0
+  }
+
   ## This list provides the list of operations performed on the data in order
   ## they were done.
   actions <- list(

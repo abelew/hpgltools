@@ -7,11 +7,11 @@
 snps_vs_genes(
   expt,
   snp_result,
-  start_col = "start",
-  end_col = "end",
-  snp_name_col = "seqnames",
+  start_column = "start",
+  end_column = "end",
+  snp_name_column = "seqnames",
   observed_in = NULL,
-  expt_name_col = "chromosome",
+  chr_column = "chromosome",
   ignore_strand = TRUE
 )
 }
@@ -20,15 +20,15 @@ snps_vs_genes(
 
 \item{snp_result}{The result from get_snp_sets().}
 
-\item{start_col}{Which column provides the start of each gene?}
+\item{start_column}{Which column provides the start of each gene?}
 
-\item{end_col}{and the end column of each gene?}
+\item{end_column}{and the end column of each gene?}
 
-\item{snp_name_col}{Name of the column in the metadata with the sequence names.}
+\item{snp_name_column}{Name of the column in the metadata with the sequence names.}
 
 \item{observed_in}{Minimum proportion of samples required before this is deemed real.}
 
-\item{expt_name_col}{Name of the metadata column with the chromosome names.}
+\item{chr_column}{Name of the metadata column with the chromosome names.}
 
 \item{ignore_strand}{Ignore strand information when returning?}
 }

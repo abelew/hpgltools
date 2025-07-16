@@ -178,7 +178,12 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
   return(retlist)
 }
 
-print.orgdb_annotations <- function(x) {
+#' Avoid annoyingly large print results of orgdb data.
+#'
+#' @param x Result from load_orgdb_annotations().
+#' @param ... pass along args
+#' @export
+print.orgdb_annotations <- function(x, ...) {
   result_string <- glue("A set of orgdb annotations including: {nrow(x[['genes']])} gene annotations.")
   return(result_string)
 }
@@ -197,6 +202,7 @@ print.orgdb_annotations <- function(x) {
 #' @param gene_ids Identifiers of the genes to retrieve annotations.
 #' @param keytype The mysterious keytype returns yet again to haunt my dreams.
 #' @param columns The set of columns to request.
+#' @param guess_columns Instead of a set of specific columns, use grep to find anything with 'go'
 #' @return Data frame of gene IDs, go terms, and names.
 #' @seealso [AnnotationDbi] [GO.db]
 #' @example inst/examples/annotation_orgdb.R
@@ -204,8 +210,7 @@ print.orgdb_annotations <- function(x) {
 #'  messed with it pretty extensively.
 #' @export
 load_orgdb_go <- function(orgdb = NULL, gene_ids = NULL, keytype = "ensembl",
-                          columns = c("go", "goall", "goid"), guess_columns = FALSE,
-                          rbind = TRUE) {
+                          columns = c("go", "goall", "goid"), guess_columns = FALSE) {
                           ## columns = "go", rbind = TRUE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
@@ -219,7 +224,7 @@ load_orgdb_go <- function(orgdb = NULL, gene_ids = NULL, keytype = "ensembl",
   keytype <- toupper(keytype)
   columns <- toupper(columns)
   if (isTRUE(guess_columns)) {
-    available <- keytypes(orgdb)
+    available <- AnnotationDbi::keytypes(orgdb)
     column_idx <- grepl(x = available, pattern = "GO")
     columns <- available[column_idx]
   }
@@ -287,10 +292,9 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
       go_terms <- go_terms[!dup_idx, ]
     }
   }
-  if (passed_column == 0) {
+  if (passed_columns == 0) {
     stop("None of the go columns provided information.")
   }
-
 
   if ("GO" %in% chosen_columns) {
     go_terms <- go_terms[!is.na(go_terms[["GO"]]), ]

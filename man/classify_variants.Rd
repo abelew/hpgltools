@@ -6,8 +6,8 @@
 \usage{
 classify_variants(
   metadata,
-  coverage_column = "bedtoolscoveragefile",
-  variants_column = "freebayesvariantsbygene",
+  coverage_column = "bedtools_coverage_file",
+  variants_column = "freebayes_variants_by_gene",
   min_missing = 100
 )
 }
