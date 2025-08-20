@@ -449,7 +449,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
                          plot_labels = "repel", expt_names = NULL,
                          max_overlaps = 5, label_chars = 10,
                          plot_legend = FALSE, plot_title = NULL,
-                         cutoff = 0.65,
+                         cutoff = 0.65, y_intercept = 0.8,
                          ...) {
   arglist <- list(...)
 
@@ -473,6 +473,11 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     "batch" = batch,
     "color" = as.character(colors))
 
+  if (!is.null(y_intercept)) {
+    if (y_intercept < 1.0) {
+      y_intercept <- nrow(data) * y_intercept
+    }
+  }
   ## Add a little logic to warn the user if samples have poor representation
   ## using a cutoff which may either be a proportion of the number of available
   ## rows, or an aribtrary cutoff
@@ -565,8 +570,15 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
       directlabels::geom_dl(ggplot2::aes(label = .data[["id"]]), method = "first.qp")
   }
 
+  if (!is.null(y_intercept)) {
+    non_zero_plot <- non_zero_plot +
+      ggplot2::geom_hline(yintercept = y_intercept,
+                          color = "blue", size = 0.5)
+  }
+
   if (!is.null(plot_title)) {
-    non_zero_plot <- non_zero_plot + ggplot2::ggtitle(plot_title)
+    non_zero_plot <- non_zero_plot +
+      ggplot2::ggtitle(plot_title)
   }
   non_zero_plot <- non_zero_plot +
     ggplot2::theme(axis.ticks = ggplot2::element_blank(),
@@ -624,7 +636,7 @@ setMethod(
                         plot_labels = "repel", expt_names = NULL,
                         max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL,
-                        cutoff = 0.65, ...) {
+                        cutoff = 0.65, y_intercept = 0.8, ...) {
     mtrx <- as.matrix(exprs(data))
     pd <- pData(data)
     condition <- pd[["condition"]]
@@ -635,6 +647,7 @@ setMethod(
                  max_overlaps = max_overlaps,
                  label_chars = label_chars, plot_legend = plot_legend,
                  plot_title = plot_title, cutoff = 0.65,
+                 y_intercept = y_intercept,
                  ...)
   })
 
@@ -659,7 +672,8 @@ setMethod(
   "plot_nonzero", signature = signature(data = "ExpressionSet"),
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
                         expt_names = NULL, max_overlaps = 5, label_chars = 10,
-                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
+                        y_intercept = 0.8, ...) {
     mtrx <- as.matrix(exprs(data))
     pd <- pData(data)
     condition <- pd[["condition"]]
@@ -667,7 +681,8 @@ setMethod(
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
                  expt_names = names, max_overlaps = max_overlaps,
                  label_chars = label_chars, plot_legend = plot_legend,
-                 plot_title = plot_title, cutoff = 0.65, ...)
+                 plot_title = plot_title, cutoff = 0.65,
+                 y_intercept = y_intercept, ...)
   })
 
 #' Make a nonzero plot given a SummarizedExperiment
@@ -691,7 +706,8 @@ setMethod(
   "plot_nonzero", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
                         expt_names = NULL, max_overlaps = 5, label_chars = 10,
-                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65, ...) {
+                        plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
+                        y_intercept = 0.8, ...) {
     mtrx <- as.matrix(assay(data))
     pd <- SummarizedExperiment::colData(data)
     condition <- pd[["condition"]]
@@ -699,7 +715,8 @@ setMethod(
     colors <- S4Vectors::metadata(data)[["colors"]]
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
                  expt_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
-                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65, ...)
+                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,
+                 y_intercept = y_intercept, ...)
   })
 
 #' Plot all pairwise MA plots in an experiment.

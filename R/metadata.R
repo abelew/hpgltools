@@ -93,17 +93,21 @@ guess_factors <- function(meta_df, ratio = 3) {
 #' @export
 extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
                              fill_condition = TRUE, fill_batch = TRUE,
-                             keep_underscore = TRUE, sanitize = TRUE, ...) {
+                             keep_underscore = TRUE, sanitize = TRUE,
+                             condition_column = NULL, batch_column = NULL, ...) {
   ## FIXME: Now that this has been yanked into its own function,
   ## Make sure it sets good, standard rownames.
   file <- NULL
 
   meta_dataframe <- NULL
   meta_file <- NULL
+  ## Handle this via dispatch
   if ("character" %in% class(metadata)) {
     ## This is a filename containing the metadata
     meta_file <- metadata
-  } else if ("data.frame" %in% class(metadata)) {
+  } else if ("data.frame" %in% class(metadata) ||
+               "DFrame" %in% class(metadata) ||
+                 "data.table" %in% class(metadata)) {
     ## A data frame of metadata was passed.
     meta_dataframe <- metadata
   } else {
@@ -210,6 +214,23 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
   }
 
   sample_columns <- colnames(sample_definitions)
+  if (!is.null(condition_column) && condition_column %in% sample_columns) {
+    found_condition <- "condition" %in% sample_columns
+    if (isTRUE(found_condition)) {
+      message("There is already a condition column, backing it up to condition_bak")
+      sample_definitions[["condition_backup"]] <- sample_definitions[["condition"]]
+    }
+    sample_definitions[["condition"]] <- sample_definitions[[condition_column]]
+  }
+  if (!is.null(batch_column) && batch_column %in% sample_columns) {
+    found_batch <- "batch" %in% sample_columns
+    if (!isTRUE(found_batch)) {
+      message("There is already a batch column, backing it up to batch_bak")
+      sample_definitions[["batch_backup"]] <- sample_definitions[["batch"]]
+    }
+    sample_definitions[["batch"]] <- sample_definitions[[batch_column]]
+  }
+
   ## Now check for columns named condition and batch
   if (isTRUE(fill_condition)) {
     found_condition <- "condition" %in% sample_columns
@@ -348,10 +369,8 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     specification <- make_assembly_spec()
   }
   if (isTRUE(md5)) {
-    specification[["md5_r1_raw"]] <- list(
-      "file" = "input_r1")
-    specification[["md5_r2_raw"]] <- list(
-      "file" = "input_r2")
+    specification[["md5_r1_raw"]] <- specification[["input_r1"]]
+    specification[["md5_r2_raw"]] <- specification[["input_r1"]]
     specification[["md5_r1_trimmed"]] <- list(
       "file" = "trimmed_r1")
     specification[["md5_r2_trimmed"]] <- list(
@@ -382,7 +401,8 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   } else if (class(starting_metadata)[1] == "data.frame") {
     meta <- starting_metadata
   } else {
-    meta <- extract_metadata(starting_metadata, id_column = id_column, ...)
+    meta <- extract_metadata(starting_metadata, id_column = id_column,
+                             ...)
   }
 
   if (class(starting_metadata)[1] == "data.frame" && is.null(new_metadata)) {
@@ -787,7 +807,9 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         ...)
     },
     "hisat_observed_genes" = {
-      search <- "^.*\t0$"
+      search <- "^.*\\s+0$"
+      ## In featureCounts, the column of interest is the 7th
+      backup_search <- ""
       mesg("Searching for the number of genes observed by hisat.")
       entries <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose, basedir = basedir, inverse = TRUE,
@@ -817,14 +839,14 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     "hisat_observed_mean_exprs" = {
       mesg("Searching for the mean expression observed by hisat.")
       entries <- dispatch_csv_search(
-        meta, 2, input_file_spec, file_type = "tsv", which = "function", chosen_func = "mean",
+        meta, "last", input_file_spec, file_type = "tsv", which = "function", chosen_func = "mean",
         verbose = verbose, basedir = basedir, type = type, subtype = subtype, tag = tag,
         species = species, as = "numeric")
     },
     "hisat_observed_median_exprs" = {
       mesg("Searching for the median expression observed by hisat.")
       entries <- dispatch_csv_search(
-        meta, 2, input_file_spec, file_type = "tsv", which = "function", chosen_func = "median",
+        meta, "last", input_file_spec, file_type = "tsv", which = "function", chosen_func = "median",
         verbose = verbose, basedir = basedir, type = type, subtype = subtype, tag = tag,
         species = species, as = "numeric")
     },
@@ -928,16 +950,24 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     "input_r1" = {
       search <- "^\\s+<\\(\\w* .+\\).*$"
       replace <- "^\\s+<\\(\\w* (.+?)\\).*$"
+      backup_search <- "^\\s*.*\\.fastq\\.gz\\s+.*\\.fastq\\.gz.*$"
+      backup_replace <- "^\\s+(.*?\\.fastq\\.gz).*"
       mesg("Searching for the input R1.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        backup_search = backup_search, backup_replace = backup_replace,
+        ...)
     },
     "input_r2" = {
       search <- "^\\s+<\\(\\w* .+\\) <\\(\\w* .+\\).*$"
       replace <- "^\\s+<\\(\\w* .+\\) <\\(\\w* (.+)\\).*$"
+      backup_search <- "^\\s*.*\\.fastq\\.gz\\s+.*\\.fastq\\.gz.*$"
+      backup_replace <- "^\\s+.*?\\.fastq\\.gz\\s+(.*\\.fastq\\.gz).*$"
       mesg("Searching for the input R2.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        backup_search = backup_search, backup_replace = backup_replace,
+        ...)
     },
     "interpro_signalp_hits" = {
       search <- "\\tSignalP.*\\t"
@@ -1766,7 +1796,9 @@ dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
 
 dispatch_md5 <- function(meta, input_file_spec) {
   filenames <- file.path(meta[[input_file_spec]])
-
+  if (length(filenames) == 0) {
+    return(undef)
+  }
   if (isTRUE(verbose)) {
     message("Example input filename: ", filenames[1], ".")
   }
@@ -1894,6 +1926,7 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
                                   extraction = "\\1", which = "first", new_spec = NULL,
                                   as = NULL, verbose = FALSE, type = "genome",
+                                  backup_search = NULL, backup_replace = NULL,
                                   ...) {
   arglist <- list(...)
   ## if (length(arglist) > 0) {
@@ -1906,11 +1939,14 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
       output_entries[[species_name]] <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
         species = species_name, basedir = basedir, type = type,
-        extraction = extraction, which = which, as = as, new_spec = new_spec, ...)
+        extraction = extraction, which = which, as = as, new_spec = new_spec,
+        backup_search = backup_search, backup_replace = backup_replace,
+        ...)
     }
     return(output_entries)
   }
-  filenames_with_wildcards <- glue(input_file_spec, ...)
+  filenames_with_wildcards <- glue(input_file_spec,
+                                   ...)
   new_filenames <- NULL
   if (!is.null(new_spec)) {
     new_filenames <- glue(new_spec, ...)
@@ -1960,14 +1996,25 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
       }
       input_line <- input_vector[i]
       found_boolean <- grepl(x = input_line, pattern = search)
-      if (found_boolean) {
+      backup_found_boolean <- FALSE
+      if (!is.null(backup_search)) {
+        backup_found_boolean <- grepl(x = input_line, pattern = backup_search)
+      }
+      if (found_boolean || backup_found_boolean) {
         if (isTRUE(verbose)) {
           message("Found the correct line: ")
           message(input_line)
         }
-        this_found <- gsub(x = input_line,
-                           pattern = replace,
-                           replacement = extraction)
+        this_found <- NULL
+        if (isTRUE(found_boolean)) {
+          this_found <- gsub(x = input_line,
+                             pattern = replace,
+                             replacement = extraction)
+        } else if (isTRUE(backup_found_boolean)) {
+          this_found <- gsub(x = input_line,
+                             pattern = backup_replace,
+                             replacement = extraction)
+        }
         ## Drop leading or terminal spaces.
         this_found <- gsub(x = this_found,
                            pattern = "^ +| +$", replacement = "")
@@ -2066,6 +2113,9 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
         message("Assuming csv input.")
       }
       input_df <- sm(readr::read_csv(input_file))
+    }
+    if (column == "last") {
+      column <- ncols(input_df)
     }
 
     if (which == "first") {
@@ -2893,7 +2943,7 @@ make_assembly_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "hisat_alignment" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
@@ -3048,18 +3098,18 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "hisat_genome_pct_vs_trimmed" = list(
       "column" = "hisat_genome_pct_vs_trimmed"),
     "hisat_observed_genes" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes_pct" = list(
       "column" = "hisat_sum_genes_pct"),
     "hisat_observed_mean_exprs" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_observed_median_exprs" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_alignment" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
@@ -3089,7 +3139,7 @@ make_rnaseq_spec <- function(umi = FALSE) {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
@@ -3220,7 +3270,7 @@ make_dnaseq_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "deduplication_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),

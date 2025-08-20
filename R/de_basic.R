@@ -102,7 +102,13 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   num_done <- 0
   column_list <- c()
   total_contrasts <- length(levels(as.factor(conditions)))
-  total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
+  if (is.null(keepers)) {
+    total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
+  } else if ("list" %in% class(keepers)) {
+    total_contrasts <- length(keepers)
+  } else {
+    total_contrasts <- (total_contrasts * (total_contrasts + 1)) / 2
+  }
   mesg("Basic step 2/3: Performing ", total_contrasts, " comparisons.")
   apc <- make_pairwise_contrasts(model_mtrx, conditions, contrast_factor = contrast_factor,
                                  do_identities = FALSE, do_extras = FALSE,
@@ -224,6 +230,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
       "input_data" = input,
       "medians" = median_table,
       "method" = "basic",
+      "num_contrasts" = total_contrasts,
       "variances" = variance_table)
   class(retlist) <- c("basic_pairwise", "list")
   if (!is.null(arglist[["basic_excel"]])) {

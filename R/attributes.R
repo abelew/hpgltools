@@ -686,7 +686,6 @@ set_conditions <- function(se, fact = NULL, ids = NULL, prefix = NULL,
                            null_cell = "null", colors = TRUE,
                            ...) {
   arglist <- list(...)
-  message("TESTME: HERE")
   if (!is.null(arglist[["factor"]])) {
     warning("I probably should change this argument to factor, but it is 'fact'.")
     fact <- arglist[["factor"]]
@@ -1801,6 +1800,14 @@ setMethod(
     S4Vectors::metadata(x) <- meta
     return(x)
   })
+
+libsize_factor <- function(object) {
+  libsizes <- libsize(object)
+  max_libsize <- max(libsizes)
+  norm_factor <- libsizes / max_libsize
+  names(norm_factor) <- sampleNames(object)
+  return(norm_factor)
+}
 
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'

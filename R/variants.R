@@ -246,8 +246,12 @@ print.classified_mutations <- function(x, ...) {
 count_expt_snps <- function(expt, annot_column = "bcftable",
                             snp_column = NULL, numerator_column = "PAO",
                             denominator_column = "DP", reader = "table", verbose = FALSE) {
-  samples <- rownames(pData(expt))
-  file_lst <- pData(expt)[[annot_column]]
+  meta <- pData(expt)
+  file_lst <- meta[[annot_column]]
+  na_files <- is.na(meta[[annot_column]])
+  meta <- meta[!na_files, ]
+  samples <- rownames(pData(expt))[!na_files]
+  file_lst <- file_lst[!na_files]
   if (is.null(file_lst)) {
     stop("This requires a set of bcf filenames, the column: ", annot_column, " does not have any.")
   }
@@ -316,10 +320,9 @@ they probably came from an older version of this method.")
   snp_features <- as.data.frame(snp_features)
   rownames(snp_features) <- snp_dt[["rownames"]]
 
-  snp_metadata <- pData(expt)
   snp_se <- SummarizedExperiment(assays = snp_exprs,
                                  rowData = snp_features,
-                                 colData = snp_metadata)
+                                 colData = meta)
  return(snp_se)
 }
 
@@ -983,6 +986,29 @@ combinations among them.  {length(x[['chr_data']])} chromosomes/scaffolds were o
 density of variants ranging from {min(x[['density']])} to {max(x[['density']])}.")
   message(summary_string)
   return(invisible(x))
+}
+
+plot_snp_upset <- function(snp_sets, text_scale = 2, color_by = NULL,
+                           intersections = "all", num_sets = "all") {
+  ud_list <- list()
+  values <- snp_sets[["values"]]
+  for (n in colnames(values)) {
+    found_idx <- values[[n]] == 1
+    ud_list[[n]] <- rownames(values)[found_idx]
+  }
+  if (intersections == "all") {
+    intersections <- NA
+  }
+  if (num_sets == "all") {
+    num_sets <- length(ud_list)
+  }
+  inter_upset <- UpSetR::upset(data = UpSetR::fromList(ud_list),
+                               group.by = "degree",
+                               order.by = "freq",
+                               nsets = num_sets, text.scale = text_scale,
+                               nintersects = intersections)
+  inter_upset
+  return(inter_upset)
 }
 
 #' Take a vector of my peculiarly named variants and turn them into a grange

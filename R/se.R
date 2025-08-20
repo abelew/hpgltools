@@ -44,7 +44,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       handle_na = "drop", researcher = "elsayed", study_name = NULL,
                       feature_type = "gene", ignore_tx_version = TRUE, savefile = NULL,
                       low_files = FALSE, annotation = NULL, palette = "Dark2",
-                      round = FALSE, tx_gene_map = NULL, species = NULL, ...) {
+                      round = FALSE, tx_gene_map = NULL, species = NULL,
+                      condition_column = NULL, batch_column = NULL,
+                      ...) {
   arglist <- list(...)  ## pass stuff like sep=, header=, etc here
   if (!is.null(species)) {
     include_gff <- file.path(Sys.getenv("HOME"), "libraries", "genome", "gff", paste0(species, ".gff"))
@@ -94,6 +96,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Read in the metadata from the provided data frame, csv, or xlsx.
   message("Reading the sample metadata.")
   sample_definitions <- extract_metadata(metadata, id_column = id_column,
+                                         condition_column = condition_column,
+                                         batch_column = batch_column,
                                          ...)
 
   ## sample_definitions <- extract_metadata(metadata)
@@ -606,6 +610,7 @@ subset_se <- function(se, subset = NULL, ids = NULL,
 merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = NULL) {
   ## It turns out that loading the annotation information from orgdb/etc may not set the
   ## row names. Perhaps I should do that there, but I will add a check here, too.
+  all_count_tables[["temporary_id_number"]] <- seq_len(nrow(all_count_tables))
   found_sum <- sum(gene_info[["rownames"]] %in% all_count_tables[["rownames"]])
   if (found_sum == 0) {
     if (!is.null(gene_info[["geneid"]])) {
@@ -683,8 +688,9 @@ setMethod(
     all_count_tables[["temporary_id_number"]] <- seq_len(nrow(all_count_tables))
     max_matches <- 0
     gene_info_df <- as.data.frame(mcols(gene_info))
+    potentials <- colnames(gene_info_df)
     chosen_column <- NULL
-    for (r in colnames(potentials)) {
+    for (r in potentials) {
       hits <- sum(gene_info_df[[r]] %in% assay_rownames)
       if (hits > max_matches) {
         chosen_column <- r
@@ -695,6 +701,21 @@ setMethod(
       stop("I did not find a matching column.")
     } else {
       gene_info_df[["rownames"]] <- gene_info_df[[chosen_column]]
+    }
+    ## Get rid of duplicates and NAs
+    na_rownames <- is.na(gene_info_df[["rownames"]])
+    gene_info_df <- gene_info_df[!na_rownames, ]
+    dup_rownames <- duplicated(gene_info_df[["rownames"]])
+    gene_info_df <- gene_info_df[!dup_rownames, ]
+
+    ## Get rid of columns that were not filled in for the chosen rowtype
+    remaining_rows <- nrow(gene_info_df)
+    for (r in potentials) {
+      num_nas <- sum(is.na(gene_info_df[[r]]))
+      if (num_nas == remaining_rows) {
+        mesg("Dropping ", r, " it is comprised of only NA.")
+        gene_info_df[[r]] <- NULL
+      }
     }
 
     ## This should automagically check and fix rownames when they would otherwise
@@ -717,7 +738,7 @@ setMethod(
     na_entries <- is.na(counts_and_annotations)
     if (sum(na_entries) > 0) {
       message("Some annotations were lost in merging, setting them to 'undefined'.")
-  }
+    }
     counts_and_annotations[na_entries] <- "undefined"
     ## Set an incrementing id number to make absolutely paranoidly certain the
     ## order stays constant.
@@ -733,7 +754,7 @@ setMethod(
     final_counts <- counts_and_annotations
     kept_columns <- colnames(counts_and_annotations) %in% colnames(all_count_tables)
     final_counts <- final_counts[, kept_columns, with = FALSE]
-    final_counts <- as.data.frame(final_counts)
+    final_counts <- as.data.frame(final_counts, stringsAsFactors = FALSE)
     rownames(final_counts) <- final_counts[["rownames"]]
     final_counts[["rownames"]] <- NULL
     final_counts <- as.matrix(final_counts)

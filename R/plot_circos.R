@@ -1061,6 +1061,7 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
                           strand_column = "strand", id_column = NULL,
                           cog_map = NULL,
                           radius = 1800, chr_units = 1000, band_url = NULL, ...) {
+  arglist <- list(...)
   mesg("This assumes you have a colors.conf in circos/colors/ ",
        "and fonts.conf in circos/fonts/")
   mesg("It also assumes you have conf/ideogram.conf, conf/ticks.conf, ",

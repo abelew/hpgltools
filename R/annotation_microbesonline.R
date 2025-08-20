@@ -179,6 +179,17 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
       id <- id[1]
     }
   }
+  downloaded_file <- file.path("reference", paste0("microbesonline_", id, ".tsv"))
+  if (file.exists("reference")) {
+    if (file.exists(downloaded_file)) {
+      message("The microbesonline tsv has already been downloaded to ", downloaded_file, ".")
+      data <- sm(readr::read_tsv(url))
+      return(data)
+    }
+  } else {
+    dir.create("reference")
+  }
+
   prelude_url <- paste0("http://microbesonline.org/cgi-bin/genomeInfo.cgi?tId=", id)
   result <- xml2::read_html(prelude_url)
   titles <- rvest::html_nodes(result, "title")
@@ -187,6 +198,7 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
   url <- glue::glue("http://www.microbesonline.org/cgi-bin/genomeInfo.cgi?tId={id};export=tab")
   message("Downloading: ", url)
   data <- sm(readr::read_tsv(url))
+  written <- readr::write_tsv(x = data, file = downloaded_file)
   return(data)
 }
 

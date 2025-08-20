@@ -106,12 +106,14 @@ gff2irange <- function(gff, type = NULL) {
 #' @param second_id_col Second column to check.
 #' @param try Give your own function call to use for importing.
 #' @param row.names Choose another column for setting the rownames of the data frame.
+#' @param makenames Use make.names to ensure rownames are unique?
 #' @return Dataframe of the annotation information found in the gff file.
 #' @seealso [rtracklayer] [GenomicRanges]
 #' @example /inst/examples/annotation_gff.R
 #' @export
 load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "data.frame",
-                                 second_id_col = "locus_tag", try = NULL, row.names = NULL) {
+                                 second_id_col = "locus_tag", try = NULL, row.names = NULL,
+                                 make.names = TRUE) {
   if (!file.exists(gff)) {
     stop("Unable to find the gff file: ", gff)
   }
@@ -217,7 +219,11 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
   }
 
   if (!is.null(row.names)) {
-    rownames(ret) <- ret[[row.names]]
+    if (isTRUE(make.names)) {
+      rownames(ret) <- make.names(ret[[row.names]], unique = TRUE)
+    } else {
+      rownames(ret) <- ret[["row.names"]]
+    }
   }
   if (isTRUE(compressed)) {
     removed <- file.remove(gff)

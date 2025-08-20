@@ -1318,8 +1318,10 @@ If this is not correctly performed, very few genes will be observed")
       file_type <- "rsem"
     } else if (grepl(pattern = "\\.sf", x = files[1])) {
       file_type <- "salmon"
-    } else if (grepl(pattern = "\\.fcounts", x = files[1])) {
+    } else if (grepl(pattern = "fcounts\\.csv", x = files[1])) {
       file_type <- "featureCounts"
+    } else if (grepl(pattern = "\\.bw\\.*.*", x = files[1])) {
+      file_type = "bigwig"
     } else {
       file_type <- "table"
     }
@@ -1556,6 +1558,64 @@ If this is not correctly performed, very few genes will be observed")
     } ## End the difference between tximport and reading tables.
     retlist[["count_table"]] <- setkey(count_table, rownames)
     retlist[["source"]] <- "htseq"
+  } else if (file_type == "bigwig") {
+    count_df <- as.data.frame(rtracklayer::import(files[1]))
+    count_df[["rownames"]] <- paste0(count_df[["seqnames"]], "_", count_df[["start"]], "_",
+                                     count_df[["end"]])
+    count_table <- count_df[, c("rownames", "score")]
+    colnames(count_table) <- c("rownames", ids[1])
+    tmp_count <- as.data.table(count_table)
+    pre_merge <- nrow(count_table)
+    ## We are going to immediately check for NA, so I think we can suppress warnings.
+    count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))
+    na_idx <- is.na(count_table[[2]])
+    ## This is a bit more circuituous than I would like.
+    ## I want to make sure that na_rownames does not evaluate to something
+    ## annoying like 'logical(0)' which it will if there are no nas in the count
+    ## table and you just ask for is.na(count_table).
+    na_rownames <- ""
+    if (sum(na_idx) > 0) {
+      na_rownames <- count_table[na_idx, "rownames"]
+    }
+    keepers_idx <- count_table[["rownames"]] != na_rownames
+    count_table <- count_table[keepers_idx, ]
+    count_table <- as.data.table(count_table)
+    count_table <- setkey(count_table, rownames)
+    first_rownames <- sort(count_table[["rownames"]])
+    if (class(count_table)[1] == "try-error") {
+      stop("There was an error reading: ", files[1])
+    }
+    mesg(files[1], " contains ", length(rownames(count_table)), " rows.")
+    ## iterate over and append remaining samples
+    for (num in seq(from = 2, to = length(files))) {
+      table <- files[num]
+      if (file.exists(tolower(table))) {
+        table <- tolower(table)
+      }
+      tmp_count <- as.data.frame(rtracklayer::import(table))
+      tmp_count[["rownames"]] <- paste0(tmp_count[["seqnames"]], "_", tmp_count[["start"]], "_",
+                                        tmp_count[["end"]])
+      tmp_count <- tmp_count[, c("rownames", "score")]
+      colnames(tmp_count) <- c("rownames", ids[num])
+      ## Drop the rows with NAs before coercing to numeric.
+      keepers_idx <- tmp_count[[1]] != na_rownames
+      tmp_count <- tmp_count[keepers_idx, ]
+      if (merge_type == "merge") {
+        count_table <- merge(count_table, tmp_count, by = "rownames",
+                             all.x = all.x, all.y = all.y)
+      } else {
+        count_table <- plyr::join(count_table, tmp_count)
+      }
+      ## rownames(count_table) <- count_table[, "Row.names"]
+      ## count_table <- count_table[, -1, drop = FALSE]
+      ## post_merge <- length(rownames(count_table))
+      post_merge <- nrow(count_table)
+      mesg(table, " contains ", pre_merge, " rows and merges to ", post_merge, " rows.")
+    } ## End iterating over the files to read.
+    na_idx <- is.na(count_table)
+    count_table[na_idx] <- 0
+    retlist[["count_table"]] <- setkey(count_table, rownames)
+    retlist[["source"]] <- "bigwig"
   } else {
     stop("I do not understand this count data type.")
   }

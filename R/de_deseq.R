@@ -545,6 +545,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       "model" = model_mtrx,
       "model_string" = model_fstring,
       "normalized_counts" = normalized_counts,
+      "num_contrasts" = total_contrasts,
       "numerators" = numerators,
       "run" = deseq_run)
   class(retlist) <- c("deseq_result", "list")
