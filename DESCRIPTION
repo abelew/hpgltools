@@ -54,7 +54,7 @@ Suggests:
   xCell, xml2
 Imports:
   Biobase, BiocGenerics, broom,
-  data.table, DESeq2, DSS, DOSE, dplyr,
+  data.table, DESeq2, DOSE, dplyr,
   edgeR, forcats, foreach,
   GenomicFeatures, ggplot2, glue, GSEABase,
   IRanges,
