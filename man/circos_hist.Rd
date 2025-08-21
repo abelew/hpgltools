@@ -20,7 +20,9 @@ circos_hist(
   outer = 0.9,
   width = 0.08,
   spacing = 0,
-  df_merge_column = "row.names"
+  df_merge_column = "row.names",
+  color_alpha = 0,
+  fill_alpha = 0
 )
 }
 \arguments{

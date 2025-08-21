@@ -17,6 +17,8 @@ dispatch_regex_search(
   as = NULL,
   verbose = FALSE,
   type = "genome",
+  backup_search = NULL,
+  backup_replace = NULL,
   ...
 )
 }

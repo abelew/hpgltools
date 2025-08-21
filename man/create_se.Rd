@@ -15,6 +15,7 @@ create_se(
   include_type = "all",
   count_source = "htseq",
   countdir = NULL,
+  include_fasta = NULL,
   include_gff = NULL,
   file_column = "file",
   file_type = NULL,
@@ -26,10 +27,13 @@ create_se(
   ignore_tx_version = TRUE,
   savefile = NULL,
   low_files = FALSE,
-  annotation = "org.Hs.eg.db",
+  annotation = NULL,
   palette = "Dark2",
   round = FALSE,
   tx_gene_map = NULL,
+  species = NULL,
+  condition_column = NULL,
+  batch_column = NULL,
   ...
 )
 }

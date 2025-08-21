@@ -11,7 +11,8 @@ load_gff_annotations(
   ret_type = "data.frame",
   second_id_col = "locus_tag",
   try = NULL,
-  row.names = NULL
+  row.names = NULL,
+  make.names = TRUE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ load_gff_annotations(
 \item{try}{Give your own function call to use for importing.}
 
 \item{row.names}{Choose another column for setting the rownames of the data frame.}
+
+\item{makenames}{Use make.names to ensure rownames are unique?}
 }
 \value{
 Dataframe of the annotation information found in the gff file.

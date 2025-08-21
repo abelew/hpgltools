@@ -15,6 +15,7 @@
   plot_legend = FALSE,
   plot_title = NULL,
   cutoff = 0.65,
+  y_intercept = 0.8,
   ...
 )
 }

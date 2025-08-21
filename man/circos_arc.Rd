@@ -10,6 +10,7 @@ circos_arc(
   first_col = "seqnames",
   second_col = "seqnames.2",
   color = "blue",
+  color_alpha = 0,
   radius = 0.75,
   thickness = 3,
   ribbon = "yes",

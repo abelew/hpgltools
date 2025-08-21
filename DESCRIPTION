@@ -42,7 +42,7 @@ Suggests:
   pheatmap, plyr, preprocessCore, pROC, PROPER, purrr,
   qvalue,
   R.utils, RColorBrewer, RCurl, readr, reactome.db, ReactomePA, readODS, readxl,
-  reshape2, restez, rGADEM, Rgraphviz, rhdf5, Rhdf5lib, rjson, rmarkdown, robust,
+  reshape2, restez, rGADEM, Rgraphviz, rhdf5, rjson, rmarkdown, robust,
   robustbase, Rsamtools, Rtsne,
   rtracklayer, ruv, RUVSeq, rvest,
   scales, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,

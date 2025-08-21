@@ -12,6 +12,8 @@ extract_metadata(
   fill_batch = TRUE,
   keep_underscore = TRUE,
   sanitize = TRUE,
+  condition_column = NULL,
+  batch_column = NULL,
   ...
 )
 }
