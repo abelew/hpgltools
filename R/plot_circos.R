@@ -27,9 +27,10 @@
 #' @return The file to which the arc configuration information was written.
 #' @export
 circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2",
-                       color = "blue", radius = 0.75, thickness = 3, ribbon = "yes", show = "yes", z = "0") {
+                       color = "blue", color_alpha = 0, radius = 0.75, thickness = 3,
+                       ribbon = "yes", show = "yes", z = "0") {
   annot <- cfg@annot
-
+  color <- circos_format_color(color, alpha = color_alpha)
   arc_cfg_file <- cfg@cfg_file
   arc_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = arc_cfg_file)
   arc_cfg_file <- paste0(arc_cfg_file, first_col, "_arc.conf")
@@ -146,6 +147,28 @@ circos_check_chromosomes <- function(cfg, df, annot_chr_column = "chr",
     "found_chromosomes" = found_chromosomes,
     "found_genes" = found_genes)
   return(retlist)
+}
+
+circos_format_color <- function(start, alpha = 0) {
+  found_comma <- grepl(x = start, pattern = "\\,")
+  found_hash <- grepl(x = start, pattern = "^#")
+  if (isTRUE(found_comma)) {
+    ## check that there are 2 or 3 commas.
+    num_commas <- stringr::str_count(start, ",")
+    if (num_commas < 2 || num_commas > 3) {
+      stop("This color string is invalid, it has too many/too few commas.")
+    }
+    return(start)
+  } else if (found_hash) {
+    int_values <- color_int(start)
+    new_string = paste0(int_values[["red"]], ",", int_values[["green"]], ",",
+                        int_values[["blue"]]) ###, ",", alpha)
+    return(new_string)
+  } else {
+    return(start)
+  }
+  message("Fell through the if?")
+  return(start)
 }
 
 #' Write tiles of arbitrary heat-mappable data in circos.
@@ -352,7 +375,8 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
                         colname = "logFC", basename = "",
                         color = "blue", fill_color = "blue", fill_under = "yes",
                         extend_bin = "no", thickness = "0", orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
+                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
+                        color_alpha = 0, fill_alpha = 0) {
   ## I am going to have this take as input a data frame with genes as rownames
   ## starts, ends, and functional calls
   ## I will tell R to print out a suitable stanza for circos while I am at it
@@ -370,6 +394,9 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
     df <- input
   }
 
+  ## Make sure the colors era valid.
+  color <- circos_format_color(color, alpha = color_alpha)
+  fill_color <- circos_format_color(fill_color, alpha = fill_alpha)
   annot <- NULL
   full_table <- data.frame()
   if (is.null(annot_source)) {
@@ -490,13 +517,16 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
 #' @return The file to which the ideogram configuration was written.
 #' @export
 circos_ideogram <- function(name = "default", conf_dir = "circos/conf", band_url = NULL,
-                            fill = "yes", stroke_color = "black",
+                            fill = "yes", stroke_color = "black", stroke_alpha = 0,
                             show_bands = "yes", fill_bands = "yes",
                             thickness = "20", stroke_thickness = "2",
                             label_font = "condensedbold",
                             spacing_default = "0", spacing_break = "0",
-                            fill_color = "black", radius = "0.85", radius_padding = "0.05",
+                            fill_color = "black", fill_alpha = 0,
+                            radius = "0.85", radius_padding = "0.05",
                             label_size = "36", band_stroke_thickness = "2") {
+  stroke_color <- circos_format_color(stroke_color, alpha = stroke_alpha)
+  fill_color <- circos_format_color(fill_color, alpha = stroke_alpha)
   ideogram_outfile <- glue("{conf_dir}/ideograms/{name}.conf")
   created <- suppressWarnings(dir.create(dirname(ideogram_outfile), recursive = TRUE))
   out <- file(ideogram_outfile, open = "w+")
@@ -624,6 +654,182 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
     "size_df" = chr_df
   )
   return(retlist)
+}
+
+#' Write histograms of arbitrary floating point data in circos.
+#'
+#' This function tries to make the writing of histogram data in circos
+#' easier.  Like circos_plus_minus() it works in 3 stages,
+#' It writes out a data file using cfgout as a basename and the data
+#' from df in the circos histogram format into
+#' circos/data/bob_hist.txt
+#' It then writes out a configuration plot stanza in
+#' circos/conf/bob_hist.conf
+#' and finally adds an include to circos/bob.conf
+#'
+#' @param cfg Result of circos_prefix(), contains a bunch of useful material.
+#' @param input Dataframe or table with starts/ends and the floating point information.
+#' @param tablename A likely input for this is a combine_de_tables() result, if so, provide
+#'  the table's name here.
+#' @param annot_source This parameter was added to make it possible to add an
+#'  arbitrary dataframe of other annotation information.
+#' @param colname Name of the column with the data of interest.
+#' @param basename Location to write the circos data (usually cwd).
+#' @param color Color of the plotted data.
+#' @param fill_color Guess
+#' @param fill_under The circos histogram fill under parameter
+#' @param extend_bin Extend bins?
+#' @param thickness histogram thickness.
+#' @param orientation facing in or out?
+#' @param outer Floating point radius of the circle into which to place the data.
+#' @param width Radial width of each tile.
+#' @param spacing Distance between outer, inner, and inner to whatever follows.
+#' @param df_merge_column Merge the annotations/data on this columns.
+#' @return Radius after adding the histogram and the spacing.
+#' @export
+circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
+                        colname = "logFC", basename = "", axis_color = "black",
+                        axis_thickness = 1, color = "blue", fill_color = "blue", fill_under = "yes",
+                        extend_bin = "no", thickness = "1", orientation = "out",
+                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
+                        color_alpha = 0, fill_alpha = 0, gap = 1) {
+  ## I am going to have this take as input a data frame with genes as rownames
+  ## starts, ends, and functional calls
+  ## I will tell R to print out a suitable stanza for circos while I am at it
+  ## because I am tired of mistyping something stupid.
+  df <- data.frame()
+  if ("combined_de" %in% class(input)) {
+    if (is.null(tablename)) {
+      mesg("Using the first table of the combined tables, this may be incorrect.")
+      df <- input[["data"]][[1]]
+    } else {
+      df <- input[["data"]][[tablename]]
+    }
+  } else {
+    mesg("Assuming the input is a dataframe.")
+    df <- input
+  }
+
+  ## Make sure the colors era valid.
+  color <- circos_format_color(color, alpha = color_alpha)
+  fill_color <- circos_format_color(fill_color, alpha = fill_alpha)
+  annot <- NULL
+  full_table <- data.frame()
+  if (is.null(annot_source)) {
+    full_table <- df
+  } else {
+    annot <- cfg@annot
+    full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
+
+    if (nrow(full_table) == 0) {
+      stop("Merging the annotations and data failed.")
+    }
+
+    start_colnames <- colnames(full_table)
+    new_colnames <- gsub(x = start_colnames, pattern = "\\.x$", replacement = "")
+    colnames(full_table) <- new_colnames
+    if (df_merge_column == "row.names") {
+      rownames(full_table) <- full_table[["Row.names"]]
+    } else {
+      rownames(full_table) <- full_table[[df_merge_column]]
+    }
+    full_table[["Row.names"]] <- NULL
+
+    full_table <- full_table[, c("chr", "start", "stop", colname)]
+    start_undefined_idx <- full_table[["start"]] == "undefined"
+    full_table <- full_table[!start_undefined_idx, ]
+    stop_undefined_idx <- full_table[["stop"]] == "undefined"
+    full_table <- full_table[!stop_undefined_idx, ]
+    full_table[["start"]] <- as.numeric(full_table[["start"]])
+    full_table[["stop"]] <- as.numeric(full_table[["stop"]])
+    keep_idx <- !is.na(full_table[["start"]])
+    full_table <- full_table[keep_idx, ]
+    keep_idx <- !is.na(full_table[["stop"]])
+    full_table <- full_table[keep_idx, ]
+  }
+
+  ## Add a check that we pulled the same chromosomes as exist in the annotations.
+  happyp <- circos_check_chromosomes(cfg, full_table,
+                                     df_chr_column = "chr", df_gene_column = "rownames")
+
+  ## FIXME: Redo this with %>%
+  line_cfg_file <- cfg@cfg_file
+  line_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = line_cfg_file)
+  line_cfg_file <- paste0(line_cfg_file, "_", basename, colname, "_line.conf")
+  line_data_file <- file.path(cfg@data_dir, basename(line_cfg_file))
+  line_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = line_data_file)
+  mesg("Writing data file: ", line_data_file, " with the ", basename, colname, " column.")
+  write.table(full_table, file = line_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+  plot_min <- min(full_table[[colname]])
+  plot_max <- max(full_table[[colname]])
+  plot_gap <- paste0(gap, "u")
+  num_colors <- 1
+  ## if (is.null(colors)) {
+  ##     conditions <- levels(as.factor(df[["call"]]))
+  ##     num_colors <- length(conditions)
+  ##     colors <- suppressWarnings(grDevices::colorRampPalette(
+  ##                                RColorBrewer::brewer.pal(num_colors, "Dark2"))(num_colors))
+  ##     names(colors) <- conditions
+  ## }
+
+  axis <- TRUE
+  if (is.null(axis_color) || is.null(axis_thickness)) {
+    axis <- FALSE
+  }
+
+
+  ## Now write the config stanza
+  inner <- outer - width
+  rel_cfg_file <- file.path("conf", basename(line_cfg_file))
+  rel_data_file <- file.path("data", basename(line_data_file))
+  ## Note, one may have an arbitrary number of axes, but I am only including one for now
+  line_cfg_string <- glue("
+ <plot>
+  type = line
+  max_gap = {plot_gap}
+  file = {rel_data_file}
+  color = {color}
+  fill_color = {fill_color}
+  min = {plot_min}
+  max = {plot_max}
+  r0 = {inner}r
+  r1 = {outer}r
+  thickness = {thickness}
+  orientation = {orientation}
+")
+  if (isTRUE(axis)) {
+    line_cfg_string <- glue("{line_cfg_string}
+  <axes>
+    <axis>
+      color = {axis_color}
+      thickness = {axis_thickness}
+      position = axis_position
+    </axis>
+  </axes>
+")
+  }
+  line_cfg_string <- glue("{line_cfg_string}
+ </plot>
+")
+  line_cfg_out <- file(line_cfg_file, open = "w+")
+  cat(line_cfg_string, file = line_cfg_out, sep = "")
+  close(line_cfg_out)
+
+  ## Now add to the master configuration file.
+  master_cfg_string <- glue("
+  ## The line ring for {colname}
+  <<include {rel_cfg_file}>>
+
+")
+  master_cfg_out <- file(cfg@cfg_file, open = "a+")
+  cat(master_cfg_string, file = master_cfg_out, sep = "")
+  close(master_cfg_out)
+
+  new_outer <- inner - spacing
+  mesg("Returning the inner width: ", new_outer,
+       ".  Use it as the outer for the next ring.")
+  return(new_outer)
 }
 
 #' Write a simple makefile for circos.

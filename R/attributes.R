@@ -994,6 +994,18 @@ set_expt_genenames <- function(expt, ids = NULL, ...) {
   return(expt)
 }
 
+#' Set the genenames of a SE
+#' @export
+set_se_genenames <- function(se, ids = NULL, column = NULL, ...) {
+  arglist <- list(...)
+  current_ids <- rownames(assay(se))
+  if (!is.null(column)) {
+    new_ids <- make.names(rowData(se)[[column]], unique = TRUE)
+  }
+  rownames(se) <- new_ids
+  return(se)
+}
+
 #' Switch the gene names of an expressionset using a column from fData.
 #'
 #' I am not sure if set_expt_genenames() is smart enough to check for
