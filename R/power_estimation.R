@@ -447,12 +447,6 @@ update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 #'  exactTest topTags
 run.edgeR <- "PROPER" %:::% "run.edgeR"
 
-#' PROPER uses this privately but should make it available I think.
-#'
-#' @param dat Input data
-#' @importFrom DSS newSeqCountSet estNormFactors estDispersion waldTest
-run.DSS <- "PROPER" %:::% "run.DSS"
-
 #' PROPER uses this function privately, but should not.
 #'
 #' @param dat Input data
@@ -517,7 +511,7 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
         res1 <- run.edgeR(data0)
       }
       if (DEmethod == "DSS") {
-        res1 <- run.DSS(data0)
+        res1 <- run.DESeq2(data0)
       }
       if (DEmethod == "DESeq2") {
         res1 <- run.DESeq2(data0)

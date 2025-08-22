@@ -4,16 +4,16 @@
 \alias{colData}
 \title{If you mess up the NAMESPACE file, the following becomes necessary}
 \usage{
-colData(x, ...)
+colData(x, i, withDimnames = TRUE, ...)
 }
 \arguments{
 \item{x}{The SummarizedExperiment input}
 
-\item{...}{extra args.}
-
 \item{i}{undef}
 
 \item{withDimnames}{undef}
+
+\item{...}{extra args.}
 }
 \description{
 message("I am from SummarizedExperiment and am explicitly imported, wtf.")
