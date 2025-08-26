@@ -276,7 +276,7 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
   } else {
     cov_plot <- cov_plot +
       ggplot2::scale_y_continuous(minor_breaks = scales::breaks_width(1), limits = c(0, y_max),
-                                  position = "left", exapnd = c(0, 0))
+                                  position = "left", expand = c(0, 0))
   }
   if (!is.null(y_scale) && y_scale == "log2") {
     cov_plot <- cov_plot +
@@ -304,9 +304,17 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
                           arrow.num = NULL, fill.color = gene_colors,
                           color.by = gene_color_by)
 
+  region_start <- min(start(gr_subset), na.rm = TRUE)
+  region_end <- max(end(gr_subset), na.rm = TRUE)
+  region_width <- region_end - region_start
+  observed_genes <- mcols(gr_subset)[[feature_name_column]]
   retlist <- list(
     "region" = gr_subset,
+    "region_start" = region_start,
+    "region_end" = region_end,
+    "region_width" = region_width,
     "coverage_data" = coverage_info,
+    "observed_genes" = observed_genes,
     "plot" = cov_plot)
   class(retlist) <- "ggcoverage_plot"
   return(retlist)

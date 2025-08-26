@@ -117,7 +117,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               include_edger = TRUE, include_ebseq = TRUE, include_basic = TRUE,
                               include_noiseq = TRUE, include_dream = TRUE,
                               add_plots = TRUE, loess = FALSE, plot_dim = 6,
-                              compare_plots = TRUE, padj_type = "ihw", fancy = FALSE,
+                              compare_plots = TRUE, padj_type = "fdr", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
                               excel_title = "Table SXXX: Combined Differential Expression of YYY",
                               increment_start = "SXXX", start_worksheet_num = 2,

@@ -183,7 +183,7 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
   if (file.exists("reference")) {
     if (file.exists(downloaded_file)) {
       message("The microbesonline tsv has already been downloaded to ", downloaded_file, ".")
-      data <- sm(readr::read_tsv(url))
+      data <- sm(readr::read_tsv(downloaded_file))
       return(data)
     }
   } else {

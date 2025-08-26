@@ -2115,7 +2115,7 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
       input_df <- sm(readr::read_csv(input_file))
     }
     if (column == "last") {
-      column <- ncols(input_df)
+      column <- ncol(input_df)
     }
 
     if (which == "first") {

@@ -1254,6 +1254,8 @@ make_pombe_expt <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org
 #' \dontrun{
 #'  count_tables <- read_counts(as.character(sample_ids), as.character(count_filenames))
 #' }
+#' @importFrom data.table as.data.table
+#' @importFrom S4Vectors mcols
 #' @export
 read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
                         all.x = TRUE, all.y = FALSE, merge_type = "merge",

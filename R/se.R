@@ -579,7 +579,7 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     print(colSums(exprs(se))[remove_idx])
     print(num_nonzero[remove_idx])
     if (isTRUE(print_excluded)) {
-      message("Samples remove: ", toString(samples_dropped))
+      message("Samples removed: ", toString(samples_dropped))
     }
     se <- se[, !remove_idx]
     end_colors <- starting_colors[!remove_idx]

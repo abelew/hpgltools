@@ -146,6 +146,98 @@ setGeneric("libsize")
 }
 setGeneric("libsize<-")
 
+#' Remove/keep specifically named genes from a data structure.
+#'
+#' I find subsetting weirdly confusing.  Hopefully this function will allow one
+#' to include/exclude specific genes/families based on string comparisons.
+#'
+#' @param input Data structure to filter.
+#' @param invert The default is to remove the genes with the semantic strings.
+#'  Keep them when inverted.
+#' @param topn Take the topn most abundant genes rather than a text based heuristic.
+#' @param semantic Character list of strings to search for in the annotation
+#'  data.
+#' @param semantic_column Column in the annotations to search.
+#' @return A presumably smaller expt.
+#' @seealso [Biobase]
+#' @export
+semantic_filter <- function(input, invert = FALSE, topn = NULL,
+                            semantic = c("mucin", "sialidase", "RHS", "MASP", "DGF", "GP63"),
+                            semantic_column = "description") {
+  mtrx <- assay(input)
+  annots <- rowData(input)
+  if (isTRUE(invert)) {
+    new_annots <- data.frame()
+    new_mtrx <- data.frame()
+  } else {
+    new_annots <- annots
+    new_mtrx <- mtrx
+  }
+  start_rows <- nrow(mtrx)
+  numbers_removed <- 0
+  if (is.null(topn)) {
+    for (string in semantic) {
+      idx <- NULL
+      if (isTRUE(invert)) {
+        ## Keep the rows which match the ~7 strings above.
+        ## For these, we will re-grep the full table each time and just add the matches.
+        type <- "Kept"
+        if (semantic_column == "rownames") {
+          idx <- grepl(pattern = string, x = rownames(annots))
+        } else {
+          idx <- grepl(pattern = string, x = annots[, semantic_column])
+        }
+        message("Hit ", sum(idx), " genes for term ", string, ".")
+        ## Then, after grepping, just append the matched rows to the new annotations and matrix.
+        tmp_annots <- annots[idx, ]
+        tmp_mtrx <- mtrx[idx, ]
+        new_annots <- rbind(new_annots, tmp_annots)
+        new_mtrx <- rbind(new_mtrx, tmp_mtrx)
+      } else {
+        type <- "Removed"
+        ## In the case of removals, I need to only grep what is left after each iteration.
+        if (semantic_column == "rownames") {
+          idx <- grepl(pattern = string, x = rownames(new_annots))
+        } else {
+          idx <- grepl(pattern = string, x = new_annots[, semantic_column])
+        }
+        mesg("Hit ", sum(idx), " genes for term ", string, ".")
+        idx <- ! idx
+        ## So, we take the index of stuff to keep, and just subset on that index.
+        new_annots <- new_annots[idx, ]
+        new_mtrx <- new_mtrx[idx, ]
+      }
+    } ## End for loop
+    end_rows <- nrow(new_mtrx)
+    lost_rows <- start_rows - end_rows
+    message("semantic_expt_filter(): Removed ", lost_rows, " genes.")
+  } else {
+    ## Instead of a string based sematic filter, take the topn most abundant
+    medians <- rowMedians(mtrx)
+    new_order <- order(medians, decreasing = TRUE)
+    reordered <- mtrx[new_order, ]
+    subset <- rownames(head(reordered, n = topn))
+    new_annots <- annots[subset, ]
+  }
+
+  keepers <- rownames(new_annots)
+  new_data <- input[keepers, ]
+  new_libsizes <- colSums(assay(new_data))
+  return(new_data)
+}
+setGeneric("semantic_filter")
+
+setMethod(
+  "semantic_filter", signature = signature(input = "expt"),
+  definition = function(input, invert = FALSE, topn = NULL,
+                        semantic = c("mucin", "sialidase", "RHS", "MASP",
+                                     "DGF", "GP63"),
+                        semantic_column = "description") {
+    semantic_expt_filter(input, invert = invert, topn = topn,
+                         semantic = semantic,
+                         semantic_column = semantic_column)
+  })
+
 #' Change the batches of an expt.
 #'
 #' When exploring differential analyses, it might be useful to play with the
@@ -404,6 +496,7 @@ set_expt_colors <- function(expt, colors = TRUE,
 #' @param colors Set of colors to add.
 #' @param chosen_palette If colors is TRUE, use this palette to set colors.
 #' @param change_by Use this factor to set the colors.
+#' @importFrom SummarizedExperiment metadata
 #' @export
 set_se_colors <- function(se, colors = TRUE,
                           chosen_palette = "Dark2", change_by = "condition") {
@@ -999,10 +1092,17 @@ set_expt_genenames <- function(expt, ids = NULL, ...) {
 set_se_genenames <- function(se, ids = NULL, column = NULL, ...) {
   arglist <- list(...)
   current_ids <- rownames(assay(se))
-  if (!is.null(column)) {
+  if (is.null(column) && is.null(ids)) {
+    stop("Nothing was provided to change the IDs.")
+  } else if (is.null(column)) {
+    rownames(se) <- ids
+  } else if (is.null(ids)) {
     new_ids <- make.names(rowData(se)[[column]], unique = TRUE)
+    rownames(se) <- new_ids
+  } else {
+    message("Both a set of IDs and a column was provided, I am going to use the IDs.")
+    rownames(se) <- ids
   }
-  rownames(se) <- new_ids
   return(se)
 }
 
@@ -1243,18 +1343,19 @@ setGeneric("colors", signature = signature(expt = "expt"),
 
 #'
 NULL
-#' If you mess up the NAMESPACE file, the following becomes necessary
-#'
-#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-#' @param x The SummarizedExperiment input
-#' @param i undef
-#' @param withDimnames undef
-#' @param ... extra args.
-#' @importFrom SummarizedExperiment assay
-#' @export
-assay <- function(x, i, withDimnames = TRUE, ...) {
-   SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
-}
+
+# #' If you mess up the NAMESPACE file, the following becomes necessary
+# #'
+# #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
+# #' @param x The SummarizedExperiment input
+# #' @param i undef
+# #' @param withDimnames undef
+# #' @param ... extra args.
+# #' @importFrom SummarizedExperiment assay
+# #' @export
+# assay <- function(x, i, withDimnames = TRUE, ...) {
+#    SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
+# }
 
 #' A getter to pull the assay data from an ExpressionSet.
 #'
