@@ -1,4 +1,3 @@
-
 #' Pipe operator
 #'
 #' Shamelessly scabbed from Hadley: https://github.com/sckott/analogsea/issues/32

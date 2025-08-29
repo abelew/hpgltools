@@ -9,13 +9,6 @@ write_combined_legend(
   excel_basename,
   plot_dim,
   apr,
-  basic,
-  deseq,
-  dream,
-  ebseq,
-  edger,
-  limma,
-  noiseq,
   includes,
   padj_type,
   fancy = FALSE
@@ -30,6 +23,12 @@ write_combined_legend(
 
 \item{apr}{The all_pairwise() result.}
 
+\item{includes}{List of booleans defining which methods to examine.}
+
+\item{padj_type}{P-adjustment employed.}
+
+\item{fancy}{Write fancy plots with the xlsx file?}
+
 \item{basic}{Basic data}
 
 \item{deseq}{The deseq result, which is redundant.}
@@ -43,12 +42,6 @@ write_combined_legend(
 \item{limma}{The limma result, which is redundant.}
 
 \item{noiseq}{Noiseq results.}
-
-\item{includes}{List of booleans defining which methods to examine.}
-
-\item{padj_type}{P-adjustment employed.}
-
-\item{fancy}{Write fancy plots with the xlsx file?}
 }
 \description{
 Write the legend of an excel file for combine_de_tables()

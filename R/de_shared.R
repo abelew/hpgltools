@@ -689,8 +689,8 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
   if (isTRUE(force)) {
     ## Setting force to TRUE allows one to round the data to fool edger/deseq
     ## into accepting it. This is a pretty terrible thing to do
-    mesg("About to round the data, this is a pretty terrible thing to do. ",
-         "But if you, like me, want to see what happens when you put ",
+    mesg("About to round the data, this is a pretty terrible thing to do. ")
+    mesg("But if you, like me, want to see what happens when you put ",
          "non-standard data into deseq, then here you go.")
     data <- round(data)
     less_than <- data < 0
@@ -1841,7 +1841,7 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
   if (is.null(table[[column]])) {
     message("There is no ", column, " column in the table.")
     message("The columns are: ", toString(colnames(table)))
-    stop("There is no ", column, " column in the table.")
+    return(NULL)
   }
 
   if (!is.null(p)) {

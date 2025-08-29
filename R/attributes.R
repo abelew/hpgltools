@@ -17,6 +17,7 @@
 
 #' @include 01_hpgltools.R
 #' @importFrom BiocGenerics conditions conditions<-
+#' @importFrom SummarizedExperiment assay rowData colData
 NULL
 
 #' Get the batch column from a se.
@@ -496,7 +497,7 @@ set_expt_colors <- function(expt, colors = TRUE,
 #' @param colors Set of colors to add.
 #' @param chosen_palette If colors is TRUE, use this palette to set colors.
 #' @param change_by Use this factor to set the colors.
-#' @importFrom SummarizedExperiment metadata
+#' @importFrom S4Vectors metadata
 #' @export
 set_se_colors <- function(se, colors = TRUE,
                           chosen_palette = "Dark2", change_by = "condition") {
@@ -1342,20 +1343,20 @@ setGeneric("colors", signature = signature(expt = "expt"),
 #  })
 
 #'
-NULL
+#NULL
 
-# #' If you mess up the NAMESPACE file, the following becomes necessary
-# #'
-# #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-# #' @param x The SummarizedExperiment input
-# #' @param i undef
-# #' @param withDimnames undef
-# #' @param ... extra args.
-# #' @importFrom SummarizedExperiment assay
-# #' @export
-# assay <- function(x, i, withDimnames = TRUE, ...) {
-#    SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
-# }
+#' If you mess up the NAMESPACE file, the following becomes necessary
+#'
+#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
+#' @param x The SummarizedExperiment input
+#' @param i undef
+#' @param withDimnames undef
+#' @param ... extra args.
+#' @importFrom SummarizedExperiment assay
+#' @export
+assay <- function(x, i, withDimnames = TRUE, ...) {
+   SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
+}
 
 #' A getter to pull the assay data from an ExpressionSet.
 #'

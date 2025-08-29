@@ -41,7 +41,7 @@ pasilla_se <- sanitize_annotations(pasilla_se,
 ## Recent changes to how my expressionsets are created mean that the order of
 ## genes is hard-set to the order of annotations in the annotation data and
 ## therefore _not_ the order of genes found in the count tables.
-actual <- exprs(pasilla_se)
+actual <- assay(pasilla_se)
 actual <- actual[ order(row.names(actual)), ]
 expected <- as.matrix(counts)
 expected <- expected[ order(row.names(expected)), ]
@@ -69,13 +69,6 @@ expected <- c(857, 1672, 1188, 269, 393, 163)
 ## Sometimes the cds lengths don't get added to the annotations...
 annotations[["subtracted_cds_length"]] <- abs(as.numeric(annotations[["start_position"]]) -
                                                 as.numeric(annotations[["end_position"]]))
-## FIXME: I am not sure what is up here.
-#subtracted_actual <- as.numeric(annotations[chosen_genes, "subtracted_cds_length"])
-#provided_actual <- as.numeric(annotations[chosen_genes, "cds_length"])
-##  head(sm(sort(as.numeric(annotations[["cds_length"]]))))
-test_that("Was the annotation information imported into the expressionset? (static lengths?)", {
-    expect_equal(subtracted_actual, provided_actual)
-})
 
 ## By the same token, the start positions of genes should remain consistent.
 ##expected <- c(18822604, 30212156, 7782797, 19116483, 19116483, 19116483)

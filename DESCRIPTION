@@ -129,6 +129,7 @@ Collate:
     'plot_circos.R'
     'plot_distribution.R'
     'plot_dotplot.R'
+    'plot_expression.R'
     'plot_genome.R'
     'plot_shared.R'
     'plot_heatmap.R'

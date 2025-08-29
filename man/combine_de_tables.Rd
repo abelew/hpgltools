@@ -10,18 +10,12 @@ combine_de_tables(
   keepers = "all",
   excludes = NULL,
   adjp = TRUE,
-  include_limma = TRUE,
-  include_deseq = TRUE,
-  include_edger = TRUE,
-  include_ebseq = TRUE,
-  include_basic = TRUE,
-  include_noiseq = TRUE,
-  include_dream = TRUE,
+  includes = NULL,
   add_plots = TRUE,
   loess = FALSE,
   plot_dim = 6,
   compare_plots = TRUE,
-  padj_type = "ihw",
+  padj_type = "fdr",
   fancy = FALSE,
   lfc_cutoff = 1,
   p_cutoff = 0.05,
@@ -56,20 +50,6 @@ genes.}
 
 \item{adjp}{Perhaps you do not want the adjusted p-values for
 plotting?}
-
-\item{include_limma}{Include limma analyses in the table?}
-
-\item{include_deseq}{Include deseq analyses in the table?}
-
-\item{include_edger}{Include edger analyses in the table?}
-
-\item{include_ebseq}{Include ebseq analyses in the table?}
-
-\item{include_basic}{Include my stupid basic logFC tables?}
-
-\item{include_noiseq}{Include results from NoiSeq?}
-
-\item{include_dream}{Include results from the variancePartition 'dream' method?}
 
 \item{add_plots}{Add plots to the end of the sheets with expression values?}
 
@@ -127,6 +107,20 @@ plots.}
 \item{scale_p}{Scale the p-value in order to allow direct comparisons to dream.}
 
 \item{...}{Extra arguments passed to plotters etc.}
+
+\item{include_limma}{Include limma analyses in the table?}
+
+\item{include_deseq}{Include deseq analyses in the table?}
+
+\item{include_edger}{Include edger analyses in the table?}
+
+\item{include_ebseq}{Include ebseq analyses in the table?}
+
+\item{include_basic}{Include my stupid basic logFC tables?}
+
+\item{include_noiseq}{Include results from NoiSeq?}
+
+\item{include_dream}{Include results from the variancePartition 'dream' method?}
 }
 \value{
 Table combining limma/edger/deseq outputs.

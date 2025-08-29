@@ -25,24 +25,25 @@ NULL
 #' @param noiseq The user wants NoiSeq.
 #' @return List containing TRUE/FALSE for each method desired,
 #'  depending on if we actually have the relevant data.
-check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
-                           edger = TRUE, dream = TRUE, limma = TRUE,
-                           noiseq = TRUE) {
-  includes <- list(
-    "basic" = TRUE, "deseq" = TRUE, "dream" = TRUE,
-    "ebseq" = TRUE, "edger" = TRUE, "limma" = TRUE,
-    "noiseq" = TRUE)
-  queries <- c("basic", "deseq", "ebseq", "edger", "dream", "limma", "noiseq")
-  for (q in queries) {
-    if (!isTRUE(get0(q))) {
-      includes[[q]] <- FALSE
-      next
-    }
-    if ("try-error" %in% class(apr[[q]]) || is.null(apr[[q]])) {
-      includes[[q]] <- FALSE
+check_includes <- function(apr, includes = NULL) {
+  final <- list()
+  if (is.null(includes)) {
+    final <- list(
+      "basic" = TRUE, "deseq" = TRUE, "dream" = TRUE,
+      "ebseq" = TRUE, "edger" = TRUE, "limma" = TRUE,
+      "noiseq" = TRUE)
+  } else if ("character" %in% class(includes)) {
+    for (char in includes) {
+      final[[char]] <- TRUE
     }
   }
-  return(includes)
+  queries <- c("basic", "deseq", "ebseq", "edger", "dream", "limma", "noiseq")
+  for (q in queries) {
+    if ("try-error" %in% class(apr[[q]]) || is.null(apr[[q]])) {
+      final[[q]] <- FALSE
+    }
+  }
+  return(final)
 }
 
 #' Combine portions of deseq/limma/edger table output.
@@ -113,9 +114,7 @@ check_includes <- function(apr, basic = TRUE, deseq = TRUE, ebseq = TRUE,
 #' }
 #' @export
 combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes = NULL,
-                              adjp = TRUE, include_limma = TRUE, include_deseq = TRUE,
-                              include_edger = TRUE, include_ebseq = TRUE, include_basic = TRUE,
-                              include_noiseq = TRUE, include_dream = TRUE,
+                              adjp = TRUE, includes = NULL,
                               add_plots = TRUE, loess = FALSE, plot_dim = 6,
                               compare_plots = TRUE, padj_type = "fdr", fancy = FALSE,
                               lfc_cutoff = 1.0, p_cutoff = 0.05,
@@ -132,34 +131,37 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   if (is.null(wb)) {
     do_excel <- FALSE
   }
+  ## hey, id10t, keep this function right at the top, if you move it later
+  ## badness almost certainly will ensue when you perform weird, non-standard
+  ## contrasts like mixed models via lmer or interaction models.
+  includes <- check_includes(apr, includes = includes)
 
-  plot_colors <- get_input_colors(apr[["input"]],
-                                 ...)
+  plot_colors <- get_input_colors(apr[["input"]])
   ## Create a list of image files so that they may be properly cleaned up
   ## after writing the xlsx file.
   image_files <- c()
-  ## First pull out the data for each tool
-  limma <- apr[["limma"]]
-  deseq <- apr[["deseq"]]
-  edger <- apr[["edger"]]
-  ebseq <- apr[["ebseq"]]
-  basic <- apr[["basic"]]
-  noiseq <- apr[["noiseq"]]
-  dream <- apr[["dream"]]
+  possible_methods <- c("limma", "deseq", "edger", "ebseq", "basic", "noiseq", "dream")
+  model_strings <- list()
+  for (m in seq_along(possible_methods)) {
+    method <- possible_methods[m]
+    if (isTRUE(includes[[method]])) {
+      if (!is.null(apr[[method]][["model_string"]])) {
+        model_strings[[method]] <- apr[[method]][["model_string"]]
+      }
+    } else {
+      apr[[method]] <- list()
+    }
+  }
 
   model_used <- NULL
   ## I want to be able to print the model
   ## When summarizing the result, I think in most cases
   ## checking for a deseq or limma model should suffice.
-  if (!is.null(deseq[["model_string"]])) {
-    model_used <- deseq[["model_string"]]
+  if (!is.null(apr[["deseq"]][["model_string"]])) {
+    model_used <- apr[["deseq"]][["model_string"]]
   } else if (!is.null(limma[["model_string"]])) {
-    model_used <- limma[["model_string"]]
+    model_used <- apr[["limma"]][["model_string"]]
   }
-  includes <- check_includes(apr, basic = include_basic, deseq = include_deseq,
-                             dream = include_dream, ebseq = include_ebseq,
-                             edger = include_edger, limma = include_limma,
-                             noiseq = include_noiseq)
   ## A common request is to have the annotation data added to the table.  Do that here.
   annot_df <- fData(apr[["input"]])
   if (!is.null(extra_annot)) {
@@ -171,7 +173,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## Write the legend.
   legend <- write_combined_legend(
     wb, excel_basename, plot_dim, apr,
-    basic, deseq, dream, ebseq, edger, limma, noiseq,
     includes, padj_type, fancy = fancy)
   image_files <- c(legend[["image_files"]], image_files)
   table_names <- legend[["table_names"]]
@@ -1817,7 +1818,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
         this_table, lfc = lfc, p = p, z = z, n = n, column = this_fc_column,
         min_mean_exprs = min_mean_exprs, exprs_column = exprs_column,
         comparison = comparison, p_column = this_p_column)
-      if ("try-error" %in% class(trimming)) {
+      if ("try-error" %in% class(trimming) || is.null(trimming)) {
         trimmed_up[[table_name]] <- data.frame()
         trimmed_down[[table_name]] <- data.frame()
         change_counts_up[[table_name]] <- 0
@@ -2376,7 +2377,6 @@ print_ups_downs <- function(upsdowns, wb, excel_basename, according = "limma",
 #' @param padj_type P-adjustment employed.
 #' @param fancy Write fancy plots with the xlsx file?
 write_combined_legend <- function(wb, excel_basename, plot_dim, apr,
-                                  basic, deseq, dream, ebseq, edger, limma, noiseq,
                                   includes, padj_type, fancy = FALSE) {
   ## I want to print a string reminding the user what kind of model was used in
   ## the analysis. Do that here.  Noting that if 'batch' is actually from a
@@ -2531,47 +2531,46 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
   table_names <- list()
   if (isTRUE(includes[["basic"]])) {
     legend <- rbind(legend, basic_legend)
-    table_names[["basic"]] <- basic[["contrasts_performed"]]
+    table_names[["basic"]] <- apr[["basic"]][["contrasts_performed"]]
   } else {
     basic <- NULL
   }
   if (isTRUE(includes[["deseq"]])) {
     legend <- rbind(legend, deseq_legend)
-    table_names[["deseq"]] <- deseq[["contrasts_performed"]]
+    table_names[["deseq"]] <- apr[["deseq"]][["contrasts_performed"]]
   } else {
     deseq <- NULL
   }
   if (isTRUE(includes[["dream"]])) {
     legend <- rbind(legend, dream_legend)
-    table_names[["dream"]] <- dream[["contrasts_performed"]]
+    table_names[["dream"]] <- apr[["dream"]][["contrasts_performed"]]
   } else {
     dream <- NULL
   }
   if (isTRUE(includes[["ebseq"]])) {
     legend <- rbind(legend, ebseq_legend)
-    table_names[["ebseq"]] <- names(ebseq[["all_tables"]])
+    table_names[["ebseq"]] <- names(apr[["ebseq"]][["all_tables"]])
   } else {
     ebseq <- NULL
   }
   if (isTRUE(includes[["edger"]])) {
     legend <- rbind(legend, edger_legend)
-    table_names[["edger"]] <- edger[["contrasts_performed"]]
+    table_names[["edger"]] <- apr[["edger"]][["contrasts_performed"]]
   } else {
     edger <- NULL
   }
   if (isTRUE(includes[["limma"]])) {
     legend <- rbind(legend, limma_legend)
-    table_names[["limma"]] <- limma[["contrasts_performed"]]
+    table_names[["limma"]] <- apr[["limma"]][["contrasts_performed"]]
   } else {
     limma <- NULL
   }
   if (isTRUE(includes[["noiseq"]])) {
     legend <- rbind(legend, noiseq_legend)
-    table_names[["noiseq"]] <- noiseq[["contrasts_performed"]]
+    table_names[["noiseq"]] <- apr[["noiseq"]][["contrasts_performed"]]
   } else {
     noiseq <- NULL
   }
-
 
   ## Make sure there were no errors and die if things went catastrophically wrong.
   if (sum(unlist(includes)) < 1) {

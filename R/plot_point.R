@@ -187,6 +187,7 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   ## At this time, one might expect arglist to contain
   ## z, p, fc, n and these will therefore be passed to get_sig_genes()
   arglist <- list(...)
+  df <- as.data.frame(df)
   if (isTRUE(color_high)) {
     color_high <- "#FF0000"
   }
