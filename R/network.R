@@ -210,7 +210,7 @@ wgcna_network <- function(expt) {
   ## WGCNA calls cor() without specifying its own namespace, so overwrite cor for the moment.
   cor <- WGCNA::cor
   start_exprs <- t(exprs(expt))
-  l2input <- t(exprs(normalize_expt(expt, transform = "log2")))
+  l2input <- t(exprs(normalize(expt, transform = "log2")))
 
   initial_modules <- WGCNA::blockwiseModules(
     start_exprs, maxBlockSize = 11000, TOMType = "signed",

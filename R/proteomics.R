@@ -847,7 +847,7 @@ gather_masses <- function(sequence) {
 #'
 #' @param expt An ExpressionSet (well, expt), I think it is assumed that this should have
 #'  been normalized and filtered for features which have no values across 'most' samples.
-#' @param filter Use normalize_expt() to filter the data?
+#' @param filter Use normalize() to filter the data?
 #' @param p When filtering with pofa, use this p parameter.
 #' @param fun "bpca", "knn", "QRILC", "MLE", "MinDet",
 #'  "MinProb", "man", "min", "zero", "mixed" or "nbavg",
@@ -881,7 +881,7 @@ impute_expt <- function(expt, filter = TRUE, p = 0.5,
       message("The data was already filtered with: ", expt[["state"]][["filter"]], ".")
     }
     message("Filtering the data, turn off 'filter' to stop this.")
-    expt <- normalize_expt(expt, filter = "pofa", p = p)
+    expt <- normalize(expt, filter = "pofa", p = p)
   }
 
   exprs_set <- expt[["expressionset"]]

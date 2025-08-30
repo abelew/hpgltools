@@ -321,7 +321,7 @@ ranging from ", prettyNum(min_value, big.mark = ","),
 #' @param filter Method used to low-count filter the data.
 #' @param num_color Color for the numbers in the bars.
 #' @param num_size Size of said numbers.
-#' @param ... Extra arbitrary arguments to pass to normalize_exp()
+#' @param ... Extra arbitrary arguments to pass to normalize()
 #' @return Bar plot showing the number of genes below the low_limit before and
 #'  after filtering the data.
 #' @seealso [plot_libsize()] [filter_counts()]
@@ -329,7 +329,7 @@ ranging from ", prettyNum(min_value, big.mark = ","),
 plot_libsize_prepost <- function(exp, low_limit = 2, filter = TRUE,
                                  num_color = "black", num_size = 4, ...) {
   start <- plot_libsize(exp, text = FALSE)
-  norm <- sm(normalize_exp(exp, filter = filter,
+  norm <- sm(normalize(exp, filter = filter,
                             ...))
   end <- plot_libsize(norm)
 

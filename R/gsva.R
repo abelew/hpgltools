@@ -831,10 +831,10 @@ simple_xcell <- function(expt, signatures = NULL, genes = NULL, spill = NULL,
   xcell_eset <- NULL
   if (expt_state != "rpkm") {
     message("xCell strongly perfers rpkm values, re-normalizing now.")
-    xcell_eset <- normalize_expt(expt, convert = "rpkm",
+    xcell_eset <- normalize(expt, convert = "rpkm",
                                  ...)
   } else {
-    xcell_eset <- normalize_expt(expt, norm = arglist[["norm"]], convert = arglist[["convert"]],
+    xcell_eset <- normalize(expt, norm = arglist[["norm"]], convert = arglist[["convert"]],
                                  filter = arglist[["filter"]], batch = arglist[["batch"]])
   }
   xcell_mtrx <- exprs(xcell_eset)

@@ -16,10 +16,10 @@
 #' @return Currently just a plot of the SVs.
 compare_pc_sv <- function(expt, norm = NULL, transform = "log2", convert = "cpm",
                           filter = TRUE, batch = "svaseq") {
-  start <- normalize_expt(expt, norm = norm, transform = transform,
+  start <- normalize(expt, norm = norm, transform = transform,
                           convert = convert, filter = filter)
   start_pc <- plot_pca(start)
-  new <- normalize_expt(expt, norm = norm, transform = transform, convert = convert,
+  new <- normalize(expt, norm = norm, transform = transform, convert = convert,
                         filter = filter, batch = batch)
   sv_df <- new[["sv_df"]]
   num_svs <- ncol(sv_df)
@@ -1349,7 +1349,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   if (!is.null(arglist[["transform"]]) || !is.null(arglist[["convert"]]) ||
         !is.null(arglist[["filter"]]) || !is.null(arglist[["norm"]]) ||
           !is.null(arglist[["batch"]])) {
-    data <- normalize_expt(data, transform = arglist[["transform"]],
+    data <- normalize(data, transform = arglist[["transform"]],
                            convert = arglist[["convert"]],
                            filter = arglist[["filter"]],
                            batch = arglist[["batch"]],

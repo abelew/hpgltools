@@ -36,7 +36,7 @@ simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
   }
 
   ## Their example data is all on the log scale, so let us ensure that here.
-  mtrx <- exprs(normalize_expt(expt, transform = transform))
+  mtrx <- exprs(normalize(expt, transform = transform))
 
   ## Now recast the rownames as hgnc IDs.  Those IDs are weird and
   ## redundant, so keep that in mind.

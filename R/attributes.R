@@ -1483,7 +1483,7 @@ setGeneric("state<-")
 #' @param batch How was it batch-corrected?
 #' @param impute Was the data imputed?
 #' @return An expression describing what has been done to this data.
-#' @seealso [create_expt()] [normalize_expt()]
+#' @seealso [create_expt()] [normalize()]
 #' @export
 what_happened <- function(expt = NULL, transform = "raw", convert = "raw",
                           norm = "raw", filter = "raw", batch = "raw",

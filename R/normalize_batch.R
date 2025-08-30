@@ -725,7 +725,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' @param confounders List of confounded factors for smartSVA/iSVA.
 #' @param chosen_surrogates Somewhat redundant with surrogates above,
 #'  but provides a second place to enter because of the way I use
-#'  ... in normalize_expt().
+#'  ... in normalize().
 #' @param adjust_method Choose the method for applying the estimates
 #'  to the data.
 #' @param filter Filter the data?
@@ -1286,9 +1286,9 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' @param current_state Current state of the expt in an attempt to avoid
 #'  double-normalization.
 #' @param current_design Redundant with expt_design above, but
-#'  provides another place for normalize_expt() to send data.
+#'  provides another place for normalize() to send data.
 #' @param expt_state Current state of the data
-#' @param surrogate_method Also redundant for normalize_expt()
+#' @param surrogate_method Also redundant for normalize()
 #' @param num_surrogates Number of surrogates or method to estimate them.
 #' @param low_to_zero Send <0 entries to 0 to avoid shenanigans.
 #' @param cpus Parallelize intensive operations.
@@ -1535,7 +1535,7 @@ compare_batches <- function(expt = NULL, methods = NULL) {
   lst <- list()
   for (m in seq_along(methods)) {
     method <- methods[m]
-    res <- exprs(normalize_expt(expt, filter = TRUE, batch = method))
+    res <- exprs(normalize(expt, filter = TRUE, batch = method))
     lst[[method]] <- res
     column <- c()
     names <- c()
@@ -1583,7 +1583,7 @@ compare_batches <- function(expt = NULL, methods = NULL) {
 #'  number.
 #' @param ... Extra arguments when filtering.
 #' @return List of the results.
-#' @seealso [normalize_expt()] [plot_pca()] [all_adjuster()] [corrplot] [ffpe]
+#' @seealso [normalize()] [plot_pca()] [all_adjuster()] [corrplot] [ffpe]
 #' @export
 compare_surrogate_estimates <- function(expt, extra_factors = NULL,
                                         filter_it = TRUE, filter_type = TRUE,
@@ -1599,7 +1599,7 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
   if (isTRUE(filter_it) && expt[["state"]][["filter"]] == "raw") {
     mesg("The expt has not been filtered, ",
          "set filter_type/filter_it if you want other options.")
-    expt <- normalize_expt(expt, filter = filter_type,
+    expt <- normalize(expt, filter = filter_type,
                            ...)
   }
   pca_plots <- list()
@@ -2287,14 +2287,14 @@ plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0
 #' @param batch Use this method
 #' @param sv_df Or provide your own set of SVs
 #' @param queries List of metadata factors to query.
-#' @param ... Used to make compatible with pc_fstatistics and to pass stuff to normalize_expt().
+#' @param ... Used to make compatible with pc_fstatistics and to pass stuff to normalize().
 #' @export
 sv_fstatistics <- function(expt, num_surrogates = NULL,
                            filter = TRUE, norm = "raw",
                            convert = "cpm", transform = "log2", batch = "svaseq",
                            sv_df = NULL, queries = c("typeofcells", "visitnumber", "donor"),
                            ...) {
-  svs_expt <- normalize_expt(expt, filter = filter, norm = norm, convert = convert,
+  svs_expt <- normalize(expt, filter = filter, norm = norm, convert = convert,
                              transform = transform, batch = batch,
                              ...)
   if (is.null(sv_df)) {
@@ -2341,7 +2341,7 @@ sv_fstatistics <- function(expt, num_surrogates = NULL,
 svpc_fstats <- function(expt, ...) {
   if (expt[["state"]][["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
-    pre_norm <- normalize_expt(expt, transform = "log2", convert = "cpm",
+    pre_norm <- normalize(expt, transform = "log2", convert = "cpm",
                                filter = TRUE)
   } else {
     pre_norm <- expt

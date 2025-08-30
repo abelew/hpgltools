@@ -83,8 +83,8 @@ normalize <- function(object, ...) {
 setMethod(
   "normalize", signature = signature(object = "expt"),
   definition = function(object, ...) {
-    message("Running normalize_expt.")
-    normalize_expt(object, ...)
+    message("Running normalize.")
+    normalize(object, ...)
   })
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
@@ -102,7 +102,7 @@ setMethod(
 #' Normalize the data of an expt object.  Save the original data, and note what
 #' was done.
 #'
-#' It is the responsibility of normalize_expt() to perform any arbitrary
+#' It is the responsibility of normalize() to perform any arbitrary
 #' normalizations desired as well as to ensure that the data integrity is
 #' maintained.  In order to do this, it writes the actions performed in
 #' expt$state and saves the intermediate steps of the normalization in
@@ -144,13 +144,13 @@ setMethod(
 #'  [filter_counts()] [transform_counts()]
 #' @examples
 #' \dontrun{
-#'  normed <- normalize_expt(exp, transform='log2', norm='rle', convert='cpm',
+#'  normed <- normalize(exp, transform='log2', norm='rle', convert='cpm',
 #'                           batch='raw', filter='pofa')
-#'  normed_batch <- normalize_expt(exp, transform='log2', norm='rle', convert='cpm',
+#'  normed_batch <- normalize(exp, transform='log2', norm='rle', convert='cpm',
 #'                                 batch='sva', filter='pofa')
 #' }
 #' @export
-normalize_expt <- function(expt, ## The expt class passed to the normalizer
+normalize <- function(expt, ## The expt class passed to the normalizer
                            ## choose the normalization strategy
                            transform = "raw", norm = "raw", convert = "raw",
                            batch = "raw", filter = FALSE,
@@ -372,14 +372,14 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   new_expt[["notes"]] <- toString(current_notes)
   return(new_expt)
 }
-setGeneric("normalize_expt")
+setGeneric("normalize")
 
-#' If I call normalize_expt on a SE, catch it and redispatch appropriately.
+#' If I call normalize on a SE, catch it and redispatch appropriately.
 #'
-#' @inheritParams normalize_expt
+#' @inheritParams normalize
 #' @export
 setMethod(
-  "normalize_expt", signature = signature(expt = "SummarizedExperiment"),
+  "normalize", signature = signature(expt = "SummarizedExperiment"),
   definition = function(expt, transform = "raw", norm = "raw", convert = "raw",
                         batch = "raw", filter = FALSE, annotations = NULL, fasta = NULL,
                         entry_type = "gene", batch1 = "batch",
@@ -397,7 +397,7 @@ setMethod(
                  na_to_zero = na_to_zero, adjust_method = adjust_method,
                  verbose = verbose, ...)
   })
-setGeneric("normalize_expt")
+setGeneric("normalize")
 
 #' Normalize a SummarizedExperiment and think about how I want to reimplement some of this.
 #'
@@ -768,7 +768,7 @@ setGeneric("normalize_se")
 
 #' Normalize a dataframe/expt, express it, and/or transform it
 #'
-#' There are many possible options to this function.  Refer to normalize_expt()
+#' There are many possible options to this function.  Refer to normalize()
 #' for a more complete list.
 #'
 #' FIXME: This function is defunct and should be deleted in favor of normalize()
@@ -1074,7 +1074,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
 #' Simplified and ideally improved normalization function
 #'
 #' This function is ideally should provide a simpler and more capable
-#' version of normalize_expt. I also want to move everything to using
+#' version of normalize. I also want to move everything to using
 #' summarizedExperiments and this simpler method provides an
 #' opportunity.
 #'
