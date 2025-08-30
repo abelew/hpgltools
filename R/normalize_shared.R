@@ -63,13 +63,17 @@ do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
 
 #' Every time I think I have a handle on R dispatch I get some BS like this.
 #'
-#' @param object Input to normalize
+#' @param exp Input to normalize
 #' @param ... other arguments passed along to BiocGenerics::normalize().
 #' @export
-normalize <- function(object, ...) {
-  message("I reside in BiocGenerics, I do not understand why my method definition below fails..")
-  BiocGenerics::normalize(object, ...)
+normalize <- function(exp, ...) {
+  message("This function is intended to normalize an experimental dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("normalize")
+  return(NULL)
 }
+setGeneric("normalize")
 
 #' Normalization of an expt
 #'
@@ -81,10 +85,10 @@ normalize <- function(object, ...) {
 #' @importFrom BiocGenerics normalize
 #' @export
 setMethod(
-  "normalize", signature = signature(object = "expt"),
-  definition = function(object, ...) {
+  "normalize", signature = signature(exp = "expt"),
+  definition = function(exp, ...) {
     message("Running normalize.")
-    normalize(object, ...)
+    normalize_expt(exp, ...)
   })
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
@@ -93,10 +97,10 @@ setMethod(
 #' @param ... Other options.
 #' @export
 setMethod(
-  "normalize", signature = signature(object = "SummarizedExperiment"),
-  definition = function(object, ...) {
+  "normalize", signature = signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
     message("Running normalize_se.")
-    normalize_se(object, ...)
+    normalize_se(exp, ...)
   })
 
 #' Normalize the data of an expt object.  Save the original data, and note what
@@ -150,7 +154,7 @@ setMethod(
 #'                                 batch='sva', filter='pofa')
 #' }
 #' @export
-normalize <- function(expt, ## The expt class passed to the normalizer
+normalize_expt <- function(expt, ## The expt class passed to the normalizer
                            ## choose the normalization strategy
                            transform = "raw", norm = "raw", convert = "raw",
                            batch = "raw", filter = FALSE,
