@@ -1,57 +1,57 @@
 #' Create a plot showing relative expression with respect to each chromosome/contig.
 #'
-#' @param expt Input expressionset.
+#' @param exp Input expressionset.
 #' @param chromosome_column Annotation column containing the chromosome ID.
 #' @param scaffolds Include scaffolds in addition to the actual chromosomes.
 #' @param min_genes The minimum number of genes which should be on the 'chromosome' before it
 #'  is considered worth considering.
 #' @export
-plot_exprs_by_chromosome <- function(expt, chromosome_column = "chromosome", scaffolds = TRUE,
+plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaffolds = TRUE,
                                      min_genes = 10) {
   ## Shush, R CMD check
-  exprs_mean <- genes <- exprs_var <- NULL
-  start <- data.frame(row.names = unique(fData(expt)[["chromosome"]]))
+  assay_mean <- genes <- assay_var <- NULL
+  start <- data.frame(row.names = unique(rowData(exp)[["chromosome"]]))
   start[["genes"]] <- 0
-  start[["exprs_mean"]] <- 0
-  start[["exprs_stdev"]] <- 0
-  start[["exprs_var"]] <- 0
-  start[["exprs_min"]] <- 0
-  start[["exprs_qt1"]] <- 0
-  start[["exprs_qt3"]] <- 0
-  start[["exprs_median"]] <- 0
-  start[["exprs_max"]] <- 0
+  start[["assay_mean"]] <- 0
+  start[["assay_stdev"]] <- 0
+  start[["assay_var"]] <- 0
+  start[["assay_min"]] <- 0
+  start[["assay_qt1"]] <- 0
+  start[["assay_qt3"]] <- 0
+  start[["assay_median"]] <- 0
+  start[["assay_max"]] <- 0
   for (ch in rownames(start)) {
-    gene_id_idx <- fData(expt)[["chromosome"]] == ch
-    gene_ids <- rownames(fData(expt))[gene_id_idx]
+    gene_id_idx <- rowData(exp)[["chromosome"]] == ch
+    gene_ids <- rownames(rowData(exp))[gene_id_idx]
     start[ch, "genes"] <- length(gene_ids)
-    subset_exprs <- exprs(expt)[gene_ids, ]
+    subset_assay <- assay(exp)[gene_ids, ]
     if (length(gene_ids) == 1) {
-      start[ch, "exprs_mean"] <- mean(subset_exprs)
-      start[ch, "exprs_stdev"] <- stats::sd(subset_exprs)
-      start[ch, "exprs_min"] <- min(subset_exprs)
-      start[ch, "exprs_max"] <- max(subset_exprs)
-      start[ch, "exprs_median"] <- median(subset_exprs)
-      start[ch, "exprs_var"] <- stats::var(subset_exprs)
-      start[ch, "exprs_qt1"] <- as.numeric(summary(subset_exprs))[2]
-      start[ch, "exprs_qt3"] <- as.numeric(summary(subset_exprs))[5]
+      start[ch, "assay_mean"] <- mean(subset_assay)
+      start[ch, "assay_stdev"] <- stats::sd(subset_assay)
+      start[ch, "assay_min"] <- min(subset_assay)
+      start[ch, "assay_max"] <- max(subset_assay)
+      start[ch, "assay_median"] <- median(subset_assay)
+      start[ch, "assay_var"] <- stats::var(subset_assay)
+      start[ch, "assay_qt1"] <- as.numeric(summary(subset_assay))[2]
+      start[ch, "assay_qt3"] <- as.numeric(summary(subset_assay))[5]
     } else {
-      start[ch, "exprs_mean"] <- mean(rowMeans(subset_exprs))
-      start[ch, "exprs_stdev"] <- stats::sd(rowMeans(subset_exprs))
-      start[ch, "exprs_min"] <- min(rowMeans(subset_exprs))
-      start[ch, "exprs_max"] <- max(rowMeans(subset_exprs))
-      start[ch, "exprs_median"] <- median(rowMeans(subset_exprs))
-      start[ch, "exprs_var"] <- stats::var(rowMeans(subset_exprs))
-      start[ch, "exprs_qt1"] <- as.numeric(summary(rowMeans(subset_exprs)))[2]
-      start[ch, "exprs_qt3"] <- as.numeric(summary(rowMeans(subset_exprs)))[5]
+      start[ch, "assay_mean"] <- mean(rowMeans(subset_assay))
+      start[ch, "assay_stdev"] <- stats::sd(rowMeans(subset_assay))
+      start[ch, "assay_min"] <- min(rowMeans(subset_assay))
+      start[ch, "assay_max"] <- max(rowMeans(subset_assay))
+      start[ch, "assay_median"] <- median(rowMeans(subset_assay))
+      start[ch, "assay_var"] <- stats::var(rowMeans(subset_assay))
+      start[ch, "assay_qt1"] <- as.numeric(summary(rowMeans(subset_assay)))[2]
+      start[ch, "assay_qt3"] <- as.numeric(summary(rowMeans(subset_assay)))[5]
     }
 
     min_idx <- start[["genes"]] >= min_genes
     start <- start[min_idx, ]
 
-    plt <- ggplot(start, aes(y = exprs_mean, x = genes)) +
+    plt <- ggplot(start, aes(y = assay_mean, x = genes)) +
       ggplot2::geom_point() +
       ggplot2::scale_y_log10()
-    plt <- ggplot(start, aes(y = exprs_var, x = genes)) +
+    plt <- ggplot(start, aes(y = assay_var, x = genes)) +
       ggplot2::geom_point()
   }
   retlist <- list(
@@ -66,27 +66,27 @@ plot_exprs_by_chromosome <- function(expt, chromosome_column = "chromosome", sca
 #' reads.  This does that and maintains one's favorite color scheme and tries to
 #' make it pretty!
 #'
-#' @param data Expt, dataframe, or expressionset of samples.
+#' @param data Exp, dataframe, or expressionset of samples.
 #' @param condition Vector of sample condition names.
-#' @param colors Color scheme if the data is not an expt.
+#' @param colors Color scheme if the data is not an exp.
 #' @param text Add the numeric values inside the top of the bars of the plot?
 #' @param order Explicitly set the order of samples in the plot?
 #' @param plot_title Title for the plot.
 #' @param yscale Whether or not to log10 the y-axis.
-#' @param expt_names Design column or manually selected names for printing sample names.
+#' @param exp_names Design column or manually selected names for printing sample names.
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param ... More parameters for your good time!
 #' @return a ggplot2 bar plot of every sample's size
 #' @seealso [ggplot2] [prettyNum] [plot_sample_bars()]
 #' @examples
 #' \dontrun{
-#'  libsize_plot <- plot_libsize(expt = expt)
+#'  libsize_plot <- plot_libsize(exp = exp)
 #'  libsize_plot  ## ooo pretty bargraph
 #' }
 #' @export
 plot_libsize <- function(data, condition = NULL, colors = NULL,
                          text = TRUE, order = NULL, plot_title = NULL, yscale = NULL,
-                         expt_names = NULL, label_chars = 10,
+                         exp_names = NULL, label_chars = 10,
                          ...) {
   arglist <- list(...)
   if (is.null(text)) {
@@ -119,11 +119,11 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
   colors <- as.character(colors)
   sum <- NULL
 
-  if (!is.null(expt_names) && class(expt_names) == "character") {
-    if (length(expt_names) == 1) {
-      colnames(mtrx) <- make.names(design[[expt_names]], unique = TRUE)
+  if (!is.null(exp_names) && class(exp_names) == "character") {
+    if (length(exp_names) == 1) {
+      colnames(mtrx) <- make.names(design[[exp_names]], unique = TRUE)
     } else {
-      colnames(mtrx) <- expt_names
+      colnames(mtrx) <- exp_names
     }
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
@@ -164,7 +164,7 @@ setGeneric("plot_libsize")
 #' @param order Optionally redefine the order of the bars of the plot.
 #' @param plot_title Plot title!
 #' @param yscale Explicitly set the scale on the log or base10 scale.
-#' @param expt_names Optionally change the names of the bars.
+#' @param exp_names Optionally change the names of the bars.
 #' @param label_chars If the names of the bars are larger than this, abbreviate them.
 #' @param ... Additonal arbitrary arguments.
 #' @return Plot of library sizes and a couple tables describing the data.
@@ -173,13 +173,13 @@ setMethod(
   "plot_libsize", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
-                        expt_names = NULL, label_chars = 10, ...) {
+                        exp_names = NULL, label_chars = 10, ...) {
     mtrx <- as.matrix(assay(data))
     condition <- conditions(data)
     colors <- colors(data)
     plot_libsize(mtrx, condition = condition, colors = colors, text = text,
                  order = order, plot_title = plot_title, yscale = yscale,
-                 expt_names = expt_names, label_chars = label_chars,
+                 exp_names = exp_names, label_chars = label_chars,
                  ...)
   })
 
@@ -193,7 +193,7 @@ setMethod(
 #' @param order Optionally redefine the order of the bars of the plot.
 #' @param plot_title Plot title!
 #' @param yscale Explicitly set the scale on the log or base10 scale.
-#' @param expt_names Optionally change the names of the bars.
+#' @param exp_names Optionally change the names of the bars.
 #' @param label_chars If the names of the bars are larger than this, abbreviate them.
 #' @param ... Additonal arbitrary arguments.
 #' @return Plot of library sizes and a couple tables describing the data.
@@ -203,14 +203,14 @@ setMethod(
                                         colors = "character"),
   definition = function(data, condition, colors, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
-                        expt_names = NULL, label_chars = 10, ...) {
+                        exp_names = NULL, label_chars = 10, ...) {
     data <- as.matrix(data)
     plot_libsize(data, condition = condition, colors = colors,
                  text = text, order = order, plot_title = plot_title, yscale = yscale,
-                 expt_names = expt_names, label_chars = label_chars, ...) # , ...)
+                 exp_names = exp_names, label_chars = label_chars, ...) # , ...)
   })
 
-#' Run plot_libsize() with an expt as input.
+#' Run plot_libsize() with an exp as input.
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -220,22 +220,22 @@ setMethod(
 #' @param order Optionally redefine the order of the bars of the plot.
 #' @param plot_title Plot title!
 #' @param yscale Explicitly set the scale on the log or base10 scale.
-#' @param expt_names Optionally change the names of the bars.
+#' @param exp_names Optionally change the names of the bars.
 #' @param label_chars If the names of the bars are larger than this, abbreviate them.
 #' @param ... Additonal arbitrary arguments.
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "expt"),
+  "plot_libsize", signature = signature(data = "exp"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
-                        expt_names = NULL, label_chars = 10, ...) {
-    mtrx <- exprs(data)
+                        exp_names = NULL, label_chars = 10, ...) {
+    mtrx <- assay(data)
     condition <- conditions(data)
     colors = get_colors(data)
     plot_libsize(mtrx, condition = condition, colors = colors, text = text,
                  order = order, plot_title = plot_title, yscale = yscale,
-                 expt_names = expt_names, label_chars = label_chars, ...)
+                 exp_names = exp_names, label_chars = label_chars, ...)
   })
 
 #' Run plot_libsize() with an ExpressionSet as input.
@@ -248,7 +248,7 @@ setMethod(
 #' @param order Optionally redefine the order of the bars of the plot.
 #' @param plot_title Plot title!
 #' @param yscale Explicitly set the scale on the log or base10 scale.
-#' @param expt_names Optionally change the names of the bars.
+#' @param exp_names Optionally change the names of the bars.
 #' @param label_chars If the names of the bars are larger than this, abbreviate them.
 #' @param ... Additonal arbitrary arguments.
 #' @return Plot of library sizes and a couple tables describing the data.
@@ -257,16 +257,16 @@ setMethod(
   "plot_libsize", signature = signature(data = "ExpressionSet"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
-                        expt_names = NULL, label_chars = 10, ...) {
-    mtrx <- exprs(data)
-    condition <- pData(data)[["condition"]]
+                        exp_names = NULL, label_chars = 10, ...) {
+    mtrx <- assay(data)
+    condition <- colData(data)[["condition"]]
     plot_libsize(mtrx, condition = condition, colors = colors,
                  text = text, order = order, plot_title = plot_title,
-                 yscale = yscale, expt_names = expt_names, label_chars = label_chars,
+                 yscale = yscale, exp_names = exp_names, label_chars = label_chars,
                  ...)
   })
 
-#' Run plot_libsize() with an expt as input.
+#' Run plot_libsize() with an exp as input.
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -276,7 +276,7 @@ setMethod(
 #' @param order Optionally redefine the order of the bars of the plot.
 #' @param plot_title Plot title!
 #' @param yscale Explicitly set the scale on the log or base10 scale.
-#' @param expt_names Optionally change the names of the bars.
+#' @param exp_names Optionally change the names of the bars.
 #' @param label_chars If the names of the bars are larger than this, abbreviate them.
 #' @param ... Additonal arbitrary arguments.
 #' @return Plot of library sizes and a couple tables describing the data.
@@ -285,13 +285,13 @@ setMethod(
   "plot_libsize", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
-                        expt_names = NULL, label_chars = 10, ...) {
+                        exp_names = NULL, label_chars = 10, ...) {
     mtrx <- assay(data)
     condition <- conditions(data)
     colors = get_colors(data)
     plot_libsize(mtrx, condition = condition, colors = colors, text = text,
                  order = order, plot_title = plot_title, yscale = yscale,
-                 expt_names = expt_names, label_chars = label_chars, ...)
+                 exp_names = exp_names, label_chars = label_chars, ...)
   })
 
 #' Print the library sizes from an experiment.
@@ -316,26 +316,26 @@ ranging from ", prettyNum(min_value, big.mark = ","),
 #' change in the number of genes which are well/poorly represented in the data
 #' before and after performing a low-count filter.
 #'
-#' @param expt Input expressionset.
+#' @param exp Input expressionset.
 #' @param low_limit Threshold to define 'low-representation.'
 #' @param filter Method used to low-count filter the data.
 #' @param num_color Color for the numbers in the bars.
 #' @param num_size Size of said numbers.
-#' @param ... Extra arbitrary arguments to pass to normalize_expt()
+#' @param ... Extra arbitrary arguments to pass to normalize_exp()
 #' @return Bar plot showing the number of genes below the low_limit before and
 #'  after filtering the data.
 #' @seealso [plot_libsize()] [filter_counts()]
 #' @export
-plot_libsize_prepost <- function(expt, low_limit = 2, filter = TRUE,
+plot_libsize_prepost <- function(exp, low_limit = 2, filter = TRUE,
                                  num_color = "black", num_size = 4, ...) {
-  start <- plot_libsize(expt, text = FALSE)
-  norm <- sm(normalize_expt(expt, filter = filter,
+  start <- plot_libsize(exp, text = FALSE)
+  norm <- sm(normalize_exp(exp, filter = filter,
                             ...))
   end <- plot_libsize(norm)
 
   ## Gather the number of genes which are <= the low limit, before and after filtering
-  lt_min_start <- colSums(exprs(expt) <= low_limit)
-  lt_min_end <- colSums(exprs(norm) <= low_limit)
+  lt_min_start <- colSums(assay(exp) <= low_limit)
+  lt_min_end <- colSums(assay(norm) <= low_limit)
   start_tab <- as.data.frame(start[["table"]])
   end_tab <- as.data.frame(end[["table"]])
   ## Get the number of counts in each samples.
@@ -433,13 +433,13 @@ The number of genes with low coverage changes by {min_range}-{max_range} genes."
 
 #' Make a ggplot graph of the percentage/number of reads kept/removed.
 #'
-#' The function expt_exclude_genes() removes some portion of the original reads.
+#' The function exp_exclude_genes() removes some portion of the original reads.
 #' This function will make it possible to see what is left.
 #'
-#' @param data Dataframe of the material remaining, usually expt$summary_table
+#' @param data Dataframe of the material remaining, usually exp$summary_table
 #' @param row Row name to plot.
 #' @param condition Vector of sample condition names.
-#' @param colors Color scheme if the data is not an expt.
+#' @param colors Color scheme if the data is not an exp.
 #' @param names Alternate names for the x-axis.
 #' @param text Add the numeric values inside the top of the bars of the plot?
 #' @param plot_title Title for the plot.
@@ -449,7 +449,7 @@ The number of genes with low coverage changes by {min_range}-{max_range} genes."
 #' @seealso [plot_sample_bars()]
 #' @examples
 #' \dontrun{
-#'  kept_plot <- plot_pct_kept(expt_removed)
+#'  kept_plot <- plot_pct_kept(exp_removed)
 #'  kept_plot  ## ooo pretty bargraph
 #' }
 #' @export
@@ -457,7 +457,7 @@ plot_pct_kept <- function(data, row = "pct_kept", condition = NULL, colors = NUL
                           names = NULL, text = TRUE, plot_title = NULL, yscale = NULL, ...) {
   arglist <- list(...)
   table <- data
-  if (class(data) == "expt" || class(data) == "SummarizedExperiment") {
+  if (class(data) == "exp" || class(data) == "SummarizedExperiment") {
     table <- data[["summary_table"]]
   }
   ## In response to Keith's recent comment when there are more than 8 factors
@@ -467,19 +467,19 @@ plot_pct_kept <- function(data, row = "pct_kept", condition = NULL, colors = NUL
   }
 
   data_class <- class(data)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    condition <- pData(data)[["condition"]]
+  if (data_class == "exp" || data_class == "SummarizedExperiment") {
+    condition <- colData(data)[["condition"]]
     colors <- data[["colors"]]
     names <- data[["names"]]
-    data <- exprs(data)  ## Why does this need the simplifying
+    data <- assay(data)  ## Why does this need the simplifying
     ## method of extracting an element? (eg. data['expressionset'] does not work)
     ## that is _really_ weird!
   } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
+    data <- assay(data)
   } else if (data_class == "matrix" || data_class == "data.frame") {
     data <- as.data.frame(data)
   } else {
-    stop("This function understands types: expt, ExpressionSet, data.frame, and matrix.")
+    stop("This function understands types: exp, ExpressionSet, data.frame, and matrix.")
   }
 
   if (is.null(colors)) {
@@ -505,9 +505,9 @@ plot_pct_kept <- function(data, row = "pct_kept", condition = NULL, colors = NUL
 #'
 #' This makes a ggplot2 plot of library sizes.
 #'
-#' @param sample_df Expt, dataframe, or expressionset of samples.
+#' @param sample_df Exp, dataframe, or expressionset of samples.
 #' @param condition Vector of sample condition names.
-#' @param colors Color scheme if the data is not an expt.
+#' @param colors Color scheme if the data is not an exp.
 #' @param integerp Is this comprised of integer values?
 #' @param order Explicitly set the order of samples in the plot?
 #' @param text Add the numeric values inside the top of the bars of the plot?

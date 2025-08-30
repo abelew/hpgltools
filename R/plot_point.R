@@ -4,22 +4,22 @@
 #'
 #' This was written primarily to understand what that function is doing in edgeR.
 #'
-#' @param data Dataframe/expt/exprs with count data
+#' @param data Dataframe/exp/assay with count data
 #' @return Plot of the BCV a la ggplot2.
 #' @seealso [edgeR::plotBCV()] [ggplot2]
 #' @example inst/examples/plot_point.R
 #' @export
 plot_bcv <- function(data) {
   data_class <- class(data)[1]
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    data <- exprs(data)
+  if (data_class == "exp" || data_class == "SummarizedExperiment") {
+    data <- assay(data)
   } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
+    data <- assay(data)
   } else if (data_class == "matrix" || data_class == "data.frame") {
     data <- as.data.frame(data)
     ## some functions prefer matrix, so I am keeping this explicit for the moment
   } else {
-    stop("This function only understands types: expt, ExpressionSet, data.frame, and matrix.")
+    stop("This function only understands types: exp, ExpressionSet, data.frame, and matrix.")
   }
   data <- edgeR::DGEList(counts = data)
   edisp <- edgeR::estimateDisp(data)
@@ -427,14 +427,14 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #' This puts the number of genes with > 0 hits on the y-axis and CPM on the
 #' x-axis. Made by Ramzi Temanni <temanni at umd dot edu>.
 #'
-#' @param data Expt, expressionset, or dataframe.
+#' @param data Exp, expressionset, or dataframe.
 #' @param design Eesign matrix.
 #' @param colors Color scheme.
 #' @param plot_labels How do you want to label the graph? 'fancy' will use
 #'  directlabels() to try to match the labels with the positions without
 #'  overlapping anything else will just stick them on a 45' offset next to the
 #'  graphed point.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param max_overlaps Permit this many labels to overlap before dropping some.
 #' @param label_chars How many characters for sample names before abbreviation.
 #' @param plot_legend Print a legend for this plot?
@@ -447,7 +447,7 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #' @example inst/examples/plot_point.R
 #' @export
 plot_nonzero <- function(data, design = NULL, colors = NULL,
-                         plot_labels = "repel", expt_names = NULL,
+                         plot_labels = "repel", exp_names = NULL,
                          max_overlaps = 5, label_chars = 10,
                          plot_legend = FALSE, plot_title = NULL,
                          cutoff = 0.65, y_intercept = 0.8,
@@ -456,11 +456,11 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
 
   condition <- design[["condition"]]
   batch <- design[["batch"]]
-  if (!is.null(expt_names) && class(expt_names)[1] == "character") {
-    if (length(expt_names) == 1) {
-      colnames(data) <- make.names(design[[expt_names]], unique = TRUE)
+  if (!is.null(exp_names) && class(exp_names)[1] == "character") {
+    if (length(exp_names) == 1) {
+      colnames(data) <- make.names(design[[exp_names]], unique = TRUE)
     } else {
-      colnames(data) <- expt_names
+      colnames(data) <- exp_names
     }
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
@@ -613,16 +613,16 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
   return(invisible(x))
 }
 
-#' Make a nonzero plot given an expt.
+#' Make a nonzero plot given an exp.
 #'
-#' @param data Expt, expressionset, or dataframe.
+#' @param data Exp, expressionset, or dataframe.
 #' @param design Eesign matrix.
 #' @param colors Color scheme.
 #' @param plot_labels How do you want to label the graph? 'fancy' will use
 #'  directlabels() to try to match the labels with the positions without
 #'  overlapping anything else will just stick them on a 45' offset next to the
 #'  graphed point.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param max_overlaps Permit this many labels to overlap before dropping some.
 #' @param label_chars How many characters for sample names before abbreviation.
 #' @param plot_legend Print a legend for this plot?
@@ -632,19 +632,19 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
 
 #' @export
 setMethod(
-  "plot_nonzero", signature = signature(data = "expt"),
+  "plot_nonzero", signature = signature(data = "exp"),
   definition = function(data, design = NULL, colors = NULL,
-                        plot_labels = "repel", expt_names = NULL,
+                        plot_labels = "repel", exp_names = NULL,
                         max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL,
                         cutoff = 0.65, y_intercept = 0.8, ...) {
-    mtrx <- as.matrix(exprs(data))
-    pd <- pData(data)
+    mtrx <- as.matrix(assay(data))
+    pd <- colData(data)
     condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
     chosen_colors <- get_colors(data)
     plot_nonzero(data = mtrx, design = pd, colors = chosen_colors,
-                 plot_labels = plot_labels, expt_names = names,
+                 plot_labels = plot_labels, exp_names = names,
                  max_overlaps = max_overlaps,
                  label_chars = label_chars, plot_legend = plot_legend,
                  plot_title = plot_title, cutoff = 0.65,
@@ -654,14 +654,14 @@ setMethod(
 
 #' Make a nonzero plot given an ExpressionSet
 #'
-#' @param data Expt, expressionset, or dataframe.
+#' @param data Exp, expressionset, or dataframe.
 #' @param design Eesign matrix.
 #' @param colors Color scheme.
 #' @param plot_labels How do you want to label the graph? 'fancy' will use
 #'  directlabels() to try to match the labels with the positions without
 #'  overlapping anything else will just stick them on a 45' offset next to the
 #'  graphed point.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param max_overlaps Permit this many labels to overlap before dropping some.
 #' @param label_chars How many characters for sample names before abbreviation.
 #' @param plot_legend Print a legend for this plot?
@@ -672,15 +672,15 @@ setMethod(
 setMethod(
   "plot_nonzero", signature = signature(data = "ExpressionSet"),
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
-                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
+                        exp_names = NULL, max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
                         y_intercept = 0.8, ...) {
-    mtrx <- as.matrix(exprs(data))
-    pd <- pData(data)
+    mtrx <- as.matrix(assay(data))
+    pd <- colData(data)
     condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
-                 expt_names = names, max_overlaps = max_overlaps,
+                 exp_names = names, max_overlaps = max_overlaps,
                  label_chars = label_chars, plot_legend = plot_legend,
                  plot_title = plot_title, cutoff = 0.65,
                  y_intercept = y_intercept, ...)
@@ -688,14 +688,14 @@ setMethod(
 
 #' Make a nonzero plot given a SummarizedExperiment
 #'
-#' @param data Expt, expressionset, or dataframe.
+#' @param data Exp, expressionset, or dataframe.
 #' @param design Eesign matrix.
 #' @param colors Color scheme.
 #' @param plot_labels How do you want to label the graph? 'fancy' will use
 #'  directlabels() to try to match the labels with the positions without
 #'  overlapping anything else will just stick them on a 45' offset next to the
 #'  graphed point.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param max_overlaps Permit this many labels to overlap before dropping some.
 #' @param label_chars How many characters for sample names before abbreviation.
 #' @param plot_legend Print a legend for this plot?
@@ -706,7 +706,7 @@ setMethod(
 setMethod(
   "plot_nonzero", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
-                        expt_names = NULL, max_overlaps = 5, label_chars = 10,
+                        exp_names = NULL, max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
                         y_intercept = 0.8, ...) {
     mtrx <- as.matrix(assay(data))
@@ -715,7 +715,7 @@ setMethod(
     names <- pd[["samplenames"]]
     colors <- S4Vectors::metadata(data)[["colors"]]
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
-                 expt_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
+                 exp_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
                  plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,
                  y_intercept = y_intercept, ...)
   })
@@ -725,7 +725,7 @@ setMethod(
 #' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
 #' problematic samples.
 #'
-#' @param data Expt expressionset or data frame.
+#' @param data Exp expressionset or data frame.
 #' @param colors Vector of colors to use in the plot.
 #' @param design Input design!
 #' @param log Is the data in log format?
@@ -796,17 +796,17 @@ plot_pairwise_ma <- function(data, colors = NULL, design = NULL,
 #' problematic samples.
 #'
 #'
-#' @param data Expt expressionset or data frame.
+#' @param data Exp expressionset or data frame.
 #' @param colors Input colors
 #' @param design Experimental design
 #' @param log Is the data in log format?
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
 setMethod(
-  "plot_pairwise_ma", signature = signature(data = "expt"),
+  "plot_pairwise_ma", signature = signature(data = "exp"),
   definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
-    mtrx <- exprs(data)
-    design <- pData(data)
+    mtrx <- assay(data)
+    design <- colData(data)
     colors = get_colors(data)
     plot_pairwise_ma(data = mtrx, design = design, colors = colors,
                      log = log, ...)
@@ -817,7 +817,7 @@ setMethod(
 #' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
 #' problematic samples.
 #'
-#' @param data Expt expressionset or data frame.
+#' @param data Exp expressionset or data frame.
 #' @param colors Explicit colors to use.
 #' @param design df of experimental design.
 #' @param log Is the data in log format?
@@ -826,8 +826,8 @@ setMethod(
 setMethod(
   "plot_pairwise_ma", signature = signature(data = "ExpressionSet"),
   definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
-    mtrx <- exprs(data)
-    design <- pData(data)
+    mtrx <- assay(data)
+    design <- colData(data)
     colors = get_colors(data)
     plot_pairwise_ma(data = mtrx, design = design, colors = colors,
                      log = log, ...)
@@ -838,7 +838,7 @@ setMethod(
 #' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
 #' problematic samples.
 #'
-#' @param data Expt expressionset or data frame.
+#' @param data Exp expressionset or data frame.
 #' @param log Is the data in log format?
 #' @param colors Explicit colors to use.
 #' @param design df of experimental design.

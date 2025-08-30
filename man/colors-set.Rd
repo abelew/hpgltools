@@ -4,14 +4,14 @@
 \alias{colors<-}
 \title{Add colors to a dataset}
 \usage{
-colors(x, ...) <- value
+colors(exp, ...) <- value
 }
 \arguments{
-\item{x}{Object to modify}
-
 \item{...}{extra arguments.}
 
 \item{value}{vector of colors}
+
+\item{x}{Object to modify}
 }
 \description{
 Add colors to a dataset

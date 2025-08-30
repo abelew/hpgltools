@@ -2,17 +2,15 @@
 % Please edit documentation in R/attributes.R
 \name{conditions<-}
 \alias{conditions<-}
-\title{If you mess up the NAMESPACE file, the following becomes necessary}
+\title{The infix version of set_conditions.}
 \usage{
-conditions(object, ...) <- value
+conditions(exp, ...) <- value
 }
 \arguments{
-\item{object}{Input object}
+\item{exp}{Input data structure}
 
-\item{...}{extra args}
-
-\item{value}{New value.}
+\item{...}{Other args passed along to set_conditions()}
 }
 \description{
-message("I am from BiocGenerics and am explicitly imported, wtf.")
+The infix version of set_conditions.
 }

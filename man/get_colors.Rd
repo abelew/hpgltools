@@ -4,7 +4,7 @@
 \alias{get_colors}
 \title{While I am struggling with S4 dispatch, here is a garbage generic.}
 \usage{
-get_colors(x)
+get_colors(exp, ...)
 }
 \arguments{
 \item{x}{Input}

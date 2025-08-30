@@ -7,7 +7,7 @@
 plot_bcv(data)
 }
 \arguments{
-\item{data}{Dataframe/expt/exprs with count data}
+\item{data}{Dataframe/exp/assay with count data}
 }
 \value{
 Plot of the BCV a la ggplot2.

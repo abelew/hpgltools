@@ -4,10 +4,10 @@
 \alias{varpart_summaries}
 \title{Attempt to use variancePartition's fitVarPartModel() function.}
 \usage{
-varpart_summaries(expt, factors = c("condition", "batch"), cpus = 6)
+varpart_summaries(exp, factors = c("condition", "batch"), cpus = 6)
 }
 \arguments{
-\item{expt}{Input expressionset.}
+\item{exp}{Input expressionset.}
 
 \item{factors}{Set of factors to query}
 

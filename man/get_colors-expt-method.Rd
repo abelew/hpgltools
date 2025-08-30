@@ -4,7 +4,7 @@
 \alias{get_colors,expt-method}
 \title{A getter to pull the colors from an expt.}
 \usage{
-\S4method{get_colors}{expt}(x)
+\S4method{get_colors}{expt}(exp)
 }
 \arguments{
 \item{x}{An x.}

@@ -629,7 +629,6 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
     message("Matched ", found_sum, " annotations and counts.")
   }
 
-
   ## This should automagically check and fix rownames when they would otherwise
   ## not match after using tximport.
   if (!is.null(tx_gene_map)) {
@@ -680,6 +679,7 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
 }
 setGeneric("merge_counts_annotations")
 
+#' @export
 setMethod(
   "merge_counts_annotations", signature = signature(gene_info = "GRanges"),
   definition = function(gene_info, all_count_tables, tx_gene_map = NULL) {
@@ -763,5 +763,858 @@ setMethod(
       "final_counts" = final_counts)
     return(retlist)
   })
+
+#' Make pretty xlsx files of count data.
+#'
+#' Some folks love excel for looking at this data.  ok.
+#'
+#' Tested in test_03graph_metrics.R
+#' This performs the following:  Writes the raw data, graphs the raw data,
+#' normalizes the data, writes it, graphs it, and does a median-by-condition and
+#' prints that.  I replaced the openxlsx function which writes images into xlsx
+#' files with one which does not require an opening of a pre-existing plotter.
+#' Instead it (optionally)opens a pdf device, prints the plot to it, opens a png
+#' device, prints to that, and inserts the resulting png file.  Thus it
+#' sacrifices some flexibility for a hopefully more consistent behaivor.  In
+#' addition, one may use the pdfs as a set of images importable into illustrator
+#' or whatever.
+#'
+#' @param se An expressionset to print.
+#' @param excel Filename to write.
+#' @param norm Normalization to perform.
+#' @param violin Include violin plots?
+#' @param sample_heat Include sample heatmaps?
+#' @param convert Conversion to perform.
+#' @param transform Transformation used.
+#' @param batch Batch correction applied.
+#' @param filter Filtering method used.
+#' @param med_or_mean When printing mean by condition, one may want median.
+#' @param color_na Color cells which were NA before imputation this color.
+#' @param merge_order Used to decide whether to put the counts or annotations first when
+#'  printing count tables.
+#' @param ... Parameters passed down to methods called here (graph_metrics, etc).
+#' @return A big honking excel file and a list including the dataframes and images created.
+#' @seealso [openxlsx] [Biobase] [normalize()] [graph_metrics()]
+#' @example inst/examples/se.R
+#' @export
+write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
+                       violin = TRUE, sample_heat = NULL, convert = "cpm", transform = "log2",
+                       batch = "svaseq", filter = TRUE, med_or_mean = "mean",
+                       color_na = "#DD0000", merge_order = "counts_first", ...) {
+  arglist <- list(...)
+  xlsx <- init_xlsx(excel)
+  wb <- xlsx[["wb"]]
+  excel_basename <- xlsx[["basename"]]
+  new_row <- 1
+  new_col <- 1
+
+  ## Set up a vector of images to clean up when finished.
+  image_files <- c()
+
+  ## I think the plot dimensions should increase as the number of samples increase
+  plot_dim <- 6
+  num_samples <- ncol(exprs(se))
+  if (num_samples > 12) {
+    plot_dim <- ceiling(num_samples / 4)
+  }
+  plot_cols <- floor(plot_dim * 1.5)
+  plot_rows <- ceiling(plot_dim * 5.0)
+
+  ## Write an introduction to this foolishness.
+  message("Writing the first sheet, containing a legend and some summary data.")
+  sheet <- "legend"
+  norm_state <- glue("{transform}({convert}({norm}({batch}({filter}(counts)))))")
+  legend <- data.frame(
+    "sheet" = c("1.", "2.", "3.", "4.", "5.", "6."),
+    "sheet_definition" = c(
+      "This sheet, including the experimental design.",
+      "The raw counts and annotation data on worksheet 'raw_data'.",
+      "Some graphs describing the distribution of raw data in worksheet 'raw_plots'.",
+      glue("The counts normalized with: {norm_state}"),
+      "Some graphs describing the distribution of the normalized data on 'norm_plots'.",
+      "The median normalized counts by condition factor on 'median_data'."),
+    stringsAsFactors = FALSE)
+  colnames(legend) <- c("Worksheets", "Contents")
+  xls_result <- write_xlsx(data = legend, wb = wb, sheet = sheet, rownames = FALSE,
+                           title = "Columns used in the following tables.")
+  rows_down <- nrow(legend)
+  new_row <- new_row + rows_down + 3
+  annot <- as.data.frame(pData(se), strinsAsFactors = FALSE)
+  xls_result <- write_xlsx(data = annot, wb = wb, start_row = new_row, rownames = FALSE,
+                           sheet = sheet, start_col = 1, title = "Experimental Design.")
+
+  ## Get the library sizes and other raw plots before moving on...
+  do_qq <- FALSE
+  do_sample_heat <- FALSE
+  if (ncol(exprs(se)) < 18) {
+    do_qq <- TRUE
+    do_sample_heat <- TRUE
+  }
+
+  metrics <- graph_metrics(se, qq = do_qq, gene_heat = do_sample_heat,
+                           ...)
+  new_row <- new_row + nrow(pData(se)) + 3
+  libsizes <- as.data.frame(metrics[["libsizes"]])[, c("id", "sum", "condition")]
+  xls_result <- write_xlsx(data = libsizes, wb = wb, start_row = new_row,
+                           rownames = FALSE, sheet = sheet, start_col = 1,
+                           title = "Library sizes.")
+
+  new_row <- new_row + nrow(libsizes) + 3
+  libsize_summary <- as.data.frame(metrics[["libsize_summary"]])
+  xls_result <- write_xlsx(data = libsize_summary, wb = wb, start_row = new_row,
+                           rownames = FALSE, sheet = sheet, start_col = 1,
+                           title = "Library size summary.")
+
+  ## Write the raw read data and gene annotations
+  mesg("Writing the raw reads.")
+  sheet <- "raw_reads"
+  new_row <- 1
+  new_col <- 1
+  reads <- exprs(se)
+  info <- fData(se)
+
+  if (!is.null(info[["Row.names"]])) {
+    ridx <- colnames(info) == "Row.names"
+    message("Hey, you merged the annotation data and did not reset the column names!")
+    colnames(info)[ridx] <- "old_row_names"
+  }
+  read_info <- merge(info, reads, by = "row.names")
+  xls_result <- write_xlsx(data = read_info, wb = wb, sheet = sheet, rownames = FALSE,
+                           start_row = new_row, start_col = new_col, title = "Raw Reads.")
+
+  ## Potentially useful for proteomics data and subtracted data.
+  if (!is.null(color_na)) {
+    na_style <- openxlsx::createStyle(fontColour = color_na)
+    nas <- se[["na_values"]]
+    for (col in colnames(nas)) {
+      row_definition <- which(nas[[col]]) + 2
+      col_idx <- colnames(read_info) == col
+      col_definition <- which(col_idx)
+      colored <- openxlsx::addStyle(wb, sheet = sheet, na_style,
+                                    rows = row_definition, cols = col_definition)
+    }
+  }
+
+  ## Write some graphs for the raw data
+  mesg("Graphing the raw reads.")
+  sheet <- "raw_graphs"
+  newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet))
+  if (class(newsheet) == "try-error") {
+    warning("Failed to add the sheet: ", sheet)
+  }
+
+  ## Start with library sizes.
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Legend.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw library sizes.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Non-zero genes.",
+                                      startRow = new_row, startCol = new_col)
+  new_row <- new_row + 1
+  new_col <- 1
+  legend_plot <- metrics[["legend"]]
+  try_result <- xlsx_insert_png(legend_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "01_legend", savedir = excel_basename, fancy_type = "svg")
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw legend.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  libsize_plot <- metrics[["libsize"]]
+  try_result <- xlsx_insert_png(libsize_plot, wb = wb, sheet = sheet,
+                                width = plot_dim, height = plot_dim,
+                                start_col = new_col, start_row = new_row,
+                                plotname = "02_libsize", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw library sizes.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+
+  ## Same row, non-zero plot
+  new_col <- new_col + plot_cols + 1
+  nonzero_plot <- metrics[["nonzero"]]
+  try_result <- xlsx_insert_png(nonzero_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "03_nonzero", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw nonzero plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+
+  ## Visualize distributions
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw data density plot.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw Boxplot.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  density_plot <- metrics[["density"]]
+  new_row <- new_row + 1
+  try_result <- xlsx_insert_png(density_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "04_density", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw density plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  boxplot_plot <- metrics[["boxplot"]]
+  try_result <- xlsx_insert_png(boxplot_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "05_boxplot", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw boxplot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  topn_plot <- metrics[["topnplot"]]
+  try_result <- xlsx_insert_png(topn_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "06_topnplot", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw top-n plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  cv_plot <- metrics[["cvplot"]]
+  try_result <- xlsx_insert_png(cv_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "07_cvplot", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to insert the raw cv plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- 1
+
+  ## Move down next set of rows, heatmaps
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw correlation heatmap.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw distance heatmap.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  new_row <- new_row + 1
+  corheat_plot <- metrics[["corheat"]]
+  try_result <- xlsx_insert_png(corheat_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "08_corheat", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw correlation heatmap.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  disheat_plot <- metrics[["disheat"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(disheat_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "09_disheat", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw distance heatmap.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  if (isTRUE(sample_heat)) {
+    tmp_se <- sm(normalize(se, transform = "log2", filter = TRUE))
+    sampleheat_plot <- plot_sample_heatmap(tmp_se)
+    new_col <- new_col + plot_cols + 1
+    try_result <- xlsx_insert_png(sampleheat_plot[["plot"]], wb = wb,
+                                  sheet = sheet, width = plot_dim, height = plot_dim,
+                                  start_col = new_col, start_row = new_row,
+                                  plotname = "09a_sampleheat", savedir = excel_basename)
+    if ("try-error" %in% class(try_result)) {
+      warning("Failed to add the sample heatmap.")
+    } else {
+      image_files <- c(image_files, try_result[["filename"]])
+    }
+  }
+  new_col <- 1
+
+  ## SM plots
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw standard median correlation.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw standard distance correlation.",
+                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  new_row <- new_row + 1
+  smc_plot <- metrics[["smc"]]
+  try_result <- xlsx_insert_png(smc_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "10_smc", savedir = excel_basename, fancy_type = "svg")
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw correlation standard median plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  smd_plot <- metrics[["smd"]]
+  try_result <- xlsx_insert_png(smd_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "11_smd", savedir = excel_basename, fancy_type = "svg")
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the raw distance standard median plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- 1
+
+  ## PCA, PCA(l2cpm) and qq_log
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PCA.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "top 40 PC1 loadings.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "PCA(log2(cpm())).",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw TSNE.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "TSNE(log2(cpm())).",
+                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw QQ, log scale.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  new_row <- new_row + 1
+  pca_plot <- metrics[["pc_plot"]]
+  pca_topn <- metrics[["pc_loadplot"]]
+  pca_table <- metrics[["pc_table"]]
+  tsne_plot <- metrics[["tsne_plot"]]
+  tsne_table <- metrics[["tsne_table"]]
+  try_result <- xlsx_insert_png(pca_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "12_pcaplot", savedir = excel_basename, fancy_type = "svg")
+  if ("try-error" %in% class(try_result)) {
+    warning("Failed to add the initial PCA plot.")
+  } else {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(pca_topn[["plot"]], wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "13_pctopn", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  tmp_data <- sm(normalize(se, transform = "log2", convert = "cpm", filter = filter,
+                                ...))
+  rpca <- plot_pca(tmp_data,
+                   ...)
+  rtsne <- plot_tsne(tmp_data,
+                     ...)
+  rspca_plot <- rpca[["plot"]]
+  rtsne_plot <- rtsne[["plot"]]
+  rpca_table <- rpca[["residual_df"]]
+  rtsne_table <- rtsne[["residual_df"]]
+  rm(tmp_data)
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(rspca_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "14_norm_pcaplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(tsne_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "15_tsneplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(rtsne_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "16_rtsneplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  qq_plot <- metrics[["qqlog"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(qq_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "17_qqlog", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- 1
+
+  violin_plot <- NULL
+  pct_plot <- NULL
+  ## Violin plots
+  if (isTRUE(violin)) {
+    filt <- sm(normalize(se, filter = "simple"))
+    do_varpart <- TRUE
+    full_model <- as.formula("~ condition + batch")
+    reduced_model <- as.formula("~ condition")
+    data_full_model <- try(stats::model.matrix.default(full_model, data = pData(filt)), silent = TRUE)
+    data_reduced_model <- NULL
+    full_model_columns <- 0
+    reduced_model_columns <- 0
+    full_model_rank <- 0
+    reduced_model_rank <- 0
+    varpart_factors <- c("condition")
+    fstring <- "~ condition + batch"
+    if ("try-error" %in% class(data_full_model)) {
+      do_varpart <- FALSE
+      message("The expressionset has a minimal or missing set of conditions/batches.")
+    } else {
+      data_reduced_model <-  stats::model.matrix.default(reduced_model, data = pData(se))
+      full_model_columns <- ncol(data_full_model)
+      reduced_model_columns <- ncol(data_reduced_model)
+      full_model_rank <- qr(data_full_model)[["rank"]]
+      reduced_model_rank <- qr(data_reduced_model)[["rank"]]
+      varpart_factors <- c("condition", "batch")
+    }
+
+    varpart_raw <- NULL
+    if (full_model_rank < full_model_columns) {
+      message("This expressionset does not support lmer with condition+batch")
+      if (reduced_model_rank < reduced_model_columns) {
+        message("This expressionset also does not support lmer with just condition!")
+        do_varpart <- FALSE
+      } else {
+        varpart_factors <- "condition"
+        fstring <- "~ condition"
+      }
+    }
+    if (isTRUE(do_varpart)) {
+      varpart_raw <- sm(suppressWarnings(try(simple_varpart(filt, fstring = fstring),
+                                             silent = TRUE)))
+    }
+    if (! "try-error" %in% class(varpart_raw)) {
+      varpart_raw <- NULL
+      do_varpart <- FALSE
+    }
+    if (!is.null(varpart_raw)) {
+      violin_plot <- varpart_raw[["partition_plot"]]
+      new_row <- new_row + plot_rows + 2
+      new_col <- 1
+      try_result <- xlsx_insert_png(violin_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                    height = plot_dim, start_col = new_col, start_row = new_row,
+                                    plotname = "18_violin", savedir = excel_basename)
+      if (! "try-error" %in% class(try_result)) {
+        image_files <- c(image_files, try_result[["filename"]])
+      }
+      new_col <- new_col + plot_cols + 1
+
+      pct_plot <- varpart_raw[["percent_plot"]]
+      try_result <- xlsx_insert_png(pct_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                    height = plot_dim, start_col = new_col, start_row = new_row,
+                                    plotname = "19_pctvar", savedir = excel_basename)
+      if (! "try-error" %in% class(try_result)) {
+        image_files <- c(image_files, try_result[["filename"]])
+      }
+    }
+  }
+
+  ## PCA table
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PCA res.",
+                                      startRow = new_row, startCol = new_col)
+  new_row <- new_row + 1
+  xls_result <- write_xlsx(data = metrics[["pc_summary"]], wb = wb, rownames = FALSE,
+                           sheet = sheet, start_col = new_col, start_row = new_row)
+  new_col <- xls_result[["end_col"]] + 6
+  new_row <- new_row - 1
+  written_name <- openxlsx::writeData(wb, sheet, "Raw PCA table.",
+                                      startRow = new_row, startCol = new_col)
+  new_row <- new_row + 1
+  xls_result <- write_xlsx(data = metrics[["pc_table"]], wb = wb, rownames = FALSE,
+                           sheet = sheet, start_row = new_row, start_col = new_col)
+
+  ## Move on to the next sheet, normalized data
+  mesg("Writing the normalized reads.")
+  sheet <- "norm_data"
+  new_col <- 1
+  new_row <- 1
+  ## Perform a quick query to see if sva will explode on this data.
+  test_norm <- normalize(se = se, transform = transform,
+                              convert = convert, filter = filter)
+  test_zeros <- sum(rowSums(exprs(test_norm)) == 0)
+  if (test_zeros > 0) {
+    actual_filter <- "simple"
+  } else {
+    actual_filter <- filter
+  }
+  norm_data <- sm(normalize(se = se, transform = transform,
+                                 convert = convert, batch = batch,
+                                 filter = actual_filter,
+                                 ...))
+  norm_reads <- exprs(norm_data)
+  info <- fData(norm_data)
+  read_info <- merge(norm_reads, info, by = "row.names")
+  title <- what_happened(norm_data)
+  xls_result <- write_xlsx(wb = wb, data = read_info, rownames = FALSE,
+                           start_row = new_row, start_col = new_col, sheet = sheet, title = title)
+
+  ## Potentially useful for proteomics data and subtracted data.
+  if (!is.null(color_na)) {
+    na_style <- openxlsx::createStyle(fontColour = color_na)
+    nas <- se[["na_values"]]
+    for (col in colnames(nas)) {
+      row_definition <- which(nas[[col]]) + 2
+      col_idx <- colnames(read_info) == col
+      col_definition <- which(col_idx)
+      colored <- openxlsx::addStyle(wb, sheet = sheet, na_style,
+                                    rows = row_definition, cols = col_definition)
+    }
+  }
+
+  ## Graphs of the normalized data
+  mesg("Graphing the normalized reads.")
+  sheet <- "norm_graphs"
+  newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet))
+  norm_metrics <- sm(graph_metrics(norm_data, qq = do_qq, gene_heat = do_sample_heat,
+                                   ...))
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PCA res.",
+                                      startRow = new_row, startCol = new_col)
+  ## Start with library sizes.
+  written_name <- openxlsx::writeData(wb, sheet, "Legend.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet, "Normalized library sizes.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Non-zero genes.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  new_row <- new_row + 1
+  new_plot <- norm_metrics[["legend"]]
+  try_result <- xlsx_insert_png(new_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  nlibsize_plot <- norm_metrics[["libsize"]]
+  try_result <- xlsx_insert_png(nlibsize_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "20_nlibsize", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  ## Same row, non-zero plot
+  new_col <- new_col + plot_cols + 1
+  nnzero_plot <- norm_metrics[["nonzero"]]
+  try_result <- xlsx_insert_png(nnzero_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "21_nnzero", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+
+  ## Visualize distributions
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized data density plot.",
+                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized Boxplot.",
+                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  ndensity_plot <- norm_metrics[["density"]]
+  new_row <- new_row + 1
+  try_result <- xlsx_insert_png(ndensity_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "22_ndensity", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  nboxplot_plot <- norm_metrics[["boxplot"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(nboxplot_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "23_nboxplot", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  ntopn_plot <- norm_metrics[["topnplot"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(ntopn_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "24_nboxplot", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- 1
+
+  ## Move down next set of rows, heatmaps
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized correlation heatmap.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized distance heatmap.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  ncorheat_plot <- norm_metrics[["corheat"]]
+  new_row <- new_row + 1
+  try_result <- xlsx_insert_png(ncorheat_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "25_ncorheat", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  ndisheat_plot <- norm_metrics[["disheat"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(ndisheat_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "26_ndisheat", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  if (isTRUE(sample_heat)) {
+    sampleheat_plot <- plot_sample_heatmap(norm_data)
+    new_col <- new_col + plot_cols + 1
+    try_result <- xlsx_insert_png(sampleheat_plot[["plot"]], wb = wb, sheet = sheet, width = plot_dim,
+                                  height = plot_dim, start_col = new_col, start_row = new_row,
+                                  plotname = "26a_sampleheat", savedir = excel_basename)
+    if (! "try-error" %in% class(try_result)) {
+      image_files <- c(image_files, try_result[["filename"]])
+    }
+  }
+  new_col <- 1
+
+  ## SM plots
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  openxlsx::writeData(wb, sheet = sheet, x = "Normalized standard median correlation.",
+                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  openxlsx::writeData(wb, sheet = sheet, x = "Normalized standard distance correlation.",
+                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  nsmc_plot <- norm_metrics[["smc"]]
+  new_row <- new_row + 1
+  try_result <- xlsx_insert_png(nsmc_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "27_nsmc", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  nsmd_plot <- norm_metrics[["smd"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(nsmd_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "28_nsmd", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- 1
+
+  ## PCA and qq_log
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PCA.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Top 40 PC1 loadings.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized TSNE.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- new_col + plot_cols + 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized QQ, log scale.",
+                                      startRow = new_row, startCol = new_col)
+  new_col <- 1
+  npca_plot <- norm_metrics[["pc_plot"]]
+  npc_topnplot <- norm_metrics[["pc_loadplot"]]
+  ntsne_plot <- norm_metrics[["tsne_plot"]]
+  npca_table <- norm_metrics[["pc_table"]]
+  ntsne_table <- norm_metrics[["tsne_table"]]
+  new_row <- new_row + 1
+  try_result <- xlsx_insert_png(npca_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "29_npcaplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(npc_topnplot[["plot"]], wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "30_npcloadplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(ntsne_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "31_ntsneplot", savedir = excel_basename, fancy_type = "svg")
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+  nqq_plot <- norm_metrics[["qqlog"]]
+  new_col <- new_col + plot_cols + 1
+  try_result <- xlsx_insert_png(nqq_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                height = plot_dim, start_col = new_col, start_row = new_row,
+                                plotname = "32_nqqplot", savedir = excel_basename)
+  if (! "try-error" %in% class(try_result)) {
+    image_files <- c(image_files, try_result[["filename"]])
+  }
+
+  new_col <- 1
+
+  ## Violin plots
+  nvarpart_plot <- NULL
+  npct_plot <- NULL
+  if (isTRUE(violin) && isTRUE(do_varpart)) {
+    varpart_norm <- suppressWarnings(try(simple_varpart(norm_data, fstring = fstring),
+                                         silent = TRUE))
+    if (! "try-error" %in% class(varpart_norm)) {
+      nvarpart_plot <- varpart_norm[["partition_plot"]]
+      new_row <- new_row + plot_rows + 2
+      new_col <- 1
+      try_result <- xlsx_insert_png(nvarpart_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                    height = plot_dim, start_col = new_col, start_row = new_row,
+                                    plotname = "33_nviolin", savedir = excel_basename)
+      if (! "try-error" %in% class(try_result)) {
+        image_files <- c(image_files, try_result[["filename"]])
+      }
+      new_col <- new_col + plot_cols + 1
+      npct_plot <- varpart_norm[["percent_plot"]]
+      try_result <- xlsx_insert_png(npct_plot, wb = wb, sheet = sheet, width = plot_dim,
+                                    height = plot_dim, start_col = new_col, start_row = new_row,
+                                    plotname = "34_npctplot", savedir = excel_basename)
+      if (! "try-error" %in% class(try_result)) {
+        image_files <- c(image_files, try_result[["filename"]])
+      }
+    }
+  }
+
+  ## PCA table
+  new_row <- new_row + plot_rows + 2
+  new_col <- 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PCA res.",
+                                      startRow = new_row, startCol = new_col)
+  new_row <- new_row + 1
+  xls_result <- write_xlsx(data = norm_metrics[["pc_summary"]], wb = wb, rownames = FALSE,
+                           sheet = sheet, start_col = new_col, start_row = new_row)
+  new_col <- xls_result[["end_col"]] + 6
+  new_row <- new_row - 1
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PCA table.",
+                      startRow = new_row, startCol = new_col)
+  new_row <- new_row + 1
+  xls_result <- write_xlsx(data = norm_metrics[["pc_table"]], wb = wb, sheet = sheet,
+                           rownames = FALSE, start_col = new_col, start_row = new_row)
+
+  ## Give a median-by-factor accounting of the data
+  mesg("Writing the median reads by factor.")
+  sheet <- "median_data"
+  new_col <- 1
+  new_row <- 1
+  median_data <- sm(median_by_factor(norm_data, fun = med_or_mean,
+                                     fact = norm_data[["conditions"]]))
+  med <- median_data[["medians"]]
+  colnames(med) <- paste0(med_or_mean, "_", colnames(med))
+  cv <- median_data[["cvs"]]
+  colnames(cv) <- paste0("cv_", colnames(cv))
+  median_data <- merge(med, cv, by = "row.names")
+  rownames(median_data) <- median_data[["Row.names"]]
+  median_data[["Row.names"]] <- NULL
+  median_data_merged <- data.frame()
+  if (merge_order == "annot_first") {
+    median_data_merged <- merge(info, median_data, by.x = "row.names", by.y = "row.names")
+  } else {
+    median_data_merged <- merge(median_data, info, by.x = "row.names", by.y = "row.names")
+  }
+  rownames(median_data_merged) <- median_data_merged[["Row.names"]]
+  median_data_merged[["Row.names"]] <- NULL
+  xls_result <- write_xlsx(wb, data = median_data_merged, start_row = new_row, start_col = new_col,
+                           rownames = TRUE, sheet = sheet, title = "Median Reads by factor.")
+
+  ## Save the result
+  save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  retlist <- list(
+    "excel" = excel,
+    "save" = save_result,
+    "legend" = legend,
+    "annotations" = info,
+    "raw_reads" = reads,
+    "design" = annot,
+    "legend_plot" = legend_plot,
+    "raw_libsize" = libsize_plot,
+    "raw_nonzero" = nonzero_plot,
+    "raw_density" = density_plot,
+    "raw_cv" = cv_plot,
+    "raw_boxplot" = boxplot_plot,
+    "raw_corheat" = corheat_plot,
+    "raw_disheat" = disheat_plot,
+    "raw_smc" = smc_plot,
+    "raw_smd" = smd_plot,
+    "raw_pctopn" = pca_topn,
+    "raw_pca" = pca_plot,
+    "raw_pca_table" = pca_table,
+    "raw_tsne" = tsne_plot,
+    "raw_tsne_table" = tsne_table,
+    "raw_scaled_pca" = rspca_plot,
+    "raw_scaled_pca_table" = rpca_table,
+    "raw_scaled_tsne" = rtsne_plot,
+    "raw_scaled_tsne_table" = rtsne_table,
+    "raw_qq" = qq_plot,
+    "raw_violin" = violin_plot,
+    "raw_percent" = pct_plot,
+    "norm_reads" = norm_reads,
+    "norm_libsize" = nlibsize_plot,
+    "norm_nonzero" = nnzero_plot,
+    "norm_density" = ndensity_plot,
+    "norm_boxplot" = nboxplot_plot,
+    "norm_corheat" = ncorheat_plot,
+    "norm_disheat" = ndisheat_plot,
+    "norm_smc" = nsmc_plot,
+    "norm_smd" = nsmd_plot,
+    "norm_pca" = npca_plot,
+    "norm_pctopn" = npc_topnplot,
+    "norm_pca_table" = npca_table,
+    "norm_tsne" = ntsne_plot,
+    "norm_tsne_table" = ntsne_table,
+    "norm_qq" = nqq_plot,
+    "norm_violin" = nvarpart_plot,
+    "norm_pct" = npct_plot,
+    "medians" = median_data,
+    "saved" = save_result
+  )
+  for (img in image_files) {
+    removed <- try(suppressWarnings(file.remove(img)), silent = TRUE)
+  }
+  class(retlist) <- "written_se"
+  return(retlist)
+}
+
+#' Print the result from write_se.
+#'
+#' @param x List containing all the many plots, the dataframes, etc.
+#' @param ... Other args to match the generic.
+#' @export
+print.written_se <- function(x, ...) {
+  result_string <- glue("The result from write_se() sent to:
+{x[['excel']]}")
+  message(result_string)
+  return(invisible(x))
+}
+
+
 
 ## EOF

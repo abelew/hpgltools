@@ -17,11 +17,11 @@ plot_sample_bars(
 )
 }
 \arguments{
-\item{sample_df}{Expt, dataframe, or expressionset of samples.}
+\item{sample_df}{Exp, dataframe, or expressionset of samples.}
 
 \item{condition}{Vector of sample condition names.}
 
-\item{colors}{Color scheme if the data is not an expt.}
+\item{colors}{Color scheme if the data is not an exp.}
 
 \item{integerp}{Is this comprised of integer values?}
 

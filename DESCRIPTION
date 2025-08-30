@@ -4,10 +4,11 @@ Title: A pile of (hopefully) useful R functions
 Version: 1.2
 Date: 2018-03-01
 Author: Ashton Trey Belew, Keith Hughitt
-Authors@R: c(person("Ashton", "Belew", email="abelew@gmail.com", role=c("aut","cre")),
+Authors@R: c(person("Ashton", "Belew", email="abelew@umd.edu", role=c("aut","cre")),
+             person("April", "Hussey", email="ahussey@umd.edu", role=c("aut")),
              person("Keith", "Hughitt", email="khughitt@umd.edu", role=c("aut")),
              person("Jerry", "Zhao", email="zhaojerry123@gmail.com", role=c("aut")))
-Maintainer: Ashton Trey Belew <abelew@gmail.com>
+Maintainer: Ashton Trey Belew <abelew@umd.edu>
 Description: This is a set of functions I have been using in my various analyses
              in the El-Sayed laboratory. The set of tasks included herein run a
              spectrum from preprocessing count-tables from RNAseq-like data,

@@ -2,15 +2,48 @@
 % Please edit documentation in R/attributes.R
 \name{conditions,SummarizedExperiment-method}
 \alias{conditions,SummarizedExperiment-method}
-\title{Get the experimental conditions from a SE}
+\title{Get the condition column from a se.}
 \usage{
-\S4method{conditions}{SummarizedExperiment}(object, ...)
+\S4method{conditions}{SummarizedExperiment}(exp)
 }
 \arguments{
-\item{object}{Input SE}
-
-\item{...}{extra args.}
+\item{se}{Input summarized experiment.}
 }
 \description{
-Get the experimental conditions from a SE
+Get the condition column from a se.
+}
+\examples{
+## Use this for examples of SE attribute functions.
+
+if (is.null(pombe_se)) {
+  source(system.file("examples", "create_se.R", package = "hpgltools"))
+}
+
+## Use this data structure to change things in these examples.
+modify_se <- pombe_se
+
+## Pull the 'batch' column from the sample metadata.
+observed_batches <- batches(modify_se)
+head(observed_batches)
+
+new_batches <- rep("hi", length(observed_batches))
+batches(modify_se) <- new_batches
+batches(modify_se)
+
+## I have been messing with my various color setter/getters
+current_colors <- get_se_colors(modify_se)
+head(current_colors)
+
+current_colors <- get_colors(modify_se)
+new_colors <- rep("red", length(current_colors))
+colors(modify_se) <- new_colors
+get_colors(modify_se)
+
+## I broke something in this: FIXME
+##current_libsize <- libsize(modify_se)
+##current_libsize
+##play_libsize <- current_libsize / 2
+##libsize(modify_se) <- play_libsize
+##current_libsize <- libsize(modify_se)
+##current_libsize
 }

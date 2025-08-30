@@ -4,12 +4,12 @@
 \alias{conditions<-,expt-method}
 \title{Add experimental conditions to an expt.}
 \usage{
-\S4method{conditions}{expt}(object, ...) <- value
+\S4method{conditions}{expt}(exp, ...) <- value
 }
 \arguments{
-\item{object}{Output expt}
-
 \item{...}{extra args}
+
+\item{object}{Output expt}
 
 \item{value}{vector of new conditions}
 }

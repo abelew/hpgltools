@@ -7,7 +7,7 @@
 \S4method{plot_pairwise_ma}{SummarizedExperiment}(data, colors = NULL, design = NULL, log = NULL, ...)
 }
 \arguments{
-\item{data}{Expt expressionset or data frame.}
+\item{data}{Exp expressionset or data frame.}
 
 \item{colors}{Explicit colors to use.}
 

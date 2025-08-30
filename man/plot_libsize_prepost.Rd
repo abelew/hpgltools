@@ -5,7 +5,7 @@
 \title{Visualize genes observed before/after filtering.}
 \usage{
 plot_libsize_prepost(
-  expt,
+  exp,
   low_limit = 2,
   filter = TRUE,
   num_color = "black",
@@ -14,7 +14,7 @@ plot_libsize_prepost(
 )
 }
 \arguments{
-\item{expt}{Input expressionset.}
+\item{exp}{Input expressionset.}
 
 \item{low_limit}{Threshold to define 'low-representation.'}
 
@@ -24,7 +24,7 @@ plot_libsize_prepost(
 
 \item{num_size}{Size of said numbers.}
 
-\item{...}{Extra arbitrary arguments to pass to normalize_expt()}
+\item{...}{Extra arbitrary arguments to pass to normalize_exp()}
 }
 \value{
 Bar plot showing the number of genes below the low_limit before and

@@ -4,7 +4,7 @@
 \alias{conditions,expt-method}
 \title{A getter to pull the conditions from an expt.}
 \usage{
-\S4method{conditions}{expt}(object, ...)
+\S4method{conditions}{expt}(exp)
 }
 \arguments{
 \item{object}{Input expt}

@@ -4,14 +4,14 @@
 \alias{colors<-,SummarizedExperiment-method}
 \title{A setter to put the colors into a SummarizedExperiment.}
 \usage{
-\S4method{colors}{SummarizedExperiment}(x, ...) <- value
+\S4method{colors}{SummarizedExperiment}(exp, ...) <- value
 }
 \arguments{
-\item{x}{A SummarizedExperiment.}
-
 \item{...}{extra args.}
 
 \item{value}{List of new colors.}
+
+\item{x}{A SummarizedExperiment.}
 }
 \description{
 A setter to put the colors into a SummarizedExperiment.

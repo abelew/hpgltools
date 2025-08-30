@@ -7,7 +7,7 @@
 plot_pairwise_ma(data, colors = NULL, design = NULL, log = NULL, ...)
 }
 \arguments{
-\item{data}{Expt expressionset or data frame.}
+\item{data}{Exp expressionset or data frame.}
 
 \item{colors}{Vector of colors to use in the plot.}
 

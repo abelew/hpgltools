@@ -5,7 +5,7 @@
 \title{Produce plots of metadata factor(s) of interest.}
 \usage{
 plot_metadata_factors(
-  input,
+  exp,
   column = "hisatsinglemapped",
   second_column = NULL,
   norm_column = NULL,
@@ -14,8 +14,6 @@ plot_metadata_factors(
 )
 }
 \arguments{
-\item{input}{Input expressionset.}
-
 \item{column}{Currently a single, but soon multiple column(s) of metadata.}
 
 \item{second_column}{Or perhaps put other columns here.}
@@ -25,6 +23,8 @@ plot_metadata_factors(
 \item{type}{Assume a vioiln unless otherwise specified.}
 
 \item{scale}{Rescale the data?}
+
+\item{input}{Input expressionset.}
 }
 \value{
 ggplot and maybe some form of useful table.

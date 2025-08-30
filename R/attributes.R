@@ -1,3 +1,19 @@
+## I think I would like to have functions named
+## set_xyz() and xyz() to set and get values respectively
+## then set the infix set function as an alias to the set_xyz
+## Thus I will be able to switch between infix pipelines and
+## more traditional invocations of the various functions at will.
+## If implemented completely, each attribute of note will have 3
+## functions associated with it:
+## get_something, set_something, and something<- where the last just
+## points to some invocation of the middle.
+## I would like therefore to order these functions in that order for
+## each attribute in this file.
+
+## Some notes which are relevant to April's clarification of S4 dispatch
+## 1.  The generic needs to have a 'normal' function declaration
+##     before the various setMethods start
+
 ## I thought I was starting to get a decent handle on S4
 ## and then I started getting the following error apropros of nothing:
 ## ! Failed to load R/zzz_attributes.R
@@ -20,17 +36,166 @@
 #' @importFrom SummarizedExperiment assay rowData colData
 NULL
 
+#' If you mess up the NAMESPACE file, the following becomes necessary
+#'
+#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
+#' @param x The SummarizedExperiment input
+#' @param i undef
+#' @param withDimnames undef
+#' @param ... extra args.
+#' @importFrom SummarizedExperiment assay
+#' @export
+assay <- function(x, i, withDimnames = TRUE, ...) {
+  SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
+}
+
+#' A getter to pull the assay data from an ExpressionSet.
+#'
+#' @param x One of my various expressionset analogs, expt,
+#'  expressionSet, or summarizedExperiment.
+#' @param i I am guessing a subsetter
+#' @param withDimnames I do not know.
+#' @param ... Extra args!
+#' @importFrom SummarizedExperiment assay
+#' @export
+setMethod(
+  "assay", signature(x = "ExpressionSet"),
+  definition = function(x, i, withDimnames = TRUE, ...) {
+    Biobase::exprs(x)
+  })
+
+#' A getter to pull the assay data from an expt.
+#'
+#' @param x One of my various expressionset analogs, expt,
+#'  expressionSet, or summarizedExperiment.
+#' @param i I am guessing a subsetter
+#' @param withDimnames I do not know.
+#' @param ... Extra args!
+#' @export
+setMethod(
+  "assay", signature(x = "expt"),
+  definition = function(x, i, withDimnames = TRUE, ...) {
+    mtrx <- Biobase::exprs(x[["expressionset"]])
+    return(mtrx)
+  })
+
+#' @export
+set_assay <- function(exp, value, ...) {
+  message("This function is intended to set the expression data for a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("set_assay")
+}
+setGeneric("set_assay")
+
+#' @export
+setMethod(
+  "set_assay", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, values) {
+    assay(exp) <- values
+    return(exp)
+  })
+
+#' If you mess up the NAMESPACE file, the following becomes necessary
+#'
+#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
+#' @param x The SummarizedExperiment input
+#' @param i undef
+#' @param withDimnames undef
+#' @param ... extra args.
+#' @param value New value.
+#' @importFrom SummarizedExperiment assay<-
+#' @export
+`assay<-` <- function(x, i, withDimnames = TRUE, ..., value) {
+  SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...) <- value
+  return(x)
+}
+
+#' A setter to put the assay data into an ExpressionSet.
+#'
+#' @param x One of my various expressionset analogs, expt,
+#'  expressionSet, or summarizedExperiment.
+#' @param i Subset to replace.
+#' @param withDimnames I do not know, I need to look this up.
+#' @param ... Extra args.
+#' @param value New values for the expressionset.
+#' @importFrom SummarizedExperiment assay<-
+#' @export
+setMethod(
+  "assay<-", signature(x = "ExpressionSet"),
+  definition = function(x, i, withDimnames = TRUE, ..., value) {
+    Biobase::exprs(x) <- value
+    return(x)
+  })
+
+#' A setter to put the assay data into an expt.
+#'
+#' @param x One of my various expressionset analogs, expt,
+#'  expressionSet, or summarizedExperiment.
+#' @param i specific samples to replace the data.
+#' @param withDimnames I do not know.
+#' @param ... Extra args, currently unused.
+#' @param value New assay values to fill in the data structure.
+#' @export
+setMethod(
+  "assay<-", signature(x = "expt"),
+  definition = function(x, i, withDimnames = TRUE, ..., value) {
+    Biobase::exprs(x[["expressionset"]]) <- value
+    return(x)
+  })
+
+#' @export
+batches <- function(exp) {
+  message("This function is intended to extract the 'batches' from a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("batches")
+}
+setGeneric("batches")
+
 #' Get the batch column from a se.
 #'
 #' @param se Input summarized experiment.
 #' @example inst/examples/attributes_se.R
 #' @export
-batches <- function(se) {
-  batches <- colData(se)[["batch"]]
-  names(batches) <- sampleNames(se)
-  return(batches)
+setMethod(
+  "batches", signature(exp = "SummarizedExperiment"),
+  definition = function(exp) {
+    batches <- colData(se)[["batch"]]
+    names(batches) <- sampleNames(se)
+    return(batches)
+  })
+
+#' Create a generic set_batches function in case I pass something unknown.
+#'
+#' I like to think in terms of conditions and batches.  This function
+#' is intended to set the latter for a dataset.
+#'
+#' @export
+set_batches <- function(exp, ...) {
+  message("set_batches was passed an object of type ", class(exp),
+          " and does not know what to do with it.")
+  standardGeneric("set_batches")
+  return(NULL)
 }
-setGeneric("batches")
+setGeneric("set_batches")
+
+#'
+#' @export
+setMethod(
+  "set_batches", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
+    se <- set_se_batches(exp, ...)
+    return(se)
+  })
+
+#' The following method should disappear soon.
+#' @export
+setMethod(
+  "set_batches", signature(exp = "expt"),
+  definition = function(exp, fact, ids = NULL) {
+    set_expt_batches(se, fact = fact, ids = ids)
+  })
 
 #' Add a batch column to a se.
 #'
@@ -38,6 +203,7 @@ setGeneric("batches")
 #' @param value vector of batches.
 #' @export
 `batches<-` <- function(se, value) {
+  se <- set_batches(se, value)
   colData(se)[["batch"]] <- value
   return(se)
 }
@@ -47,10 +213,41 @@ setGeneric("batches<-")
 #'
 #' @param x Input
 #' @export
-get_colors <- function(x) {
-  message("hpgltools generic to extract colors.")
+get_colors <- function(exp, ...) {
+  message("This is intended to extract colors from an object.")
+  message("It was passed an object of class ", class(exp),
+          " and does not know what to do with it.")
+  standardGeneric("get_colors")
+  return(NULL)
 }
 setGeneric("get_colors")
+
+#' @export
+setMethod(
+  "get_colors", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
+    exp_colors <- S4Vectors::metadata(exp)[["colors"]]
+    if (is.null(colors)) {
+      exp <- set_se_colors(exp)
+      exp_colors <- S4Vectors::metadata(exp)[["colors"]]
+    }
+    return(exp_colors)
+  })
+
+#' A getter to pull the colors from an expt.
+#'
+#' @param x An x.
+#' @export
+setMethod(
+  "get_colors", signature(exp = "expt"),
+  definition = function(exp) {
+    exp[["colors"]]
+  })
+
+#' @export
+colors <- function(input, ...) {
+  get_colors(input, ...)
+}
 
 #' Add colors to a dataset
 #'
@@ -58,10 +255,20 @@ setGeneric("get_colors")
 #' @param ... extra arguments.
 #' @param value vector of colors
 #' @export
-`colors<-` <- function(x, ..., value) {
-  set_se_colors(x, value, ...)
+`colors<-` <- function(exp, ..., value) {
+  set_se_colors(exp, value, ...)
 }
 setGeneric("colors<-")
+
+#' @export
+get_colors_by_condition <- function(exp, ...) {
+  message("This function is intended to print 1 color per experimental condition.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  return(NULL)
+  standardGeneric("get_colors_by_condition")
+}
+setGeneric("get_colors_by_condition")
 
 #' Get a named vector of colors by condition.
 #'
@@ -74,56 +281,228 @@ setGeneric("colors<-")
 #' @param levels When not null, colors may be set to arbitrary samples.
 #' @return List of colors by condition.
 #' @export
-define_expt_colors <- function(expt, fact = "condition", levels = NULL) {
-  all_colors <- get_colors(expt)
-  names(all_colors) <- rownames(pData(expt))
-  conditions_by_sample <- conditions(expt)
-  if (is.null(levels)) {
-    condition_fact <- levels(droplevels(as.factor(pData(expt)[[fact]])))
-    colors_by_condition <- as.character(condition_fact)
-    names(colors_by_condition) <- as.character(condition_fact)
-  } else {
-    colors_by_condition <- as.character(levels)
-    names(colors_by_condition) <- as.character(levels)
-  }
-  for (f in seq_along(colors_by_condition)) {
-    element <- colors_by_condition[f]
-    ## See if there are more than 1 color per sample type
-    choice_idx <- conditions_by_sample == element
-    potential_colors <- unique(all_colors[choice_idx])
-    if (length(potential_colors) == 1) {
-      colors_by_condition[element] <- potential_colors
-    } else if (length(potential_colors) > 1) {
-      warning("Condition: ", element, " has multiple colors, chosing the first.")
-      colors_by_condition[element] <- potential_colors[1]
+setMethod(
+  "get_colors_by_condition", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, fact = "condition", levels = NULL) {
+    meta <- colData(exp)
+    all_colors <- get_colors(exp)
+    interesting_fact <- as.factor(meta[[fact]])
+    names(all_colors) <- rownames(colData(exp))
+    conditions_by_sample <- conditions(exp)
+    if (is.null(levels)) {
+      condition_fact <- levels(droplevels(interesting_fact))
+      colors_by_condition <- as.character(condition_fact)
+      names(colors_by_condition) <- as.character(condition_fact)
     } else {
-      warning("Condition: ", element, " has no color, setting it to red.")
-      colors_by_condition[element] <- "#dd0000"
+      colors_by_condition <- as.character(levels)
+      names(colors_by_condition) <- as.character(levels)
     }
-  }
-  return(colors_by_condition)
-}
+    for (f in seq_along(colors_by_condition)) {
+      element <- colors_by_condition[f]
+      ## See if there are more than 1 color per sample type
+      choice_idx <- conditions_by_sample == element
+      potential_colors <- unique(all_colors[choice_idx])
+      if (length(potential_colors) == 1) {
+        colors_by_condition[element] <- potential_colors
+      } else if (length(potential_colors) > 1) {
+        warning("Condition: ", element, " has multiple colors, chosing the first.")
+        colors_by_condition[element] <- potential_colors[1]
+      } else {
+        warning("Condition: ", element, " has no color, setting it to red.")
+        colors_by_condition[element] <- "#dd0000"
+      }
+    }
+    return(colors_by_condition)
+  })
 
-#' Get the colors from a summarized experiment.
+#' @export
+conditions <- function(exp) {
+  message("This function is intended to extract the 'conditions' from a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("conditions")
+  return(NULL)
+}
+setGeneric("conditions")
+
+#' A getter to pull the conditions from an expt.
 #'
-#' @param se Input se
-#' @param keep_underscore Sanitize the columns for underscores?
+#' @param object Input expt
+#' @param ... extra args
+#' @export
+setMethod(
+  "conditions", signature(exp = "expt"),
+  definition = function(exp) {
+    cond <- pData(exp)[["condition"]]
+    names(cond) <- rownames(pData(exp))
+    return(cond)
+  })
+
+#' Get the condition column from a se.
+#'
+#' @param se Input summarized experiment.
 #' @example inst/examples/attributes_se.R
 #' @export
-get_se_colors <- function(se, keep_underscore = TRUE) {
-  all_colors <- get_colors(se)
-  condition_fact <- as.character(colData(se)[["condition"]])
-  if (isTRUE(keep_underscore)) {
-    condition_fact <- gsub(pattern="[^_[:^punct:]]", replacement = "",
-                           x = condition_fact, perl = TRUE)
-  } else {
-    condition_fact <- gsub(x = condition_fact, pattern = "[[:punct:]]", replacement = "")
-  }
-  names(all_colors) <- condition_fact
-  single_idx <- !duplicated(all_colors)
-  all_colors <- all_colors[single_idx]
-  return(all_colors)
+setMethod(
+  "conditions", signature(exp = "SummarizedExperiment"),
+  definition = function(exp) {
+    conditions <- colData(exp)[["condition"]]
+    names(conditions) <- sampleNames(exp)
+    return(conditions)
+  })
+
+#' @export
+set_conditions <- function(exp, ...) {
+  message("This function is intended to set the conditions of a datastructure.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("set_conditions")
+  return(NULL)
 }
+setGeneric("set_conditions")
+
+#' Set conditions to a se.
+#'
+#' @param se Input se
+#' @param fact Factor of conditions
+#' @param ids Set of ids to change.
+#' @param prefix Prefix of each sample name
+#' @param null_cell If a cell is null, what to change it to?
+#' @param colors Set the colors as well?
+#' @param ... Arbitrary arguments.
+#' @export
+setMethod(
+  "set_conditions", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, fact = NULL, ids = NULL, prefix = NULL,
+                        null_cell = "null", colors = TRUE, ...) {
+    arglist <- list(...)
+    if (!is.null(arglist[["factor"]])) {
+      warning("I probably should change this argument to factor, but it is 'fact'.")
+      fact <- arglist[["factor"]]
+    }
+    se <- exp
+    original_conditions <- colData(se)[["condition"]]
+    original_length <- length(original_conditions)
+    original_num_conditions <- length(levels(as.factor(original_conditions)))
+    new_se <- se  ## Explicitly copying se to new_se
+    ## because when I run this as a function call() it seems to be not properly setting
+    ## the conditions and I do not know why.
+    fact_vector <- NULL
+    fact_name <- "condition"
+    if (!is.null(ids)) {
+      ## Change specific id(s) to given condition(s).
+      mesg("Setting condition for ids ", toString(ids), " to ", fact, ".")
+      old_pdata <- colData(se)
+      old_cond <- as.character(old_pdata[["condition"]])
+      names(old_cond) <- rownames(old_pdata)
+      new_cond <- old_cond
+      new_cond[ids] <- fact
+      new_pdata <- old_pdata
+      new_pdata[["condition"]] <- as.factor(new_cond)
+      colData(new_se) <- new_pdata
+    } else if (length(fact) == 1) {
+      fact_name <- fact
+      ## Assume it is a column in the design
+      if (fact %in% colnames(colData(se))) {
+        new_fact <- colData(se)[[fact]]
+        null_ids <- is.na(new_fact) | is.null(new_fact)
+        ## Only do this if there are some null entries.
+        if (sum(null_ids) > 0) {
+          new_fact[null_ids] <- null_cell
+        }
+        if (!is.null(prefix)) {
+          new_fact <- paste0(prefix, new_fact)
+        }
+        fact_vector <- new_fact
+        colData(new_se)[["condition"]] <- new_fact
+        ## new_se[["design"]][["condition"]] <- new_fact
+      } else {
+        stop("The provided factor is not in the design matrix.")
+      }
+    } else if (length(fact) != original_length) {
+      stop("The new factor of conditions is not the same length as the original.")
+    } else {
+      colData(new_se)[["condition"]] <- fact
+      ## new_se[["design"]][["condition"]] <- fact
+      fact_vector <- fact
+    }
+
+    message("The numbers of samples by condition are: ")
+    print(table(colData(new_se)[["condition"]]))
+    condition_states <- levels(as.factor(colData(new_se)[["condition"]]))
+    if (class(colors)[1] == "list") {
+      ## A list of colors may either be a color_choices list or
+      ## a hash of states->color which could/should be a named vector.
+      color_state_names <- names(colors)
+      found_colors <- sum(color_state_names %in% condition_states)
+      found_names <- sum(fact_name %in% color_state_names)
+      ## In this first instance, the choices should be in this element.
+      if (found_names > 0) {
+        mesg("The colors appear to be a list delineated by state name.")
+        colors <- colors[[fact]]
+      } else if (found_colors > 0) {
+        mesg("The colors appear to be a single list delineated by condition.")
+      } else {
+        message("A list of colors was provided, but element ", fact,
+                " is not in it; using defaults")
+        colors <- NULL
+      }
+    }
+    new_se <- set_se_colors(new_se, colors = colors)
+    return(new_se)
+  })
+
+#' This method should go away soon.
+#'
+#' @export
+setMethod(
+  "set_conditions", signature(exp = "expt"),
+  definition = function(exp, fact = NULL, ids = NULL, prefix = NULL,
+                        null_cell = "null", colors = TRUE,
+                        ...) {
+    set_expt_conditions(exp, fact = fact, ids = ids,
+                        prefix = prefix, null_cell = null_cell,
+                        colors = colors, ...)
+  })
+
+#' The infix version of set_conditions.
+#'
+#' @param exp Input data structure
+#' @param ... Other args passed along to set_conditions()
+#' @export
+`conditions<-` <- function(exp, ...) {
+  message("This function is intended to set the conditions factor of a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("conditions<-")
+  return(NULL)
+}
+setGeneric("conditions<-")
+
+#' Add experimental conditions to an expt.
+#'
+#' @param object Output expt
+#' @param ... extra args
+#' @param value vector of new conditions
+#' @export
+setMethod(
+  "conditions<-", signature(exp = "expt"),
+  definition = function(exp, ...) {
+    exp <- set_conditions(exp, ...)
+    return(exp)
+  })
+
+#' Get the condition column from a se.
+#'
+#' @param se Input summarized experiment.
+#' @example inst/examples/attributes_se.R
+#' @export
+setMethod(
+  "conditions<-", signature(exp = "SummarizedExperiment"),
+  definition = function(exp) {
+    se <- set_conditions(exp, ...)
+    return(se)
+  })
 
 #' Extract library sizes.
 #'
@@ -228,8 +607,11 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
 }
 setGeneric("semantic_filter")
 
+#' Filter an expt
+#'
+#' @export
 setMethod(
-  "semantic_filter", signature = signature(input = "expt"),
+  "semantic_filter", signature(input = "expt"),
   definition = function(input, invert = FALSE, topn = NULL,
                         semantic = c("mucin", "sialidase", "RHS", "MASP",
                                      "DGF", "GP63"),
@@ -766,112 +1148,7 @@ set_expt_conditions <- function(expt, fact = NULL, ids = NULL,
   return(new_expt)
 }
 
-#' Set conditions to a se.
-#'
-#' @param se Input se
-#' @param fact Factor of conditions
-#' @param ids Set of ids to change.
-#' @param prefix Prefix of each sample name
-#' @param null_cell If a cell is null, what to change it to?
-#' @param colors Set the colors as well?
-#' @param ... Arbitrary arguments.
 #' @export
-set_conditions <- function(se, fact = NULL, ids = NULL, prefix = NULL,
-                           null_cell = "null", colors = TRUE,
-                           ...) {
-  arglist <- list(...)
-  if (!is.null(arglist[["factor"]])) {
-    warning("I probably should change this argument to factor, but it is 'fact'.")
-    fact <- arglist[["factor"]]
-  }
-  original_conditions <- colData(se)[["condition"]]
-  original_length <- length(original_conditions)
-  original_num_conditions <- length(levels(as.factor(original_conditions)))
-  new_se <- se  ## Explicitly copying se to new_se
-  ## because when I run this as a function call() it seems to be not properly setting
-  ## the conditions and I do not know why.
-  fact_vector <- NULL
-  fact_name <- "condition"
-  if (!is.null(ids)) {
-    ## Change specific id(s) to given condition(s).
-    mesg("Setting condition for ids ", toString(ids), " to ", fact, ".")
-    old_pdata <- colData(se)
-    old_cond <- as.character(old_pdata[["condition"]])
-    names(old_cond) <- rownames(old_pdata)
-    new_cond <- old_cond
-    new_cond[ids] <- fact
-    new_pdata <- old_pdata
-    new_pdata[["condition"]] <- as.factor(new_cond)
-    colData(new_se) <- new_pdata
-  } else if (length(fact) == 1) {
-    fact_name <- fact
-    ## Assume it is a column in the design
-    if (fact %in% colnames(colData(se))) {
-      new_fact <- colData(se)[[fact]]
-      null_ids <- is.na(new_fact) | is.null(new_fact)
-      ## Only do this if there are some null entries.
-      if (sum(null_ids) > 0) {
-        new_fact[null_ids] <- null_cell
-      }
-      if (!is.null(prefix)) {
-        new_fact <- paste0(prefix, new_fact)
-      }
-      fact_vector <- new_fact
-      colData(new_se)[["condition"]] <- new_fact
-      ## new_se[["design"]][["condition"]] <- new_fact
-    } else {
-      stop("The provided factor is not in the design matrix.")
-    }
-  } else if (length(fact) != original_length) {
-    stop("The new factor of conditions is not the same length as the original.")
-  } else {
-    colData(new_se)[["condition"]] <- fact
-    ## new_se[["design"]][["condition"]] <- fact
-    fact_vector <- fact
-  }
-
-  message("The numbers of samples by condition are: ")
-  print(table(colData(new_se)[["condition"]]))
-  condition_states <- levels(as.factor(colData(new_se)[["condition"]]))
-  if (class(colors)[1] == "list") {
-    ## A list of colors may either be a color_choices list or
-    ## a hash of states->color which could/should be a named vector.
-    color_state_names <- names(colors)
-    found_colors <- sum(color_state_names %in% condition_states)
-    found_names <- sum(fact_name %in% color_state_names)
-    ## In this first instance, the choices should be in this element.
-    if (found_names > 0) {
-      mesg("The colors appear to be a list delineated by state name.")
-      colors <- colors[[fact]]
-    } else if (found_colors > 0) {
-      mesg("The colors appear to be a single list delineated by condition.")
-    } else {
-      message("A list of colors was provided, but element ", fact,
-              " is not in it; using defaults")
-      colors <- NULL
-    }
-  }
-  new_se <- set_se_colors(new_se, colors = colors)
-  return(new_se)
-}
-setGeneric("set_conditions")
-
-set_se_conditions <- function(...) {
-  set_conditions(...)
-}
-
-setMethod(
-  "set_conditions", signature = signature(se = "expt"),
-  definition = function(se, fact = NULL, ids = NULL, prefix = NULL,
-                        null_cell = "null", colors = TRUE,
-                        ...) {
-    set_expt_conditions(se, fact = fact, ids = ids,
-                        prefix = prefix, null_cell = null_cell,
-                        colors = colors, ...)
-  })
-
-
-
 set_factors <- function(se, condition = NULL, batch = NULL, ids = NULL,
                         table = "metadata", class = "factor",
                         columns = NULL, ...) {
@@ -925,13 +1202,13 @@ set_factors <- function(se, condition = NULL, batch = NULL, ids = NULL,
 setGeneric("set_factors")
 
 setMethod(
-  "set_factors", signature = signature(se = "expt"),
+  "set_factors", signature(se = "expt"),
   definition = function(se, condition = NULL, batch = NULL, ids = NULL,
                         table = "metadata", class = "factor", columns = NULL, ...) {
     set_expt_factors(se, condition = condition, batch = batch,
                      ids = ids, table = table, class = class,
                      columns = columns, ...)
-})
+  })
 
 #' Change the factors (condition and batch) of an expt
 #'
@@ -1301,153 +1578,6 @@ what_happened <- function(expt = NULL, transform = "raw", convert = "raw",
   return(what)
 }
 
-########################################
-## Generics Live here
-########################################
-
-#' Get the colors from an expt.
-#'
-#' @param expt One of my slightly modified ExpressionSets.
-#' @return List with the methods used to modify the data (if any).
-setGeneric("colors", signature = signature(expt = "expt"),
-           function(expt) standardGeneric("colors"))
-
-########################################
-## Methods live here
-########################################
-
-# #' A getter for the annotation databased used to create an expt/se.
-# # '
-# #' @param object One of my various expressionset analogs, expt,
-# #'  expressionSet, or summarizedExperiment.
-# #' @importFrom BiocGenerics annotation
-# #' @export
-#setMethod(
-#  "annotation", signature = signature(object = "expt"),
-#  definition = function(object) {
-#    BiocGenerics::annotation(object[["expressionset"]])
-#  })
-
-# #' A setter for the annotation database used to create an expt/se.
-# #'
-# #' @param object One of my various expressionset analogs, expt,
-# #'  expressionSet, or summarizedExperiment.
-# #' @param value New annotation slot for the expt/se.
-# #' @importFrom Biobase annotation<-
-# #' @export
-#setMethod(
-#  "annotation<-", signature = signature(object = "expt"),
-#  definition = function(object, value) {
-#    annotation(object[["expressionset"]]) <- value
-#    return(object)
-#  })
-
-#'
-#NULL
-
-#' If you mess up the NAMESPACE file, the following becomes necessary
-#'
-#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-#' @param x The SummarizedExperiment input
-#' @param i undef
-#' @param withDimnames undef
-#' @param ... extra args.
-#' @importFrom SummarizedExperiment assay
-#' @export
-assay <- function(x, i, withDimnames = TRUE, ...) {
-   SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
-}
-
-#' A getter to pull the assay data from an ExpressionSet.
-#'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param i I am guessing a subsetter
-#' @param withDimnames I do not know.
-#' @param ... Extra args!
-#' @importFrom SummarizedExperiment assay
-#' @export
-setMethod(
-  "assay", signature = signature(x = "ExpressionSet"),
-  definition = function(x, i, withDimnames = TRUE, ...) {
-    Biobase::exprs(x)
-  })
-
-#' A getter to pull the assay data from an expt.
-#'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param i I am guessing a subsetter
-#' @param withDimnames I do not know.
-#' @param ... Extra args!
-#' @export
-setMethod(
-  "assay", signature = signature(x = "expt"),
-  definition = function(x, i, withDimnames = TRUE, ...) {
-    mtrx <- Biobase::exprs(x[["expressionset"]])
-    return(mtrx)
-  })
-
-#' If you mess up the NAMESPACE file, the following becomes necessary
-#'
-#' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-#' @param x The SummarizedExperiment input
-#' @param i undef
-#' @param withDimnames undef
-#' @param ... extra args.
-#' @param value New value.
-#' @importFrom SummarizedExperiment assay<-
-#' @export
-`assay<-` <- function(x, i, withDimnames = TRUE, ..., value) {
-  SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...) <- value
-  return(x)
-}
-
-#' A setter to put the assay data into an ExpressionSet.
-#'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param i Subset to replace.
-#' @param withDimnames I do not know, I need to look this up.
-#' @param ... Extra args.
-#' @param value New values for the expressionset.
-#' @importFrom SummarizedExperiment assay<-
-#' @export
-setMethod(
-  "assay<-", signature = signature(x = "ExpressionSet"),
-  definition = function(x, i, withDimnames = TRUE, ..., value) {
-    Biobase::exprs(x) <- value
-    return(x)
-  })
-
-#' A setter to put the assay data into an expt.
-#'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param i specific samples to replace the data.
-#' @param withDimnames I do not know.
-#' @param ... Extra args, currently unused.
-#' @param value New assay values to fill in the data structure.
-#' @export
-setMethod(
-  "assay<-", signature = signature(x = "expt"),
-  definition = function(x, i, withDimnames = TRUE, ..., value) {
-    Biobase::exprs(x[["expressionset"]]) <- value
-    return(x)
-  })
-
-set_batches <- function(se, ...) {
-  se <- set_se_batches(se, ...)
-  return(se)
-}
-setGeneric("set_batches")
-
-setMethod(
-  "set_batches", signature = signature(se = "expt"),
-  definition = function(se, fact, ids = NULL) {
-    set_expt_batches(se, fact = fact, ids = ids)
-  })
-
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'
 #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
@@ -1470,7 +1600,7 @@ colData <- function(x, i, withDimnames = TRUE, ...) {
 #' @param ... extra args.
 #' @export
 setMethod(
-  "colData", signature = signature(x = "ExpressionSet"),
+  "colData", signature(x = "ExpressionSet"),
   definition = function(x, i, withDimnames = TRUE, ...) {
     Biobase::pData(x)
   })
@@ -1485,7 +1615,7 @@ setMethod(
 #' @importFrom SummarizedExperiment colData
 #' @export
 setMethod(
-  "colData", signature = signature(x = "expt"),
+  "colData", signature(x = "expt"),
   definition = function(x, i, withDimnames = TRUE, ...) {
     Biobase::pData(x[["expressionset"]])
   })
@@ -1512,14 +1642,14 @@ setMethod(
 #' @importFrom SummarizedExperiment colData<-
 #' @export
 setMethod(
-  "colData<-", signature = signature(x = "ExpressionSet"),
+  "colData<-", signature(x = "ExpressionSet"),
   definition = function(x, ..., value) {
     Biobase::pData(x) <- value
     return(x)
   })
 
 setMethod(
-  "colData<-", signature = signature(x = "SummarizedExperiment", value = "data.frame"),
+  "colData<-", signature(x = "SummarizedExperiment", value = "data.frame"),
   definition = function(x, ..., value) {
     value <- DataFrame(value)
     message("Recasting the data.frame to DataFrame.")
@@ -1536,7 +1666,7 @@ setMethod(
 #' @importFrom SummarizedExperiment colData<-
 #' @export
 setMethod(
-  "colData<-", signature = signature(x = "expt"),
+  "colData<-", signature(x = "expt"),
   definition = function(x, ..., value) {
     Biobase::pData(x[["expressionset"]]) <- value
     return(x)
@@ -1549,10 +1679,10 @@ setMethod(
 #' @param value List of new colors.
 #' @export
 setMethod(
-  "colors<-", signature = signature(x = "expt"),
-  definition = function(x, ..., value) {
-    x[["colors"]] <- value
-    return(x)
+  "colors<-", signature(exp = "expt"),
+  definition = function(exp, ..., value) {
+    exp[["colors"]] <- value
+    return(exp)
   })
 
 #' A setter to put the colors into a SummarizedExperiment.
@@ -1563,88 +1693,10 @@ setMethod(
 #' @example inst/examples/attributes_se.R
 #' @export
 setMethod(
-  "colors<-", signature = signature(x = "SummarizedExperiment"),
-  definition = function(x, ..., value) {
-    S4Vectors::metadata(x)[["colors"]] <- value
-    return(x)
-  })
-
-#' If you mess up the NAMESPACE file, the following becomes necessary
-#'
-#' message("I am from BiocGenerics and am explicitly imported, wtf.")
-#' @param object Input object
-#' @param ... extra args
-#' @importFrom BiocGenerics conditions
-#' @export
-conditions <- function(object, ...) {
-  BiocGenerics::conditions(object, ...)
-}
-
-#' A getter to pull the conditions from an expt.
-#'
-#' @param object Input expt
-#' @param ... extra args
-#' @export
-setMethod(
-  "conditions", signature = signature(object = "expt"),
-  definition = function(object, ...) {
-    cond <- pData(object)[["condition"]]
-    names(cond) <- rownames(pData(object))
-    return(cond)
-  })
-
-#' Get the experimental conditions from a SE
-#'
-#' @param object Input SE
-#' @param ... extra args.
-#' @export
-setMethod(
-  "conditions", signature = signature(object = "SummarizedExperiment"),
-  definition = function(object, ...) {
-    cond <- colData(object)[["condition"]]
-    names(cond) <- sampleNames(object)
-    return(cond)
-  })
-
-#' If you mess up the NAMESPACE file, the following becomes necessary
-#'
-#' message("I am from BiocGenerics and am explicitly imported, wtf.")
-#' @param object Input object
-#' @param ... extra args
-#' @param value New value.
-#' @importFrom BiocGenerics conditions<-
-#' @export
-`conditions<-` <- function(object, ..., value) {
-  BiocGenerics::conditions(object, ...) <- value
-  return(object)
-}
-
-#' Add experimental conditions to an expt.
-#'
-#' @param object Output expt
-#' @param ... extra args
-#' @param value vector of new conditions
-#' @export
-setMethod(
-  "conditions<-", signature = signature(object = "expt"),
-  definition = function(object, ..., value) {
-    pData(object)[["condition"]] <- value
-    new <- set_se_colors(object)
-    return(new)
-  })
-
-#' A setter to put the conditions into a SummarizedExperiment.
-#'
-#' @param object A SummarizedExperiment.
-#' @param ... arbitrary arguments
-#' @param value List of new conditions.
-#' @export
-setMethod(
-  "conditions<-", signature = signature(object = "SummarizedExperiment"),
-  definition = function(object, ..., value) {
-    colData(object)[["condition"]] <- value
-    se <- set_se_colors(object)
-    return(se)
+  "colors<-", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ..., value) {
+    S4Vectors::metadata(exp)[["colors"]] <- value
+    return(exp)
   })
 
 #' If you mess up the NAMESPACE file, the following becomes necessary
@@ -1662,7 +1714,7 @@ exprs <- function(object) {
 #' @param object An expt.
 #' @export
 setMethod(
-  "exprs", signature = signature(object = "expt"),
+  "exprs", signature(object = "expt"),
   definition = function(object) {
     Biobase::exprs(object[["expressionset"]])
   })
@@ -1672,7 +1724,7 @@ setMethod(
 #' @param object A SummarizedExperiment.
 #' @export
 setMethod(
-  "exprs", signature = signature(object = "SummarizedExperiment"),
+  "exprs", signature(object = "SummarizedExperiment"),
   definition = function(object) {
     SummarizedExperiment::assay(object)
   })
@@ -1696,7 +1748,7 @@ setMethod(
 #' @param value New expression data.
 #' @export
 setMethod(
-  "exprs<-", signature = signature(object = "ExpressionSet", value = "data.frame"),
+  "exprs<-", signature(object = "ExpressionSet", value = "data.frame"),
   definition = function(object, value) {
     testthat::expect_equal(colnames(exprs(object)),
                            colnames(value))
@@ -1711,7 +1763,7 @@ setMethod(
 #' @param value New expression data.
 #' @export
 setMethod(
-  "exprs<-", signature = signature(object = "expt"),
+  "exprs<-", signature(object = "expt"),
   definition = function(object, value) {
     testthat::expect_equal(colnames(exprs(object)),
                            colnames(value))
@@ -1728,7 +1780,7 @@ setMethod(
 #' @param value New expression data.
 #' @export
 setMethod(
-  "exprs<-", signature = signature(object = "SummarizedExperiment"),
+  "exprs<-", signature(object = "SummarizedExperiment"),
   definition = function(object, value) {
     testthat::expect_equal(colnames(exprs(object)),
                            colnames(value))
@@ -1755,7 +1807,7 @@ fData <- function(object) {
 #' @param object An expt.
 #' @export
 setMethod(
-  "fData", signature = signature(object = "expt"),
+  "fData", signature(object = "expt"),
   definition = function(object) {
     Biobase::fData(object[["expressionset"]])
   })
@@ -1765,7 +1817,7 @@ setMethod(
 #' @param object A SummarizedExperiment.
 #' @export
 setMethod(
-  "fData", signature = signature(object = "SummarizedExperiment"),
+  "fData", signature(object = "SummarizedExperiment"),
   definition = function(object) {
     SummarizedExperiment::rowData(object)
   })
@@ -1788,7 +1840,7 @@ setMethod(
 #' @param value New annotations for the expressionset.
 #' @export
 setMethod(
-  "fData<-", signature = signature(object = "expt"),
+  "fData<-", signature(object = "expt"),
   definition = function(object, value) {
     testthat::expect_equal(rownames(fData(object)),
                            rownames(value))
@@ -1802,7 +1854,7 @@ setMethod(
 #' @param value New annotations for the se.
 #' @export
 setMethod(
-  "fData<-", signature = signature(object = "SummarizedExperiment"),
+  "fData<-", signature(object = "SummarizedExperiment"),
   definition = function(object, value) {
     testthat::expect_equal(rownames(fData(object)),
                            rownames(value))
@@ -1810,35 +1862,6 @@ setMethod(
     return(object)
   })
 
-#' Get the colors from any arbitrary object, I am still trying to figure out
-#' where my S4 dispatch is going wrong; this resides in BiocGenerics.
-#'
-#' @param x Object from which to get the colors.
-setMethod(
-  "get_colors", signature = signature(x = "ANY"),
-  definition = function(x) {
-    message("I assumed the Generic would pick this up.")
-  })
-
-#' A getter to pull the colors from an expt.
-#'
-#' @param x An x.
-#' @export
-setMethod(
-  "get_colors", signature = signature(x = "expt"),
-  definition = function(x) {
-    x[["colors"]]
-  })
-
-#' A getter to pull the colors from a SummarizedExperiment.
-#'
-#' @param x An x.
-#' @export
-setMethod(
-  "get_colors", signature = signature(x = "SummarizedExperiment"),
-  definition = function(x) {
-    S4Vectors::metadata(x)[["colors"]]
-  })
 
 #' I keep messing with my S4 dispatch of object attributes.
 #'
@@ -1852,7 +1875,7 @@ setGeneric("get_input_colors")
 #'
 #' @param input input expt.
 setMethod(
-  "get_input_colors", signature = signature(input = "expt"),
+  "get_input_colors", signature(input = "expt"),
   definition = function(input) {
     define_expt_colors(input)
   })
@@ -1861,7 +1884,7 @@ setMethod(
 #'
 #' @param input input SE.
 setMethod(
-  "get_input_colors", signature = signature(input = "SummarizedExperiment"),
+  "get_input_colors", signature(input = "SummarizedExperiment"),
   definition = function(input) {
     metadata(input)[["colors"]]
   })
@@ -1871,7 +1894,7 @@ setMethod(
 #' @param x An expt.
 #' @export
 setMethod(
-  "libsize", signature = signature(x = "expt"),
+  "libsize", signature(x = "expt"),
   definition = function(x) {
     x[["libsize"]]
   })
@@ -1881,7 +1904,7 @@ setMethod(
 #' @param x a summarized experiment.
 #' @export
 setMethod(
-  "libsize", signature = signature(x = "SummarizedExperiment"),
+  "libsize", signature(x = "SummarizedExperiment"),
   definition = function(x) {
     meta <- S4Vectors::metadata(x)
     meta[["libsize"]]
@@ -1894,7 +1917,7 @@ setMethod(
 #' @param value new library sizes
 #' @export
 setMethod(
-  "libsize<-", signature = signature(x = "expt", value = "ANY"),
+  "libsize<-", signature(x = "expt", value = "ANY"),
   definition = function(x, ..., value) {
     x[["libsize"]] <- value
     return(x)
@@ -1907,7 +1930,7 @@ setMethod(
 #' @param value new library sizes
 #' @export
 setMethod(
-  "libsize<-", signature = signature(x = "SummarizedExperiment", value = "ANY"),
+  "libsize<-", signature(x = "SummarizedExperiment", value = "ANY"),
   definition = function(x, ..., value) {
     meta <- S4Vectors::metadata(x)
     meta[["libsize"]] <- vector
@@ -1938,7 +1961,7 @@ notes <- function(object) {
 #' @param object An expt.
 #' @export
 setMethod(
-  "notes", signature = signature(object = "expt"),
+  "notes", signature(object = "expt"),
   definition = function(object) {
     Biobase::notes(object[["expressionset"]])
   })
@@ -1958,7 +1981,7 @@ pData <- function(object) {
 #' @param object An expt.
 #' @export
 setMethod(
-  "pData", signature = signature(object = "expt"),
+  "pData", signature(object = "expt"),
   definition = function(object) {
     Biobase::pData(object[["expressionset"]])
   })
@@ -1972,7 +1995,7 @@ setMethod(
 #' @param object An expt.
 #' @export
 setMethod(
-  "pData", signature = signature(object = "SummarizedExperiment"),
+  "pData", signature(object = "SummarizedExperiment"),
   definition = function(object) {
     SummarizedExperiment::colData(object)
   })
@@ -1996,7 +2019,7 @@ setMethod(
 #' @param value New metadata.
 #' @export
 setMethod(
-  "pData<-", signature = signature(object = "expt"),
+  "pData<-", signature(object = "expt"),
   definition = function(object, value) {
     testthat::expect_equal(rownames(pData(object)),
                            rownames(value))
@@ -2014,7 +2037,7 @@ setMethod(
 #' @param value New metadata.
 #' @export
 setMethod(
-  "pData<-", signature = signature(object = "SummarizedExperiment"),
+  "pData<-", signature(object = "SummarizedExperiment"),
   definition = function(object, value) {
     testthat::expect_equal(
       rownames(SummarizedExperiment::colData(object)),
@@ -2042,7 +2065,7 @@ rowData <- function(x, use.names = TRUE, ...) {
 #' @param ... them too!
 #' @export
 setMethod(
-  "rowData", signature = signature(x = "ExpressionSet"),
+  "rowData", signature(x = "ExpressionSet"),
   definition = function(x, use.names = TRUE, ...) {
     Biobase::fData(x)
   })
@@ -2054,7 +2077,7 @@ setMethod(
 #' @param ... them too!
 #' @export
 setMethod(
-  "rowData", signature = signature(x = "expt"),
+  "rowData", signature(x = "expt"),
   definition = function(x, use.names = TRUE, ...) {
     Biobase::fData(x[["expressionset"]])
   })
@@ -2079,7 +2102,7 @@ setMethod(
 #' @param value New annotations to put into the input
 #' @export
 setMethod(
-  "rowData<-", signature = signature(x = "expt"),
+  "rowData<-", signature(x = "expt"),
   definition = function(x, ..., value) {
     x <- Biobase::fData(x[["expressionset"]]) <- value
     return(x)
@@ -2100,7 +2123,7 @@ sampleNames <- function(object) {
 #' @param object Input
 #' @export
 setMethod(
-  "sampleNames", signature = signature(object = "expt"),
+  "sampleNames", signature(object = "expt"),
   definition = function(object) {
     Biobase::sampleNames(object[["expressionset"]])
   })
@@ -2110,7 +2133,7 @@ setMethod(
 #' @param object Input
 #' @export
 setMethod(
-  "sampleNames", signature = signature(object = "SummarizedExperiment"),
+  "sampleNames", signature(object = "SummarizedExperiment"),
   definition = function(object) {
     BiocGenerics::colnames(object)
   })
@@ -2134,7 +2157,7 @@ setMethod(
 #' @param value New names.
 #' @export
 setMethod(
-  "sampleNames<-", signature = signature(object = "expt"),
+  "sampleNames<-", signature(object = "expt"),
   definition = function(object, value) {
     set_expt_samplenames(object, value)
   })
@@ -2145,7 +2168,7 @@ setMethod(
 #' @param value new names.
 #' @export
 setMethod(
-  "sampleNames<-", signature = signature(object = "SummarizedExperiment", value = "character"),
+  "sampleNames<-", signature(object = "SummarizedExperiment", value = "character"),
   definition = function(object, value) {
     BiocGenerics::colnames(object) <- value
     return(object)
@@ -2159,7 +2182,7 @@ setMethod(
 #' @param ... Other arguments.
 #' @export
 setMethod(
-  "set_expt_batches", signature = signature(expt = "SummarizedExperiment"),
+  "set_expt_batches", signature(expt = "SummarizedExperiment"),
   definition = function(expt, fact, ids = NULL, ...) {
     set_se_batches(expt, fact, ids, ...)
   })
@@ -2169,7 +2192,7 @@ setMethod(
 #' @param input Input expt.
 #' @export
 setMethod(
-  "state", signature = signature(input = "expt"),
+  "state", signature(input = "expt"),
   definition = function(input) {
     input[["state"]]
   })
@@ -2179,7 +2202,7 @@ setMethod(
 #' @param input Input summarized experiment.
 #' @export
 setMethod(
-  "state", signature = signature(input = "SummarizedExperiment"),
+  "state", signature(input = "SummarizedExperiment"),
   definition = function(input) {
     S4Vectors::metadata(input)[["state"]]
   })
@@ -2190,7 +2213,7 @@ setMethod(
 #' @param value New state.
 #' @export
 setMethod(
-  "state<-", signature = signature(input = "expt"),
+  "state<-", signature(input = "expt"),
   definition = function(input, value) {
     input[["state"]] <- value
     return(input)
@@ -2202,7 +2225,7 @@ setMethod(
 #' @param value new state.
 #' @export
 setMethod(
-  "state<-", signature = signature(input = "SummarizedExperiment"),
+  "state<-", signature(input = "SummarizedExperiment"),
   definition = function(input, value) {
     S4Vectors::metadata(input)[["state"]] <- value
     return(input)
@@ -2229,14 +2252,14 @@ txinfo <- function(se) {
 setGeneric("txinfo")
 
 setMethod(
-  "txinfo", signature = signature(se = "expt"),
+  "txinfo", signature(se = "expt"),
   definition = function(se) {
     tximport_info <- se[["tximport"]]
     return(tximport_info)
   })
 
 setMethod(
-  "txinfo", signature = signature(se = "expt"),
+  "txinfo", signature(se = "expt"),
   definition = function(se) {
     tximport_info <- se[["tximport"]]
     return(tximport_info)
@@ -2249,7 +2272,7 @@ setMethod(
 setGeneric("txinfo<-")
 
 setMethod(
-  "txinfo<-", signature = signature(se = "expt"),
+  "txinfo<-", signature(se = "expt"),
   definition = function(se, value) {
     se[["tximport"]] <- value
     return(se)

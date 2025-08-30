@@ -25,10 +25,11 @@ To see examples of this in action, check out the vignettes:
 \code{browseVignettes(package = 'hpgltools')}
 }
 \author{
-\strong{Maintainer}: Ashton Belew \email{abelew@gmail.com}
+\strong{Maintainer}: Ashton Belew \email{abelew@umd.edu}
 
 Authors:
 \itemize{
+  \item April Hussey \email{ahussey@umd.edu}
   \item Keith Hughitt \email{khughitt@umd.edu}
   \item Jerry Zhao \email{zhaojerry123@gmail.com}
 }

@@ -17,13 +17,13 @@ plot_pct_kept(
 )
 }
 \arguments{
-\item{data}{Dataframe of the material remaining, usually expt$summary_table}
+\item{data}{Dataframe of the material remaining, usually exp$summary_table}
 
 \item{row}{Row name to plot.}
 
 \item{condition}{Vector of sample condition names.}
 
-\item{colors}{Color scheme if the data is not an expt.}
+\item{colors}{Color scheme if the data is not an exp.}
 
 \item{names}{Alternate names for the x-axis.}
 
@@ -39,12 +39,12 @@ plot_pct_kept(
 a ggplot2 bar plot of every sample's size
 }
 \description{
-The function expt_exclude_genes() removes some portion of the original reads.
+The function exp_exclude_genes() removes some portion of the original reads.
 This function will make it possible to see what is left.
 }
 \examples{
 \dontrun{
- kept_plot <- plot_pct_kept(expt_removed)
+ kept_plot <- plot_pct_kept(exp_removed)
  kept_plot  ## ooo pretty bargraph
 }
 }

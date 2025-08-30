@@ -12,7 +12,7 @@
   order = NULL,
   plot_title = NULL,
   yscale = NULL,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   ...
 )
@@ -25,7 +25,7 @@
   order = NULL,
   plot_title = NULL,
   yscale = NULL,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   ...
 )
@@ -46,7 +46,7 @@ the metadata in the SE.}
 
 \item{yscale}{Explicitly set the scale on the log or base10 scale.}
 
-\item{expt_names}{Optionally change the names of the bars.}
+\item{exp_names}{Optionally change the names of the bars.}
 
 \item{label_chars}{If the names of the bars are larger than this, abbreviate them.}
 
@@ -60,5 +60,5 @@ Plot of library sizes and a couple tables describing the data.
 \description{
 Send a SummarizedExperiment to plot_libsize().
 
-Run plot_libsize() with an expt as input.
+Run plot_libsize() with an exp as input.
 }

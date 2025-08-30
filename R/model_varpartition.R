@@ -87,7 +87,7 @@ simple_varpart <- function(input, fstring = "~ condition + batch",
     para <- doParallel::registerDoParallel(cl)
     ## multi <- BiocParallel::MulticoreParam()
   }
-  design <- pData(input)
+  design <- colData(input)
   rank_test <- test_design_model_rank(design, fstring)
   fctrs <- rank_test[["factors"]]
   condition_fctr <- rank_test[["factors"]][1]
@@ -102,10 +102,10 @@ simple_varpart <- function(input, fstring = "~ condition + batch",
   if (isTRUE(strict_filter)) {
     test <- sm(median_by_factor(norm, fact = condition_fctr, fun = "mean"))
     all_condition_gt_zero_idx <- rowSums(test[["medians"]] == 0) == 0
-    kept_gt <- rownames(exprs(norm))[all_condition_gt_zero_idx]
+    kept_gt <- rownames(assay(norm))[all_condition_gt_zero_idx]
     norm <- norm[kept_gt, ]
   }
-  data <- exprs(norm)
+  data <- assay(norm)
 
   mesg("Fitting the expressionset to the model, this is slow.")
   fit_extract <- try(variancePartition::fitExtractVarPartModel(data, test_formula, design))
@@ -179,9 +179,9 @@ which are shared among multiple samples.")
     "fitting" = fitting,
     "stratify_batch_plot" = stratify_batch_plot,
     "stratify_condition_plot" = stratify_condition_plot)
-  if (isTRUE(modify_input) && nrow(fData(input)) > 0) {
+  if (isTRUE(modify_input) && nrow(rowData(input)) > 0) {
     new_input <- input
-    tmp_annot <- fData(new_input)
+    tmp_annot <- rowData(new_input)
     tmp_annot[["Row.names"]] <- NULL
     added_data <- sorted_fit
     colnames(added_data) <- glue("variance_{colnames(added_data)}")
@@ -190,11 +190,11 @@ which are shared among multiple samples.")
     tmp_annot <- merge(tmp_annot, added_data, by = "row.names", all.x = TRUE)
     rownames(tmp_annot) <- tmp_annot[["Row.names"]]
     tmp_annot[["Row.names"]] <- NULL
-    annot_order <- rownames(exprs(new_input))
+    annot_order <- rownames(assay(new_input))
     tmp_annot <- tmp_annot[annot_order, ]
     ## Make it possible to use a generic expressionset, though maybe this is
     ## impossible for this function.
-    fData(new_input) <- tmp_annot
+    rowData(new_input) <- tmp_annot
     ret[["modified_input"]] <- new_input
   }
   class(ret) <- "varpart"
@@ -221,13 +221,13 @@ print.varpart <- function(x, ...) {
 #' Note the word 'attempt'.  This function is so ungodly slow that it probably
 #' will never be used.
 #'
-#' @param expt Input expressionset.
+#' @param exp Input expressionset.
 #' @param factors Set of factors to query
 #' @param cpus Number of cpus to use in doParallel.
 #' @return Summaries of the new model,  in theory this would be a nicely
 #'  batch-corrected data set.
 #' @seealso [variancePartition]
-varpart_summaries <- function(expt, factors = c("condition", "batch"), cpus = 6) {
+varpart_summaries <- function(exp, factors = c("condition", "batch"), cpus = 6) {
   cl <- parallel::makeCluster(cpus)
   doParallel::registerDoParallel(cl)
   model_string <- "~ "
@@ -236,9 +236,9 @@ varpart_summaries <- function(expt, factors = c("condition", "batch"), cpus = 6)
   }
   model_string <- gsub(pattern = "\\+ $", replacement = "", x = model_string)
   my_model <- as.formula(model_string)
-  norm <- sm(normalize_expt(expt, filter = TRUE))
-  data <- exprs(norm)
-  design <- pData(expt)
+  norm <- sm(normalize_exp(exp, filter = TRUE))
+  data <- assay(norm)
+  design <- colData(exp)
   summaries <- variancePartition::fitVarPartModel(data, my_model, design, fxn = summary)
   return(summaries)
 }

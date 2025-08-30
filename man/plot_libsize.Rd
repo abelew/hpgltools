@@ -12,17 +12,17 @@ plot_libsize(
   order = NULL,
   plot_title = NULL,
   yscale = NULL,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   ...
 )
 }
 \arguments{
-\item{data}{Expt, dataframe, or expressionset of samples.}
+\item{data}{Exp, dataframe, or expressionset of samples.}
 
 \item{condition}{Vector of sample condition names.}
 
-\item{colors}{Color scheme if the data is not an expt.}
+\item{colors}{Color scheme if the data is not an exp.}
 
 \item{text}{Add the numeric values inside the top of the bars of the plot?}
 
@@ -32,7 +32,7 @@ plot_libsize(
 
 \item{yscale}{Whether or not to log10 the y-axis.}
 
-\item{expt_names}{Design column or manually selected names for printing sample names.}
+\item{exp_names}{Design column or manually selected names for printing sample names.}
 
 \item{label_chars}{Maximum number of characters before abbreviating sample names.}
 
@@ -48,7 +48,7 @@ make it pretty!
 }
 \examples{
 \dontrun{
- libsize_plot <- plot_libsize(expt = expt)
+ libsize_plot <- plot_libsize(exp = exp)
  libsize_plot  ## ooo pretty bargraph
 }
 }

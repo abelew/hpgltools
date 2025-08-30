@@ -9,7 +9,7 @@
   design = NULL,
   colors = NULL,
   plot_labels = "repel",
-  expt_names = NULL,
+  exp_names = NULL,
   max_overlaps = 5,
   label_chars = 10,
   plot_legend = FALSE,
@@ -20,7 +20,7 @@
 )
 }
 \arguments{
-\item{data}{Expt, expressionset, or dataframe.}
+\item{data}{Exp, expressionset, or dataframe.}
 
 \item{design}{Eesign matrix.}
 
@@ -31,7 +31,7 @@ directlabels() to try to match the labels with the positions without
 overlapping anything else will just stick them on a 45' offset next to the
 graphed point.}
 
-\item{expt_names}{Column or character list of preferred sample names.}
+\item{exp_names}{Column or character list of preferred sample names.}
 
 \item{max_overlaps}{Permit this many labels to overlap before dropping some.}
 
