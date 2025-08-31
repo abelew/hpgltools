@@ -13,7 +13,7 @@ normalize_todo(expt, todo = list())
 }
 \description{
 This function is ideally should provide a simpler and more capable
-version of normalize_expt. I also want to move everything to using
+version of normalize. I also want to move everything to using
 summarizedExperiments and this simpler method provides an
 opportunity.
 }

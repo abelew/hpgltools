@@ -37,5 +37,5 @@ Sometimes it is nice to have a string like: log2(cpm(data)) describing what
 happened to the data.
 }
 \seealso{
-[create_expt()] [normalize_expt()]
+[create_expt()] [normalize()]
 }

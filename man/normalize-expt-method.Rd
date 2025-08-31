@@ -4,12 +4,12 @@
 \alias{normalize,expt-method}
 \title{Normalization of an expt}
 \usage{
-\S4method{normalize}{expt}(object, ...)
+\S4method{normalize}{expt}(exp, ...)
 }
 \arguments{
-\item{object}{Data structure to normalize}
-
 \item{...}{Other options.}
+
+\item{object}{Data structure to normalize}
 }
 \description{
 The primary definition for normalize resides in BiocGenerics.

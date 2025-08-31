@@ -24,7 +24,7 @@ plot_libsize_prepost(
 
 \item{num_size}{Size of said numbers.}
 
-\item{...}{Extra arbitrary arguments to pass to normalize_exp()}
+\item{...}{Extra arbitrary arguments to pass to normalize()}
 }
 \value{
 Bar plot showing the number of genes below the low_limit before and

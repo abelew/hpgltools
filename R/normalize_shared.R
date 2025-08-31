@@ -376,32 +376,6 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   new_expt[["notes"]] <- toString(current_notes)
   return(new_expt)
 }
-setGeneric("normalize")
-
-#' If I call normalize on a SE, catch it and redispatch appropriately.
-#'
-#' @inheritParams normalize
-#' @export
-setMethod(
-  "normalize", signature = signature(expt = "SummarizedExperiment"),
-  definition = function(expt, transform = "raw", norm = "raw", convert = "raw",
-                        batch = "raw", filter = FALSE, annotations = NULL, fasta = NULL,
-                        entry_type = "gene", batch1 = "batch",
-                        batch2 = NULL, batch_step = 4, low_to_zero = TRUE,
-                        thresh = 2, min_samples = 2, p = 0.01, A = 1, k = 1,
-                        cv_min = 0.01, cv_max = 1000, na_to_zero = FALSE,
-                        adjust_method = "ruv", verbose = FALSE, ...) {
-    message("Running normalize_se")
-    normalize_se(expt, transform = transform, norm = norm, convert = convert,
-                 batch = batch, filter = filter, annotations = annotations,
-                 fasta = fasta, entry_type = entry_type,
-                 batch1 = batch1, batch2 = batch2, batch_step = batch_step,
-                 low_to_zero = low_to_zero, thresh = thresh, min_samples = min_samples,
-                 p = p, A = A, k = k, cv_min = cv_min, cv_max = cv_max,
-                 na_to_zero = na_to_zero, adjust_method = adjust_method,
-                 verbose = verbose, ...)
-  })
-setGeneric("normalize")
 
 #' Normalize a SummarizedExperiment and think about how I want to reimplement some of this.
 #'
@@ -768,7 +742,6 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   state(se) <- actions
   return(se)
 }
-setGeneric("normalize_se")
 
 #' Normalize a dataframe/expt, express it, and/or transform it
 #'

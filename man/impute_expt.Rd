@@ -17,7 +17,7 @@ impute_expt(
 \item{expt}{An ExpressionSet (well, expt), I think it is assumed that this should have
 been normalized and filtered for features which have no values across 'most' samples.}
 
-\item{filter}{Use normalize_expt() to filter the data?}
+\item{filter}{Use normalize() to filter the data?}
 
 \item{p}{When filtering with pofa, use this p parameter.}
 

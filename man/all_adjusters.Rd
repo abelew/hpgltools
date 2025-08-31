@@ -50,7 +50,7 @@ search for them.}
 
 \item{chosen_surrogates}{Somewhat redundant with surrogates above,
 but provides a second place to enter because of the way I use
-... in normalize_expt().}
+... in normalize().}
 
 \item{adjust_method}{Choose the method for applying the estimates
 to the data.}

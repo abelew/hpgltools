@@ -94,7 +94,7 @@ Expt object with normalized data and the original data saved as
  'original_expressionset'
 }
 \description{
-It is the responsibility of normalize_expt() to perform any arbitrary
+It is the responsibility of normalize() to perform any arbitrary
 normalizations desired as well as to ensure that the data integrity is
 maintained.  In order to do this, it writes the actions performed in
 expt$state and saves the intermediate steps of the normalization in
@@ -104,9 +104,9 @@ transformation, and batch correction.
 }
 \examples{
 \dontrun{
- normed <- normalize_expt(exp, transform='log2', norm='rle', convert='cpm',
+ normed <- normalize(exp, transform='log2', norm='rle', convert='cpm',
                           batch='raw', filter='pofa')
- normed_batch <- normalize_expt(exp, transform='log2', norm='rle', convert='cpm',
+ normed_batch <- normalize(exp, transform='log2', norm='rle', convert='cpm',
                                 batch='sva', filter='pofa')
 }
 }

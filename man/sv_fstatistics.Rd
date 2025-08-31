@@ -36,7 +36,7 @@ sv_fstatistics(
 
 \item{queries}{List of metadata factors to query.}
 
-\item{...}{Used to make compatible with pc_fstatistics and to pass stuff to normalize_expt().}
+\item{...}{Used to make compatible with pc_fstatistics and to pass stuff to normalize().}
 }
 \description{
 This is taken directly from Theresa's TMRC work and is her idea.  I

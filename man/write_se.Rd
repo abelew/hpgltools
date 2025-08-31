@@ -66,6 +66,135 @@ sacrifices some flexibility for a hopefully more consistent behaivor.  In
 addition, one may use the pdfs as a set of images importable into illustrator
 or whatever.
 }
+\examples{
+## The first task for most of my functions is to create one of the multi-dimensional
+## data structures containing metadata, annotations, and expression values.
+## I have a couple of functions which generate these using extant, publicly available data.
+
+## My se data structure is bad.
+## I created it when I was first learning R because I wanted an
+## expressionset with extra flexibility.  At the time I either did not
+## know about the SummarizedExperiment or it did not exist.
+## In either case, much of my codebase grew around this data
+## structure.  In my most recent changes I have almost completely
+## removed any dependencies on it and think that very soon I will be
+## able to completely remove it and have just a couple of functions
+## which translate my old ses to SEs.
+
+## Until I complete that, here are a few examples of how I used them;
+## if my recent work was successful, all of these tasks may be
+## similarly (better) performed using SE.
+
+pombe_se <- make_pombe_se()
+
+## The following includes a few ways to create an se given various
+## combinations of annotation information, metadata, and expression
+## data sources.
+
+## In this first instance, I am using an extant set of dataframes from
+## an old experiment comparing Streptococcus pyogenes group A in
+## different media over time.
+
+cdm_se_rda <- system.file("share", "cdm_se.rda", package = "hpgldata")
+load(file = cdm_se_rda)
+head(cdm_counts)
+head(cdm_metadata)
+## The gff file has differently labeled locus tags than the count tables, also
+## the naming standard changed since this experiment was performed, therefore I
+## downloaded a new gff file.
+example_gff <- system.file("share", "gas.gff", package = "hpgldata")
+gas_gff_annot <- load_gff_annotations(example_gff)
+rownames(gas_gff_annot) <- make.names(gsub(pattern = "(Spy)_", replacement = "\\\\1",
+                                           x = gas_gff_annot[["locus_tag"]]), unique = TRUE)
+mgas_se <- create_se(metadata = cdm_metadata, gene_info = gas_gff_annot,
+                         count_dataframe = cdm_counts)
+head(colData(mgas_se))
+
+## The following example is from a denovo transcriptome assembly using
+## RNA collected from Solanum betaceum, the tree tomato (tamarillo).
+## An example using count tables referenced in the metadata.
+## This is more indicative of how I like to create these data
+## structures: I like to have a column in the metadata containing
+## links to the various files which are important in the
+## preprocessing -- notably the count tables from salmon/hisat/etc.
+sb_annot <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
+sb_annot <- load_trinotate_annotations(trinotate = sb_annot)
+sb_annot <- as.data.frame(sb_annot)
+rownames(sb_annot) <- make.names(sb_annot[["transcript_id"]], unique = TRUE)
+sb_annot[["rownames"]] <- NULL
+sb_data <- system.file("share", "sb", "preprocessing.tar.xz", package = "hpgldata")
+untarred <- utils::untar(tarfile = sb_data)
+sb_se <- create_se(metadata = "preprocessing/kept_samples.xlsx",
+                       gene_info = sb_annot)
+dim(assay(sb_se))
+dim(rowData(sb_se))
+colData(sb_se)
+
+## See how many genes have counts less/greater than some threshold.
+feat_gt_100 <- features_greater_than(pombe_se, cutoff = 100)
+## Print the number of genes with > 100 counts on a per-sample basis.
+barplot(feat_gt_100[["number"]])
+
+## Extract genes which are observed in only some conditions with an
+## arbitrary threshold
+solo_features <- features_in_single_condition(
+  pombe_se, factor = "condition")
+## Print the number of genes unique to each condition (> 2/sample)
+solo_list <- solo_features[["solo_this"]]
+solo_numbers <- lapply(solo_list, FUN=length)
+barplot(as.numeric(solo_numbers))
+
+## Extract the mean/median value/gene with respect to a metadata
+## factor.
+means_by_cond <- median_by_factor(pombe_se, fun = "mean")
+## This function returns a list with a few putatively interesting
+## pieces of information.  The following is a boxplot of the coefficient
+## of variance with respect to condition by gene.
+## Thus we can see that the samples are at their plastic in the wt.15
+## and wt.60 points.
+plot_boxplot(means_by_cond[["cvs"]])
+
+## Remove genes which are problematic due to their semantic identity.
+## We primarily use this to get rid of multi-gene families which are
+## super annoying in our parasites.
+## In the following example, let us just get rid of the genes with
+## 'non-coding' in their descriptions.
+pombe_filtered <- semantic_se_filter(pombe_se, semantic = "non-coding")
+pombe_filtered
+
+## Subset an se based on arbitrary expressions.
+## This is primarily used in pipelines to separate samples in
+## complex/large experiments.
+## In the following example I am pulling the 0,30 minute samples and
+## then dropping any samples which have less than 6,300 genes. (which
+## is 1 of them)
+pombe_smaller <- pombe_se \%>\%
+  subset_se(subset = "minute == 30| minute == 0") \%>\%
+  subset_se(nonzero = 6300)
+pombe_smaller
+
+## In a recent experiment, we had a series of wild-type samples which
+## were a negative control and at least in theory it would be nice to
+## literally subtract any counts observed in those samples from the
+## other samples in the experiment and then only consider the genes
+## which are still positive.
+## In its current state, subtract_se is dumb.
+## pombe_half <- pombe_se
+## half_expression <- assay(pombe_half) / 2
+## assay(pombe_half) <- half_expression
+
+## Add coeficients of variance to an expressionset.
+## This also adds a per-gene proportion of variance, variance, stdev,
+## median, iqrs along with the CV.
+pombe_se <- variance_se(pombe_se)
+head(rowData(pombe_se))
+
+output_file <- "pombe_smaller.xlsx"
+written <- write_se(pombe_smaller, excel = output_file)
+if (file.exists(output_file)) {
+  removed <- file.remove(output_file)
+}
+}
 \seealso{
 [openxlsx] [Biobase] [normalize()] [graph_metrics()]
 }

@@ -35,11 +35,11 @@ batch_counts(
 double-normalization.}
 
 \item{current_design}{Redundant with expt_design above, but
-provides another place for normalize_expt() to send data.}
+provides another place for normalize() to send data.}
 
 \item{expt_state}{Current state of the data}
 
-\item{surrogate_method}{Also redundant for normalize_expt()}
+\item{surrogate_method}{Also redundant for normalize()}
 
 \item{num_surrogates}{Number of surrogates or method to estimate them.}
 

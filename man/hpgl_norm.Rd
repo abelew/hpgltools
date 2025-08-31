@@ -97,7 +97,7 @@ edgeR's DGEList expression of a count table.  This seems to
  me to be the easiest to deal with.
 }
 \description{
-There are many possible options to this function.  Refer to normalize_expt()
+There are many possible options to this function.  Refer to normalize()
 for a more complete list.
 }
 \details{

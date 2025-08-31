@@ -803,10 +803,10 @@ plot_pairwise_ma <- function(data, colors = NULL, design = NULL,
 #' @param ... Options are good and passed to arglist().
 #' @return List of affy::maplots
 setMethod(
-  "plot_pairwise_ma", signature = signature(data = "exp"),
+  "plot_pairwise_ma", signature = signature(data = "expt"),
   definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
-    mtrx <- assay(data)
-    design <- colData(data)
+    mtrx <- exprs(data)
+    design <- pData(data)
     colors = get_colors(data)
     plot_pairwise_ma(data = mtrx, design = design, colors = colors,
                      log = log, ...)
