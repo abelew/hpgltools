@@ -227,6 +227,23 @@ setMethod(
 
 #' @export
 setMethod(
+  "write_xlsx", signature(data = "matrix"),
+  definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
+                        rownames = TRUE, start_row = 1, start_col = 1,
+                        title = NULL, float_format = "0.000", data_table = TRUE,
+                        freeze_first_row = TRUE, freeze_first_column = TRUE,
+                        date_format = "yyyy-mm-dd",
+                        column_width = "heuristic", ...) {
+    data <- as.data.frame(data)
+    write_xlsx(data = data, wb = wb, sheet = sheet, excel = excel, rownames = rownames,
+               start_row = start_row, start_col = start_col, title = title,
+               float_format = float_format, data_table = data_table,
+               freeze_first_row = freeze_first_row, freeze_first_column = freeze_first_column,
+               date_format = date_format, column_width = column_width, ...)
+  })
+
+#' @export
+setMethod(
   "write_xlsx", signature(data = "SummarizedExperiment"),
   definition = function(data, excel = NULL, ...) {
     write_se(data, excel)

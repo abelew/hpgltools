@@ -263,8 +263,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
         venn_info <- write_venns_de_xlsx(
           written_table, tab, wb, sheetname, current_row, current_column, excel_basename,
           plot_dim, image_files, lfc_cutoff = lfc_cutoff, p_cutoff = p_cutoff,
-          include_limma = include_limma, include_deseq = include_deseq,
-          include_edger = include_edger, plot_columns = plot_columns)
+          includes = includes, plot_columns = plot_columns)
         image_files <- venn_info[["image_files"]]
         wb <- venn_info[["wb"]]
         if (venn_info[["current_row"]]) {
@@ -3070,10 +3069,12 @@ write_venns_de_xlsx <- function(written_table, tab, wb, sheetname,
                                 current_row, current_column, excel_basename,
                                 plot_dim, image_files, venn_rows = 16,
                                 venn_columns = 4, lfc_cutoff = 1.0, p_cutoff = 0.05,
-                                include_limma = TRUE, include_deseq = TRUE,
-                                include_edger = TRUE, plot_columns = 10) {
+                                includes = NULL, plot_columns = 10) {
   ## Make some venn diagrams comparing deseq/limma/edger!
   venns <- list()
+  if (is.null(includes)) {
+    includes <- list("deseq" = TRUE, "edger" = TRUE, "limma" = TRUE)
+  }
   starting_column <- current_column
   venn_nop_lfc0 <- try(de_venn(written_table, lfc = 0, adjp = FALSE, p = 1.0))
   venn_nop <- try(de_venn(written_table, lfc = lfc_cutoff, adjp = FALSE, p = 1.0))
@@ -3136,13 +3137,13 @@ write_venns_de_xlsx <- function(written_table, tab, wb, sheetname,
     }
 
     sig_methods <- c()
-    if (isTRUE(include_limma)) {
+    if (isTRUE(includes[["limma"]])) {
       sig_methods <- c("limma", sig_methods)
     }
-    if (isTRUE(include_edger)) {
+    if (isTRUE(includes[["edger"]])) {
       sig_methods <- c("edger", sig_methods)
     }
-    if (isTRUE(include_deseq)) {
+    if (isTRUE(includes[["deseq"]])) {
       sig_methods <- c("deseq", sig_methods)
     }
     siggene_lst <- try(plot_num_siggenes(written_table, methods =  sig_methods))

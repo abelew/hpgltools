@@ -236,7 +236,7 @@ varpart_summaries <- function(exp, factors = c("condition", "batch"), cpus = 6) 
   }
   model_string <- gsub(pattern = "\\+ $", replacement = "", x = model_string)
   my_model <- as.formula(model_string)
-  norm <- sm(normalize_exp(exp, filter = TRUE))
+  norm <- sm(normalize(exp, filter = TRUE))
   data <- assay(norm)
   design <- colData(exp)
   summaries <- variancePartition::fitVarPartModel(data, my_model, design, fxn = summary)
