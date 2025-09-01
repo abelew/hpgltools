@@ -176,7 +176,7 @@ set_batches <- function(exp, ...) {
   message("set_batches was passed an object of type ", class(exp),
           " and does not know what to do with it.")
   standardGeneric("set_batches")
-  return(NULL)
+  return(exp)
 }
 setGeneric("set_batches")
 
@@ -313,6 +313,32 @@ setMethod(
       }
     }
     return(colors_by_condition)
+  })
+
+#' @export
+set_colors <- function(exp, ...) {
+  message("This function is intended to set the colors of a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("set_colors")
+  return(exp)
+}
+
+#'
+#' @export
+setMethod(
+  "set_colors", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
+    se <- set_se_colors(exp, ...)
+    return(se)
+  })
+
+#' @export
+setMethod(
+  "colors<-", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
+    se <- set_se_colors(exp, ...)
+    return(se)
   })
 
 #' @export

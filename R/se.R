@@ -853,7 +853,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
 
   metrics <- graph_metrics(se, qq = do_qq, gene_heat = do_sample_heat,
                            ...)
-  new_row <- new_row + nrow(pData(se)) + 3
+  new_row <- new_row + nrow(colData(se)) + 3
   libsizes <- as.data.frame(metrics[["libsizes"]])[, c("id", "sum", "condition")]
   xls_result <- write_xlsx(data = libsizes, wb = wb, start_row = new_row,
                            rownames = FALSE, sheet = sheet, start_col = 1,
@@ -870,8 +870,8 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   sheet <- "raw_reads"
   new_row <- 1
   new_col <- 1
-  reads <- exprs(se)
-  info <- fData(se)
+  reads <- assay(se)
+  info <- rowData(se)
 
   if (!is.null(info[["Row.names"]])) {
     ridx <- colnames(info) == "Row.names"
@@ -1167,7 +1167,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     do_varpart <- TRUE
     full_model <- as.formula("~ condition + batch")
     reduced_model <- as.formula("~ condition")
-    data_full_model <- try(stats::model.matrix.default(full_model, data = pData(filt)), silent = TRUE)
+    data_full_model <- try(stats::model.matrix.default(full_model, data = colData(filt)), silent = TRUE)
     data_reduced_model <- NULL
     full_model_columns <- 0
     reduced_model_columns <- 0
@@ -1177,9 +1177,9 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     fstring <- "~ condition + batch"
     if ("try-error" %in% class(data_full_model)) {
       do_varpart <- FALSE
-      message("The expressionset has a minimal or missing set of conditions/batches.")
+      message("The dataset has a minimal or missing set of conditions/batches.")
     } else {
-      data_reduced_model <-  stats::model.matrix.default(reduced_model, data = pData(se))
+      data_reduced_model <-  stats::model.matrix.default(reduced_model, data = colData(se))
       full_model_columns <- ncol(data_full_model)
       reduced_model_columns <- ncol(data_reduced_model)
       full_model_rank <- qr(data_full_model)[["rank"]]
@@ -1189,9 +1189,9 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
 
     varpart_raw <- NULL
     if (full_model_rank < full_model_columns) {
-      message("This expressionset does not support lmer with condition+batch")
+      message("This dataset does not support lmer with condition+batch")
       if (reduced_model_rank < reduced_model_columns) {
-        message("This expressionset also does not support lmer with just condition!")
+        message("This dataset also does not support lmer with just condition!")
         do_varpart <- FALSE
       } else {
         varpart_factors <- "condition"
@@ -1250,24 +1250,25 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   new_col <- 1
   new_row <- 1
   ## Perform a quick query to see if sva will explode on this data.
-  test_norm <- normalize(se = se, transform = transform,
-                              convert = convert, filter = filter)
-  test_zeros <- sum(rowSums(exprs(test_norm)) == 0)
+  test_norm <- normalize(se, transform = transform,
+                         convert = convert, filter = filter)
+  test_zeros <- sum(rowSums(assay(test_norm)) == 0)
   if (test_zeros > 0) {
     actual_filter <- "simple"
   } else {
     actual_filter <- filter
   }
-  norm_data <- sm(normalize(se = se, transform = transform,
-                                 convert = convert, batch = batch,
-                                 filter = actual_filter,
-                                 ...))
-  norm_reads <- exprs(norm_data)
-  info <- fData(norm_data)
+  norm_data <- sm(normalize(se, transform = transform,
+                            convert = convert, batch = batch,
+                            filter = actual_filter,
+                            ...))
+  norm_reads <- assay(norm_data)
+  info <- rowData(norm_data)
   read_info <- merge(norm_reads, info, by = "row.names")
   title <- what_happened(norm_data)
   xls_result <- write_xlsx(wb = wb, data = read_info, rownames = FALSE,
-                           start_row = new_row, start_col = new_col, sheet = sheet, title = title)
+                           start_row = new_row, start_col = new_col,
+                           sheet = sheet, title = title)
 
   ## Potentially useful for proteomics data and subtracted data.
   if (!is.null(color_na)) {
@@ -1525,8 +1526,8 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   sheet <- "median_data"
   new_col <- 1
   new_row <- 1
-  median_data <- sm(median_by_factor(norm_data, fun = med_or_mean,
-                                     fact = norm_data[["conditions"]]))
+  median_data <- median_by_factor(norm_data, fun = med_or_mean,
+                                  fact = conditions(norm_data))
   med <- median_data[["medians"]]
   colnames(med) <- paste0(med_or_mean, "_", colnames(med))
   cv <- median_data[["cvs"]]
@@ -1542,8 +1543,9 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   }
   rownames(median_data_merged) <- median_data_merged[["Row.names"]]
   median_data_merged[["Row.names"]] <- NULL
-  xls_result <- write_xlsx(wb, data = median_data_merged, start_row = new_row, start_col = new_col,
-                           rownames = TRUE, sheet = sheet, title = "Median Reads by factor.")
+  xls_result <- write_xlsx(wb, data = as.data.frame(median_data_merged), start_row = new_row,
+                           start_col = new_col, rownames = TRUE, sheet = sheet,
+                           title = "Median Reads by factor.")
 
   ## Save the result
   save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
@@ -1614,7 +1616,5 @@ print.written_se <- function(x, ...) {
   message(result_string)
   return(invisible(x))
 }
-
-
 
 ## EOF
