@@ -208,47 +208,6 @@ write_xlsx <- function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
 }
 setGeneric("write_xlsx")
 
-#' @export
-setMethod(
-  "write_xlsx", signature(data = "DFrame"),
-  definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
-                        rownames = TRUE, start_row = 1, start_col = 1,
-                        title = NULL, float_format = "0.000", data_table = TRUE,
-                        freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
-    data <- as.data.frame(data)
-    write_xlsx(data = data, wb = wb, sheet = sheet, excel = excel, rownames = rownames,
-               start_row = start_row, start_col = start_col, title = title,
-               float_format = float_format, data_table = data_table,
-               freeze_first_row = freeze_first_row, freeze_first_column = freeze_first_column,
-               date_format = date_format, column_width = column_width, ...)
-  })
-
-#' @export
-setMethod(
-  "write_xlsx", signature(data = "matrix"),
-  definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
-                        rownames = TRUE, start_row = 1, start_col = 1,
-                        title = NULL, float_format = "0.000", data_table = TRUE,
-                        freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
-    data <- as.data.frame(data)
-    write_xlsx(data = data, wb = wb, sheet = sheet, excel = excel, rownames = rownames,
-               start_row = start_row, start_col = start_col, title = title,
-               float_format = float_format, data_table = data_table,
-               freeze_first_row = freeze_first_row, freeze_first_column = freeze_first_column,
-               date_format = date_format, column_width = column_width, ...)
-  })
-
-#' @export
-setMethod(
-  "write_xlsx", signature(data = "SummarizedExperiment"),
-  definition = function(data, excel = NULL, ...) {
-    write_se(data, excel)
-  })
-
 #' Write a dataframe to an excel spreadsheet sheet.
 #'
 #' I like to give folks data in any format they prefer, even though I sort
@@ -499,14 +458,32 @@ setMethod(
     return(ret)
   })
 
+#' @export
+setMethod(
+  "write_xlsx", signature(data = "DFrame"),
+  definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
+                        rownames = TRUE, start_row = 1, start_col = 1,
+                        title = NULL, float_format = "0.000", data_table = TRUE,
+                        freeze_first_row = TRUE, freeze_first_column = TRUE,
+                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+    one_df <- as.data.frame(data)
+    written <- write_xlsx(
+      data = one_df, wb = wb, sheet = sheet, excel = excel,
+      rownames = rownames, start_row = start_row, start_col = start_col,
+      title = title, float_format = float_format, data_table = data_table,
+      freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
+      date_format = date_format, column_wdith = column_width, ...)
+    return(written)
+})
+
+#' @export
 setMethod(
   "write_xlsx", signature(data = "list"),
   definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
     written <- NULL
     for (element in seq_along(data)) {
       sheet_name <- names(data)[element]
@@ -516,23 +493,43 @@ setMethod(
         print(names(wb))
       }
       written <- write_xlsx(
-        data = one_df, wb = wb, sheet = sheet_name, excel = excel, rownames = rownames,
-        start_row = start_row, start_col = start_col,
-        freeze_first_column = freeze_first_column, title = title,
-        freeze_first_row = freeze_first_row)
+        data = one_df, wb = wb, sheet = sheet_name, excel = excel,
+        rownames = rownames, start_row = start_row, start_col = start_col,
+        title = title, float_format = float_format, data_table = data_table,
+        freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
+        date_format = date_format, column_width = column_width, ...)
       print(names(written[["workbook"]]))
     }
     return(written)
   })
 
+#' @export
+setMethod(
+  "write_xlsx", signature(data = "matrix"),
+  definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
+                        rownames = TRUE, start_row = 1, start_col = 1,
+                        title = NULL, float_format = "0.000", data_table = TRUE,
+                        freeze_first_row = TRUE, freeze_first_column = TRUE,
+                        date_format = "yyyy-mm-dd",
+                        column_width = "heuristic", ...) {
+    one_df <- as.data.frame(data)
+    written <- write_xlsx(
+      data = one_df, wb = wb, sheet = sheet, excel = excel,
+      rownames = rownames, start_row = start_row, start_col = start_col,
+      title = title, float_format = float_format, data_table = data_table,
+      freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
+      date_format = date_format, column_width = column_width, ...)
+    return(written)
+})
+
+#' @export
 setMethod(
   "write_xlsx", signature(data = "NULL"),
     definition = function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
       return(NULL)
     })
 

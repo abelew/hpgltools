@@ -58,7 +58,7 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   if (is.null(factor)) {
     factor <- condition_column
   }
-  input <- sanitize_expt(input, keep_underscore = keep_underscore, factors = factors)
+  input <- sanitize_se(input, keep_underscore = keep_underscore, factors = factors)
   input_data <- choose_binom_dataset(input, force = force)
   count_mtrx <- input_data[["data"]]
   design <- pData(input)

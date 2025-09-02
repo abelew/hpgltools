@@ -43,11 +43,11 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                            fx = "mean", keep_underscore = TRUE, ...) {
   arglist <- list(...)
   mesg("Starting basic pairwise comparisons.")
-  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  input <- sanitize_se(input, keep_underscore = keep_underscore)
   fctrs <- get_formula_factors(model_fstring)
   contrast_factor <- fctrs[["factors"]][1]
   input_data <- choose_basic_dataset(input, force = force)
-  design <- pData(input)
+  design <- colData(input)
 
   conditions <- droplevels(as.factor(design[[contrast_factor]]))
   batches <- droplevels(as.factor(design[["batch"]]))
@@ -307,7 +307,7 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
     message("Basic step 0/3: Transforming data.")
     ready <- normalize(ready, transform = "log2")
   }
-  data <- exprs(ready)
+  data <- assay(ready)
   libsize <- colSums(data)
   rm(ready)
   retlist <- list(

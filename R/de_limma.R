@@ -318,7 +318,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
         isTRUE(filter)) {
     input <- sm(normalize(input, filter = filter))
   }
-  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  input <- sanitize_se(input, keep_underscore = keep_underscore)
   input_data <- choose_limma_dataset(input, force = force, which_voom = which_voom)
   count_mtrx <- as.matrix(input_data[["data"]])
   fctrs <- get_formula_factors(model_fstring)
@@ -376,7 +376,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 
   appended_fstring <- model_fstring
   if ("character" %in% class(model_svs)) {
-    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+    model_params <- adjuster_svs(input, model_fstring = model_fstring,
                                       null_fstring = null_fstring,
                                       model_svs = model_svs,
                                       num_surrogates = num_surrogates,

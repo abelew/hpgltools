@@ -161,8 +161,8 @@ setGeneric("batches")
 setMethod(
   "batches", signature(exp = "SummarizedExperiment"),
   definition = function(exp) {
-    batches <- colData(se)[["batch"]]
-    names(batches) <- sampleNames(se)
+    batches <- colData(exp)[["batch"]]
+    names(batches) <- sampleNames(exp)
     return(batches)
   })
 

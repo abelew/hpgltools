@@ -25,7 +25,8 @@ NULL
 #' @param noiseq The user wants NoiSeq.
 #' @return List containing TRUE/FALSE for each method desired,
 #'  depending on if we actually have the relevant data.
-check_includes <- function(apr, includes = NULL) {
+check_includes <- function(includes = NULL, apr = NULL, ...) {
+  arglist <- list(...)
   final <- list()
   if (is.null(includes)) {
     final <- list(
@@ -37,12 +38,68 @@ check_includes <- function(apr, includes = NULL) {
       final[[char]] <- TRUE
     }
   }
-  queries <- c("basic", "deseq", "ebseq", "edger", "dream", "limma", "noiseq")
-  for (q in queries) {
-    if ("try-error" %in% class(apr[[q]]) || is.null(apr[[q]])) {
-      final[[q]] <- FALSE
+  if (!is.null(arglist[["methods"]])) {
+    if (!is.null(methods[["basic"]])) {
+      final[["basic"]] <- methods[["basic"]]
+    }
+    if (!is.null(methods[["deseq"]])) {
+      final[["deseq"]] <- methods[["deseq"]]
+    }
+    if (!is.null(methods[["ebseq"]])) {
+      final[["ebseq"]] <- methods[["ebseq"]]
+    }
+    if (!is.null(methods[["edger"]])) {
+      final[["edger"]] <- methods[["edger"]]
+    }
+    if (!is.null(methods[["limma"]])) {
+      final[["limma"]] <- methods[["limma"]]
+    }
+    if (!is.null(methods[["noiseq"]])) {
+      final[["noiseq"]] <- methods[["noiseq"]]
+    }
+    if (!is.null(methods[["dream"]])) {
+      final[["dream"]] <- methods[["dream"]]
     }
   }
+  if (!is.null(arglist[["do_basic"]])) {
+    final[["basic"]] <- arglist[["do_basic"]]
+  }
+  if (!is.null(arglist[["do_deseq"]])) {
+    final[["deseq"]] <- arglist[["do_deseq"]]
+  }
+  if (!is.null(arglist[["do_dream"]])) {
+    final[["dream"]] <- arglist[["do_dream"]]
+  }
+  if (!is.null(arglist[["do_ebseq"]])) {
+    final[["ebseq"]] <- arglist[["do_ebseq"]]
+  }
+  if (!is.null(arglist[["do_edger"]])) {
+    final[["edger"]] <- arglist[["do_edger"]]
+  }
+  if (!is.null(arglist[["do_limma"]])) {
+    final[["limma"]] <- arglist[["do_limma"]]
+  }
+  if (!is.null(arglist[["do_noiseq"]])) {
+    final[["noiseq"]] <- arglist[["do_noiseq"]]
+  }
+  if (!is.null(apr)) {
+    queries <- c("basic", "deseq", "ebseq", "edger", "dream", "limma", "noiseq")
+    for (q in queries) {
+      if ("try-error" %in% class(apr[[q]]) || is.null(apr[[q]])) {
+        final[[q]] <- FALSE
+      }
+    }
+  }
+
+  ## EBSeq made an incompatible change in its most recent release.
+  ## I unthinkingly changed my code to match it without considering the old
+  ## bioconductor release.
+  if (as.numeric(as.character(BiocManager::version())) < 3.18) {
+    warning("I changed ebseq_pairwise for the new bioc release, it needs >= 3.18.")
+    final[["ebseq"]] <- FALSE
+  }
+
+
   return(final)
 }
 

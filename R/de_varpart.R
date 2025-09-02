@@ -73,7 +73,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     input <- sm(normalize(input, filter = filter))
   }
 
-  input <- sanitize_expt(input, keep_underscore = keep_underscore)
+  input <- sanitize_se(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
   count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
@@ -109,7 +109,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   ## for the moment, if someone choose an alt model, force it through.
   appended_fstring <- model_fstring
   if ("character" %in% class(model_svs)) {
-    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
+    model_params <- adjuster_svs(input, model_fstring = model_fstring,
                                       null_fstring = null_fstring,
                                       model_svs = model_svs,
                                       num_surrogates = num_surrogates,

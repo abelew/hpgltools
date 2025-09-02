@@ -29,13 +29,13 @@
 #' @param control_type I do not remember.
 #' @return Adjusted data
 #' @export
-adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
-                                 null_fstring = NULL,
-                                 estimate_type = "limma", batch1 = "batch",
-                                 batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE,
-                                 cpus = 4, na_to_zero = TRUE, confounders = NULL,
-                                 adjust_method = "ruv", filter = "raw", thresh = 1,
-                                 noscale = FALSE, prior_plots = FALSE, control_type = "norm") {
+adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
+                            null_fstring = NULL,
+                            estimate_type = "limma", batch1 = "batch",
+                            batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE,
+                            cpus = 4, na_to_zero = TRUE, confounders = NULL,
+                            adjust_method = "ruv", filter = "raw", thresh = 1,
+                            noscale = FALSE, prior_plots = FALSE, control_type = "norm") {
   lib_result <- sm(requireNamespace("ruv"))
   att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
@@ -197,7 +197,7 @@ adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
       parallel::stopCluster(cl)
     },
     {
-      svs <- adjuster_expt_svs(
+      svs <- adjuster_svs(
         input, model_fstring = model_fstring, null_fstring = null_fstring,
         model_svs = estimate_type, batch1 = batch1, batch2 = batch2,
         num_surrogates = num_surrogates, low_to_zero = low_to_zero, cpus = cpus,
@@ -243,7 +243,7 @@ adjuster_expt_counts <- function(input, model_fstring = "~ 0 + condition",
 #' @param control_type I do not remember.
 #' @return Adjusted data
 #' @export
-adjuster_expt_svs <- function(input, model_fstring = "~ 0 + condition",
+adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
                               null_fstring = NULL,
                               model_svs = "sva", batch1 = "batch",
                               batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = NULL,

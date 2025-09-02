@@ -58,7 +58,7 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
   fctrs <- get_formula_factors(model_fstring)
   factors <- fctrs[["factors"]]
   condition_column <- factors[1]
-  input <- sanitize_expt(input, keep_underscore = keep_underscore, factors = factors)
+  input <- sanitize_se(input, keep_underscore = keep_underscore, factors = factors)
   input_data <- choose_binom_dataset(input, force = force)
   design <- pData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))

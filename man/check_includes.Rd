@@ -4,7 +4,7 @@
 \alias{check_includes}
 \title{Convert a vector of yes/no by DE method to a list.}
 \usage{
-check_includes(apr, includes = NULL)
+check_includes(includes = NULL, apr = NULL, ...)
 }
 \arguments{
 \item{apr}{The result from all_pairwise()}

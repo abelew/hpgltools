@@ -764,6 +764,38 @@ setMethod(
     return(retlist)
   })
 
+#' Get rid of characters which will mess up contrast making and such before
+#' playing with an se.
+#'
+#' @param se An se object to clean.
+#' @param keep_underscore Sanitize underscores too?
+#' @param factors Specific factors to check.
+sanitize_se <- function(se, keep_underscore = TRUE, factors = c("condition", "batch")) {
+  design <- colData(se)
+  for (fact in factors) {
+    start_string <- as.character(design[[fact]])
+    first_char <- substring(fact, 1, 1)
+    ## Replace factors which are just numbers with a prefix letter.
+    fact_string <- paste0(first_char, "\\1")
+    start_string <- gsub(
+      pattern = "^(\\d+)$", replacement = fact_string, x = start_string)
+    ## To be honest, there is absolutely no way I would have thought of this
+    ## regular expression:
+    ## https://stackoverflow.com/questions/30945993
+    ## In theory I am pretty good with regexes, but this is devious to me!
+    start_string <- gsub(pattern = "[^\\PP_]", replacement = "", x = start_string, perl = TRUE)
+    start_string <- gsub(pattern = "[[:blank:]]", replacement = "", x = start_string)
+    if (isTRUE(keep_underscore)) {
+      start_string <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = start_string, perl = TRUE)
+    } else {
+      start_string <- gsub(pattern="[[:punct:]]", replacement = "", x = start_string)
+    }
+    end_fact <- droplevels(as.factor(start_string))
+    colData(se)[[fact]] <- end_fact
+  }
+  return(se)
+}
+
 #' Make pretty xlsx files of count data.
 #'
 #' Some folks love excel for looking at this data.  ok.

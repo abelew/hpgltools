@@ -16,13 +16,7 @@ all_pairwise(
   libsize = NULL,
   test_pca = TRUE,
   annot_df = NULL,
-  do_basic = TRUE,
-  do_deseq = TRUE,
-  do_ebseq = TRUE,
-  do_edger = TRUE,
-  do_limma = TRUE,
-  do_noiseq = TRUE,
-  do_dream = TRUE,
+  includes = NULL,
   keepers = NULL,
   convert = "cpm",
   norm = "quant",
@@ -66,21 +60,6 @@ batch effect.}
 
 \item{annot_df}{Annotations to add to the result tables.}
 
-\item{do_basic}{Perform a basic analysis?}
-
-\item{do_deseq}{Perform DESeq2 pairwise?}
-
-\item{do_ebseq}{Perform EBSeq (caveat, this is NULL as opposed to TRUE/FALSE
-so it can choose).}
-
-\item{do_edger}{Perform EdgeR?}
-
-\item{do_limma}{Perform limma?}
-
-\item{do_noiseq}{Perform noiseq?}
-
-\item{do_dream}{Perform dream?}
-
 \item{keepers}{Limit the pairwise search to a set of specific contrasts.}
 
 \item{convert}{Modify the data with a 'conversion' method for PCA?}
@@ -104,6 +83,21 @@ so one may provide them here.}
 expected to violate their assumptions/rules (e.g. integers for DESeq)}
 
 \item{...}{Picks up extra arguments into arglist.}
+
+\item{do_basic}{Perform a basic analysis?}
+
+\item{do_deseq}{Perform DESeq2 pairwise?}
+
+\item{do_ebseq}{Perform EBSeq (caveat, this is NULL as opposed to TRUE/FALSE
+so it can choose).}
+
+\item{do_edger}{Perform EdgeR?}
+
+\item{do_limma}{Perform limma?}
+
+\item{do_noiseq}{Perform noiseq?}
+
+\item{do_dream}{Perform dream?}
 }
 \value{
 A list of limma, deseq, edger results.

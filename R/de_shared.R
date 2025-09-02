@@ -68,9 +68,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
                          null_fstring = "~", model_svs = NULL,
                          modify_p = FALSE, filter = NULL,
                          extra_contrasts = NULL, libsize = NULL, test_pca = TRUE,
-                         annot_df = NULL, do_basic = TRUE, do_deseq = TRUE,
-                         do_ebseq = TRUE, do_edger = TRUE, do_limma = TRUE,
-                         do_noiseq = TRUE, do_dream = TRUE, keepers = NULL,
+                         annot_df = NULL, includes = NULL, keepers = NULL,
                          convert = "cpm", norm = "quant", verbose = TRUE,
                          num_surrogates = "be", methods = NULL,
                          keep_underscore = TRUE, dream_model = NULL, force = FALSE,
@@ -81,37 +79,8 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   if (!is.null(model_svs) && isFALSE(filter)) {
     message("model_svs is on and filter is off.")
   }
-  if (!is.null(methods)) {
-    if (!is.null(methods[["basic"]])) {
-      do_basic <- methods[["basic"]]
-    }
-    if (!is.null(methods[["deseq"]])) {
-      do_deseq <- methods[["deseq"]]
-    }
-    if (!is.null(methods[["ebseq"]])) {
-      do_ebseq <- methods[["ebseq"]]
-    }
-    if (!is.null(methods[["edger"]])) {
-      do_edger <- methods[["edger"]]
-    }
-    if (!is.null(methods[["limma"]])) {
-      do_limma <- methods[["limma"]]
-    }
-    if (!is.null(methods[["noiseq"]])) {
-      do_noiseq <- methods[["noiseq"]]
-    }
-    if (!is.null(methods[["dream"]])) {
-      do_dream <- methods[["dream"]]
-    }
-  }
+  includes <- check_includes(includes, ...)
 
-  ## EBSeq made an incompatible change in its most recent release.
-  ## I unthinkingly changed my code to match it without considering the old
-  ## bioconductor release.
-  if (as.numeric(as.character(BiocManager::version())) < 3.18) {
-    warning("I changed ebseq_pairwise for the new bioc release, it needs >= 3.18.")
-    do_ebseq <- FALSE
-  }
   fctrs <- get_formula_factors(model_fstring)
   assumed_batch <- fctrs[["assumed_batch"]]
   factors <- fctrs[["factors"]]
@@ -124,7 +93,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     }
   }
   ## Use the fctrs to sanitize the data.
-  input <- sanitize_expt(input, factors = factors)
+  input <- sanitize_se(input, factors = factors)
 
   ## Unlink DESeq2, I use the first factor as the contrast by default.
   contrast_col <- factors[1]
@@ -163,11 +132,11 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   original_input <- input
   if (class(model_svs)[1] == "character") {
     svs_method <- model_svs
-    model_params <- adjuster_expt_svs(input, model_fstring = model_fstring,
-                                      null_fstring = null_fstring,
-                                      model_svs = model_svs,
-                                      num_surrogates = num_surrogates,
-                                      ... )
+    model_params <- adjuster_svs(input, model_fstring = model_fstring,
+                                 null_fstring = null_fstring,
+                                 model_svs = model_svs,
+                                 num_surrogates = num_surrogates,
+                                 ... )
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
@@ -246,12 +215,10 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   ## so that later I will know to perform each of these analyses without
   ## having to query do_method.
   results <- list()
-  possible_methods <- c("basic", "deseq", "dream", "ebseq",
-                        "edger", "limma", "noiseq")
-  for (p in possible_methods) {
-    method_varname <- glue("do_{p}")
-    if (isTRUE(get0(method_varname))) {
-      results[[p]] <- list()
+  for (m in seq_along(includes)) {
+    method <- names(includes)[m]
+    if (isTRUE(includes[[method]])) {
+      results[[method]] <- list()
     }
   }
 
