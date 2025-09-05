@@ -25,6 +25,30 @@ load_se_tracks(
 \item{se}{Input summarized experiment.}
 
 \item{track_column}{Column name with track files.}
+
+\item{region_string}{String describing the chromosome(s).}
+
+\item{name_column}{colData column containing the desired row names.}
+
+\item{gene_name}{Specific gene name(s)}
+
+\item{padding}{Specific number of nucleotides to pad the coverage region.}
+
+\item{bin_size}{What it says on the tin.}
+
+\item{transform}{Perform a log transformation on the coverage?}
+
+\item{convert}{Perform a cpmish conversion on the coverage?}
+
+\item{norm}{Normalize the coverage?}
+
+\item{type_column}{colData column describing the data types.}
+
+\item{group_column}{colData column describing the conditions of interest.}
+
+\item{cores}{Parallelize this?}
+
+\item{extend}{Expand the resulting grange?}
 }
 \description{
 Stealing the LoadTrackFile function from ggcoverage and making it more helpful.

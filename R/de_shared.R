@@ -74,12 +74,19 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
                          keep_underscore = TRUE, dream_model = NULL, force = FALSE,
                          ...) {
   arglist <- list(...)
+  ## FIXME: I would like to revisit the function makeContrasts and
+  ## make_pairwise_contrasts.  They are too brittle by far and should
+  ## be rewritten to make use of do.call() instead of eval(parse())
+  if (!is.null(keepers) && !is.null(extra_contrasts)) {
+    warning("This will likely fail because of how the keepers and extra contrasts are evaluated.")
+  }
   model_fstring <- check_fstring(model_fstring)
   svs_method <- "Existing surrogate matrix"
   if (!is.null(model_svs) && isFALSE(filter)) {
     message("model_svs is on and filter is off.")
   }
-  includes <- check_includes(includes, ...)
+  includes <- check_includes(includes,
+                             ...)
 
   fctrs <- get_formula_factors(model_fstring)
   assumed_batch <- fctrs[["assumed_batch"]]

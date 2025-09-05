@@ -4,10 +4,10 @@
 \alias{add_conditional_nas}
 \title{Replace 0 with NA if not all entries for a given condition are 0.}
 \usage{
-add_conditional_nas(expt, fact = "condition", method = "NA")
+add_conditional_nas(se, fact = "condition", method = "NA")
 }
 \arguments{
-\item{expt}{Expressionset to examine.}
+\item{se}{SE to examine.}
 
 \item{fact}{Experimental design factor to use.}
 

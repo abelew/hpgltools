@@ -43,6 +43,8 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
 #' @param ribbon fill in the smoothed data?
 #' @param cov_color Color for the coverage region
 #' @param y_max Explicitly set the maximum of the y axis.
+#' @importFrom ggcoverage LoadTrackFile ggcoverage geom_gene
+#' @importFrom stats predict loess
 #' @export
 plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 100,
                             span = 0.03, smoothed = TRUE, ribbon = FALSE, cov_color = "black",
@@ -68,7 +70,7 @@ plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 1
     cov_plot <- cov_plot +
       ggplot2::geom_ribbon(data = g1_coverage, outline.type = "full", show.legend = FALSE,
                   aes(x = start, y = score, ymin = 0,
-                      ymax = predict(loess(score ~ start, span = span))),
+                      ymax = stats::predict(stats::loess(score ~ start, span = span))),
                   fill = cov_color)
   }
 
@@ -166,12 +168,12 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
                                arrow_type = "closed", arrow_gap = NULL, label_column = NULL,
                                bg_color = "white", gene_color_by = "strand", gene_colors = NULL,
                                cores = NULL, facet = TRUE, y_scale = NULL) {
-  se <- set_se_conditions(se, fact = meta_group_column)
+  se <- set_conditions(se, fact = meta_group_column)
   se_meta <- colData(se)
   se_info <- rowData(se)
   se_exprs <- assay(se)
   gr <- metadata(se)[["grange"]]
-  colors_by_cond <- define_expt_colors(se)
+  colors_by_cond <- get_colors_by_condition(se)
 
   if (is.null(gene_colors)) {
     gene_colors <- c("-" = "cornflowerblue", "+" = "darkolivegreen3")
@@ -235,10 +237,11 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
   mesg("The maximum observed coverage in this region is: ", max_coverage, ".")
   if (isTRUE(smoothed)) {
     hidden_colors <- rep(bg_color, length(colors_by_cond))
-    smoothed_info <- loess(score ~ start, data = coverage_info, family = "symmetric", span = span)
+    smoothed_info <- stats::loess(score ~ start, data = coverage_info, family = "symmetric", span = span)
     loess_max <- max(smoothed_info[["fitted"]])
     mesg("The maximum observed coverage in the smoothed region is: ", loess_max, ".")
     max_coverage <- loess_max
+    Type <- NULL
     cov_plot <- ggcoverage::ggcoverage(data = coverage_info, color = hidden_colors,
                                        facet.key = facet_key, range.position = "out") +
       ggplot2::geom_smooth(data = coverage_info, se = FALSE, method = "loess",

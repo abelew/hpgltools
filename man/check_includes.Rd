@@ -4,25 +4,17 @@
 \alias{check_includes}
 \title{Convert a vector of yes/no by DE method to a list.}
 \usage{
-check_includes(includes = NULL, apr = NULL, ...)
+check_includes(includes = NULL, apr = NULL, methods = NULL, ...)
 }
 \arguments{
-\item{apr}{The result from all_pairwise()}
+\item{includes}{List of methods desired}
 
-\item{basic}{The user wants the basic analysis, let us see if we
-can provide it here.}
+\item{apr}{Input pairwise result, not always needed.}
 
-\item{deseq}{The user wants DESeq2.}
+\item{methods}{In a few place I use a list called methods instead of includes,
+this should be removed.}
 
-\item{ebseq}{The user wants EBSeq.}
-
-\item{edger}{The user wants EdgeR.}
-
-\item{dream}{The user wants the variancePartition method.}
-
-\item{limma}{The user wants limma.}
-
-\item{noiseq}{The user wants NoiSeq.}
+\item{...}{Extra args, currently ignored.}
 }
 \value{
 List containing TRUE/FALSE for each method desired,

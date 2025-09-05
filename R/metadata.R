@@ -369,17 +369,21 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     specification <- make_assembly_spec()
   }
   if (isTRUE(md5)) {
-    specification[["md5_r1_raw"]] <- specification[["input_r1"]]
-    specification[["md5_r2_raw"]] <- specification[["input_r1"]]
-    specification[["md5_r1_trimmed"]] <- list(
-      "file" = "trimmed_r1")
-    specification[["md5_r2_trimmed"]] <- list(
-      "file" = "trimmed_r2")
+    specification[["md5_r1_raw"]] <- list(
+      "column" = "input_r1")
+    specification[["md5_r2_raw"]] <- list(
+      "column" = "input_r2")
+#    specification[["md5_r1_trimmed"]] <- list(
+#      "column" = "trimmed_r1")
+#    specification[["md5_r2_trimmed"]] <- list(
+#      "column" = "trimmed_r2")
     if (!is.null(r1_input_column)) {
-      specification[["md5_r1_raw"]] <- "{meta[[r1_input_column]]}"
+      specification[["md5_r1_raw"]] <- list(
+        "column" = r1_input_column)
     }
     if (!is.null(r2_input_column)) {
-      specification[["md5_r2_raw"]] <- "{meta[[r2_input_column]]}"
+      specification[["md5_r2_raw"]] <- list(
+        "column" = r2_input_column)
     }
   }
 
@@ -414,6 +418,9 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
 
   old_meta <- meta
   ## Perhaps use sanitize instead?
+  if (!is.null(meta[["sampleid"]])) {
+    meta[["sampleid_backup"]] <- meta[["sampleid"]]
+  }
   meta[["sampleid"]] <- gsub(pattern = "\\s+", replacement = "", x = meta[[id_column]])
   new_columns <- c()
 
@@ -1091,20 +1098,28 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     },
     "md5_r1_raw" = {
       mesg("Gathering MD5 Sums for r1.")
-      entries <- dispatch_md5(meta, input_file_spec)
+      entries <- dispatch_md5(meta, entry_type, input_file_spec, specification,
+                              basedir = basedir, species = species, type = type,
+                              subtype = subtype, tag = tag, ...)
     },
     "md5_r2_raw" = {
       mesg("Gathering MD5 Sums for r2.")
-      entries <- dispatch_md5(meta, search)
+      entries <- dispatch_md5(meta, entry_type, input_file_spec, specification,
+                              basedir = basedir, species = species, type = type,
+                              subtype = subtype, tag = tag, ...)
     },
-    "md5_r1_trimmed" = {
-      mesg("Gathering MD5 Sums for r1 trimmed.")
-      entries <- dispatch_md5(meta, search)
-    },
-    "md5_r2_trimmed" = {
-      mesg("Gathering MD5 Sums for r2 trimmed.")
-      entries <- dispatch_md5(meta, search)
-    },
+    #"md5_r1_trimmed" = {
+    #  mesg("Gathering MD5 Sums for r1 trimmed.")
+    #  entries <- dispatch_md5(meta, entry_type, input_file_spec, specification,
+    #                          basedir = basedir, species = species, type = type,
+    #                          subtype = subtype, tag = tag, ...)
+    #},
+    #"md5_r2_trimmed" = {
+    #  mesg("Gathering MD5 Sums for r2 trimmed.")
+    #  entries <- dispatch_md5(meta, entry_type, input_file_spec, specification,
+    #                          basedir = basedir, species = species, type = type,
+    #                          subtype = subtype, tag = tag, ...)
+    #},
 
     "notes" = {
       search <- "^.*$"
@@ -1794,19 +1809,33 @@ dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
   return(output_entries)
 }
 
-dispatch_md5 <- function(meta, input_file_spec) {
-  filenames <- file.path(meta[[input_file_spec]])
-  if (length(filenames) == 0) {
-    return(undef)
-  }
-  if (isTRUE(verbose)) {
-    message("Example input filename: ", filenames[1], ".")
-  }
-  output_entries <- rep(0, length(filenames))
+#' Pull raw MD5 sums into the metadata sheet.
+#'
+#' @param meta Input metadata
+#' @param entry_type Perhaps not used, I copy/pasted the function declaration.
+#' @param input_file_spec Input file specification to hunt down the
+#'  file of interest.
+#' @param specification Full specification list
+#' @param basedir Used to find the path to the input to md5sum
+#' @param species Probably not needed
+#' @param type Almost definitely not needed.
+#' @param subtype Clean this too
+#' @param tag And this
+#' @param verbose Print diagnostic information while running?
+#' @export
+dispatch_md5 <- function(meta, entry_type, input_file_spec,
+                         specification, basedir = "preprocessing",
+                         species = "*", type = "genome", subtype = "gene",
+                         tag = "ID", verbose = TRUE, ...) {
+  input_column_name <- specification[[entry_type]][["column"]]
+  input_filenames <- meta[[input_column_name]]
+  output_entries <- rep("", nrow(meta))
   for (row in seq_len(nrow(meta))) {
     found <- 0
     ## Just in case there are multiple matches
-    input_file <- filenames[row]
+    input_base_file <- input_filenames[row]
+    sample_id <- rownames(meta)[row]
+    input_file <- file.path(basedir, sample_id, input_base_file)
     if (isFALSE(file.exists(input_file))) {
       warning("There is no file matching: ", input_file,
               ".")

@@ -89,7 +89,7 @@ head(gene_info)
 ## Load count tables
 
 The pasilla data set provides count tables in a tab separated file, let us read them into an
-expressionset in the following block along with creating an experimental design.  create_expt() will
+expressionset in the following block along with creating an experimental design.  create_se() will
 then merge the annotations, experimental design, and count tables into an expressionset.
 
 ```{r}
@@ -108,7 +108,7 @@ metadata <- design
 colnames(metadata) <- c("condition", "batch")
 metadata[["sampleid"]] <- rownames(metadata)
 
-## Make sure it is still possible to create an expt
+## Make sure it is still possible to create an se
 pasilla_se <- sm(create_se(count_dataframe = counts, metadata = metadata,
                            savefile = "pasilla", gene_info = gene_info))
 ```

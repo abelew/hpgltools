@@ -11,6 +11,8 @@
 #' @param name_column Gene information column from which to get gene names.
 #' @param condition_column Metadata column containing the conditions to compare.
 #' @param test Pairwise test to invoke.
+#' @importFrom ggsignif geom_signif
+#' @importFrom dplyr arrange
 #' @export
 ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "quant",
                                   convert = "cpm", filter = TRUE, transform = "log2",
@@ -35,7 +37,7 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
     row_idx <- all_ids %in% genes
   }
   wanted_annotations <- as.data.frame(annot[row_idx, ]) %>%
-    arrange(factor(!!sym(name_column), levels = genes))
+    dplyr::arrange(factor(!!sym(name_column), levels = genes))
   wanted_rows <- rownames(wanted_annotations)
   wanted_expression <- as.data.frame(assay(normed)[wanted_rows, ])
 
@@ -55,12 +57,12 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
     axis_labels <- c(axis_labels, i, "")
     level_order <- c(level_order, element)
   }
-
+  pair <- value <- condition <- NULL
   merged[["pair"]] <- factor(merged[["pair"]], levels = level_order)
   plot <- ggplot(data = merged, aes(x = pair, y = value, fill = condition)) +
-    geom_boxplot() +
+    ggplot2::geom_boxplot() +
     ggsignif::geom_signif(comparisons = comparison_list, step_increase = 0.01, test = test) +
-    scale_x_discrete(labels = axis_labels) +
+    ggplot2::scale_x_discrete(labels = axis_labels) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
   return(plot)
 }

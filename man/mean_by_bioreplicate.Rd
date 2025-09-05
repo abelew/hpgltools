@@ -4,10 +4,10 @@
 \alias{mean_by_bioreplicate}
 \title{An attempt to address a troubling question when working with DIA data.}
 \usage{
-mean_by_bioreplicate(expt, fact = "bioreplicate", fun = "mean")
+mean_by_bioreplicate(se, fact = "bioreplicate", fun = "mean")
 }
 \arguments{
-\item{expt}{Starting expressionset to mangle.}
+\item{se}{Starting expressionset to mangle.}
 
 \item{fact}{Metadata factor to use when taking the mean of biological
 replicates.}

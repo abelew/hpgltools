@@ -35,7 +35,7 @@ Suggests:
   jsonlite,
   KEGGREST, KEGGgraph, kmer,
   lattice, limma, locfit, lubridate,
-  MatrixGenerics, matrixStats, meshes, MeSHDbi, MeSH.Hsa.eg.db, MeSH.Mm.eg.db,
+  MatrixGenerics, matrixStats, meshes,
   MPO.db, miscTools, motifRG, mygene,
   networkD3, NOISeq, numform,
   openxlsx, OrganismDbi,

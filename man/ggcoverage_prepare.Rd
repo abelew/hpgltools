@@ -14,6 +14,19 @@ ggcoverage_prepare(
   extend = 2000
 )
 }
+\arguments{
+\item{gr}{Input grange}
+
+\item{region_string}{String describing the chromosome(s) of interest.}
+
+\item{gene_name}{Specific gene of interest.}
+
+\item{wanted_type}{mcols type of interest.}
+
+\item{name_column}{mcols column containing the gene names.}
+
+\item{extend}{Number of nucleotides to expand the resulting region.}
+}
 \description{
 Copied the prepare function from ggcoverage and made some small changes.
 Note, that extend is in nucleotides while padding is in genes.

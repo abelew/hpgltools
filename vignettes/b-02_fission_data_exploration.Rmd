@@ -85,10 +85,10 @@ meta$batch <- meta$replicate
 meta$sample.id <- rownames(meta)
 ## Grab the count data
 fission_data <- fission@assays$data$counts
-## This will make an experiment superclass called 'expt' and it contains
+## This will make an experiment superclass called 'se' and it contains
 ## an ExpressionSet along with any arbitrary additional information one might want to include.
-## Along the way it writes a Rdata file which is by default called 'expt.Rdata'
-fission_expt <- create_expt(metadata = meta, count_dataframe = fission_data)
+## Along the way it writes a Rdata file which is by default called 'se.Rdata'
+fission_se <- create_se(metadata = meta, count_dataframe = fission_data)
 fission_se <- create_se(metadata = meta, count_dataframe = fission_data)
 ```
 
@@ -103,18 +103,18 @@ chance to explain the graphs as I generate them.
 
 ```{r}
 ## First make a bar plot of the library sizes in the experiment.
-## Notice that the colors were auto-chosen by create_expt() and they should
+## Notice that the colors were auto-chosen by create_se() and they should
 ## be maintained throughout this process
-fis_libsize <- plot_libsize(fission_expt)
+fis_libsize <- plot_libsize(fission_se)
 fis_libsize
 libsize_se <- plot_libsize(fission_se)
 libsize_se
 ## Here we see that the wild type replicate 3 sample for 15 minutes has
 ## fewer non-zero genes than all its friends.
-plot_nonzero(fission_expt, labels = "boring", title = "nonzero vs. cpm")
+plot_nonzero(fission_se, labels = "boring", title = "nonzero vs. cpm")
 plot_nonzero(fission_se, labels = "boring", title = "nonzero vs. cpm")
 
-plot_density(fission_expt)
+plot_density(fission_se)
 ```
 
 ### An initial pca plot
@@ -127,13 +127,13 @@ again.
 ```{r}
 ## Something in this is causing a build loop on travis...
 ## Unsurprisingly, the raw data doesn't cluster well at all...
-##fis_rawpca <- plot_pca(fission_expt, expt_names = fission_expt$condition, cis = NULL)
-plot_pca(fission_expt)
+##fis_rawpca <- plot_pca(fission_se, se_names = fission_se$condition, cis = NULL)
+plot_pca(fission_se)
 
 ## So, normalize the data
-norm_expt <- normalize(fission_expt, transform = "log2", norm = "quant", convert = "cpm")
+norm_se <- normalize(fission_se, transform = "log2", norm = "quant", convert = "cpm")
 ## And try the pca again
-plot_pca(norm_expt, plot_labels = "normal", title = "normalized pca", cis = NULL)
+plot_pca(norm_se, plot_labels = "normal", title = "normalized pca", cis = NULL)
 
 ## Clearly time is an important factor in the data.
 ```
@@ -141,7 +141,7 @@ plot_pca(norm_expt, plot_labels = "normal", title = "normalized pca", cis = NULL
 ## Try something for Najib
 
 ```{r test_3d}
-testing <- plot_pca(norm_expt, num_pc = 3)
+testing <- plot_pca(norm_se, num_pc = 3)
 testing
 silly <- plot_3d_pca(testing, file = "images/3dpca.html")
 silly$plot
@@ -160,9 +160,9 @@ With that in mind, lets perform some more pca plots after normalizing the data a
 they look.
 
 ```{r}
-normbatch_expt <- normalize(fission_expt, transform = "log2", norm = "quant",
+normbatch_se <- normalize(fission_se, transform = "log2", norm = "quant",
                             convert = "cpm", batch = "sva")
-fis_normbatchpca <- plot_pca(normbatch_expt,
+fis_normbatchpca <- plot_pca(normbatch_se,
                              title = "Normalized PCA with batch effect correction.", cis = NULL)
 fis_normbatchpca
 ## ok, that caused the 0, 60, 15, and 30 minute samples to cluster nicely
@@ -170,8 +170,8 @@ fis_normbatchpca
 
 ## pca_information provides some more information about the call to
 ## fast.svd that went into making the pca plot
-fis_info <- pca_information(norm_expt,
-                            expt_factors = c("condition","batch","strain","minute"),
+fis_info <- pca_information(norm_se,
+                            se_factors = c("condition","batch","strain","minute"),
                             num_components = 6)
 ## The r^2 table shows that quite a lot of the variance in the data is explained by condition
 knitr::kable(head(fis_info$rsquared_table))
@@ -182,12 +182,12 @@ knitr::kable(fis_info$pca_cor)
 knitr::kable(fis_info$anova_p)
 
 ## Try again with batch removed data
-batchnorm_expt <- normalize(fission_expt, batch = "sva", filter = TRUE,
+batchnorm_se <- normalize(fission_se, batch = "sva", filter = TRUE,
                             transform = "log2", convert = "cpm")
-plot_pca(batchnorm_expt, plot_title = "limma corrected pca")
+plot_pca(batchnorm_se, plot_title = "limma corrected pca")
 
-test_pca <- pca_information(batchnorm_expt,
-                            expt_factors = c("condition","batch","strain","minute"),
+test_pca <- pca_information(batchnorm_se,
+                            se_factors = c("condition","batch","strain","minute"),
                             num_components = 6)
 ```
 
@@ -200,26 +200,26 @@ We have some tools which provide visualizations of the distribution of
 the data:
 
 ```{r}
-fission_boxplot <- plot_boxplot(fission_expt)
+fission_boxplot <- plot_boxplot(fission_se)
 fission_boxplot
 
-sf_expt <- normalize(fission_expt, norm = "sf")
-fission_boxplot <- plot_boxplot(sf_expt)
+sf_se <- normalize(fission_se, norm = "sf")
+fission_boxplot <- plot_boxplot(sf_se)
 fission_boxplot
 
-tm_expt <- normalize(fission_expt, norm = "tmm")
-fission_boxplot <- plot_boxplot(tm_expt)
+tm_se <- normalize(fission_se, norm = "tmm")
+fission_boxplot <- plot_boxplot(tm_se)
 fission_boxplot
 
-rle_expt <- normalize_expt(fission_expt, norm = "rle")
-fission_boxplot <- plot_boxplot(rle_expt)
+rle_se <- normalize_se(fission_se, norm = "rle")
+fission_boxplot <- plot_boxplot(rle_se)
 fission_boxplot
 
-up_expt <- normalize_expt(fission_expt, norm = "upperquartile")
-fission_boxplot <- plot_boxplot(up_expt)
+up_se <- normalize_se(fission_se, norm = "upperquartile")
+fission_boxplot <- plot_boxplot(up_se)
 fission_boxplot
 
-compare_12 <- plot_single_qq(fission_expt, x = 1, y = 2)
+compare_12 <- plot_single_qq(fission_se, x = 1, y = 2)
 compare_12$log
 ```
 
@@ -229,13 +229,13 @@ Ok, so we can further check out how the data cluster with respect to
 one another...
 
 ```{r}
-plot_corheat(norm_expt)
+plot_corheat(norm_se)
 
-plot_corheat(batchnorm_expt)
+plot_corheat(batchnorm_se)
 
-plot_disheat(norm_expt)
+plot_disheat(norm_se)
 
-plot_disheat(batchnorm_expt)
+plot_disheat(batchnorm_se)
 ```
 
 # variancePartition
@@ -244,12 +244,12 @@ variancePartition may be used to seek out which experimental factors correlate w
 the most variance in the data.
 
 ```{r variancePartition}
-test_varpart <- simple_varpart(fission_expt)
+test_varpart <- simple_varpart(fission_se)
 test_varpart[["percent_plot"]]
 test_varpart[["partition_plot"]]
 
 ## Here, let us test the variance contributed by strain, time, and replicate.
-test_varpart <- simple_varpart(fission_expt,
+test_varpart <- simple_varpart(fission_se,
                                fstring = "~ strain + minute + replicate")
 test_varpart[["percent_plot"]]
 test_varpart[["partition_plot"]]

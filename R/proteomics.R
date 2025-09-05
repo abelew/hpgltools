@@ -19,18 +19,17 @@
 #' Finally, this will add columns to the annotations which tell the number of
 #' observations for each protein after doing this.
 #'
-#' @param expt Expressionset to examine.
+#' @param se SE to examine.
 #' @param fact Experimental design factor to use.
 #' @param method Specify whether to leave the NAs as NA,
 #'  or replace them with the mean of all non-NA values.
 #' @return New expressionset with some, but not all, 0s replaced with NA.
 #' @export
-add_conditional_nas <- function(expt, fact = "condition", method = "NA") {
-  exprs_set <- expt[["expressionset"]]
-  mtrx <- exprs(expt)
-  annotations <- fData(expt)
+add_conditional_nas <- function(se, fact = "condition", method = "NA") {
+  mtrx <- assay(se)
+  annotations <- rowData(se)
   if (length(fact) == 1) {
-    design <- pData(expt)
+    design <- colData(se)
     fact <- design[[fact]]
     names(fact) <- rownames(design)
   }
@@ -82,9 +81,9 @@ add_conditional_nas <- function(expt, fact = "condition", method = "NA") {
   rownames(annotations) <- annotations[["Row.names"]]
   annotations[["Row.names"]] <- NULL
   exprs(exprs_set) <- mtrx
-  fData(exprs_set) <- annotations
-  expt[["expressionset"]] <- exprs_set
-  return(expt)
+  rowData(exprs_set) <- annotations
+  assay(se) <- exprs_set
+  return(se)
 }
 
 #' Read output from mayu to get the IP/PP number corresponding to a given FDR value.
@@ -296,6 +295,7 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
 #' @param start_add Other downstream tools appear to expect some padding at the
 #'  beginning of each window.  Add that here.
 #' @return The list of metadata, scan data, etc from the mzXML file.
+#' @importFrom mzR openMSfile instrumentInfo runInfo header close
 #' @export
 extract_mzML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
                                allow_window_overlap = FALSE, start_add = 0) {
@@ -347,7 +347,7 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
                                parallel = TRUE, savefile = NULL, ...) {
   arglist <- list(...)
 
-  ## Add a little of the code from create_expt to include some design
+  ## Add a little of the code from create_se to include some design
   ## information in the returned data structure.
 
   ## Since I am using this code now in two places, if I can use it without
@@ -374,8 +374,8 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
     sample_column <- gsub(pattern = "[[:punct:]]", replacement = "", x = sample_column)
   }
 
-  chosen_colors <- generate_expt_colors(sample_definitions, ...)
-  ## chosen_colors <- generate_expt_colors(sample_definitions)
+  chosen_colors <- generate_se_colors(sample_definitions, ...)
+  ## chosen_colors <- generate_se_colors(sample_definitions)
   meta <- sample_definitions[, c(sample_column, file_column)]
   colnames(meta) <- c("id", "file")
   existing_files <- complete.cases(meta[["file"]])
@@ -750,7 +750,7 @@ extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
                                    savefile = NULL, ...) {
   arglist <- list(...)
 
-  ## Add a little of the code from create_expt to include some design
+  ## Add a little of the code from create_se to include some design
   ## information in the returned data structure.
 
   ## Since I am using this code now in two places, if I can use it without changes, I will
@@ -775,9 +775,9 @@ extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
     stop("This required a column with the tsv scored pyprophet data.")
   }
 
-  chosen_colors <- generate_expt_colors(sample_definitions,
+  chosen_colors <- generate_se_colors(sample_definitions,
                                         ...)
-  ## chosen_colors <- generate_expt_colors(sample_definitions)
+  ## chosen_colors <- generate_se_colors(sample_definitions)
   meta <- sample_definitions[, c("sampleid", pyprophet_column)]
   colnames(meta) <- c("id", "scored")
   existing_files <- complete.cases(meta[["scored"]])
@@ -843,9 +843,9 @@ gather_masses <- function(sequence) {
 
 #' Impute missing values using code from DEP reworked for expressionsets.
 #'
-#' [impute_expt()] imputes missing values in a proteomics dataset.
+#' [impute_se()] imputes missing values in a proteomics dataset.
 #'
-#' @param expt An ExpressionSet (well, expt), I think it is assumed that this should have
+#' @param se An ExpressionSet (well, se), I think it is assumed that this should have
 #'  been normalized and filtered for features which have no values across 'most' samples.
 #' @param filter Use normalize() to filter the data?
 #' @param p When filtering with pofa, use this p parameter.
@@ -856,59 +856,57 @@ gather_masses <- function(sequence) {
 #' @param ... Additional arguments for imputation functions.
 #' @return An imputed expressionset.
 #' @seealso [MSnbase]
+#' @importFrom MSnbase impute
 #' @export
-impute_expt <- function(expt, filter = TRUE, p = 0.5,
-                        fun = c("bpca", "knn", "QRILC", "MLE",
-                                "MinDet", "MinProb", "min", "zero",
-                                "mixed", "nbavg"), ...) {
+impute_se <- function(se, filter = TRUE, p = 0.5,
+                      fun = c("bpca", "knn", "QRILC", "MLE",
+                              "MinDet", "MinProb", "min", "zero",
+                              "mixed", "nbavg"), ...) {
   ## Show error if inputs do not contain required columns
   fun <- match.arg(fun)
 
   ## Caveat: Imputation works only on NA values.  I reset NAs to 0,
   ## so I will need to send them back...
-  found_zeros <- sum(exprs(expt) == 0)
+  found_zeros <- sum(assay(se) == 0)
   if (found_zeros == 0) {
     warning("No missing values in the expressionset, returning it unchanged.")
-    return(expt)
+    return(se)
   } else {
     message("Found ", found_zeros, " zeros in the data.")
   }
 
+  the_state <- state(se)
   if (isTRUE(filter)) {
-    if (expt[["state"]][["filter"]] == "raw") {
+    if (the_state[["filter"]] == "raw") {
       message("The data has not been filtered.")
     } else {
-      message("The data was already filtered with: ", expt[["state"]][["filter"]], ".")
+      message("The data was already filtered with: ", the_state[["filter"]], ".")
     }
     message("Filtering the data, turn off 'filter' to stop this.")
-    expt <- normalize(expt, filter = "pofa", p = p)
+    se <- normalize(se, filter = "pofa", p = p)
   }
-
-  exprs_set <- expt[["expressionset"]]
   ## Annotate whether or not there are missing values and how many
-  num_zeros <- apply(exprs(expt) == 0, 1, any)
-  fData(exprs_set)[["imputed"]] <- num_zeros
-  zero_idx <- exprs(expt) == 0
-  fData(exprs_set)[["num_nas"]] <- rowSums(zero_idx)
-  exprs(exprs_set)[zero_idx] <- NA
+  num_zeros <- apply(assay(se) == 0, 1, any)
+  rowData(se)[["imputed"]] <- num_zeros
+  zero_idx <- assay(se) == 0
+  rowData(exprs_set)[["num_nas"]] <- rowSums(zero_idx)
+  assay(exprs_set)[zero_idx] <- NA
 
   requireNamespace("MSnbase")
   msn_data <- as(exprs_set, "MSnSet")
-  starting_counts <- exprs(exprs_set)
+  starting_counts <- assay(exprs_set)
   message("Invoking impute from MSnbase with the ", fun, " method.")
 
   imputed_data <- MSnbase::impute(msn_data, method = fun,
                                   ...)
-  imputed_exprs <- as(imputed_data, "ExpressionSet")
-  imputed_counts <- exprs(imputed_exprs)
+  imputed_exprs <- as(imputed_data, "SummarizedExperiment")
+  imputed_counts <- assay(imputed_exprs)
 
   same <- all.equal(starting_counts, imputed_counts)
   if (isTRUE(same)) {
     message("The counts remained the same.")
   }
-
-  expt[["expressionset"]] <- imputed_exprs
-  return(expt)
+  return(se)
 }
 
 #' An attempt to address a troubling question when working with DIA data.
@@ -931,26 +929,24 @@ impute_expt <- function(expt, filter = TRUE, p = 0.5,
 #'   the result.
 #'   3.  Recreate the expressionset with the modified set of samples.
 #'
-#' @param expt Starting expressionset to mangle.
+#' @param se Starting expressionset to mangle.
 #' @param fact Metadata factor to use when taking the mean of biological
 #'  replicates.
 #' @param fun Assumed to be mean, but one might want median.
 #' @return new expressionset
 #' @export
-mean_by_bioreplicate <- function(expt, fact = "bioreplicate", fun = "mean") {
+mean_by_bioreplicate <- function(se, fact = "bioreplicate", fun = "mean") {
   ## Set all the zeros to NA so that when we do cpm and mean they will get dropped.
-  exprs_set <- expt[["expressionset"]]
-  mtrx <- exprs(expt)
+  mtrx<- assay(se)
   zero_idx <- mtrx == 0
   new <- mtrx
   new[zero_idx] <- NA
   new_libsize <- colSums(new, na.rm = TRUE)
   new <- edgeR::cpm(new, lib.size = new_libsize)
-  exprs(exprs_set) <- new
-  expt[["expressionset"]] <- exprs_set
-  annot <- fData(expt)
-  final <- median_by_factor(expt, fact = fact, fun = fun)[["medians"]]
-  current_design <- pData(expt)
+  assay(se) <- new
+  annot <- rowData(se)
+  final <- median_by_factor(se, fact = fact, fun = fun)[["medians"]]
+  current_design <- colData(se)
   new_design <- data.frame()
   for (c in seq_along(colnames(final))) {
     colname <- colnames(final)[c]
@@ -962,7 +958,7 @@ mean_by_bioreplicate <- function(expt, fact = "bioreplicate", fun = "mean") {
   rownames(new_design) <- colnames(final)
   new_design[["sampleid"]] <- rownames(new_design)
   new_design[["batch"]] <- "undefined"
-  new_set <- create_expt(count_dataframe = final, metadata = new_design, gene_info = annot)
+  new_set <- create_se(count_dataframe = final, metadata = new_design, gene_info = annot)
   return(new_set)
 }
 

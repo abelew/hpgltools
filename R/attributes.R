@@ -1391,24 +1391,37 @@ set_expt_genenames <- function(expt, ids = NULL, ...) {
   return(expt)
 }
 
-#' Set the genenames of a SE
-#' @export
-set_se_genenames <- function(se, ids = NULL, column = NULL, ...) {
-  arglist <- list(...)
-  current_ids <- rownames(assay(se))
-  if (is.null(column) && is.null(ids)) {
-    stop("Nothing was provided to change the IDs.")
-  } else if (is.null(column)) {
-    rownames(se) <- ids
-  } else if (is.null(ids)) {
-    new_ids <- make.names(rowData(se)[[column]], unique = TRUE)
-    rownames(se) <- new_ids
-  } else {
-    message("Both a set of IDs and a column was provided, I am going to use the IDs.")
-    rownames(se) <- ids
-  }
-  return(se)
+set_genenames <- function(exp, ...) {
+  message("This function is intended to set the gene IDs of a datastructure.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("set_genenames")
+  return(NULL)
 }
+setGeneric("set_genenames")
+
+#' Set the genenames of a SE
+#'
+#' @export
+setMethod(
+  "set_genenames", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ids = NULL, column = NULL, ...) {
+    arglist <- list(...)
+    se <- exp
+    current_ids <- rownames(assay(se))
+    if (is.null(column) && is.null(ids)) {
+      stop("Nothing was provided to change the IDs.")
+    } else if (is.null(column)) {
+      rownames(se) <- ids
+    } else if (is.null(ids)) {
+      new_ids <- make.names(rowData(se)[[column]], unique = TRUE)
+      rownames(se) <- new_ids
+    } else {
+      message("Both a set of IDs and a column was provided, I am going to use the IDs.")
+      rownames(se) <- ids
+    }
+    return(se)
+  })
 
 #' Switch the gene names of an expressionset using a column from fData.
 #'
@@ -1425,7 +1438,7 @@ set_expt_genename_column <- function(expt, new_column) {
   start_df[["start"]] <- rownames(start_df)
   start_df[["end"]] <- start_df[[new_column]]
   start_df <- start_df[, c("start", "end")]
-  new <- set_expt_genenames(expt, start_df)
+  new <- set_genenames(expt, start_df)
   return(new)
 }
 

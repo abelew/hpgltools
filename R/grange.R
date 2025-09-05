@@ -1,3 +1,13 @@
+#' Extract a grange from gene x to gene y
+#'
+#' @param gr Input grange
+#' @param from Starting point
+#' @param to Ending point
+#' @param column What mcol column to use to extract IDs
+#' @param type_column Use this feature type
+#' @param padding_start Add this many genes as padding to the grange before the start
+#' @param padding_end Add this many genes as padding to the grange after the end.
+#' @export
 gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
                        type = NULL, padding_start = 1, padding_end = 1) {
   meta <- as.data.frame(mcols(gr))
@@ -51,19 +61,25 @@ gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
 #'
 #' @param se Input summarized experiment.
 #' @param track_column Column name with track files.
+#' @param region_string String describing the chromosome(s).
+#' @param name_column colData column containing the desired row names.
+#' @param gene_name Specific gene name(s)
+#' @param padding Specific number of nucleotides to pad the coverage region.
+#' @param bin_size What it says on the tin.
+#' @param transform Perform a log transformation on the coverage?
+#' @param convert Perform a cpmish conversion on the coverage?
+#' @param norm Normalize the coverage?
+#' @param type_column colData column describing the data types.
+#' @param group_column colData column describing the conditions of interest.
+#' @param cores Parallelize this?
+#' @param extend Expand the resulting grange?
+#' @importFrom IRanges IRanges
+#' @export
 load_se_tracks <- function(se, track_column = "deeptools_coverage", region_string = NULL,
                            name_column = "Parent", gene_name = NULL, padding = 100,
-                           bin_size = 10,
-                           transform = NULL, convert = "cpm", norm = NULL,
+                           bin_size = 10, transform = NULL, convert = "cpm", norm = NULL,
                            type_column = "media", group_column = "media_type",
                            cores = NULL, extend = NULL) {
-  #function (track_files, track.folder = NULL, format = c("bam",
-  #    "wig", "bw", "bedgraph", "txt"), region = NULL, extend = 2000,
-  #    gtf.gr = NULL, gene.name = "HNRNPC", gene.name.type = c("gene_name",
-  #        "gene_id"), meta.info = NULL, meta.file = "", bamcoverage.path = NULL,
-  #    norm = c("RPKM", "CPM", "BPM", "RPGC", "None"), single.nuc = FALSE,
-  #    single.nuc.region = NULL, bin_size = 10, bc.extra.para = NULL,
-  #    cores = 1)
   norm_factor <- libsize_factor(se)
   metadata <- colData(se)
   sample_ids <- rownames(metadata)
@@ -80,7 +96,7 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
         lapply(function(x) x$targets) %>% unname() %>%
         unlist()
       coverage_gr <- GenomicRanges::GRanges(seqnames = names(seqnames[1]),
-                                   IRanges(start = 1, end = min(1e+05, seqnames[1])))
+                                            IRanges::IRanges(start = 1, end = min(1e+05, seqnames[1])))
     } else if (format %in% c("wig", "bw", "bedgraph")) {
       coverage_gr <- range(rtracklayer::import(track_files[1]))
       seqnames <- as.character(seqnames(coverage_gr))
@@ -91,7 +107,7 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
     mesg("Coverage extracted from sequence/chromosome: ", names(seqnames[1]))
   } else {
     mesg("Extracting coverage for the region ", region_string)
-    coverage_gr <- ggcoverage_prepare(gr, region = region_string,
+    coverage_gr <- ggcoverage_prepare(coverage_gr, region_string = region_string,
                                       gene_name = gene_name, name_column = name_column,
                                       extend = extend)
   }
@@ -121,31 +137,31 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
     }
   } else if (format == "bam") {
     if (cores == 1) {
-      lapply(track_files, ggcoverage:::index_bam)
+      lapply(track_files, "ggcoverage" %:::% "index_bam")
     } else {
       BiocParallel::register(BiocParallel::MulticoreParam(workers = cores),
                              default = TRUE)
       BiocParallel::bplapply(track_files, BPPARAM = BiocParallel::MulticoreParam(),
-                             FUN = ggcoverage:::index_bam)
+                             FUN = "ggcoverage" %:::% "index_bam")
     }
     if (bin_size == 1) {
       if (cores == 1) {
-        track_list <- lapply(track_files, ggcoverage:::single_nuc_cov,
-                             single_nucleotide)
+        track_list <- lapply(track_files, "ggcoverage" %:::% "single_nuc_cov",
+                             bin_width)
       } else {
         track_list <- BiocParallel::bplapply(
-          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = single_nuc_cov,
+          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "single_nuc_cov",
           single_nucleotide)
       }
     } else {
       if (norm == "None") {
         message("Calculating coverage with GenomicAlignments when 'norm = None'")
         if (cores == 1) {
-          track_list <- lapply(track_files, ggcoverage:::import_bam_ga, coverage_gr, bin_size)
+          track_list <- lapply(track_files, "ggcoverage" %:::% "import_bam_ga", coverage_gr, bin_size)
         } else {
           track_list <- BiocParallel::bplapply(
             track_files, BPPARAM = BiocParallel::MulticoreParam(),
-            FUN = ggcoverage:::import_bam_ga, coverage_gr, bin_size)
+            FUN = "ggcoverage" %:::% "import_bam_ga", coverage_gr, bin_size)
         }
       } else {
         message("Calculate coverage with bamCoverage when 'norm != None'")
@@ -158,12 +174,13 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
           bamcoverage.path <- bamcoverage.path
         }
         if (cores == 1) {
-          track_list <- lapply(track_files, ggcoverage:::bam_coverage,
+          bc_extra_parameters <- NULL
+          track_list <- lapply(track_files, "ggcoverage" %:::% "bam_coverage",
                                bamcoverage.path, bin_size, norm,
-                               bc.extra.para, coverage_gr)
+                               bc_extra_parameters, coverage_gr)
         } else {
           track_list <- BiocParallel::bplapply(
-            track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = ggcoverage:::bam_coverage,
+            track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "bam_coverage",
             bamcoverage.path, bin_size, norm, bc.extra.para, coverage_gr)
         }
       }
@@ -173,12 +190,12 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
       stop("To visualize single nucleotide, please use bam file!")
     } else {
       if (cores == 1) {
-        track_list <- lapply(track_files, import_txt)
+        track_list <- lapply(track_files, "ggcoverage" %:::% "import_txt")
       } else {
         BiocParallel::register(BiocParallel::MulticoreParam(workers = cores),
                                default = TRUE)
         track_list <- BiocParallel::bplapply(
-          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = ggcoverage:::import_txt)
+          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "import_txt")
       }
     }
   }
@@ -241,6 +258,13 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
 
 #' Copied the prepare function from ggcoverage and made some small changes.
 #' Note, that extend is in nucleotides while padding is in genes.
+#'
+#' @param gr Input grange
+#' @param region_string String describing the chromosome(s) of interest.
+#' @param gene_name Specific gene of interest.
+#' @param wanted_type mcols type of interest.
+#' @param name_column mcols column containing the gene names.
+#' @param extend Number of nucleotides to expand the resulting region.
 ggcoverage_prepare <- function(gr, region_string = NULL, gene_name = "HNRNPC",
                                wanted_type = "gene",
                                name_column = "gene_name", extend = 2000) {
@@ -262,7 +286,7 @@ ggcoverage_prepare <- function(gr, region_string = NULL, gene_name = "HNRNPC",
     gr_info <- gr %>%
       as.data.frame() %>%
       dplyr::filter(type == wanted_type)
-    wanted_rows <- gr_info[, gene_name_column] == gene_name
+    wanted_rows <- gr_info[, name_column] == gene_name
     used_info <- gr_info[wanted_rows, ]
     region_chr <- as.character(used_info[["seqnames"]])
     region_start <- used_info[["start"]]

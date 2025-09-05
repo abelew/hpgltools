@@ -14,18 +14,14 @@ NULL
 #' all_pairwise() from a series of booleans into a simpler list and
 #' checks that the elements have some data that may be used.
 #'
-#' @param apr The result from all_pairwise()
-#' @param basic The user wants the basic analysis, let us see if we
-#'  can provide it here.
-#' @param deseq The user wants DESeq2.
-#' @param ebseq The user wants EBSeq.
-#' @param edger The user wants EdgeR.
-#' @param dream The user wants the variancePartition method.
-#' @param limma The user wants limma.
-#' @param noiseq The user wants NoiSeq.
+#' @param includes List of methods desired
+#' @param apr Input pairwise result, not always needed.
+#' @param methods In a few place I use a list called methods instead of includes,
+#'  this should be removed.
+#' @param ... Extra args, currently ignored.
 #' @return List containing TRUE/FALSE for each method desired,
 #'  depending on if we actually have the relevant data.
-check_includes <- function(includes = NULL, apr = NULL, ...) {
+check_includes <- function(includes = NULL, apr = NULL, methods = NULL, ...) {
   arglist <- list(...)
   final <- list()
   if (is.null(includes)) {
@@ -38,7 +34,7 @@ check_includes <- function(includes = NULL, apr = NULL, ...) {
       final[[char]] <- TRUE
     }
   }
-  if (!is.null(arglist[["methods"]])) {
+  if (!is.null(methods)) {
     if (!is.null(methods[["basic"]])) {
       final[["basic"]] <- methods[["basic"]]
     }
@@ -98,8 +94,6 @@ check_includes <- function(includes = NULL, apr = NULL, ...) {
     warning("I changed ebseq_pairwise for the new bioc release, it needs >= 3.18.")
     final[["ebseq"]] <- FALSE
   }
-
-
   return(final)
 }
 
@@ -216,11 +210,11 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## checking for a deseq or limma model should suffice.
   if (!is.null(apr[["deseq"]][["model_string"]])) {
     model_used <- apr[["deseq"]][["model_string"]]
-  } else if (!is.null(limma[["model_string"]])) {
+  } else if (!is.null(apr[["limma"]][["model_string"]])) {
     model_used <- apr[["limma"]][["model_string"]]
   }
   ## A common request is to have the annotation data added to the table.  Do that here.
-  annot_df <- fData(apr[["input"]])
+  annot_df <- rowData(apr[["input"]])
   if (!is.null(extra_annot)) {
     annot_df <- merge(annot_df, extra_annot, by = "row.names", all.x = TRUE)
     rownames(annot_df) <- annot_df[["Row.names"]]
@@ -1584,7 +1578,7 @@ extract_abundant_genes <- function(pairwise, according_to = "deseq", n = 100,
   for (according in names(abundant_lists)) {
     for (coef in wanted_coefficients) {
       sheetname <- glue("{according}_high_{coef}")
-      annotations <- fData(pairwise[["input"]])
+      annotations <- rowData(pairwise[["input"]])
       high_abundances <- abundant_lists[[according]][["high"]][[coef]]
       kept_annotations <- names(high_abundances)
       kept_idx <- rownames(annotations) %in% kept_annotations
@@ -2857,7 +2851,8 @@ write_de_table <- function(data, type = "limma", coef = NULL, table_type = "cont
   }
   annot <- NULL
   if (!is.null(data[["input_data"]])) {
-    annot <- fData(data[["input_data"]])
+
+    annot <- rowData(data[["input_data"]])
   }
 
   xlsx <- init_xlsx(excel)
@@ -2972,7 +2967,7 @@ write_sig_legend <- function(wb) {
 #' @param wb workbook object.
 #' @param apr Pairwise result.
 write_sample_design <- function(wb, apr) {
-  meta_df <- pData(apr[["input"]])
+  meta_df <- colData(apr[["input"]])
   xls_meta_result <- write_xlsx(wb = wb, data = meta_df,
                                 sheet = "metadata", title = "Experiment metadata.")
   return(xls_meta_result)

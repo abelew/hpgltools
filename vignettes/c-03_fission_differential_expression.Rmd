@@ -101,9 +101,9 @@ meta[["batch"]] <- meta[["replicate"]]
 meta[["sample.id"]] <- rownames(meta)
 ## Grab the count data
 fission_data <- fission@assays[["data"]][["counts"]]
-## This will make an experiment superclass called 'expt' and it contains
+## This will make an experiment superclass called 'se' and it contains
 ## an ExpressionSet along with any arbitrary additional information one might want to include.
-## Along the way it writes a Rdata file which is by default called 'expt.Rdata'
+## Along the way it writes a Rdata file which is by default called 'se.Rdata'
 fission_se <- create_se(metadata = meta,
                         count_dataframe = fission_data,
                         gene_info = annotations)
