@@ -110,13 +110,7 @@ check_includes <- function(includes = NULL, apr = NULL, methods = NULL, ...) {
 #'  genes.
 #' @param adjp Perhaps you do not want the adjusted p-values for
 #'  plotting?
-#' @param include_limma Include limma analyses in the table?
-#' @param include_deseq Include deseq analyses in the table?
-#' @param include_edger Include edger analyses in the table?
-#' @param include_ebseq Include ebseq analyses in the table?
-#' @param include_basic Include my stupid basic logFC tables?
-#' @param include_noiseq Include results from NoiSeq?
-#' @param include_dream Include results from the variancePartition 'dream' method?
+#' @param includes List comprised of the set of analyses to include.
 #' @param add_plots Add plots to the end of the sheets with expression values?
 #' @param loess Add time intensive loess estimation to plots?
 #' @param plot_dim Number of inches squared for the plot if added.
@@ -2416,13 +2410,7 @@ print_ups_downs <- function(upsdowns, wb, excel_basename, according = "limma",
 #' @param excel_basename Where to write it
 #' @param plot_dim Default plot size.
 #' @param apr The all_pairwise() result.
-#' @param basic Basic data
-#' @param deseq The deseq result, which is redundant.
-#' @param dream The result from varpart::dream
-#' @param ebseq The ebseq result, which is redundant.
-#' @param edger The edger result, which is redundant.
-#' @param limma The limma result, which is redundant.
-#' @param noiseq Noiseq results.
+#' @param includes List of methods to include in the legend.
 #' @param includes List of booleans defining which methods to examine.
 #' @param padj_type P-adjustment employed.
 #' @param fancy Write fancy plots with the xlsx file?
@@ -3415,7 +3403,5 @@ write_upset_groups <- function(retlist, which = "all", excel = "excel/test.xlsx"
   save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
   return(datum_subsets)
 }
-
-
 
 ## EOF

@@ -16,17 +16,19 @@ gr_from_to(
 )
 }
 \arguments{
-\item{gr}{Input grange}
+\item{gr}{Input grange.}
 
-\item{from}{Starting point}
+\item{from}{Starting point.}
 
-\item{to}{Ending point}
+\item{to}{Ending point.}
 
-\item{column}{What mcol column to use to extract IDs}
+\item{column}{What mcol column to use to extract IDs.}
 
-\item{type_column}{Use this feature type}
+\item{type_column}{Use this feature type.}
 
-\item{padding_start}{Add this many genes as padding to the grange before the start}
+\item{type}{Type of entries from which to create the granges.}
+
+\item{padding_start}{Add this many genes as padding to the grange before the start.}
 
 \item{padding_end}{Add this many genes as padding to the grange after the end.}
 }

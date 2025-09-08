@@ -5,7 +5,7 @@
 \title{Collect variants associated with specific conditions.}
 \usage{
 get_snp_sets(
-  snp_expt,
+  snp_exp,
   factor = "pathogenstrain",
   stringency = NULL,
   do_save = FALSE,
@@ -14,7 +14,7 @@ get_snp_sets(
 )
 }
 \arguments{
-\item{snp_expt}{variant collection.}
+\item{snp_exp}{variant collection.}
 
 \item{factor}{metadata factor}
 

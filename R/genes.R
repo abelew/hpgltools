@@ -2,7 +2,7 @@
 #'
 #' @param ... Parameters passed to subset_genes().
 #' @export
-exclude_genes_expt <- function(...) {
+exclude_genes <- function(...) {
   message("Note, I renamed this to subset_genes().")
   subset_genes(...)
 }
@@ -13,7 +13,7 @@ exclude_genes_expt <- function(...) {
 #' gene and sample.  Also those methods lead to shenanigans when I want to know
 #' what happened to the data over the course of the subset.
 #'
-#' @param expt Expressionset containing expt object.
+#' @param input Expressionset containing exp object.
 #' @param column fData column to use for subsetting.
 #' @param method Either remove explicit rows, or keep them.
 #' @param ids Specific IDs to exclude.
@@ -40,6 +40,16 @@ subset_genes <- function(input, column = "txtype", method = "remove", ids = NULL
   message("Generic gene subset function.")
 }
 
+#' FIXME: Redo this with S4. Subset a SE bu genes.
+#'
+#' @param se SummarizedExperiment from which to remove some genes..
+#' @param column fData column to use for subsetting.
+#' @param method Either remove explicit rows, or keep them.
+#' @param ids Specific IDs to exclude.
+#' @param warning_cutoff Print the sample IDs for anything which has less than this percent left.
+#' @param meta_column Save the amount of data lost to this metadata column when not null.
+#' @param patterns Character list of patterns to remove/keep
+#' @param ... Extra arguments are passed to arglist, currently unused.#'
 subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL,
                             warning_cutoff = 90, meta_column = NULL,
                             patterns = c("snRNA", "tRNA", "rRNA"), ...) {
@@ -93,7 +103,7 @@ subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL
     txinfo(se) <- tximport_info
   }
 
-  message("remove_genes_expt(), before removal, there were ",
+  message("remove_genes_exp(), before removal, there were ",
           nrow(rowData(orig)), " genes, now there are ",
           nrow(rowData(se)), ".")
   all_tables <- assay(orig)
@@ -135,7 +145,7 @@ setMethod(
   definition = function(input, column = "txtype", method = "remove", ids = NULL,
                         warning_cutoff = 90, meta_column = NULL,
                         patterns = c("snRNA", "tRNA", "rRNA"), ...) {
-    subset_genes_expt(input, column = column, method = method, ids = ids,
+    subset_genes(input, column = column, method = method, ids = ids,
                       warning_cutoff = warning_cutoff, meta_column = meta_column,
                       patterns = patterns, ...)
   })

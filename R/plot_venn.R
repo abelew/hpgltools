@@ -11,7 +11,6 @@
 #'  the label from the center of each circle.
 #' @return Two element list containing the venneuler data and the plot.
 #' @seealso [venneuler]
-#' @importFrom venneuler venneuler
 #' @export
 plot_fun_venn <- function(ones = c(), twos = c(), threes = c(),
                           fours = c(), fives = c(), factor = 0.9) {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/se.R
 \name{make_pombe_se}
 \alias{make_pombe_se}
-\title{Analagous function to make_pombe_expt()}
+\title{Create a default summarized experiment using the publicly available fission dataset.}
 \usage{
 make_pombe_se(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 }
@@ -12,5 +12,5 @@ make_pombe_se(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 \item{host}{ensembl host to query}
 }
 \description{
-Analagous function to make_pombe_expt()
+Create a default summarized experiment using the publicly available fission dataset.
 }

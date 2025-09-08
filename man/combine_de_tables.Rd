@@ -51,6 +51,8 @@ genes.}
 \item{adjp}{Perhaps you do not want the adjusted p-values for
 plotting?}
 
+\item{includes}{List comprised of the set of analyses to include.}
+
 \item{add_plots}{Add plots to the end of the sheets with expression values?}
 
 \item{loess}{Add time intensive loess estimation to plots?}
@@ -107,20 +109,6 @@ plots.}
 \item{scale_p}{Scale the p-value in order to allow direct comparisons to dream.}
 
 \item{...}{Extra arguments passed to plotters etc.}
-
-\item{include_limma}{Include limma analyses in the table?}
-
-\item{include_deseq}{Include deseq analyses in the table?}
-
-\item{include_edger}{Include edger analyses in the table?}
-
-\item{include_ebseq}{Include ebseq analyses in the table?}
-
-\item{include_basic}{Include my stupid basic logFC tables?}
-
-\item{include_noiseq}{Include results from NoiSeq?}
-
-\item{include_dream}{Include results from the variancePartition 'dream' method?}
 }
 \value{
 Table combining limma/edger/deseq outputs.

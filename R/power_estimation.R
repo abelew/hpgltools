@@ -264,14 +264,23 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
       "p.DE" = p,
       "sim.seed" = as.numeric(Sys.time()),
       "design" = "2grp")
+    ## Note to self when this fails, I replaced the unbound variable 'used'
+    ## with the counter 'd' in the hopes that it will work out
+    ## it probably will not and I will need to trace this and find
+    ## the correct variable; whatever it is, it will need to evaluate
+    ## to the name of the contrast for each iteration of run.edger
+    ## There is a decent chance that d is in fact the correct variable
+    ## but until I try it out I will not know; and I think proper
+    ## is kind of dumb, so I am not going to spend that time until/unless
+    ## I need to.
     if (de_method == "edger") {
-      simulation_options[["lBaselineExpr"]] <- datum[["lrt"]][[used]][["AveLogCPM"]]
-      simulation_options[["lOD"]] = log2(datum[["lrt"]][[used]][["dispersion"]])
-      simulation_options[["lfc"]] = datum[["all_tables"]][[used]][["logFC"]]
+      simulation_options[["lBaselineExpr"]] <- datum[["lrt"]][[d]][["AveLogCPM"]]
+      simulation_options[["lOD"]] = log2(datum[["lrt"]][[d]][["dispersion"]])
+      simulation_options[["lfc"]] = datum[["all_tables"]][[d]][["logFC"]]
     } else {
-      simulation_options[["lBaselineExpr"]] = tables[[used]][["baseMean"]]
-      simulation_options[["lOD"]] = tables[[used]][["lfcSE"]]
-      simulation_options[["lfc"]] = tables[[used]][["logFC"]]
+      simulation_options[["lBaselineExpr"]] = tables[[d]][["baseMean"]]
+      simulation_options[["lOD"]] = tables[[d]][["lfcSE"]]
+      simulation_options[["lfc"]] = tables[[d]][["logFC"]]
     }
 
     simulation_result <- my_runsims(Nreps = reps,
@@ -439,21 +448,6 @@ print.proper_estimate <- function(x, ...) {
 #' @export
 update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 
-#' Another hidden function from PROPER
-#'
-#' @param dat Input data
-#' @importFrom edgeR
-#'  DGEList calcNormFactors estimateCommonDisp estimateTagwiseDisp
-#'  exactTest topTags
-run.edgeR <- "PROPER" %:::% "run.edgeR"
-
-#' PROPER uses this function privately, but should not.
-#'
-#' @param dat Input data
-#' @importFrom DESeq2 DESeqDataSetFromMatrix results
-#' @importFrom S4Vectors DataFrame
-run.DESeq2 <- "PROPER" %:::% "run.DESeq2"
-
 #' A version of PROPER:::runsims which is (hopefully) a little more robust.
 #'
 #' When I was testing PROPER, it fell down mysteriously on a few occasions.  The
@@ -508,13 +502,13 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
       this.X.valid <- this.X[ix.valid, , drop = FALSE]
       data0 <- list(counts = this.X.valid, designs = this.design)
       if (DEmethod == "edgeR") {
-        res1 <- run.edgeR(data0)
+        res1 <- proper_run_edgeR(data0)
       }
       if (DEmethod == "DSS") {
-        res1 <- run.DESeq2(data0)
+        res1 <- proper_run_dss(data0)
       }
       if (DEmethod == "DESeq2") {
-        res1 <- run.DESeq2(data0)
+        res1 <- proper_run_deseq2(data0)
       }
       pval <- fdr <- rep(1, nrow(this.X))
       X.bar1 <- rep(0, nrow(this.X))
@@ -539,4 +533,48 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
     "Nreps2" = Nreps2,
     "sim.opts" = sim.opts)
   return(retlist)
+}
+
+#' Stealing the hiddent function run.deseq2 from PROPER.
+#'
+#' @param dat Input data.
+#' @importFrom S4Vectors DataFrame
+proper_run_deseq2 <- function(dat) {
+  cond <- factor(dat$designs)
+  dds <- DESeq2::DESeqDataSetFromMatrix(dat$counts, DataFrame(cond), ~cond)
+  dds <- DESeq2::DESeq(dds, quiet = TRUE)
+  res <- DESeq2::results(dds)
+  pval <- res$pvalue
+  pval[is.na(pval)] <- 1
+  fdr <- res$padj
+  fdr[is.na(fdr)] <- 1
+  ix <- sort(pval, index.return = TRUE)$ix
+  result <- data.frame(geneIndex = ix, pval = pval[ix], fdr = fdr[ix])
+  res <- result[order(result$geneIndex), ]
+  res
+}
+
+#' Also stealing a copy of run.edgeR
+#'
+#' @param dat Input data
+proper_run_edger <- function(dat) {
+  d <- edgeR::DGEList(counts = dat$counts, group = dat$designs)
+  d <- edgeR::calcNormFactors(d)
+  d <- edgeR::estimateCommonDisp(d)
+  d <- edgeR::estimateTagwiseDisp(d)
+  fit.edgeR <- edgeR::exactTest(d)
+  pval.edgeR <- fit.edgeR$table$PValue
+  a <- edgeR::topTags(fit.edgeR, n = nrow(dat$counts))
+  ix <- sort(fit.edgeR$table$PValue, index.return = TRUE)$ix
+  result <- data.frame(geneIndex = ix, pval = a$table$PValue,
+                       fdr = a$table$FDR)
+  res <- result[order(result$geneIndex), ]
+  res
+}
+
+#' DSS is no longer maintained, just call edgeR.
+#'
+#' @param dat Input data.
+proper_run_dss <- function(dat) {
+  proper_run_edger(dat)
 }

@@ -19,6 +19,7 @@
 #' @param first_col Name of the first chromosome.
 #' @param second_col Name of the second chromosome.
 #' @param color Color of the chromosomes.
+#' @param color_alpha Make the color transparent?
 #' @param radius Outer radius at which to add the arcs.
 #' @param thickness Integer thickness of the arcs.
 #' @param ribbon Print as a ribbon?
@@ -369,6 +370,8 @@ circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
 #' @param width Radial width of each tile.
 #' @param spacing Distance between outer, inner, and inner to whatever follows.
 #' @param df_merge_column Merge the annotations/data on this columns.
+#' @param color_alpha Make the color transparent?
+#' @param fill_alpha Make the fill transparent?
 #' @return Radius after adding the histogram and the spacing.
 #' @export
 circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
@@ -502,6 +505,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
 #' @param band_url Provide a url for making these imagemaps?
 #' @param fill Fill in the strokes?
 #' @param stroke_color What color?
+#' @param stroke_alpha Make the stroke transparent?
 #' @param show_bands Show the bands for the ideogram?
 #' @param fill_bands and fill them in?
 #' @param thickness How thick to color the lines
@@ -510,6 +514,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
 #' @param spacing_default How much space between elements.
 #' @param spacing_break Space between breaks.
 #' @param fill_color What color to fill
+#' @param fill_alpha Make the fill transparent?
 #' @param radius Where on the circle to put them
 #' @param radius_padding How much to pad between radii.
 #' @param label_size How large to make the labels in px.
@@ -675,6 +680,8 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 #'  arbitrary dataframe of other annotation information.
 #' @param colname Name of the column with the data of interest.
 #' @param basename Location to write the circos data (usually cwd).
+#' @param axis_color Add a color on the axes?
+#' @param axis_thickness Define the axis thickness.
 #' @param color Color of the plotted data.
 #' @param fill_color Guess
 #' @param fill_under The circos histogram fill under parameter
@@ -685,6 +692,9 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 #' @param width Radial width of each tile.
 #' @param spacing Distance between outer, inner, and inner to whatever follows.
 #' @param df_merge_column Merge the annotations/data on this columns.
+#' @param color_alpha Make the color transparent?
+#' @param fill_alpha Make the fill transparent?
+#' @param gap Define the gap between lines.
 #' @return Radius after adding the histogram and the spacing.
 #' @export
 circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",

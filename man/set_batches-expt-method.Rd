@@ -6,6 +6,13 @@
 \usage{
 \S4method{set_batches}{expt}(exp, fact, ids = NULL)
 }
+\arguments{
+\item{exp}{Input expt}
+
+\item{fact}{Factor used to set the batches}
+
+\item{ids}{IDs to set}
+}
 \description{
 The following method should disappear soon.
 }

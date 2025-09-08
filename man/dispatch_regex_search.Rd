@@ -51,6 +51,10 @@ outputs if this changes, but for the moment I am sort of assuming
 
 \item{type}{Make explicit the type of data (genome/rRNA/Tx/etc).}
 
+\item{backup_search}{A secondary search for when I change stuff.}
+
+\item{backup_replace}{A secondary replace for when I change stuff.}
+
 \item{...}{Used to pass extra variables to glue for finding files.}
 }
 \description{

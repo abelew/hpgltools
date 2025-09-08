@@ -39,6 +39,8 @@ file of interest.}
 \item{tag}{And this}
 
 \item{verbose}{Print diagnostic information while running?}
+
+\item{...}{Extra arguments passed through, not currently used.}
 }
 \description{
 Pull raw MD5 sums into the metadata sheet.

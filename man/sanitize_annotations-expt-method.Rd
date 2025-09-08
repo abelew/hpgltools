@@ -18,6 +18,8 @@
 )
 }
 \arguments{
+\item{input}{Input expressionset.}
+
 \item{columns}{Set of columns to sanitize, otherwise all of them.}
 
 \item{na_value}{Fill in NA with this.}
@@ -36,8 +38,6 @@ this tries out as.factor and sees if the number of levels is silly.}
 \item{numbers}{Sanitize number formats (e.g. 1.000.000,0 vs. 1,000,000.0)}
 
 \item{numeric}{Set columns to numeric when possible?}
-
-\item{expt}{Input expressionset.}
 }
 \description{
 Given an expressionset, sanitize the gene information data.

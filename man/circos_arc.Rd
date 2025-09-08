@@ -29,6 +29,8 @@ circos_arc(
 
 \item{color}{Color of the chromosomes.}
 
+\item{color_alpha}{Make the color transparent?}
+
 \item{radius}{Outer radius at which to add the arcs.}
 
 \item{thickness}{Integer thickness of the arcs.}

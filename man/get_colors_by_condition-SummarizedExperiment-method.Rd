@@ -7,11 +7,11 @@
 \S4method{get_colors_by_condition}{SummarizedExperiment}(exp, fact = "condition", levels = NULL)
 }
 \arguments{
+\item{exp}{Expression from which to gather colors.}
+
 \item{fact}{Use this metadata column to set the colors.}
 
 \item{levels}{When not null, colors may be set to arbitrary samples.}
-
-\item{expt}{Expression from which to gather colors.}
 }
 \value{
 List of colors by condition.

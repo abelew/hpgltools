@@ -7,14 +7,14 @@
 \S4method{conditions}{SummarizedExperiment}(exp)
 }
 \arguments{
-\item{se}{Input summarized experiment.}
+\item{exp}{Input summarized experiment.}
 }
 \description{
 Get the condition column from a se.
 }
 \examples{
 ## Use this for examples of SE attribute functions.
-
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_se.R", package = "hpgltools"))
 }

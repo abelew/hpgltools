@@ -12,6 +12,17 @@
   semantic_column = "description"
 )
 }
+\arguments{
+\item{input}{Input expt}
+
+\item{invert}{Flip the logic, e.g. keep these elements.}
+
+\item{topn}{Keep the top-n genes}
+
+\item{semantic}{Strings to search to define genes to remove.}
+
+\item{semantic_column}{Annotation column containing text to search.}
+}
 \description{
 Filter an expt
 }

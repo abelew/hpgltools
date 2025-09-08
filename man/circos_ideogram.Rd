@@ -37,6 +37,8 @@ circos_ideogram(
 
 \item{stroke_color}{What color?}
 
+\item{stroke_alpha}{Make the stroke transparent?}
+
 \item{show_bands}{Show the bands for the ideogram?}
 
 \item{fill_bands}{and fill them in?}
@@ -52,6 +54,8 @@ circos_ideogram(
 \item{spacing_break}{Space between breaks.}
 
 \item{fill_color}{What color to fill}
+
+\item{fill_alpha}{Make the fill transparent?}
 
 \item{radius}{Where on the circle to put them}
 

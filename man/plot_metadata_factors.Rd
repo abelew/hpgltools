@@ -14,6 +14,8 @@ plot_metadata_factors(
 )
 }
 \arguments{
+\item{exp}{Input dataset.}
+
 \item{column}{Currently a single, but soon multiple column(s) of metadata.}
 
 \item{second_column}{Or perhaps put other columns here.}
@@ -23,8 +25,6 @@ plot_metadata_factors(
 \item{type}{Assume a vioiln unless otherwise specified.}
 
 \item{scale}{Rescale the data?}
-
-\item{input}{Input expressionset.}
 }
 \value{
 ggplot and maybe some form of useful table.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sanitize.R
 \name{sanitize_metadata,ExpressionSet-method}
 \alias{sanitize_metadata,ExpressionSet-method}
-\title{Metadata sanitizers for an expressionset}
+\title{Given an expressionset, sanitize pData columns of interest.}
 \usage{
 \S4method{sanitize_metadata}{ExpressionSet}(
   input,
@@ -14,6 +14,28 @@
   numbers = NULL
 )
 }
+\arguments{
+\item{input}{Input metadata}
+
+\item{columns}{Set of columns to check, if left NULL, all columns
+will be molested.}
+
+\item{na_string}{Fill NA values with a string.}
+
+\item{lower}{Set everything to lowercase?}
+
+\item{punct}{Remove punctuation?}
+
+\item{spaces}{Remove any spaces in this column?}
+
+\item{numbers}{Sanitize numbers by adding a prefix character to them?}
+}
 \description{
-Metadata sanitizers for an expressionset
+I wrote this function after spending a couple of hours confused
+because one cell in my metadata said 'cure ' instead of 'cure' and
+I could not figure out why chaos reigned in my analyses.  There is
+a sister to this somewhere else which checks that the expected
+levels of a metadata factor are consistent; this is because in
+another analysis we essentially had a cell which said 'cyre' and a
+similar data explosion occurred.
 }

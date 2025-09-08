@@ -6,6 +6,15 @@
 \usage{
 \S4method{set_genenames}{SummarizedExperiment}(exp, ids = NULL, column = NULL, ...)
 }
+\arguments{
+\item{exp}{Input se}
+
+\item{ids}{IDs to change}
+
+\item{column}{Use this annotation column.}
+
+\item{...}{Extra args passed along.}
+}
 \description{
 Set the genenames of a SE
 }

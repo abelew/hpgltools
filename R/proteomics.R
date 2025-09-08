@@ -295,7 +295,6 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
 #' @param start_add Other downstream tools appear to expect some padding at the
 #'  beginning of each window.  Add that here.
 #' @return The list of metadata, scan data, etc from the mzXML file.
-#' @importFrom mzR openMSfile instrumentInfo runInfo header close
 #' @export
 extract_mzML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
                                allow_window_overlap = FALSE, start_add = 0) {
@@ -856,7 +855,6 @@ gather_masses <- function(sequence) {
 #' @param ... Additional arguments for imputation functions.
 #' @return An imputed expressionset.
 #' @seealso [MSnbase]
-#' @importFrom MSnbase impute
 #' @export
 impute_se <- function(se, filter = TRUE, p = 0.5,
                       fun = c("bpca", "knn", "QRILC", "MLE",

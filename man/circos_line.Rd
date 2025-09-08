@@ -43,6 +43,10 @@ arbitrary dataframe of other annotation information.}
 
 \item{basename}{Location to write the circos data (usually cwd).}
 
+\item{axis_color}{Add a color on the axes?}
+
+\item{axis_thickness}{Define the axis thickness.}
+
 \item{color}{Color of the plotted data.}
 
 \item{fill_color}{Guess}
@@ -62,6 +66,12 @@ arbitrary dataframe of other annotation information.}
 \item{spacing}{Distance between outer, inner, and inner to whatever follows.}
 
 \item{df_merge_column}{Merge the annotations/data on this columns.}
+
+\item{color_alpha}{Make the color transparent?}
+
+\item{fill_alpha}{Make the fill transparent?}
+
+\item{gap}{Define the gap between lines.}
 }
 \value{
 Radius after adding the histogram and the spacing.

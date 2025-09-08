@@ -7,11 +7,11 @@
 colors(exp, ...) <- value
 }
 \arguments{
+\item{exp}{Object to modify}
+
 \item{...}{extra arguments.}
 
 \item{value}{vector of colors}
-
-\item{x}{Object to modify}
 }
 \description{
 Add colors to a dataset

@@ -43,6 +43,8 @@ graphed point.}
 
 \item{cutoff}{Minimum proportion (or number) of genes below which samples might be in trouble.}
 
+\item{y_intercept}{Add a y-intercept to define 'good' coverage.}
+
 \item{...}{rawr!}
 }
 \value{

@@ -14,7 +14,7 @@ Extract library sizes.
 }
 \examples{
 ## Use this for examples of SE attribute functions.
-
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_se.R", package = "hpgltools"))
 }

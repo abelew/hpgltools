@@ -5,7 +5,7 @@
 \title{Make a summary of the observed snps by gene ID.}
 \usage{
 snps_vs_genes(
-  expt,
+  exp,
   snp_result,
   start_column = "start",
   end_column = "end",
@@ -16,7 +16,7 @@ snps_vs_genes(
 )
 }
 \arguments{
-\item{expt}{The original expressionset.}
+\item{exp}{The original expressionset.}
 
 \item{snp_result}{The result from get_snp_sets().}
 
@@ -42,10 +42,10 @@ gene.  This function attempts to answer that question.
 }
 \examples{
  \dontrun{
- expt <- create_expt(metadata, gene_information)
- snp_expt <- count_expt_snps(expt)
- snp_result <- get_snp_sets(snp_expt)
- gene_intersections <- snps_vs_genes(expt, snp_result)
+ exp <- create_se(metadata, gene_information)
+ snp_exp <- count_snps(exp)
+ snp_result <- get_snp_sets(snp_exp)
+ gene_intersections <- snps_vs_genes(exp, snp_result)
 }
 }
 \seealso{

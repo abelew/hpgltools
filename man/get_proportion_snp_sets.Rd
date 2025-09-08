@@ -5,7 +5,7 @@
 \title{Create all possible sets of variants by sample (types).}
 \usage{
 get_proportion_snp_sets(
-  snp_expt,
+  snp_exp,
   factor = "pathogenstrain",
   stringency = NULL,
   do_save = FALSE,
@@ -15,7 +15,7 @@ get_proportion_snp_sets(
 )
 }
 \arguments{
-\item{snp_expt}{Expressionset of variants.}
+\item{snp_exp}{Expressionset of variants.}
 
 \item{factor}{Use this metadata factor to split the data.}
 
@@ -46,10 +46,10 @@ chromosome for all the various categories as defined by factor.
 }
 \examples{
   \dontrun{
- expt <- create_expt(metadata, gene_information)
- snp_expt <- count_expt_snps(expt)
- snp_sets <- get_snp_sets(snp_expt, factor = "condition")
- ## This assumes a column in the metadata for the expt named 'condition'.
+ exp <- create_se(metadata, gene_information)
+ snp_exp <- count_snps(exp)
+ snp_sets <- get_snp_sets(snp_exp, factor = "condition")
+ ## This assumes a column in the metadata for the exp named 'condition'.
 }
 }
 \seealso{

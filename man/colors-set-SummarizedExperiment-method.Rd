@@ -2,23 +2,27 @@
 % Please edit documentation in R/attributes.R
 \name{colors<-,SummarizedExperiment-method}
 \alias{colors<-,SummarizedExperiment-method}
-\title{A setter to put the colors into a SummarizedExperiment.}
+\title{Infix color setter for a SE.}
 \usage{
+\S4method{colors}{SummarizedExperiment}(exp, ...) <- value
+
 \S4method{colors}{SummarizedExperiment}(exp, ...) <- value
 }
 \arguments{
+\item{exp}{A SummarizedExperiment.}
+
 \item{...}{extra args.}
 
 \item{value}{List of new colors.}
-
-\item{x}{A SummarizedExperiment.}
 }
 \description{
+Infix color setter for a SE.
+
 A setter to put the colors into a SummarizedExperiment.
 }
 \examples{
 ## Use this for examples of SE attribute functions.
-
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_se.R", package = "hpgltools"))
 }

@@ -988,10 +988,16 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   if (is.null(wb)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
-    excel_basename <<- xlsx[["basename"]]
+    excel_basename <- xlsx[["basename"]]
   }
   hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
                                textDecoration = "bold", border = "Bottom", fontSize = "30")
+
+  ## Write a sheet containing the input set of genes so we can track
+  ## what happened from beginning to end.
+  input_df <- as.data.frame(gprofiler_result[["input"]])
+  dfwrite <- write_xlsx(data = input_df, wb = wb, sheet = "input",
+                        title = glue("Input genes."))
 
   types <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
              "MIRNA", "HPA", "CORUM", "HP")

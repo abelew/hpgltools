@@ -7,7 +7,9 @@
 get_colors(exp, ...)
 }
 \arguments{
-\item{x}{Input}
+\item{exp}{Input}
+
+\item{...}{Other arguments}
 }
 \description{
 While I am struggling with S4 dispatch, here is a garbage generic.

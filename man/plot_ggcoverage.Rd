@@ -27,6 +27,8 @@ plot_ggcoverage(
 
 \item{id_column}{mcols() portion of the granges containing the gene names}
 
+\item{coverage_files}{Set of bigwig file used to define the coverage.}
+
 \item{padding}{not currently used, but add some padding to the plot}
 
 \item{span}{degree of smoothing}

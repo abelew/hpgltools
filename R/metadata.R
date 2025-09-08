@@ -83,6 +83,8 @@ guess_factors <- function(meta_df, ratio = 3) {
 #' @param fill_batch Add a batch column if there is not one?
 #' @param keep_underscore Sanitize underscores?
 #' @param sanitize Perform my various sanitizers on the data?
+#' @param condition_column conditions metadata column to be protected.
+#' @param batch_column batch metadata column to be protected.
 #' @param ... Arguments to pass to the child functions (read_csv etc).
 #' @return Metadata dataframe hopefully cleaned up to not be obnoxious.
 #' @examples
@@ -1822,6 +1824,7 @@ dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
 #' @param subtype Clean this too
 #' @param tag And this
 #' @param verbose Print diagnostic information while running?
+#' @param ... Extra arguments passed through, not currently used.
 #' @export
 dispatch_md5 <- function(meta, entry_type, input_file_spec,
                          specification, basedir = "preprocessing",
@@ -1950,6 +1953,8 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 #' @param as Coerce the output to a specific data type (numeric/character/etc).
 #' @param verbose For testing regexes.
 #' @param type Make explicit the type of data (genome/rRNA/Tx/etc).
+#' @param backup_search A secondary search for when I change stuff.
+#' @param backup_replace A secondary replace for when I change stuff.
 #' @param ... Used to pass extra variables to glue for finding files.
 dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
@@ -2176,7 +2181,7 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
 
 #' Produce plots of metadata factor(s) of interest.
 #'
-#' @param input Input expressionset.
+#' @param exp Input dataset.
 #' @param column Currently a single, but soon multiple column(s) of metadata.
 #' @param second_column Or perhaps put other columns here.
 #' @param norm_column Normalize the data?

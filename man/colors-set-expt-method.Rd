@@ -7,11 +7,11 @@
 \S4method{colors}{expt}(exp, ...) <- value
 }
 \arguments{
+\item{exp}{An x.}
+
 \item{...}{Extra args}
 
 \item{value}{List of new colors.}
-
-\item{x}{An x.}
 }
 \description{
 A setter to put the colors into an x.

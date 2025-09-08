@@ -15,6 +15,8 @@
 )
 }
 \arguments{
+\item{exp}{Input se}
+
 \item{fact}{Factor of conditions}
 
 \item{ids}{Set of ids to change.}
@@ -26,8 +28,6 @@
 \item{colors}{Set the colors as well?}
 
 \item{...}{Arbitrary arguments.}
-
-\item{se}{Input se}
 }
 \description{
 Set conditions to a se.

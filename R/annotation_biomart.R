@@ -2,20 +2,6 @@
 ## from biomart. Most of our projects use Ensembl gene IDs, thus having
 ## consistent access to the ensembl annotations is quite useful.
 
-#' Pull the dataframe from load_biomart_annotations()
-#'
-#' @param x Result from load_biomart_annotations()
-#' @param row.names Not currently used
-#' @param optional I am not sure
-#' @param ... Unused optional parameters.
-#' @importFrom BiocGenerics as.data.frame
-#' @export
-setMethod(
-  "as.data.frame", signature = signature(x = "annotations_biomart"),
-  definition = function(x, row.names = NULL, optional = FALSE, ...) {
-    as.data.frame(x[["gene_annotations"]])
-  })
-
 #' Search a mart for a usable dataset.
 #'
 #' @param mart Biomart instance to poke at in an attempt to find a dataset.
@@ -249,18 +235,18 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
 #' @example inst/examples/annotation_biomart.R
 #' @export
 load_biomart_annotations <- function(
-  species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
-  trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
-  default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
-                    "www.ensembl.org", "asia.ensembl.org"),
-  year = NULL, month = NULL, drop_haplotypes = FALSE, trydataset = NULL,
-  gene_requests = c("ensembl_gene_id", "version", "ensembl_transcript_id",
-                    "transcript_version", "description", "gene_biotype"),
-  length_requests = c("ensembl_transcript_id", "cds_length", "chromosome_name",
-                      "strand", "start_position", "end_position"),
-  gene_tx_map = TRUE, gene_id_column = "ensembl_gene_id", gene_version_column = "version",
-  tx_id_column = "ensembl_transcript_id", tx_version_column = "transcript_version",
-  symbol_columns = NULL, include_lengths = TRUE, do_load = TRUE, savefile = NULL) {
+                                     species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
+                                     trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
+                                     default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
+                                                       "www.ensembl.org", "asia.ensembl.org"),
+                                     year = NULL, month = NULL, drop_haplotypes = FALSE, trydataset = NULL,
+                                     gene_requests = c("ensembl_gene_id", "version", "ensembl_transcript_id",
+                                                       "transcript_version", "description", "gene_biotype"),
+                                     length_requests = c("ensembl_transcript_id", "cds_length", "chromosome_name",
+                                                         "strand", "start_position", "end_position"),
+                                     gene_tx_map = TRUE, gene_id_column = "ensembl_gene_id", gene_version_column = "version",
+                                     tx_id_column = "ensembl_transcript_id", tx_version_column = "transcript_version",
+                                     symbol_columns = NULL, include_lengths = TRUE, do_load = TRUE, savefile = NULL) {
 
   ## An attempt to get around 'unable to get local issuer certificate':
   ## As per: https://github.com/grimbough/biomaRt/issues/39
@@ -311,8 +297,7 @@ load_biomart_annotations <- function(
       } else {
         warning("The column ", gene_id_column, " is not in the annotations.")
       }
-  }
-
+    }
     class(retlist) <- "annotations_biomart"
     return(retlist)
   }
@@ -510,6 +495,21 @@ load_biomart_annotations <- function(
   class(retlist) <- "annotations_biomart"
   return(retlist)
 }
+setOldClass("annotations_biomart")
+
+#' Pull the dataframe from load_biomart_annotations()
+#'
+#' @param x Result from load_biomart_annotations()
+#' @param row.names Not currently used
+#' @param optional I am not sure
+#' @param ... Unused optional parameters.
+#' @importFrom BiocGenerics as.data.frame
+#' @export
+setMethod(
+  "as.data.frame", signature = signature(x = "annotations_biomart"),
+  definition = function(x, row.names = NULL, optional = FALSE, ...) {
+    as.data.frame(x[["gene_annotations"]])
+  })
 
 #' Print function for a set of annotations downloaded from biomart.
 #'

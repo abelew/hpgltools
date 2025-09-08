@@ -4,16 +4,16 @@
 \alias{[.expt}
 \title{Subset an expt}
 \usage{
-\method{[}{expt}(expt, i, j, ..., value)
+\method{[}{expt}(exp, i, j, ..., value)
 }
 \arguments{
-\item{expt}{expt to subset}
+\item{exp}{Dataset to subset}
 
 \item{i}{Set of genes to keep}
 
 \item{j}{Set of samples to keep.}
 
-\item{...}{Parameters to pass to subset_genes/subset_expt.}
+\item{...}{Parameters to pass to subset_genes/subset.}
 
 \item{value}{New subset value}
 }

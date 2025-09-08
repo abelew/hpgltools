@@ -1,5 +1,8 @@
 #' Annotation sanitizers
 #'
+#' @param input Input dataset to sanitize.
+#' @param ... Arguments passed through.
+#'
 #' @export
 setGeneric("sanitize_annotations", function(input, ...) {
   message("This function is intended to sanitize annotations for a data structure.")
@@ -11,7 +14,7 @@ setGeneric("sanitize_annotations", function(input, ...) {
 
 #' Given an expressionset, sanitize the gene information data.
 #'
-#' @param expt Input expressionset.
+#' @param input Input expressionset.
 #' @param columns Set of columns to sanitize, otherwise all of them.
 #' @param na_value Fill in NA with this.
 #' @param lower sanitize capitalization.
@@ -39,6 +42,19 @@ setMethod(
     return(expt)
   })
 
+#' Given an expressionset, sanitize the gene information data.
+#'
+#' @param input Input expressionset.
+#' @param columns Set of columns to sanitize, otherwise all of them.
+#' @param na_value Fill in NA with this.
+#' @param lower sanitize capitalization.
+#' @param punct Remove punctuation?
+#' @param factorize Convert columns to factors?  When set to 'heuristic'
+#'  this tries out as.factor and sees if the number of levels is silly.
+#' @param max_levels The definition of 'silly' above.
+#' @param spaces Allow spaces in the data?
+#' @param numbers Sanitize number formats (e.g. 1.000.000,0 vs. 1,000,000.0)
+#' @param numeric Set columns to numeric when possible?
 #' @export
 setMethod(
   "sanitize_annotations", signature = signature(input = "SummarizedExperiment"),
@@ -58,6 +74,8 @@ setMethod(
 
 #' Metadata sanitizers
 #'
+#' @param input Input datastructure
+#' @param ... Extra arguments passed along.
 #' @export
 sanitize_metadata <- function(input, ...) {
   message("This function is intended to sanitize metadata for a data structure.")
@@ -78,7 +96,7 @@ setGeneric("sanitize_metadata")
 #' another analysis we essentially had a cell which said 'cyre' and a
 #' similar data explosion occurred.
 #'
-#' @param meta Input metadata
+#' @param input Input metadata
 #' @param columns Set of columns to check, if left NULL, all columns
 #'  will be molested.
 #' @param na_value Fill NA values with a string.
@@ -173,7 +191,30 @@ setMethod(
     return(meta)
   })
 
-#' Metadata sanitizers for an expt
+#' Given an expressionset, sanitize pData columns of interest.
+#'
+#' I wrote this function after spending a couple of hours confused
+#' because one cell in my metadata said 'cure ' instead of 'cure' and
+#' I could not figure out why chaos reigned in my analyses.  There is
+#' a sister to this somewhere else which checks that the expected
+#' levels of a metadata factor are consistent; this is because in
+#' another analysis we essentially had a cell which said 'cyre' and a
+#' similar data explosion occurred.
+#'
+#' @param input Input metadata
+#' @param columns Set of columns to check, if left NULL, all columns
+#'  will be molested.
+#' @param na_string Fill NA values with a string.
+#' @param lower Set everything to lowercase?
+#' @param punct Remove punctuation?
+#' @param factorize Set some columns to factors?  If set to a vector
+#'  of length >=1, then set all of the provided columns to factors.
+#'  When set to 'heuristic', set any columns with <= max_levels
+#'  different elements to factors.
+#' @param max_levels When heuristically setting factors, use this as
+#'  the heuristic, when NULL it is the number of samples / 6
+#' @param spaces Remove any spaces in this column?
+#' @param numbers Sanitize numbers by adding a prefix character to them?
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "expt"),
@@ -190,7 +231,31 @@ setMethod(
     return(expt)
   })
 
-#' Metadata sanitizers for an expt
+#' Given an expressionset, sanitize pData columns of interest.
+#'
+#' I wrote this function after spending a couple of hours confused
+#' because one cell in my metadata said 'cure ' instead of 'cure' and
+#' I could not figure out why chaos reigned in my analyses.  There is
+#' a sister to this somewhere else which checks that the expected
+#' levels of a metadata factor are consistent; this is because in
+#' another analysis we essentially had a cell which said 'cyre' and a
+#' similar data explosion occurred.
+#'
+#' @param meta Input metadata
+#' @param columns Set of columns to check, if left NULL, all columns
+#'  will be molested.
+#' @param na_value Fill NA values with a string.
+#' @param lower Set everything to lowercase?
+#' @param punct Remove punctuation?
+#' @param factorize Set some columns to factors?  If set to a vector
+#'  of length >=1, then set all of the provided columns to factors.
+#'  When set to 'heuristic', set any columns with <= max_levels
+#'  different elements to factors.
+#' @param max_levels When heuristically setting factors, use this as
+#'  the heuristic, when NULL it is the number of samples / 6
+#' @param spaces Remove any spaces in this column?
+#' @param numbers Sanitize numbers by adding a prefix character to them?
+#' @param numeric Recast the values as numeric when possible?
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "SummarizedExperiment"),
@@ -208,7 +273,24 @@ setMethod(
     return(se)
   })
 
-#' Metadata sanitizers for an expressionset
+#' Given an expressionset, sanitize pData columns of interest.
+#'
+#' I wrote this function after spending a couple of hours confused
+#' because one cell in my metadata said 'cure ' instead of 'cure' and
+#' I could not figure out why chaos reigned in my analyses.  There is
+#' a sister to this somewhere else which checks that the expected
+#' levels of a metadata factor are consistent; this is because in
+#' another analysis we essentially had a cell which said 'cyre' and a
+#' similar data explosion occurred.
+#'
+#' @param input Input metadata
+#' @param columns Set of columns to check, if left NULL, all columns
+#'  will be molested.
+#' @param na_string Fill NA values with a string.
+#' @param lower Set everything to lowercase?
+#' @param punct Remove punctuation?
+#' @param spaces Remove any spaces in this column?
+#' @param numbers Sanitize numbers by adding a prefix character to them?
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "ExpressionSet"),
@@ -216,10 +298,12 @@ setMethod(
                         lower = TRUE, punct = TRUE, spaces = FALSE,
                         numbers = NULL) {
     exp <- input
-    old_meta <- pData(meta)
+    old_meta <- pData(input)
     new_meta <- sanitize_metadata(old_meta, columns = columns, na_string = na_string,
                                   lower = lower, punct = punct, spaces = spaces,
                                   numbers = numbers)
     pData(exp) <- new_meta
     return(exp)
   })
+
+## EOF

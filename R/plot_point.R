@@ -440,6 +440,7 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #' @param plot_legend Print a legend for this plot?
 #' @param plot_title Add a title?
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param y_intercept Add a y-intercept to define 'good' coverage.
 #' @param ... rawr!
 #' @return a ggplot2 plot of the number of non-zero genes with respect to each
 #'  library's CPM.
@@ -628,11 +629,12 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
 #' @param plot_legend Print a legend for this plot?
 #' @param plot_title Add a title?
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param y_intercept Add a y-intercept to define 'good' coverage.
 #' @param ... rawr!
 
 #' @export
 setMethod(
-  "plot_nonzero", signature = signature(data = "exp"),
+  "plot_nonzero", signature = signature(data = "expt"),
   definition = function(data, design = NULL, colors = NULL,
                         plot_labels = "repel", exp_names = NULL,
                         max_overlaps = 5, label_chars = 10,
@@ -667,6 +669,7 @@ setMethod(
 #' @param plot_legend Print a legend for this plot?
 #' @param plot_title Add a title?
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param y_intercept Add a y-intercept to define 'good' coverage.
 #' @param ... rawr!
 #' @export
 setMethod(
@@ -701,6 +704,7 @@ setMethod(
 #' @param plot_legend Print a legend for this plot?
 #' @param plot_title Add a title?
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
+#' @param y_intercept Add a y-intercept to define 'good' coverage.
 #' @param ... rawr!
 #' @export
 setMethod(
@@ -720,6 +724,15 @@ setMethod(
                  y_intercept = y_intercept, ...)
   })
 
+plot_pairwise_ma <- function(data, ...) {
+  message("This function is intended to set the colors of a dataset.")
+  message("It was passed an object of type ", class(data),
+          " and does not know what to do.")
+  standardGeneric("plot_pairwise_ma")
+  return(exp)
+}
+setGeneric("plot_pairwise_ma")
+
 #' Plot all pairwise MA plots in an experiment.
 #'
 #' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
@@ -734,61 +747,62 @@ setMethod(
 #' @seealso [affy::ma.plot()]
 #' @example inst/examples/plot_point.R
 #' @export
-plot_pairwise_ma <- function(data, colors = NULL, design = NULL,
-                             log = NULL, ...) {
-  data <- as.data.frame(data)
-  na_idx <- is.na(data)
-  if (sum(na_idx) > 0) {
-    warning("There are ", sum(na_idx), " na value, setting them to 0.")
-    data[na_idx] <- 0
-  }
-
-  plot_list <- list()
-  for (c in seq(from = 1, to = length(colnames(data)) - 1)) {
-    nextc <- c + 1
-    for (d in seq(from = nextc, to = length(colnames(data)))) {
-      first <- as.numeric(data[, c])
-      second <- as.numeric(data[, d])
-      if (max(first) > 1000) {
-        if (is.null(log)) {
-          message("I suspect you want to set log = TRUE for this.")
-          message("In fact, I am so sure, I am doing it now.")
-          message("If I am wrong, set log = FALSE, but I'm not.")
-          log <- TRUE
-        }
-      } else if (max(first) < 80) {
-        if (!is.null(log)) {
-          message("I suspect you want to set log = FALSE for this.")
-          message("In fact, I am so  sure, I am doing it now.")
-          message("If I am wrong, set log = TRUE.")
-          log <- FALSE
-        }
-      }
-      firstname <- colnames(data)[c]
-      secondname <- colnames(data)[d]
-      name <- glue("{firstname}_{secondname}")
-      if (isTRUE(log)) {
-        first <- log2(first + 1.0)
-        second <- log2(second + 1.0)
-      }
-      m <- first - second
-      a <- (first + second) / 2
-
-      tmp_file <- tmpmd5file(pattern = "ma", fileext = ".png")
-      this_plot <- png(filename = tmp_file)
-      controlled <- dev.control("enable")
-      affy::ma.plot(A = a, M = m, plot.method = "smoothScatter",
-                    show.statistics = TRUE, add.loess = TRUE)
-      title(glue("MA of {firstname} vs {secondname}."))
-      plot_list[[name]] <- grDevices::recordPlot()
-      dev.off()
-      removed <- suppressWarnings(file.remove(tmp_file))
-      removed <- unlink(dirname(tmp_file))
-
+setMethod(
+  "plot_pairwise_ma", signature(data = "data.frame"),
+  definition = function(data, colors = NULL, design = NULL,
+                        log = NULL, ...) {
+    na_idx <- is.na(data)
+    if (sum(na_idx) > 0) {
+      warning("There are ", sum(na_idx), " na value, setting them to 0.")
+      data[na_idx] <- 0
     }
-  }
-  return(plot_list)
-}
+
+    plot_list <- list()
+    for (c in seq(from = 1, to = length(colnames(data)) - 1)) {
+      nextc <- c + 1
+      for (d in seq(from = nextc, to = length(colnames(data)))) {
+        first <- as.numeric(data[, c])
+        second <- as.numeric(data[, d])
+        if (max(first) > 1000) {
+          if (is.null(log)) {
+            message("I suspect you want to set log = TRUE for this.")
+            message("In fact, I am so sure, I am doing it now.")
+            message("If I am wrong, set log = FALSE, but I'm not.")
+            log <- TRUE
+          }
+        } else if (max(first) < 80) {
+          if (!is.null(log)) {
+            message("I suspect you want to set log = FALSE for this.")
+            message("In fact, I am so  sure, I am doing it now.")
+            message("If I am wrong, set log = TRUE.")
+            log <- FALSE
+          }
+        }
+        firstname <- colnames(data)[c]
+        secondname <- colnames(data)[d]
+        name <- glue("{firstname}_{secondname}")
+        if (isTRUE(log)) {
+          first <- log2(first + 1.0)
+          second <- log2(second + 1.0)
+        }
+        m <- first - second
+        a <- (first + second) / 2
+
+        tmp_file <- tmpmd5file(pattern = "ma", fileext = ".png")
+        this_plot <- png(filename = tmp_file)
+        controlled <- dev.control("enable")
+        affy::ma.plot(A = a, M = m, plot.method = "smoothScatter",
+                      show.statistics = TRUE, add.loess = TRUE)
+        title(glue("MA of {firstname} vs {secondname}."))
+        plot_list[[name]] <- grDevices::recordPlot()
+        dev.off()
+        removed <- suppressWarnings(file.remove(tmp_file))
+        removed <- unlink(dirname(tmp_file))
+
+      }
+    }
+    return(plot_list)
+  })
 
 #' Plot all pairwise MA plots in an experiment.
 #'

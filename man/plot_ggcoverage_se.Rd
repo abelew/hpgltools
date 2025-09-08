@@ -35,14 +35,13 @@ plot_ggcoverage_se(
   bg_color = "white",
   gene_color_by = "strand",
   gene_colors = NULL,
-  cores = NULL,
   facet = TRUE,
   y_scale = NULL
 )
 }
 \arguments{
 \item{se}{Input summarized experiment, it should have a full genome
-GRanges and colors}
+GRanges and colors.}
 
 \item{from}{Starting gene region's name or number.}
 
@@ -66,23 +65,23 @@ granges.}
 
 \item{smoothed}{Smooth the coverage data? (currently only loess)}
 
-\item{ribbon}{Add a ribbon to the smoothing (currently disabled)}
+\item{ribbon}{Add a ribbon to the smoothing. (currently disabled)}
 
-\item{cov_color}{Specify colors for the coverage lines}
+\item{cov_color}{Specify colors for the coverage lines.}
 
-\item{y_max}{Specify a y-maximum}
+\item{y_max}{Specify a y-maximum.}
 
-\item{bin_size}{Specify the coverage bin size}
+\item{bin_size}{Specify the coverage bin size.}
 
 \item{hide_bars}{Hide the coverage bars when smoothing the data?}
 
 \item{feature_type_column}{Use this rowData column to extract the
 feature types.}
 
-\item{feature_type}{Use this type for creating the GR}
+\item{feature_type}{Use this type for creating the GR.}
 
 \item{meta_type_column}{Use this colData column to get the
-ggcoverage Type column}
+ggcoverage Type column.}
 
 \item{feature_name_column}{Use this rowData column to fill in the
 gene names below the gene arrows.}
@@ -91,22 +90,26 @@ gene names below the gene arrows.}
 
 \item{meta_group_column}{Use this colData column to group samples.}
 
-\item{overlap_type}{Define the behavior of the arrows/row}
+\item{overlap_type}{Define the behavior of the arrows/row.}
 
 \item{overlap_gap}{Modify the arrow overlaps with this.}
 
-\item{arrow_type}{Either closed or open}
+\item{arrow_type}{Either closed or open.}
 
 \item{arrow_gap}{Not sure what this does.}
 
 \item{label_column}{FIXME: perhaps redundant with feature_name_column?}
 
-\item{bg_color}{Define the plot background color}
+\item{bg_color}{Define the plot background color.}
 
 \item{gene_color_by}{Play with the gene arrow colors (I want to
-modify ggcoverage to allow me to color by FC status)}
+modify ggcoverage to allow me to color by FC status).}
 
 \item{gene_colors}{specify factor of gene colors.}
+
+\item{facet}{Use a specifc factor to facet the data.}
+
+\item{y_scale}{Set a specifc y-axis scale.}
 }
 \description{
 ggcoverage is really cool, but has some hard-coded values which are

@@ -5,34 +5,34 @@
 \title{Look for only the variant positions in a subset of genes.}
 \usage{
 snp_subset_genes(
-  expt,
-  snp_expt,
-  start_col = "start",
-  end_col = "end",
-  expt_name_col = "chromosome",
-  snp_name_col = "chromosome",
-  snp_start_col = "position",
-  expt_gid_column = "gid",
+  exp,
+  snp_exp,
+  start_column = "start",
+  end_column = "end",
+  exp_name_column = "chromosome",
+  snp_name_column = "chromosome",
+  snp_start_column = "position",
+  exp_gid_column = "gid",
   genes = c("LPAL13_120010900", "LPAL13_340013000", "LPAL13_000054100",
     "LPAL13_140006100", "LPAL13_180018500", "LPAL13_320022300")
 )
 }
 \arguments{
-\item{expt}{Initial expressionset.}
+\item{exp}{Initial expressionset.}
 
-\item{snp_expt}{Variant position expressionset.}
+\item{snp_exp}{Variant position expressionset.}
 
-\item{start_col}{Metadata column with the start positions for each gene.}
+\item{start_column}{Metadata column with the start positions for each gene.}
 
-\item{end_col}{Metadata column with the end of the genes.}
+\item{end_column}{Metadata column with the end of the genes.}
 
-\item{expt_name_col}{Metadata column with the chromosome names.}
+\item{exp_name_column}{Metadata column with the chromosome names.}
 
-\item{snp_name_col}{Ditto for the snp_expressionset.}
+\item{snp_name_column}{Ditto for the snp_expressionset.}
 
-\item{snp_start_col}{Metadata column containing the variant positions.}
+\item{snp_start_column}{Metadata column containing the variant positions.}
 
-\item{expt_gid_column}{ID column for the genes.}
+\item{exp_gid_column}{ID column for the genes.}
 
 \item{genes}{Set of genes to cross reference.}
 }

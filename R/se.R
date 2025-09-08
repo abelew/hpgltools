@@ -13,6 +13,7 @@
 #' @param include_type Used to specify types of genes/annotations to use.
 #' @param count_source Explicitly specify the method used to create the text table.
 #' @param countdir (deprecated) Directory containing count tables.
+#' @param include_fasta Include a fasta file.
 #' @param include_gff Keep a copy of the gff with the data?
 #' @param file_column Metadata column containing the counts for each sample.
 #' @param file_type Force a specific source of count data instead
@@ -31,6 +32,9 @@
 #' @param round Round the data if/when it is not integer?
 #' @param tx_gene_map When using tximport, use this to convert from
 #'  transcripts to genes.
+#' @param species Use the species shortname to find gff/fasta files more easily.
+#' @param condition_column Use a specific column in the metadata as the condition factor.
+#' @param batch_column Use a specific column in the metadata as the batch factor.x
 #' @param ... Extra options.
 #' @importFrom SummarizedExperiment SummarizedExperiment metadata<- assays
 #' @importFrom S4Vectors metadata
@@ -358,7 +362,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## I moved the color choices to this area pretty late in the process to make sure that
   ## there was time to remove unused samples.
   ## Make sure we have a viable set of colors for plots
-  chosen_colors <- generate_expt_colors(sample_definitions, sample_colors = sample_colors,
+  chosen_colors <- generate_se_colors(sample_definitions, sample_colors = sample_colors,
                                         chosen_palette = palette)
 
   requireNamespace("SummarizedExperiment")
@@ -442,7 +446,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   return(se)
 }
 
-#' Analagous function to make_pombe_expt()
+#' Create a default summarized experiment using the publicly available fission dataset.
 #'
 #' @param annotation Include annotations?
 #' @param host ensembl host to query
@@ -607,6 +611,10 @@ subset_se <- function(se, subset = NULL, ids = NULL,
 }
 
 #' Merge gene annotations and count tables when the gene_info is a data table/dataframe
+#'
+#' @param gene_info Table of gene annotations.
+#' @param all_count_tables Matrix of expression data.
+#' @param tx_gene_map Map of transcripts to genes.
 merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = NULL) {
   ## It turns out that loading the annotation information from orgdb/etc may not set the
   ## row names. Perhaps I should do that there, but I will add a check here, too.
@@ -794,6 +802,72 @@ sanitize_se <- function(se, keep_underscore = TRUE, factors = c("condition", "ba
     colData(se)[[fact]] <- end_fact
   }
   return(se)
+}
+
+#' Set up default colors for a data structure containing usable metadata
+#'
+#' In theory this function should be useful in any context when one has a blob
+#' of metadata and wants to have a set of colors.  Since my taste is utterly
+#' terrible, I rely entirely upon RColorBrewer, but also allow one to choose
+#' his/her own colors.
+#'
+#' @param sample_definitions Metadata, presumably containing a 'condition'
+#'  column.
+#' @param cond_column Which column in the sample data provides the set of
+#'  'conditions' used to define the colors?
+#' @param by Name the factor of colors according to this column.
+#' @param ... Other arguments like a color palette, etc.
+#' @return  Colors!
+#' @seealso [create_expt()]
+generate_se_colors <- function(sample_definitions, cond_column = "condition",
+                                 by = "sampleid", ...) {
+  arglist <- list(...)
+  ## First figure out how many conditions we have
+  colnames(sample_definitions) <- tolower(colnames(sample_definitions))
+  ## If there is no condition to start, then it may be NA
+  chosen_colors <- as.character(sample_definitions[[cond_column]])
+  na_idx <- is.na(chosen_colors)
+  chosen_colors[na_idx] <- "undefined"
+  num_conditions <- length(levels(as.factor(chosen_colors)))
+
+  chosen_palette <- "Dark2"
+  if (!is.null(arglist[["palette"]])) {
+    chosen_palette <- arglist[["palette"]]
+  }
+  sample_colors <- NULL
+  if (!is.null(arglist[["sample_colors"]])) {
+    sample_colors <- arglist[["sample_colors"]]
+  }
+  ## And also the number of samples
+  num_samples <- nrow(sample_definitions)
+  if (!is.null(sample_colors) & length(sample_colors) == num_samples) {
+    ## Thus if we have a numer of colors == the number of samples, set each sample
+    ## with its own color
+    chosen_colors <- sample_colors
+  } else if (!is.null(sample_colors) && length(sample_colors) == num_conditions) {
+    ## If instead there are colors == number of conditions, set them appropriately.
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  } else if (is.null(sample_colors)) {
+    ## If nothing is provided, let RColorBrewer do it.
+    sample_colors <- sm(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  } else {
+    ## If none of the above are true, then warn the user and let RColorBrewer do it.
+    warning("The number of colors provided does not match the number of conditions nor samples.")
+    warning("Unsure of what to do, so choosing colors with RColorBrewer.")
+    sample_colors <- sm(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+  }
+  ## Set the color names
+  names(chosen_colors) <- sample_definitions[[by]]
+  return(chosen_colors)
 }
 
 #' Make pretty xlsx files of count data.

@@ -37,13 +37,13 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
 #' @param from starting point for the plot
 #' @param to ending point
 #' @param id_column mcols() portion of the granges containing the gene names
+#' @param coverage_files Set of bigwig file used to define the coverage.
 #' @param padding not currently used, but add some padding to the plot
 #' @param span degree of smoothing
 #' @param smoothed Smooth the coverage plot?
 #' @param ribbon fill in the smoothed data?
 #' @param cov_color Color for the coverage region
 #' @param y_max Explicitly set the maximum of the y axis.
-#' @importFrom ggcoverage LoadTrackFile ggcoverage geom_gene
 #' @importFrom stats predict loess
 #' @export
 plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 100,
@@ -119,7 +119,7 @@ print.coverage_plot <- function(x, ...) {
 #' limitations and fill in some default values.
 #'
 #' @param se Input summarized experiment, it should have a full genome
-#'  GRanges and colors
+#'  GRanges and colors.
 #' @param from Starting gene region's name or number.
 #' @param to Ending gene region's name or number.
 #' @param id_column Column of the rowData containing the gene IDs.
@@ -132,29 +132,31 @@ print.coverage_plot <- function(x, ...) {
 #'  granges.
 #' @param span When smoothing, adjust the loess transformation.
 #' @param smoothed Smooth the coverage data? (currently only loess)
-#' @param ribbon Add a ribbon to the smoothing (currently disabled)
-#' @param cov_color Specify colors for the coverage lines
-#' @param y_max Specify a y-maximum
-#' @param bin_size Specify the coverage bin size
+#' @param ribbon Add a ribbon to the smoothing. (currently disabled)
+#' @param cov_color Specify colors for the coverage lines.
+#' @param y_max Specify a y-maximum.
+#' @param bin_size Specify the coverage bin size.
 #' @param hide_bars Hide the coverage bars when smoothing the data?
 #' @param feature_type_column Use this rowData column to extract the
 #'  feature types.
-#' @param feature_type Use this type for creating the GR
+#' @param feature_type Use this type for creating the GR.
 #' @param meta_type_column Use this colData column to get the
-#'  ggcoverage Type column
+#'  ggcoverage Type column.
 #' @param feature_name_column Use this rowData column to fill in the
 #'  gene names below the gene arrows.
 #' @param gene_name Choose a gene?
 #' @param meta_group_column Use this colData column to group samples.
-#' @param overlap_type Define the behavior of the arrows/row
+#' @param overlap_type Define the behavior of the arrows/row.
 #' @param overlap_gap Modify the arrow overlaps with this.
-#' @param arrow_type Either closed or open
+#' @param arrow_type Either closed or open.
 #' @param arrow_gap Not sure what this does.
 #' @param label_column FIXME: perhaps redundant with feature_name_column?
-#' @param bg_color Define the plot background color
+#' @param bg_color Define the plot background color.
 #' @param gene_color_by Play with the gene arrow colors (I want to
-#'  modify ggcoverage to allow me to color by FC status)
+#'  modify ggcoverage to allow me to color by FC status).
 #' @param gene_colors specify factor of gene colors.
+#' @param facet Use a specifc factor to facet the data.
+#' @param y_scale Set a specifc y-axis scale.
 plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
                                coverage_column = "deeptools_coverage", convert = "cpm",
                                norm = NULL, transform = NULL,
@@ -167,7 +169,7 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
                                overlap_type = "tight", overlap_gap = 0.1,
                                arrow_type = "closed", arrow_gap = NULL, label_column = NULL,
                                bg_color = "white", gene_color_by = "strand", gene_colors = NULL,
-                               cores = NULL, facet = TRUE, y_scale = NULL) {
+                               facet = TRUE, y_scale = NULL) {
   se <- set_conditions(se, fact = meta_group_column)
   se_meta <- colData(se)
   se_info <- rowData(se)

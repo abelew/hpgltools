@@ -4,10 +4,10 @@
 \alias{write_snps}
 \title{Write a matrix of variants in an alignment-esque format.}
 \usage{
-write_snps(expt, output_file = "funky.aln")
+write_snps(exp, output_file = "funky.aln")
 }
 \arguments{
-\item{expt}{variant expressionset.}
+\item{exp}{variant expressionset.}
 
 \item{output_file}{File to write, presumably to be passed to something like phyML.}
 }

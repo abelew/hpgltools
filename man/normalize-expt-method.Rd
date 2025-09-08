@@ -7,9 +7,9 @@
 \S4method{normalize}{expt}(exp, ...)
 }
 \arguments{
-\item{...}{Other options.}
+\item{exp}{Data structure to normalize}
 
-\item{object}{Data structure to normalize}
+\item{...}{Other options.}
 }
 \description{
 The primary definition for normalize resides in BiocGenerics.

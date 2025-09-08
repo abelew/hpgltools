@@ -614,8 +614,8 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
   ## I moved the color choices to this area pretty late in the process to make sure that
   ## there was time to remove unused samples.
   ## Make sure we have a viable set of colors for plots
-  chosen_colors <- generate_expt_colors(sample_definitions, sample_colors = sample_colors,
-                                        chosen_palette = chosen_palette)
+  chosen_colors <- generate_se_colors(sample_definitions, sample_colors = sample_colors,
+                                      chosen_palette = chosen_palette)
 
   ## Fill in incomplete tables.
   if (is.null(sample_definitions[["condition"]])) {
@@ -729,6 +729,7 @@ create_expt <- function(metadata = NULL, gene_info = NULL, count_dataframe = NUL
           " features and ", ncol(exprs(expt)), " samples.")
   return(expt)
 }
+setOldClass("expt")
 
 #' Modified print function for an expt.
 #'
@@ -775,7 +776,7 @@ synchronize_expt <- function(expt, previous = NULL, ...) {
   expt[["conditions"]] <- pData(expt)[["condition"]]
   expt[["libsize"]] <- colSums(exprs(expt))
   if (is.null(previous)) {
-    expt[["colors"]] <- generate_expt_colors(pData(expt), cond_column = "condition")
+    expt[["colors"]] <- generate_se_colors(pData(expt), cond_column = "condition")
     expt[["state"]] <- list(
       "batch" = "raw",
       "conversion" = "raw",
@@ -831,6 +832,7 @@ synchronize_expt <- function(expt, previous = NULL, ...) {
   }
   return(expt)
 }
+setOldClass("expt")
 
 #' Do features_greater_than() inverted!
 #'
@@ -967,72 +969,6 @@ features_in_single_condition <- function(expt, cutoff = 2, factor = "condition",
     "neither" = neither_list
   )
   return(retlist)
-}
-
-#' Set up default colors for a data structure containing usable metadata
-#'
-#' In theory this function should be useful in any context when one has a blob
-#' of metadata and wants to have a set of colors.  Since my taste is utterly
-#' terrible, I rely entirely upon RColorBrewer, but also allow one to choose
-#' his/her own colors.
-#'
-#' @param sample_definitions Metadata, presumably containing a 'condition'
-#'  column.
-#' @param cond_column Which column in the sample data provides the set of
-#'  'conditions' used to define the colors?
-#' @param by Name the factor of colors according to this column.
-#' @param ... Other arguments like a color palette, etc.
-#' @return  Colors!
-#' @seealso [create_expt()]
-generate_expt_colors <- function(sample_definitions, cond_column = "condition",
-                                 by = "sampleid", ...) {
-  arglist <- list(...)
-  ## First figure out how many conditions we have
-  colnames(sample_definitions) <- tolower(colnames(sample_definitions))
-  ## If there is no condition to start, then it may be NA
-  chosen_colors <- as.character(sample_definitions[[cond_column]])
-  na_idx <- is.na(chosen_colors)
-  chosen_colors[na_idx] <- "undefined"
-  num_conditions <- length(levels(as.factor(chosen_colors)))
-
-  chosen_palette <- "Dark2"
-  if (!is.null(arglist[["palette"]])) {
-    chosen_palette <- arglist[["palette"]]
-  }
-  sample_colors <- NULL
-  if (!is.null(arglist[["sample_colors"]])) {
-    sample_colors <- arglist[["sample_colors"]]
-  }
-  ## And also the number of samples
-  num_samples <- nrow(sample_definitions)
-  if (!is.null(sample_colors) & length(sample_colors) == num_samples) {
-    ## Thus if we have a numer of colors == the number of samples, set each sample
-    ## with its own color
-    chosen_colors <- sample_colors
-  } else if (!is.null(sample_colors) && length(sample_colors) == num_conditions) {
-    ## If instead there are colors == number of conditions, set them appropriately.
-    mapping <- setNames(sample_colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-  } else if (is.null(sample_colors)) {
-    ## If nothing is provided, let RColorBrewer do it.
-    sample_colors <- sm(
-      grDevices::colorRampPalette(
-        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
-    mapping <- setNames(sample_colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-  } else {
-    ## If none of the above are true, then warn the user and let RColorBrewer do it.
-    warning("The number of colors provided does not match the number of conditions nor samples.")
-    warning("Unsure of what to do, so choosing colors with RColorBrewer.")
-    sample_colors <- sm(
-      grDevices::colorRampPalette(
-        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
-    mapping <- setNames(sample_colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-  }
-  ## Set the color names
-  names(chosen_colors) <- sample_definitions[[by]]
-  return(chosen_colors)
 }
 
 #' Runs median_by_factor with fun set to 'mean'.

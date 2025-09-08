@@ -6,6 +6,11 @@
 \usage{
 set_batches(exp, ...)
 }
+\arguments{
+\item{exp}{Input data structure.}
+
+\item{...}{Arguments passed along.}
+}
 \description{
 I like to think in terms of conditions and batches.  This function
 is intended to set the latter for a dataset.

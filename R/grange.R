@@ -1,11 +1,12 @@
 #' Extract a grange from gene x to gene y
 #'
-#' @param gr Input grange
-#' @param from Starting point
-#' @param to Ending point
-#' @param column What mcol column to use to extract IDs
-#' @param type_column Use this feature type
-#' @param padding_start Add this many genes as padding to the grange before the start
+#' @param gr Input grange.
+#' @param from Starting point.
+#' @param to Ending point.
+#' @param column What mcol column to use to extract IDs.
+#' @param type_column Use this feature type.
+#' @param type Type of entries from which to create the granges.
+#' @param padding_start Add this many genes as padding to the grange before the start.
 #' @param padding_end Add this many genes as padding to the grange after the end.
 #' @export
 gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
@@ -147,11 +148,11 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
     if (bin_size == 1) {
       if (cores == 1) {
         track_list <- lapply(track_files, "ggcoverage" %:::% "single_nuc_cov",
-                             bin_width)
+                             bin_size)
       } else {
         track_list <- BiocParallel::bplapply(
           track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "single_nuc_cov",
-          single_nucleotide)
+          bin_size)
       }
     } else {
       if (norm == "None") {
@@ -181,7 +182,7 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
         } else {
           track_list <- BiocParallel::bplapply(
             track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "bam_coverage",
-            bamcoverage.path, bin_size, norm, bc.extra.para, coverage_gr)
+            bamcoverage.path, bin_size, norm, bc_extra_parameters, coverage_gr)
         }
       }
     }

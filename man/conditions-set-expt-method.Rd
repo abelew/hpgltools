@@ -7,11 +7,9 @@
 \S4method{conditions}{expt}(exp, ...) <- value
 }
 \arguments{
+\item{exp}{Output expt}
+
 \item{...}{extra args}
-
-\item{object}{Output expt}
-
-\item{value}{vector of new conditions}
 }
 \description{
 Add experimental conditions to an expt.

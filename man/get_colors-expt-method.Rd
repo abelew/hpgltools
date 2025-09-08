@@ -7,7 +7,7 @@
 \S4method{get_colors}{expt}(exp)
 }
 \arguments{
-\item{x}{An x.}
+\item{exp}{An expt with colors}
 }
 \description{
 A getter to pull the colors from an expt.

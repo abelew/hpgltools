@@ -28,20 +28,6 @@ write_combined_legend(
 \item{padj_type}{P-adjustment employed.}
 
 \item{fancy}{Write fancy plots with the xlsx file?}
-
-\item{basic}{Basic data}
-
-\item{deseq}{The deseq result, which is redundant.}
-
-\item{dream}{The result from varpart::dream}
-
-\item{ebseq}{The ebseq result, which is redundant.}
-
-\item{edger}{The edger result, which is redundant.}
-
-\item{limma}{The limma result, which is redundant.}
-
-\item{noiseq}{Noiseq results.}
 }
 \description{
 Write the legend of an excel file for combine_de_tables()

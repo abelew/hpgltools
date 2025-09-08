@@ -6,6 +6,11 @@
 \usage{
 sanitize_annotations(input, ...)
 }
+\arguments{
+\item{input}{Input dataset to sanitize.}
+
+\item{...}{Arguments passed through.}
+}
 \description{
 Annotation sanitizers
 }

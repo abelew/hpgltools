@@ -30,7 +30,7 @@ load_gff_annotations(
 
 \item{row.names}{Choose another column for setting the rownames of the data frame.}
 
-\item{makenames}{Use make.names to ensure rownames are unique?}
+\item{make.names}{Use make.names to ensure rownames are unique?}
 }
 \value{
 Dataframe of the annotation information found in the gff file.

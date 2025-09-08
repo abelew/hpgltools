@@ -1,6 +1,15 @@
 ## plot_distribution.r: A few plots to describe data distributions
 ## Currently this includes boxplots, density plots, and qq plots.
 
+plot_boxplot <- function(data, ...) {
+  message("A generic boxplot for genomic/etc data.")
+  message("It was passed an object of type ", class(data),
+          " and does not know what to do .")
+  standardGeneric("plot_boxplot")
+  return(data)
+}
+setGeneric("plot_boxplot")
+
 #' Make a ggplot boxplot of a set of samples.
 #'
 #' Boxplots and density plots provide complementary views of data distributions.
@@ -28,109 +37,109 @@
 #' @seealso [ggplot2]
 #' @example inst/examples/plot_distribution.R
 #' @export
-plot_boxplot <- function(data, colors = NULL, plot_title = NULL, order = NULL,
-                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
-                         ...) {
-  arglist <- list(...)
-  data <- as.data.frame(data)
+setMethod(
+  "plot_boxplot", signature = signature(data = "data.frame"),
+  definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
+                        violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
+                        ...) {
+    arglist <- list(...)
+    ## I am now using this check of the data in a few places, so I function'd it.
+    scale_data <- check_plot_scale(data, scale)
+    scale <- scale_data[["scale"]]
+    data <- scale_data[["data"]]
 
-  ## I am now using this check of the data in a few places, so I function'd it.
-  scale_data <- check_plot_scale(data, scale)
-  scale <- scale_data[["scale"]]
-  data <- scale_data[["data"]]
-
-  if (is.null(colors)) {
-    colors <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "Blues"))(dim(data)[2])
-  }
-  data_matrix <- as.matrix(data)
-  ## Likely only needed when using quantile norm/batch correction and it sets a value to < 0
-  invalid_idx <- data < 0
-  if (sum(invalid_idx) > 0) {
-    warning("There are ", sum(invalid_idx), " entries less than 0.")
-    data[invalid_idx] <- 0
-  }
-  invalid_idx <- is.na(data)
+    if (is.null(colors)) {
+      colors <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "Blues"))(dim(data)[2])
+    }
+    data_matrix <- as.matrix(data)
+    ## Likely only needed when using quantile norm/batch correction and it sets a value to < 0
+    invalid_idx <- data < 0
     if (sum(invalid_idx) > 0) {
-    warning("There are ", sum(invalid_idx), " entries less than 0.")
-    data[invalid_idx] <- 0
-  }
-
-  if (!is.null(sample_names) & class(sample_names) == "character") {
-    if (length(sample_names) == 1) {
-      colnames(data) <- make.names(design[[sample_names]], unique = TRUE)
-    } else {
-      colnames(data) <- sample_names
+      warning("There are ", sum(invalid_idx), " entries less than 0.")
+      data[invalid_idx] <- 0
     }
-  }
-  if (!is.null(label_chars) & is.numeric(label_chars)) {
-    colnames(data) <- abbreviate(colnames(data), minlength = label_chars)
-  }
+    invalid_idx <- is.na(data)
+    if (sum(invalid_idx) > 0) {
+      warning("There are ", sum(invalid_idx), " entries less than 0.")
+      data[invalid_idx] <- 0
+    }
 
-  data[["id"]] <- rownames(data)
-  dataframe <- reshape2::melt(data, id = c("id"))
-  colnames(dataframe) <- c("gene", "sample", "reads")
-
-  dataframe[["sample"]] <- factor(dataframe[["sample"]])
-  if (!is.null(order)) {
-    if (order == "lexical") {
-      ## Order it by sample names lexically
-      lexical <- order(levels(dataframe[["sample"]]))
-      new_levels <- levels(dataframe[["sample"]])[lexical]
-      levels(dataframe[["sample"]]) <- new_levels
-    } else {
-      new_df <- data.frame()
-      for (o in order) {
-        matches <- grep(pattern = o, x = dataframe[["sample"]])
-        adders <- dataframe[matches, ]
-        new_df <- rbind(new_df, adders)
+    if (!is.null(sample_names) & class(sample_names) == "character") {
+      if (length(sample_names) == 1) {
+        colnames(data) <- make.names(design[[sample_names]], unique = TRUE)
+      } else {
+        colnames(data) <- sample_names
       }
-      dataframe <- new_df
-      dataframe[["sample"]] <- factor(dataframe[["sample"]], order)
     }
-  }
+    if (!is.null(label_chars) & is.numeric(label_chars)) {
+      colnames(data) <- abbreviate(colnames(data), minlength = label_chars)
+    }
 
-  ## The use of data= and aes() leads to no visible binding for global variable warnings
-  ## I am not sure what to do about them in this context.
-  boxplot <- ggplot(data = dataframe,
-                    aes(x = .data[["sample"]], y = .data[["reads"]]))
-  if (isTRUE(violin)) {
-    boxplot <- boxplot +
-      ggplot2::geom_violin(aes(fill = .data[["sample"]]),
-                           width = 1, scale = "area",
-                           show.legend = FALSE) +
-      ggplot2::scale_fill_manual(values = as.character(colors), guide = "none")
-  } else {
-    boxplot <- boxplot +
-      sm(ggplot2::geom_boxplot(aes(fill = .data[["sample"]]),
-                               na.rm = TRUE, fill = colors, size = 0.5,
-                               outlier.size = 1.5,
-                               guide = "none",
-                               outlier.colour = ggplot2::alpha("black", 0.2)))
-  }
-  boxplot <- boxplot +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
-                   axis.text.x = ggplot2::element_text(angle = 90, hjust = 1)) +
-    ggplot2::xlab("Sample") +
-    ggplot2::ylab("Per-gene (pseudo)count distribution")
-  if (!is.null(plot_title)) {
-    boxplot <- boxplot + ggplot2::ggtitle(plot_title)
-  }
+    data[["id"]] <- rownames(data)
+    dataframe <- reshape2::melt(data, id = c("id"))
+    colnames(dataframe) <- c("gene", "sample", "reads")
 
-  if (scale == "log") {
+    dataframe[["sample"]] <- factor(dataframe[["sample"]])
+    if (!is.null(order)) {
+      if (order == "lexical") {
+        ## Order it by sample names lexically
+        lexical <- order(levels(dataframe[["sample"]]))
+        new_levels <- levels(dataframe[["sample"]])[lexical]
+        levels(dataframe[["sample"]]) <- new_levels
+      } else {
+        new_df <- data.frame()
+        for (o in order) {
+          matches <- grep(pattern = o, x = dataframe[["sample"]])
+          adders <- dataframe[matches, ]
+          new_df <- rbind(new_df, adders)
+        }
+        dataframe <- new_df
+        dataframe[["sample"]] <- factor(dataframe[["sample"]], order)
+      }
+    }
+
+    ## The use of data= and aes() leads to no visible binding for global variable warnings
+    ## I am not sure what to do about them in this context.
+    boxplot <- ggplot(data = dataframe,
+                      aes(x = .data[["sample"]], y = .data[["reads"]]))
+    if (isTRUE(violin)) {
+      boxplot <- boxplot +
+        ggplot2::geom_violin(aes(fill = .data[["sample"]]),
+                             width = 1, scale = "area",
+                             show.legend = FALSE) +
+        ggplot2::scale_fill_manual(values = as.character(colors), guide = "none")
+    } else {
+      boxplot <- boxplot +
+        sm(ggplot2::geom_boxplot(aes(fill = .data[["sample"]]),
+                                 na.rm = TRUE, fill = colors, size = 0.5,
+                                 outlier.size = 1.5,
+                                 guide = "none",
+                                 outlier.colour = ggplot2::alpha("black", 0.2)))
+    }
     boxplot <- boxplot +
-      ggplot2::scale_y_continuous(labels = scales::scientific,
-                                  trans = "log2")
-  } else if (scale == "logdim") {
-    boxplot <- boxplot +
-      ggplot2::coord_trans(y = "log2", labels = scales::scientific)
-  } else if (isTRUE(scale)) {
-    boxplot <- boxplot +
-      ggplot2::scale_y_continuous(trans = "log10",
-                                  labels = scales::scientific)
-  }
-  return(boxplot)
-}
+      ggplot2::theme_bw(base_size = base_size) +
+      ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
+                     axis.text.x = ggplot2::element_text(angle = 90, hjust = 1)) +
+      ggplot2::xlab("Sample") +
+      ggplot2::ylab("Per-gene (pseudo)count distribution")
+    if (!is.null(plot_title)) {
+      boxplot <- boxplot + ggplot2::ggtitle(plot_title)
+    }
+
+    if (scale == "log") {
+      boxplot <- boxplot +
+        ggplot2::scale_y_continuous(labels = scales::scientific,
+                                    trans = "log2")
+    } else if (scale == "logdim") {
+      boxplot <- boxplot +
+        ggplot2::coord_trans(y = "log2", labels = scales::scientific)
+    } else if (isTRUE(scale)) {
+      boxplot <- boxplot +
+        ggplot2::scale_y_continuous(trans = "log10",
+                                    labels = scales::scientific)
+    }
+    return(boxplot)
+  })
 
 #' Make a ggplot boxplot of a set of samples.
 #'
@@ -154,7 +163,7 @@ setMethod(
                         violin = FALSE, scale = NULL,
                         sample_names = NULL, label_chars = 10,
                         ...) {
-    mtrx <- exprs(data)
+    mtrx <- as.data.frame(exprs(data))
     colors = get_colors(data)
     plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
                  violin = violin, scale = scale, sample_names = sample_names,
@@ -182,7 +191,7 @@ setMethod(
   definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
                         ...) {
-    mtrx <- exprs(data)
+    mtrx <- as.data.frame(exprs(data))
     colors = get_colors(data)
     plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
                  violin = violin, scale = scale, sample_names = sample_names,
@@ -210,12 +219,21 @@ setMethod(
   definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
                         ...) {
-    mtrx <- assay(data)
+    mtrx <- as.data.frame(assay(data))
     colors = get_colors(data)
     plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
                  violin = violin, scale = scale, sample_names = sample_names,
                  label_chars = label_chars, ...)
   })
+
+plot_density <- function(data, ...) {
+  message("A generic density for genomic/etc data.")
+  message("It was passed an object of type ", class(data),
+          " and does not know what to do .")
+  standardGeneric("plot_density")
+  return(data)
+}
+setGeneric("plot_density")
 
 #' Create a density plot, showing the distribution of each column of data.
 #'
@@ -239,161 +257,161 @@ setMethod(
 #' @seealso [ggplot2]
 #' @example inst/examples/plot_distribution.R
 #' @export
-plot_density <- function(data, colors = NULL, colors_by = "condition",
-                         design = NULL, direct = NULL, fill = NULL,
-                         label_chars = 10, plot_title = NULL,
-                         position = "identity", sample_names = NULL, scale = NULL,
-                         ...) {
-  data <- as.matrix(data)
-
-  na_idx <- is.na(data)
-  if (sum(na_idx) > 0) {
-    warning("There are ", sum(na_idx), " na value in the data, setting them to 0.")
-    data[na_idx] <- 0
-  }
-
-  if (is.null(direct)) {
-    direct <- TRUE
-    if (ncol(data) > 30) {
-      direct <- FALSE
+setMethod(
+  "plot_boxplot", signature(data = "matrix"),
+  definition = function(data, colors = NULL, colors_by = "condition",
+                        design = NULL, direct = NULL, fill = NULL,
+                        label_chars = 10, plot_title = NULL,
+                        position = "identity", sample_names = NULL, scale = NULL,
+                        ...) {
+    na_idx <- is.na(data)
+    if (sum(na_idx) > 0) {
+      warning("There are ", sum(na_idx), " na value in the data, setting them to 0.")
+      data[na_idx] <- 0
     }
-  }
 
-  if (is.null(scale)) {
-    if (max(data) > 10000) {
-      mesg("This data will benefit from being displayed on the log scale.")
-      mesg("If this is not desired, set scale='raw'")
-      scale <- "log"
-      negative_idx <- data < 0
-      if (sum(negative_idx) > 0) {
-        data[negative_idx] <- 0.5
-        mesg(sum(negative_idx), " entries are negative on a log scale, setting them to 0.5.")
-
-        message("Changed ", sum(negative_idx), " negative features.")
+    if (is.null(direct)) {
+      direct <- TRUE
+      if (ncol(data) > 30) {
+        direct <- FALSE
       }
-      zero_idx <- data == 0
-      if (sum(zero_idx) > 0) {
-        data[zero_idx] <- 0.5
-        mesg(sum(zero_idx), " entries are 0 on a log scale, setting them to 0.5.")
+    }
+
+    if (is.null(scale)) {
+      if (max(data) > 10000) {
+        mesg("This data will benefit from being displayed on the log scale.")
+        mesg("If this is not desired, set scale='raw'")
+        scale <- "log"
+        negative_idx <- data < 0
+        if (sum(negative_idx) > 0) {
+          data[negative_idx] <- 0.5
+          mesg(sum(negative_idx), " entries are negative on a log scale, setting them to 0.5.")
+
+          message("Changed ", sum(negative_idx), " negative features.")
+        }
+        zero_idx <- data == 0
+        if (sum(zero_idx) > 0) {
+          data[zero_idx] <- 0.5
+          mesg(sum(zero_idx), " entries are 0 on a log scale, setting them to 0.5.")
+        }
+      } else {
+        scale <- "raw"
       }
+    }
+
+    if (!is.null(sample_names)) {
+      if (class(sample_names) == "character" && length(sample_names) == 1) {
+        ## Then this refers to an experimental metadata column.
+        colnames(data) <- design[[sample_names]]
+      } else {
+        colnames(data) <- sample_names
+      }
+    }
+    if (!is.null(label_chars) && is.numeric(label_chars)) {
+      colnames(data) <- abbreviate(colnames(data), minlength = label_chars)
+    }
+
+    ## If the columns lose the connectivity between the sample and values, then
+    ## the ggplot below will fail with env missing.
+    melted <- data.table::as.data.table(reshape2::melt(data))
+    if (dim(melted)[2] == 3) {
+      colnames(melted) <- c("id", "sample", "counts")
+    } else if (dim(melted)[2] == 2) {
+      colnames(melted) <- c("sample", "counts")
     } else {
-      scale <- "raw"
+      stop("Could not properly melt the data.")
     }
-  }
-
-  if (!is.null(sample_names)) {
-    if (class(sample_names) == "character" && length(sample_names) == 1) {
-      ## Then this refers to an experimental metadata column.
-      colnames(data) <- design[[sample_names]]
+    densityplot <- NULL
+    if (is.null(fill)) {
+      densityplot <- ggplot(data = melted,
+                            aes(x = .data[["counts"]], colour = .data[["sample"]]))
     } else {
-      colnames(data) <- sample_names
+      fill <- "sample"
+      densityplot <- ggplot(
+        data = melted,
+        aes(x = .data[["counts"]], colour = .data[["sample"]], fill = .data[["fill"]]))
     }
-  }
-  if (!is.null(label_chars) && is.numeric(label_chars)) {
-    colnames(data) <- abbreviate(colnames(data), minlength = label_chars)
-  }
-
-  ## If the columns lose the connectivity between the sample and values, then
-  ## the ggplot below will fail with env missing.
-  melted <- data.table::as.data.table(reshape2::melt(data))
-  if (dim(melted)[2] == 3) {
-    colnames(melted) <- c("id", "sample", "counts")
-  } else if (dim(melted)[2] == 2) {
-    colnames(melted) <- c("sample", "counts")
-  } else {
-    stop("Could not properly melt the data.")
-  }
-  densityplot <- NULL
-  if (is.null(fill)) {
-    densityplot <- ggplot(data = melted,
-                          aes(x = .data[["counts"]], colour = .data[["sample"]]))
-  } else {
-    fill <- "sample"
-    densityplot <- ggplot(
-      data = melted,
-      aes(x = .data[["counts"]], colour = .data[["sample"]], fill = .data[["fill"]]))
-  }
-  count <- NULL
-  densityplot <- densityplot +
-    ggplot2::geom_density(aes(x = .data[["counts"]],
-                              y = ggplot2::after_stat(count),
-                              fill = .data[["sample"]]),
-                          position = position, na.rm = TRUE) +
-    ggplot2::ylab("Number of genes.") +
-    ggplot2::xlab("Number of hits/gene.") +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
-                   legend.key.size = ggplot2::unit(0.3, "cm"))
-  if (!is.null(plot_title)) {
-    densityplot <- densityplot + ggplot2::ggtitle(plot_title)
-  }
-
-  if (scale == "log") {
-    densityplot <- densityplot + ggplot2::scale_x_continuous(trans = scales::log2_trans(),
-                                                             labels = scales::scientific)
-  } else if (scale == "logdim") {
+    count <- NULL
     densityplot <- densityplot +
-      ggplot2::coord_trans(x = "log2") +
-      ggplot2::scale_x_continuous(labels = scales::scientific)
-  } else if (isTRUE(scale)) {
-    densityplot <- densityplot +
-      ggplot2::scale_x_log10(labels = scales::scientific)
-  }
-
-  if (!is.null(colors_by)) {
-    densityplot <- densityplot + ggplot2::scale_colour_manual(values = as.character(colors)) +
-      ggplot2::scale_fill_manual(values = ggplot2::alpha(as.character(colors), 0.1))
-  }
-
-  if (isTRUE(direct)) {
-    densityplot <- directlabels::direct.label(densityplot)
-  }
-
-  condition_summary <- data.table::data.table()
-  batch_summary <- data.table::data.table()
-  counts <- NULL
-  if (!is.null(design)) {
-    if (!is.null(design[["condition"]])) {
-      melted[, "condition" := design[sample, "condition"]]
-      condition_summary <- data.table::setDT(melted)[, list(
-        "min" = min(counts),
-        "1st" = quantile(x = counts, probs = 0.25),
-        "median" = median(x = counts),
-        "mean" = mean(counts),
-        "3rd" = quantile(x = counts, probs = 0.75),
-        "max" = max(counts)),
-        by = "condition"]
+      ggplot2::geom_density(aes(x = .data[["counts"]],
+                                y = ggplot2::after_stat(count),
+                                fill = .data[["sample"]]),
+                            position = position, na.rm = TRUE) +
+      ggplot2::ylab("Number of genes.") +
+      ggplot2::xlab("Number of hits/gene.") +
+      ggplot2::theme_bw(base_size = base_size) +
+      ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
+                     legend.key.size = ggplot2::unit(0.3, "cm"))
+    if (!is.null(plot_title)) {
+      densityplot <- densityplot + ggplot2::ggtitle(plot_title)
     }
-    if (!is.null(design[["batch"]])) {
-      melted[, "batch" := design[sample, "batch"]]
-      batch_summary <- data.table::setDT(melted)[, list(
-        "min" = min(counts),
-        "1st" = quantile(x = counts, probs = 0.25),
-        "median" = median(x = counts),
-        "mean" = mean(counts),
-        "3rd" = quantile(x = counts, probs = 0.75),
-        "max" = max(counts)),
-        by = "batch"]
-    }
-  }
 
-  sample_summary <- data.table::setDT(melted)[, list(
-    "min" = min(counts),
-    "1st" = quantile(x = counts, probs = 0.25),
-    "median" = median(x = counts),
-    "mean" = mean(counts),
-    "3rd" = quantile(x = counts, probs = 0.75),
-    "max" = max(counts)),
-    by = "sample"]
-  retlist <- list(
-    "plot" = densityplot,
-    "condition_summary" = condition_summary,
-    "batch_summary" = batch_summary,
-    "sample_summary" = sample_summary,
-    "table" = melted)
-  class(retlist) <- "density_plot"
-  return(retlist)
-}
+    if (scale == "log") {
+      densityplot <- densityplot + ggplot2::scale_x_continuous(trans = scales::log2_trans(),
+                                                               labels = scales::scientific)
+    } else if (scale == "logdim") {
+      densityplot <- densityplot +
+        ggplot2::coord_trans(x = "log2") +
+        ggplot2::scale_x_continuous(labels = scales::scientific)
+    } else if (isTRUE(scale)) {
+      densityplot <- densityplot +
+        ggplot2::scale_x_log10(labels = scales::scientific)
+    }
+
+    if (!is.null(colors_by)) {
+      densityplot <- densityplot + ggplot2::scale_colour_manual(values = as.character(colors)) +
+        ggplot2::scale_fill_manual(values = ggplot2::alpha(as.character(colors), 0.1))
+    }
+
+    if (isTRUE(direct)) {
+      densityplot <- directlabels::direct.label(densityplot)
+    }
+
+    condition_summary <- data.table::data.table()
+    batch_summary <- data.table::data.table()
+    counts <- NULL
+    if (!is.null(design)) {
+      if (!is.null(design[["condition"]])) {
+        melted[, "condition" := design[sample, "condition"]]
+        condition_summary <- data.table::setDT(melted)[, list(
+          "min" = min(counts),
+          "1st" = quantile(x = counts, probs = 0.25),
+          "median" = median(x = counts),
+          "mean" = mean(counts),
+          "3rd" = quantile(x = counts, probs = 0.75),
+          "max" = max(counts)),
+          by = "condition"]
+      }
+      if (!is.null(design[["batch"]])) {
+        melted[, "batch" := design[sample, "batch"]]
+        batch_summary <- data.table::setDT(melted)[, list(
+          "min" = min(counts),
+          "1st" = quantile(x = counts, probs = 0.25),
+          "median" = median(x = counts),
+          "mean" = mean(counts),
+          "3rd" = quantile(x = counts, probs = 0.75),
+          "max" = max(counts)),
+          by = "batch"]
+      }
+    }
+
+    sample_summary <- data.table::setDT(melted)[, list(
+      "min" = min(counts),
+      "1st" = quantile(x = counts, probs = 0.25),
+      "median" = median(x = counts),
+      "mean" = mean(counts),
+      "3rd" = quantile(x = counts, probs = 0.75),
+      "max" = max(counts)),
+      by = "sample"]
+    retlist <- list(
+      "plot" = densityplot,
+      "condition_summary" = condition_summary,
+      "batch_summary" = batch_summary,
+      "sample_summary" = sample_summary,
+      "table" = melted)
+    class(retlist) <- "density_plot"
+    return(retlist)
+  })
 
 #' Create a density plot, showing the distribution of each column of data.
 #'
@@ -420,7 +438,7 @@ setMethod(
                         label_chars = 10, plot_title = NULL,
                         position = "identity", sample_names = NULL, scale = NULL,
                         ...) {
-    mtrx <- exprs(data)
+    mtrx <- as.matrix(exprs(data))
     design <- pData(data)
     colors <- get_colors(data)
     plot_density(data = mtrx, colors = colors, colors_by = colors_by,
@@ -455,7 +473,7 @@ setMethod(
                         label_chars = 10, plot_title = NULL,
                         position = "identity", sample_names = NULL, scale = NULL,
                         ...) {
-    mtrx <- exprs(data)
+    mtrx <- as.matrix(exprs(data))
     colors <- get_colors(data)
     design <- pData(data)
     plot_density(data = mtrx, colors = colors, colors_by = colors_by,
@@ -490,7 +508,7 @@ setMethod(
                         label_chars = 10, plot_title = NULL,
                         position = "identity", sample_names = NULL, scale = NULL,
                         ...) {
-    mtrx <- assay(data)
+    mtrx <- as.matrix(assay(data))
     design <- colData(data)
     colors <- get_colors(data)
     plot_density(data = mtrx, colors = colors, colors_by = colors_by,

@@ -285,7 +285,6 @@ simple_cprofiler <- function(...) {
 #' \dontrun{
 #'  holyasscrackers <- simple_clusterprofiler(gene_list, all_genes, "org.Dm.eg.db")
 #' }
-#' @importFrom MeSHDbi MeSHDb
 #' @export
 simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.eg.db",
                                    orgdb_from = NULL, orgdb_to = "ENTREZID",

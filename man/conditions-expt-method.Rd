@@ -7,7 +7,7 @@
 \S4method{conditions}{expt}(exp)
 }
 \arguments{
-\item{object}{Input expt}
+\item{exp}{Input expt}
 
 \item{...}{extra args}
 }

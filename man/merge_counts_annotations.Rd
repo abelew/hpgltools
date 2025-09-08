@@ -6,6 +6,13 @@
 \usage{
 merge_counts_annotations(gene_info, all_count_tables, tx_gene_map = NULL)
 }
+\arguments{
+\item{gene_info}{Table of gene annotations.}
+
+\item{all_count_tables}{Matrix of expression data.}
+
+\item{tx_gene_map}{Map of transcripts to genes.}
+}
 \description{
 Merge gene annotations and count tables when the gene_info is a data table/dataframe
 }

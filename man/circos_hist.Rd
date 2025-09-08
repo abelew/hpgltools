@@ -59,6 +59,10 @@ arbitrary dataframe of other annotation information.}
 \item{spacing}{Distance between outer, inner, and inner to whatever follows.}
 
 \item{df_merge_column}{Merge the annotations/data on this columns.}
+
+\item{color_alpha}{Make the color transparent?}
+
+\item{fill_alpha}{Make the fill transparent?}
 }
 \value{
 Radius after adding the histogram and the spacing.

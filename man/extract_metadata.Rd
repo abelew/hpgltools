@@ -32,6 +32,10 @@ extract_metadata(
 
 \item{sanitize}{Perform my various sanitizers on the data?}
 
+\item{condition_column}{conditions metadata column to be protected.}
+
+\item{batch_column}{batch metadata column to be protected.}
+
 \item{...}{Arguments to pass to the child functions (read_csv etc).}
 }
 \value{

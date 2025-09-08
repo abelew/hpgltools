@@ -27,8 +27,8 @@ Suggests:
   doParallel, dorothea, doSNOW, dotwhisker,
   EBSeq, EDASeq, enrichplot, EuPathDB,
   fastcluster, fastICA, ffpe, fission, flashClust,
-  genefilter, generics, GenomicRanges, GenomeInfoDb, genoPlotR, ggdendro,
-  ggrepel, ggsankey, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
+  genefilter, generics, GenomicRanges, GenomeInfoDb, genoPlotR, ggcoverage,
+  ggdendro, ggrepel, ggsankey, ggsignif, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
   graph, GSVA, GSVAdata, gtools, gplots, gProfileR, gprofiler2,
   HDO.db, Heatplus, Hmisc, Homo.sapiens, htmlwidgets, hpgldata, httr,
   iDA, igraph, IHW, inflection, isva, iterators,
@@ -50,7 +50,7 @@ Suggests:
   stringr, survJamda, SWATH2stats,
   taxize, testthat, tibble, tidyr, tidymodels, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
-  Vennerable,
+  Vennerable, venneuler,
   WGCNA,
   xCell, xml2
 Imports:
@@ -83,6 +83,7 @@ Collate:
     'annotation_shared.R'
     'annotation_txt.R'
     'annotation_uniprot.R'
+    'expt.R'
     'attributes.R'
     'classify.R'
     'counts.R'
@@ -96,7 +97,6 @@ Collate:
     'de_shared.R'
     'de_varpart.R'
     'de_xlsx.R'
-    'expt.R'
     'dimension_reduction.R'
     'gene_sets.R'
     'genes.R'

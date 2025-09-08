@@ -58,6 +58,8 @@ create_se(
 
 \item{countdir}{(deprecated) Directory containing count tables.}
 
+\item{include_fasta}{Include a fasta file.}
+
 \item{include_gff}{Keep a copy of the gff with the data?}
 
 \item{file_column}{Metadata column containing the counts for each sample.}
@@ -90,6 +92,12 @@ versions, or not.}
 
 \item{tx_gene_map}{When using tximport, use this to convert from
 transcripts to genes.}
+
+\item{species}{Use the species shortname to find gff/fasta files more easily.}
+
+\item{condition_column}{Use a specific column in the metadata as the condition factor.}
+
+\item{batch_column}{Use a specific column in the metadata as the batch factor.x}
 
 \item{...}{Extra options.}
 }

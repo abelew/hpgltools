@@ -226,7 +226,7 @@ setMethod(
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "exp"),
+  "plot_libsize", signature = signature(data = "expt"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
                         exp_names = NULL, label_chars = 10, ...) {

@@ -5,10 +5,10 @@
 \title{A copy of the above function with padding for species without defined UTRs}
 \usage{
 snps_vs_genes_padded(
-  expt,
+  exp,
   snp_result,
   start_column = "start",
-  end_col = "end",
+  end_column = "end",
   strand_column = "strand",
   padding = 200,
   normalize = TRUE,
@@ -19,27 +19,27 @@ snps_vs_genes_padded(
 )
 }
 \arguments{
-\item{expt}{The original expressionset.}
+\item{exp}{The original expressionset.}
 
 \item{snp_result}{The result from get_snp_sets().}
 
-\item{end_col}{and the end column of each gene?}
+\item{start_column}{Which column provides the start of each gene?}
+
+\item{end_column}{and the end column of each gene?}
+
+\item{strand_column}{Define strands.}
 
 \item{padding}{Add this amount to each CDS.}
 
 \item{normalize}{Normalize the returns to the length of the putative CDS.}
 
+\item{snp_name_column}{Name of the column in the metadata with the sequence names.}
+
+\item{chr_column}{Name of the metadata column with the chromosome names.}
+
 \item{observed_in}{Print some information about how many variants were observed.}
 
 \item{ignore_strand}{Ignore the strand information when returning?}
-
-\item{start_col}{Which column provides the start of each gene?}
-
-\item{strand_col}{Define strands.}
-
-\item{snp_name_col}{Name of the column in the metadata with the sequence names.}
-
-\item{expt_name_col}{Name of the metadata column with the chromosome names.}
 }
 \value{
 List with some information by gene.
@@ -49,10 +49,10 @@ A copy of the above function with padding for species without defined UTRs
 }
 \examples{
  \dontrun{
- expt <- create_expt(metadata, gene_information)
- snp_expt <- count_expt_snps(expt)
- snp_result <- get_snp_sets(snp_expt)
- gene_intersections <- snps_vs_genes(expt, snp_result)
+ exp <- create_se(metadata, gene_information)
+ snp_exp <- count_snps(exp)
+ snp_result <- get_snp_sets(snp_exp)
+ gene_intersections <- snps_vs_genes(exp, snp_result)
 }
 }
 \seealso{

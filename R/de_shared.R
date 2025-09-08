@@ -32,14 +32,7 @@
 #' @param test_pca Perform some tests of the data before/after applying a given
 #'  batch effect.
 #' @param annot_df Annotations to add to the result tables.
-#' @param do_basic Perform a basic analysis?
-#' @param do_deseq Perform DESeq2 pairwise?
-#' @param do_ebseq Perform EBSeq (caveat, this is NULL as opposed to TRUE/FALSE
-#'  so it can choose).
-#' @param do_edger Perform EdgeR?
-#' @param do_limma Perform limma?
-#' @param do_noiseq Perform noiseq?
-#' @param do_dream Perform dream?
+#' @param includes List of methods to include in the pairwise analysis.
 #' @param keepers Limit the pairwise search to a set of specific contrasts.
 #' @param convert Modify the data with a 'conversion' method for PCA?
 #' @param norm Modify the data with a 'normalization' method for PCA?

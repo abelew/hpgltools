@@ -10,6 +10,8 @@ conditions(exp, ...) <- value
 \item{exp}{Input data structure}
 
 \item{...}{Other args passed along to set_conditions()}
+
+\item{value}{new values}
 }
 \description{
 The infix version of set_conditions.

@@ -11,7 +11,6 @@
 #' @param name_column Gene information column from which to get gene names.
 #' @param condition_column Metadata column containing the conditions to compare.
 #' @param test Pairwise test to invoke.
-#' @importFrom ggsignif geom_signif
 #' @importFrom dplyr arrange
 #' @export
 ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "quant",

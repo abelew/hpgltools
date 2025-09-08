@@ -5,7 +5,7 @@
 \title{Cross reference observed variants against the transcriptome annotation.}
 \usage{
 snps_intersections(
-  expt,
+  exp,
   snp_result,
   start_column = "start",
   end_column = "end",
@@ -13,9 +13,9 @@ snps_intersections(
 )
 }
 \arguments{
-\item{expt}{The original expressionset.  This provides the annotation data.}
+\item{exp}{The original expressionset.  This provides the annotation data.}
 
-\item{snp_result}{The result from get_snp_sets or count_expt_snps.}
+\item{snp_result}{The result from get_snp_sets or count_snps.}
 
 \item{start_column}{Metadata column with the start position of each ORF.}
 
@@ -34,10 +34,10 @@ sequence (currently this is limited to CDS, but that is negotiable).
 }
 \examples{
  \dontrun{
- expt <- create_expt(metadata, gene_information)
- snp_expt <- count_expt_snps(expt)
- snp_result <- get_snp_sets(snp_expt)
- intersections <- snps_vs_intersections(expt, snp_result)
+ exp <- create_se(metadata, gene_information)
+ snp_exp <- count_snps(exp)
+ snp_result <- get_snp_sets(snp_exp)
+ intersections <- snps_vs_intersections(exp, snp_result)
 }
 }
 \seealso{

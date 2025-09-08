@@ -205,7 +205,7 @@ print.classified_mutations <- function(x, ...) {
   return(invisible(x))
 }
 
-#' Gather snp information for an expt
+#' Gather snp information for an exp
 #'
 #' I made some pretty significant changes to the set of data which I
 #' retain when using mpileup/freebayes.  As a result, this function
@@ -218,10 +218,9 @@ print.classified_mutations <- function(x, ...) {
 #' files.  It furthermore assumes inputs from the variant calling methods in
 #' cyoa.
 #'
-#' @param expt an expressionset from which to extract information.
+#' @param exp an expressionset from which to extract information.
 #' @param annot_column Column in the metadata for getting the table of
 #'  bcftools calls.
-#' @param tolower Lowercase stuff like 'HPGL'?
 #' @param snp_column Which column of the parsed bcf table contains our
 #'  interesting material?
 #' @param numerator_column When provided, use this column as the
@@ -230,27 +229,27 @@ print.classified_mutations <- function(x, ...) {
 #'  denominator of a proportion.
 #' @param reader Method to read the data, readr or read.table.
 #' @param verbose Be verbose?
-#' @return A new expt object
+#' @return A new exp object
 #' @seealso [Biobase] freebayes:DOI:10.48550/arXiv.1207.3907,
 #'  mpileup:DOI:10.1093/gigascience/giab008
 #' @examples
 #'   \dontrun{
-#'  expt <- create_expt(metadata, gene_information)
-#'  snp_expt <- count_expt_snps(expt)
+#'  exp <- create_se(metadata, gene_information)
+#'  snp_exp <- count_snps(exp)
 #'  ## This assumes that the metadata has a column named 'bcftable'
 #'  ## with one file per cell.  These files in turn should have a
 #'  ## column named 'diff_count' which will be the source of the
-#'  ## numbers found when doing exprs(snp_expt).
+#'  ## numbers found when doing exprs(snp_exp).
 #' }
 #' @export
-count_expt_snps <- function(expt, annot_column = "bcftable",
-                            snp_column = NULL, numerator_column = "PAO",
-                            denominator_column = "DP", reader = "table", verbose = FALSE) {
-  meta <- pData(expt)
+count_snps <- function(exp, annot_column = "bcftable",
+                       snp_column = NULL, numerator_column = "PAO",
+                       denominator_column = "DP", reader = "table", verbose = FALSE) {
+  meta <- colData(exp)
   file_lst <- meta[[annot_column]]
   na_files <- is.na(meta[[annot_column]])
   meta <- meta[!na_files, ]
-  samples <- rownames(pData(expt))[!na_files]
+  samples <- rownames(colData(exp))[!na_files]
   file_lst <- file_lst[!na_files]
   if (is.null(file_lst)) {
     stop("This requires a set of bcf filenames, the column: ", annot_column, " does not have any.")
@@ -350,7 +349,7 @@ get_individual_snps <- function(retlist) {
 #' I like this function.  It generates an exhaustive catalog of the snps by
 #' chromosome for all the various categories as defined by factor.
 #'
-#' @param snp_expt Expressionset of variants.
+#' @param snp_exp Expressionset of variants.
 #' @param factor Use this metadata factor to split the data.
 #' @param stringency Allow for some wiggle room in the calls.
 #' @param do_save Save the results to an rda fil.
@@ -369,22 +368,22 @@ get_individual_snps <- function(retlist) {
 #' @seealso [medians_by_factor()]
 #' @examples
 #'   \dontrun{
-#'  expt <- create_expt(metadata, gene_information)
-#'  snp_expt <- count_expt_snps(expt)
-#'  snp_sets <- get_snp_sets(snp_expt, factor = "condition")
-#'  ## This assumes a column in the metadata for the expt named 'condition'.
+#'  exp <- create_se(metadata, gene_information)
+#'  snp_exp <- count_snps(exp)
+#'  snp_sets <- get_snp_sets(snp_exp, factor = "condition")
+#'  ## This assumes a column in the metadata for the exp named 'condition'.
 #' }
 #' @export
-get_proportion_snp_sets <- function(snp_expt, factor = "pathogenstrain",
+get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                                     stringency = NULL, do_save = FALSE,
                                     savefile = "variants.rda",
                                     minmax_cutoff = 0.05,
                                     hetero_cutoff = 0.3) {
-  if (is.null(pData(snp_expt)[[factor]])) {
-    stop("The factor does not exist in the expt.")
+  if (is.null(colData(snp_exp)[[factor]])) {
+    stop("The factor does not exist in the exp.")
   } else {
     message("The samples represent the following categories: ")
-    print(table(pData(snp_expt)[[factor]]))
+    print(table(colData(snp_exp)[[factor]]))
   }
   if (isTRUE(do_save) && file.exists(glue("{savefile}_{factor}.rda"))) {
     retlist <- new.env()
@@ -397,7 +396,7 @@ get_proportion_snp_sets <- function(snp_expt, factor = "pathogenstrain",
   ## Recasting all values >= proportion_cutoff to 2 and values < cutoff and > 0 to 1
   ## and leaving 0 alone
   message("Using a proportion column to recast each position as a categorical, 0 (ref), 1 (heter), 2 (homo)")
-  prop <- exprs(snp_expt)
+  prop <- assay(snp_exp)
   categorical <- prop
   zero_cutoff <- 0 + minmax_cutoff
   homo_cutoff <- 1 - minmax_cutoff
@@ -409,11 +408,11 @@ get_proportion_snp_sets <- function(snp_expt, factor = "pathogenstrain",
   categorical[observed_idx] <- 0.5 ## Observed a little
   categorical[hetero_idx] <- 1 ## Observed ~ half of the time
   categorical[homo_idx] <- 2 ## Observed observed always (+/- 5%)
-  categorical_expt <- snp_expt
-  exprs(categorical_expt) <- categorical
+  categorical_exp <- snp_exp
+  assay(categorical_exp) <- categorical
 
   ## This function should be renamed to summarize_by_factor.
-  by_factor_data <- median_by_factor(categorical_expt, fact = factor)
+  by_factor_data <- median_by_factor(categorical_exp, fact = factor)
   ## So, the median_by_factor will be a range of values where the sum will be between 2x * number of samples
   ## and 0
   values <- by_factor_data[["sums"]]
@@ -795,22 +794,22 @@ get_proportion_snp_sets <- function(snp_expt, factor = "pathogenstrain",
 
 #' Collect variants associated with specific conditions.
 #'
-#' @param snp_expt variant collection.
+#' @param snp_exp variant collection.
 #' @param factor metadata factor
 #' @param stringency method to determin 'real' variants.
 #' @param do_save Save the result?
 #' @param savefile outptu savefile.
 #' @param proportion Used with stringency.
 #' @export
-get_snp_sets <- function(snp_expt, factor = "pathogenstrain",
+get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                          stringency = NULL, do_save = FALSE,
                          savefile = "variants.rda",
                          proportion = 0.9) {
-  if (is.null(pData(snp_expt)[[factor]])) {
-    stop("The factor does not exist in the expt.")
+  if (is.null(colData(snp_exp)[[factor]])) {
+    stop("The factor does not exist in the exp.")
   } else {
     message("The samples represent the following categories: ")
-    print(table(pData(snp_expt)[[factor]]))
+    print(table(colData(snp_exp)[[factor]]))
   }
   if (isTRUE(do_save) && file.exists(glue("{savefile}_{factor}.rda"))) {
     retlist <- new.env()
@@ -821,15 +820,15 @@ get_snp_sets <- function(snp_expt, factor = "pathogenstrain",
 
   if (!is.null(proportion)) {
     message("Using a proportion of observed variants, converting the data to binary observations.")
-    nonzero <- exprs(snp_expt)
+    nonzero <- assay(snp_exp)
     nonzero[nonzero > 0] <- 1
     stringency <- "proportion"
     nonzero <- as.matrix(nonzero)
-    exprs(snp_expt) <- nonzero
+    assay(snp_exp) <- nonzero
   }
 
   ## This function should be renamed to summarize_by_factor.
-  by_factor_data <- median_by_factor(snp_expt, fact = factor)
+  by_factor_data <- median_by_factor(snp_exp, fact = factor)
   values <- data.frame()
   observed <- data.frame()
   if (stringency == "proportion") {
@@ -1195,8 +1194,8 @@ snp_by_chr <- function(observations, chr_name = "01", limit = 1) {
 #' observed with respect to each chromosome and with respect to each annotated
 #' sequence (currently this is limited to CDS, but that is negotiable).
 #'
-#' @param expt The original expressionset.  This provides the annotation data.
-#' @param snp_result The result from get_snp_sets or count_expt_snps.
+#' @param exp The original expressionset.  This provides the annotation data.
+#' @param snp_result The result from get_snp_sets or count_snps.
 #' @param start_column Metadata column with the start position of each ORF.
 #' @param end_column Metadata column with the end position of each ORF.
 #' @param chr_column Column in the annotation with the chromosome names.
@@ -1207,16 +1206,16 @@ snp_by_chr <- function(observations, chr_name = "01", limit = 1) {
 #'  [IRanges::subsetByOverlaps()] [IRanges::countOverlaps()]
 #' @examples
 #'  \dontrun{
-#'  expt <- create_expt(metadata, gene_information)
-#'  snp_expt <- count_expt_snps(expt)
-#'  snp_result <- get_snp_sets(snp_expt)
-#'  intersections <- snps_vs_intersections(expt, snp_result)
+#'  exp <- create_se(metadata, gene_information)
+#'  snp_exp <- count_snps(exp)
+#'  snp_result <- get_snp_sets(snp_exp)
+#'  intersections <- snps_vs_intersections(exp, snp_result)
 #' }
 #' @export
-snps_intersections <- function(expt, snp_result,
+snps_intersections <- function(exp, snp_result,
                                start_column = "start", end_column = "end",
                                chr_column = "seqnames") {
-  features <- fData(expt)
+  features <- rowData(exp)
   if (is.null(features[[start_column]])) {
     stop("The column containing the feature starts is missing.")
   }
@@ -1231,7 +1230,7 @@ snps_intersections <- function(expt, snp_result,
   na_starts <- is.na(features[["start"]])
   features <- features[!na_starts, ]
   features[["end"]] <- as.numeric(features[[end_column]])
-  ## Again, remember that I modified the seqnames of the snp_expt.
+  ## Again, remember that I modified the seqnames of the snp_exp.
   features[["seqnames"]] <- gsub(pattern = "_",
                                  replacement = "-",
                                  x = features[[chr_column]])
@@ -1239,7 +1238,7 @@ snps_intersections <- function(expt, snp_result,
                                  replacement = "\\1", x = features[["seqnames"]])
   grange_input <- features[, c("start", "end", "seqnames")]
   grange_dup <- duplicated(grange_input)
-  expt_granges <- GenomicRanges::makeGRangesFromDataFrame(grange_input)
+  exp_granges <- GenomicRanges::makeGRangesFromDataFrame(grange_input)
 
   set_names <- snp_result[["set_names"]]
   chr_summaries <- list()
@@ -1258,7 +1257,7 @@ snps_intersections <- function(expt, snp_result,
     inter_df[["strand"]] <- "+"
     inter_granges <- GenomicRanges::makeGRangesFromDataFrame(inter_df)
     inter_by_gene <- suppressWarnings(IRanges::subsetByOverlaps(inter_granges,
-                                                                expt_granges,
+                                                                exp_granges,
                                                                 type = "within",
                                                                 ignore.strand = TRUE))
     inters[[inter_name]] <- inter_by_gene
@@ -1270,7 +1269,7 @@ snps_intersections <- function(expt, snp_result,
     summarized_by_chr <- unique(summarized_by_chr[, c("seqnames", "count"), with = FALSE])
     chr_summaries[[inter_name]] <- summarized_by_chr
 
-    summarized_by_gene <- suppressWarnings(IRanges::countOverlaps(query = expt_granges,
+    summarized_by_gene <- suppressWarnings(IRanges::countOverlaps(query = exp_granges,
                                                                   subject = inter_granges,
                                                                   type = "any", ignore.strand = TRUE))
     summarized_idx <- order(summarized_by_gene, decreasing = TRUE)
@@ -1306,67 +1305,67 @@ and combination of factors in the data.")
 #' This was written in response to a query from Nancy and Maria Adelaida who
 #' wanted to look only at the variant positions in a few specific genes.
 #'
-#' @param expt Initial expressionset.
-#' @param snp_expt Variant position expressionset.
-#' @param start_col Metadata column with the start positions for each gene.
-#' @param end_col Metadata column with the end of the genes.
-#' @param expt_name_col Metadata column with the chromosome names.
-#' @param snp_name_col Ditto for the snp_expressionset.
-#' @param snp_start_col Metadata column containing the variant positions.
-#' @param expt_gid_column ID column for the genes.
+#' @param exp Initial expressionset.
+#' @param snp_exp Variant position expressionset.
+#' @param start_column Metadata column with the start positions for each gene.
+#' @param end_column Metadata column with the end of the genes.
+#' @param exp_name_column Metadata column with the chromosome names.
+#' @param snp_name_column Ditto for the snp_expressionset.
+#' @param snp_start_column Metadata column containing the variant positions.
+#' @param exp_gid_column ID column for the genes.
 #' @param genes Set of genes to cross reference.
 #' @return New expressionset with only the variants for the genes of interest.
 #' @seealso [GenomicRanges::makeGRangesFromDataFrame()] [IRanges::subsetByOverlaps()]
 #' @export
-snp_subset_genes <- function(expt, snp_expt, start_col = "start", end_col = "end",
-                             expt_name_col = "chromosome", snp_name_col = "chromosome",
-                             snp_start_col = "position", expt_gid_column = "gid",
+snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = "end",
+                             exp_name_column = "chromosome", snp_name_column = "chromosome",
+                             snp_start_column = "position", exp_gid_column = "gid",
                              genes = c("LPAL13_120010900", "LPAL13_340013000", "LPAL13_000054100",
                                        "LPAL13_140006100", "LPAL13_180018500", "LPAL13_320022300")) {
-  features <- fData(expt)
-  if (is.null(features[[start_col]])) {
-    stop("Unable to find the ", start_col, " column in the annotation data.")
+  features <- rowData(exp)
+  if (is.null(features[[start_column]])) {
+    stop("Unable to find the ", start_column, " column in the annotation data.")
   }
-  if (is.null(features[[end_col]])) {
-    stop("Unable to find the ", end_col, " column in the annotation data.")
+  if (is.null(features[[end_column]])) {
+    stop("Unable to find the ", end_column, " column in the annotation data.")
   }
-  features[[start_col]] <- sm(as.numeric(features[[start_col]]))
-  na_starts <- is.na(features[[start_col]])
+  features[[start_column]] <- sm(as.numeric(features[[start_column]]))
+  na_starts <- is.na(features[[start_column]])
   features <- features[!na_starts, ]
-  features[[end_col]] <- as.numeric(features[[end_col]])
-  ## Keep in mind that when creating the snp_expt, I removed '_' from
+  features[[end_column]] <- as.numeric(features[[end_column]])
+  ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
-  features[[expt_name_col]] <- gsub(x = features[[expt_name_col]],
+  features[[exp_name_column]] <- gsub(x = features[[exp_name_column]],
                                     pattern = "_",
                                     replacement = "-")
 
   ## Therefore, in order to cross reference, I need to do the same here.
   ## In this invocation, I need the seqnames to be the chromosome of each gene.
-  expt_granges <- GenomicRanges::makeGRangesFromDataFrame(features,
-                                                          seqnames.field = expt_name_col,
-                                                          start.field = start_col,
-                                                          end.field = end_col)
-  expt_subset <- expt_granges[genes, ]
+  exp_granges <- GenomicRanges::makeGRangesFromDataFrame(features,
+                                                          seqnames.field = exp_name_column,
+                                                          start.field = start_column,
+                                                          end.field = end_column)
+  exp_subset <- exp_granges[genes, ]
 
-  snp_annot <- fData(snp_expt)
-  snp_annot[[snp_start_col]] <- as.numeric(snp_annot[[snp_start_col]])
-  snp_annot[["end"]] <- snp_annot[[snp_start_col]] + 1
+  snp_annot <- rowData(snp_exp)
+  snp_annot[[snp_start_column]] <- as.numeric(snp_annot[[snp_start_column]])
+  snp_annot[["end"]] <- snp_annot[[snp_start_column]] + 1
   snp_granges <- GenomicRanges::makeGRangesFromDataFrame(snp_annot,
-                                                         seqnames.field = snp_name_col,
-                                                         start.field = snp_start_col,
+                                                         seqnames.field = snp_name_column,
+                                                         start.field = snp_start_column,
                                                          end.field = "end")
 
-  snps_in_genes <- IRanges::subsetByOverlaps(snp_granges, expt_subset,
+  snps_in_genes <- IRanges::subsetByOverlaps(snp_granges, exp_subset,
                                              type = "within", ignore.strand = TRUE)
-  snp_expt_ids <- names(snps_in_genes)
-  snp_subset <- exclude_genes_expt(snp_expt, ids = snp_expt_ids, method = "keep")
+  snp_exp_ids <- names(snps_in_genes)
+  snp_subset <- exclude_genes(snp_exp, ids = snp_exp_ids, method = "keep")
 
   snp_fdata <- as.data.frame(snps_in_genes)
-  expt_fdata <- as.data.frame(expt_subset)
-  expt_fdata[["gene"]] <- rownames(expt_fdata)
-  expt_fdata <- expt_fdata[, c("seqnames", "gene")]
-  snp_fdata <- merge(snp_fdata, expt_fdata, by = "seqnames", all.x = TRUE)
-  snp_fdata <- merge(snp_fdata, features, by.x = "gene", by.y = expt_gid_column, all.x = TRUE)
+  exp_fdata <- as.data.frame(exp_subset)
+  exp_fdata[["gene"]] <- rownames(exp_fdata)
+  exp_fdata <- exp_fdata[, c("seqnames", "gene")]
+  snp_fdata <- merge(snp_fdata, exp_fdata, by = "seqnames", all.x = TRUE)
+  snp_fdata <- merge(snp_fdata, features, by.x = "gene", by.y = exp_gid_column, all.x = TRUE)
   fData(snp_subset[["expressionset"]]) <- snp_fdata
   return(snp_subset)
 }
@@ -1377,7 +1376,7 @@ snp_subset_genes <- function(expt, snp_expt, start_col = "start", end_col = "end
 #' condition, one might be interested in seeing what variants are observed per
 #' gene.  This function attempts to answer that question.
 #'
-#' @param expt The original expressionset.
+#' @param exp The original expressionset.
 #' @param snp_result The result from get_snp_sets().
 #' @param start_column Which column provides the start of each gene?
 #' @param end_column and the end column of each gene?
@@ -1390,17 +1389,17 @@ snp_subset_genes <- function(expt, snp_expt, start_col = "start", end_col = "end
 #'  [IRanges::mergeByOverlaps()] [IRanges::countOverlaps()]
 #' @examples
 #'  \dontrun{
-#'  expt <- create_expt(metadata, gene_information)
-#'  snp_expt <- count_expt_snps(expt)
-#'  snp_result <- get_snp_sets(snp_expt)
-#'  gene_intersections <- snps_vs_genes(expt, snp_result)
+#'  exp <- create_se(metadata, gene_information)
+#'  snp_exp <- count_snps(exp)
+#'  snp_result <- get_snp_sets(snp_exp)
+#'  gene_intersections <- snps_vs_genes(exp, snp_result)
 #' }
 #' @export
 #' @importFrom S4Vectors mcols mcols<-
-snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column = "end",
+snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = "end",
                           snp_name_column = "seqnames", observed_in = NULL,
                           chr_column = "chromosome", ignore_strand = TRUE) {
-  features <- fData(expt)
+  features <- rowData(exp)
   if (is.null(features[[start_column]])) {
     stop("Unable to find the ", start_column, " column in the annotation data.")
   }
@@ -1411,7 +1410,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   na_starts <- is.na(features[[start_column]])
   features <- features[!na_starts, ]
   features[[end_column]] <- as.numeric(features[[end_column]])
-  ## Keep in mind that when creating the snp_expt, I removed '_' from
+  ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
   ## Therefore, in order to cross reference, I need to do the same here.
   ## I don't quite want 5'/3' UTRs, I just want the coordinates starting with
@@ -1425,7 +1424,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   ## inter_features <- inter_features[inter_feature_order, ]
 
   ## In this invocation, I need the seqnames to be the chromosome of each gene.
-  expt_granges <- GenomicRanges::makeGRangesFromDataFrame(
+  exp_granges <- GenomicRanges::makeGRangesFromDataFrame(
     features, seqnames.field = chr_column,
     start.field = start_column, end.field = end_column)
   ## keep.extra.columns = FALSE
@@ -1455,7 +1454,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   snp_positions[[end_column]] <- snp_positions[[start_column]]
   snp_positions[["strand"]] <- "+"
   snp_positions <- snp_positions[, c(snp_name_column, start_column, end_column, "strand")]
-  ## Keep in mind that when creating the snp_expt, I removed '_' from
+  ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
   snp_positions[[snp_name_column]] <- gsub(pattern = "-", replacement = "_",
                                         x = snp_positions[[snp_name_column]])
@@ -1468,7 +1467,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   ## This is how one sets the metadata for a GRanges thing.
   ## When doing mergeByOverlaps, countOverlaps, etc, this is useful.
   ## mcols(object)$column_name <- some data column
-  mcols(expt_granges)[, "gene_name"] <- names(expt_granges)
+  mcols(exp_granges)[, "gene_name"] <- names(exp_granges)
 
   ## Lets add metadata columns for each column for the medians table
   ## This will let us find the positions unique to a condition.
@@ -1487,7 +1486,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   }
 
   snps_by_chr <- suppressWarnings(
-    IRanges::subsetByOverlaps(snp_granges, expt_granges,
+    IRanges::subsetByOverlaps(snp_granges, exp_granges,
                               type = "within", ignore.strand = ignore_strand))
   message("There are ", length(snps_by_chr), " overlapping variants and genes.")
 
@@ -1498,16 +1497,16 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
   ## which is sort of the opposite of what I want.
-  ## test <- IRanges::countOverlaps(query = snp_granges, subject = expt_granges,
+  ## test <- IRanges::countOverlaps(query = snp_granges, subject = exp_granges,
   ##                               type = "within", ignore.strand = TRUE)
   summarized_by_chr <- unique(summarized_by_chr[, c("seqnames", "count"), with = FALSE])
   ## The ignore.strand is super important for this task.
   merged_grange <- suppressWarnings(
-    IRanges::mergeByOverlaps(query = snp_granges, subject = expt_granges,
+    IRanges::mergeByOverlaps(query = snp_granges, subject = exp_granges,
                              ignore.strand = ignore_strand))
 
   count_by_gene_irange <- suppressWarnings(
-    IRanges::countOverlaps(query = expt_granges, subject = snp_granges,
+    IRanges::countOverlaps(query = exp_granges, subject = snp_granges,
                            type = "any", ignore.strand = ignore_strand))
 
   ## I am getting odd results using countOverlaps,
@@ -1525,7 +1524,7 @@ snps_vs_genes <- function(expt, snp_result, start_column = "start", end_column =
   summarized_idx <- order(count_by_gene_dplyr, decreasing = TRUE)
   count_by_gene_dplyr <- count_by_gene_dplyr[summarized_idx]
   retlist <- list(
-    "expt_granges" = expt_granges,
+    "exp_granges" = exp_granges,
     "snp_granges" = snp_granges,
     "snps_by_chr" = snps_by_chr,
     "merged_by_gene" = merged_grange,
@@ -1556,15 +1555,15 @@ print.snps_genes <- function(x, ...) {
 
 #' A copy of the above function with padding for species without defined UTRs
 #'
-#' @param expt The original expressionset.
+#' @param exp The original expressionset.
 #' @param snp_result The result from get_snp_sets().
-#' @param start_col Which column provides the start of each gene?
-#' @param end_col and the end column of each gene?
-#' @param strand_col Define strands.
+#' @param start_column Which column provides the start of each gene?
+#' @param end_column and the end column of each gene?
+#' @param strand_column Define strands.
 #' @param padding Add this amount to each CDS.
 #' @param normalize Normalize the returns to the length of the putative CDS.
-#' @param snp_name_col Name of the column in the metadata with the sequence names.
-#' @param expt_name_col Name of the metadata column with the chromosome names.
+#' @param snp_name_column Name of the column in the metadata with the sequence names.
+#' @param chr_column Name of the metadata column with the chromosome names.
 #' @param observed_in Print some information about how many variants were observed.
 #' @param ignore_strand Ignore the strand information when returning?
 #' @return List with some information by gene.
@@ -1572,33 +1571,33 @@ print.snps_genes <- function(x, ...) {
 #'  [IRanges::mergeByOverlaps()] [IRanges::countOverlaps()]
 #' @examples
 #'  \dontrun{
-#'  expt <- create_expt(metadata, gene_information)
-#'  snp_expt <- count_expt_snps(expt)
-#'  snp_result <- get_snp_sets(snp_expt)
-#'  gene_intersections <- snps_vs_genes(expt, snp_result)
+#'  exp <- create_se(metadata, gene_information)
+#'  snp_exp <- count_snps(exp)
+#'  snp_result <- get_snp_sets(snp_exp)
+#'  gene_intersections <- snps_vs_genes(exp, snp_result)
 #' }
-#' @export
 #' @importFrom S4Vectors mcols mcols<-
 #' @importFrom IRanges %over%
-snps_vs_genes_padded <- function(expt, snp_result, start_column = "start", end_col = "end",
+#' @export
+snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_column = "end",
                                  strand_column = "strand", padding = 200, normalize = TRUE,
                                  snp_name_column = "seqnames", chr_column = "chromosome",
                                  observed_in = NULL, ignore_strand = TRUE) {
-  features <- fData(expt)
+  features <- rowData(exp)
   if (is.null(features[[start_column]])) {
     stop("Unable to find the ", start_column, " column in the annotation data.")
   }
   if (is.null(features[[end_column]])) {
     stop("Unable to find the ", end_column, " column in the annotation data.")
   }
-  if (is.null(features[[strand_col]])) {
+  if (is.null(features[[strand_column]])) {
     stop("Unable to find the ", strand_column, " column in the annotation data.")
   }
   features[[start_column]] <- sm(as.numeric(features[[start_column]]))
   na_starts <- is.na(features[[start_column]])
   features <- features[!na_starts, ]
   features[[end_column]] <- as.numeric(features[[end_column]])
-  ## Keep in mind that when creating the snp_expt, I removed '_' from
+  ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
   ## Therefore, in order to cross reference, I need to do the same here.
   ## I don't quite want 5'/3' UTRs, I just want the coordinates starting with
@@ -1663,7 +1662,7 @@ snps_vs_genes_padded <- function(expt, snp_result, start_column = "start", end_c
     observations[[observed_in]] <- 0
     observations[observed_idx, observed_in] <- 1
   }
-  snp_positions[[snp_name_col]] <- gsub(
+  snp_positions[[snp_name_column]] <- gsub(
     pattern = "^chr_(.+)_pos_.+_ref.+_alt.+$",
     replacement = "\\1",
     x = rownames(snp_positions))
@@ -1674,7 +1673,7 @@ snps_vs_genes_padded <- function(expt, snp_result, start_column = "start", end_c
   snp_positions[[end_column]] <- snp_positions[[start_column]]
   snp_positions[["strand"]] <- "+"
   snp_positions <- snp_positions[, c(snp_name_column, start_column, end_column, "strand")]
-  ## Keep in mind that when creating the snp_expt, I removed '_' from
+  ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
   snp_positions[[snp_name_column]] <- gsub(pattern = "-", replacement = "_",
                                            x = snp_positions[[snp_name_column]])
@@ -1720,7 +1719,7 @@ snps_vs_genes_padded <- function(expt, snp_result, start_column = "start", end_c
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
   ## which is sort of the opposite of what I want.
-  ## test <- IRanges::countOverlaps(query = snp_granges, subject = expt_granges,
+  ## test <- IRanges::countOverlaps(query = snp_granges, subject = exp_granges,
   ##                               type = "within", ignore.strand = TRUE)
   snp_ranges <- unique(snp_granges)
   summarized_fivep_by_chr <- unique(summarized_fivep_by_chr[, c("seqnames", "count"),
@@ -1768,11 +1767,11 @@ snps_vs_genes_padded <- function(expt, snp_result, start_column = "start", end_c
 
 #' Write a matrix of variants in an alignment-esque format.
 #'
-#' @param expt variant expressionset.
+#' @param exp variant expressionset.
 #' @param output_file File to write, presumably to be passed to something like phyML.
 #' @export
-write_snps <- function(expt, output_file = "funky.aln") {
-  start_mtrx <- exprs(expt)
+write_snps <- function(exp, output_file = "funky.aln") {
+  start_mtrx <- assay(exp)
   samples <- colnames(start_mtrx)
   aln_string <- ""
   for (r in seq_len(ncol(start_mtrx))) {

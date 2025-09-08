@@ -2,7 +2,7 @@
 % Please edit documentation in R/sanitize.R
 \name{sanitize_metadata,SummarizedExperiment-method}
 \alias{sanitize_metadata,SummarizedExperiment-method}
-\title{Metadata sanitizers for an expt}
+\title{Given an expressionset, sanitize pData columns of interest.}
 \usage{
 \S4method{sanitize_metadata}{SummarizedExperiment}(
   input,
@@ -17,6 +17,38 @@
   numeric = FALSE
 )
 }
+\arguments{
+\item{columns}{Set of columns to check, if left NULL, all columns
+will be molested.}
+
+\item{na_value}{Fill NA values with a string.}
+
+\item{lower}{Set everything to lowercase?}
+
+\item{punct}{Remove punctuation?}
+
+\item{factorize}{Set some columns to factors?  If set to a vector
+of length >=1, then set all of the provided columns to factors.
+When set to 'heuristic', set any columns with <= max_levels
+different elements to factors.}
+
+\item{max_levels}{When heuristically setting factors, use this as
+the heuristic, when NULL it is the number of samples / 6}
+
+\item{spaces}{Remove any spaces in this column?}
+
+\item{numbers}{Sanitize numbers by adding a prefix character to them?}
+
+\item{numeric}{Recast the values as numeric when possible?}
+
+\item{meta}{Input metadata}
+}
 \description{
-Metadata sanitizers for an expt
+I wrote this function after spending a couple of hours confused
+because one cell in my metadata said 'cure ' instead of 'cure' and
+I could not figure out why chaos reigned in my analyses.  There is
+a sister to this somewhere else which checks that the expected
+levels of a metadata factor are consistent; this is because in
+another analysis we essentially had a cell which said 'cyre' and a
+similar data explosion occurred.
 }

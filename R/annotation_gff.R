@@ -106,7 +106,7 @@ gff2irange <- function(gff, type = NULL) {
 #' @param second_id_col Second column to check.
 #' @param try Give your own function call to use for importing.
 #' @param row.names Choose another column for setting the rownames of the data frame.
-#' @param makenames Use make.names to ensure rownames are unique?
+#' @param make.names Use make.names to ensure rownames are unique?
 #' @return Dataframe of the annotation information found in the gff file.
 #' @seealso [rtracklayer] [GenomicRanges]
 #' @example /inst/examples/annotation_gff.R

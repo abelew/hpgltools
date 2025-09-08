@@ -79,7 +79,7 @@ setGeneric("normalize")
 #'
 #' The primary definition for normalize resides in BiocGenerics.
 #'
-#' @param object Data structure to normalize
+#' @param exp Data structure to normalize
 #' @param ... Other options.
 #' @include 01_hpgltools.R
 #' @importFrom BiocGenerics normalize
@@ -93,7 +93,7 @@ setMethod(
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
 #'
-#' @param object Data structure to normalize
+#' @param exp Data structure to normalize
 #' @param ... Other options.
 #' @export
 setMethod(
@@ -691,7 +691,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   }
   impute_performed <- impute
   if (impute != "raw") {
-    imputed_counts <- impute_expt(count_table)
+    imputed_counts <- impute_se(count_table)
     current_libsize <- imputed_counts[["libsize"]]
     count_table <- imputed_counts[["count_table"]]
     current_state[["impute"]] <- impute

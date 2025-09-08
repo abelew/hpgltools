@@ -6,6 +6,11 @@
 \usage{
 sanitize_metadata(input, ...)
 }
+\arguments{
+\item{input}{Input datastructure}
+
+\item{...}{Extra arguments passed along.}
+}
 \description{
 Metadata sanitizers
 }

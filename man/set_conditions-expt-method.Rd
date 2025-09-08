@@ -14,6 +14,21 @@
   ...
 )
 }
+\arguments{
+\item{exp}{Input expt}
+
+\item{fact}{metadata factor to use.}
+
+\item{ids}{Specific IDs to change.}
+
+\item{prefix}{add a prefix to the conditions.}
+
+\item{null_cell}{What to do with missing data?}
+
+\item{colors}{Set the colors as well?}
+
+\item{...}{Arguments passed along.}
+}
 \description{
-This method should go away soon.
+Set conditions of an expt
 }
