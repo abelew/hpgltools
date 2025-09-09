@@ -10,6 +10,8 @@
 \item{exp}{Input summarized experiment.}
 
 \item{...}{Arguments passed to set_conditions.}
+
+\item{value}{The new value (currently in ... I think)}
 }
 \description{
 Get the condition column from a se.
@@ -33,8 +35,8 @@ batches(modify_se) <- new_batches
 batches(modify_se)
 
 ## I have been messing with my various color setter/getters
-current_colors <- get_se_colors(modify_se)
-head(current_colors)
+colors_by_cond <- get_colors_by_condition(modify_se)
+head(colors_by_cond)
 
 current_colors <- get_colors(modify_se)
 new_colors <- rep("red", length(current_colors))

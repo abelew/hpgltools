@@ -241,7 +241,7 @@ setMethod(
 #' another analysis we essentially had a cell which said 'cyre' and a
 #' similar data explosion occurred.
 #'
-#' @param meta Input metadata
+#' @param input Input metadata
 #' @param columns Set of columns to check, if left NULL, all columns
 #'  will be molested.
 #' @param na_value Fill NA values with a string.

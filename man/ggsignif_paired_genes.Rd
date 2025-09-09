@@ -8,14 +8,15 @@ ggsignif_paired_genes(
   exp,
   conditions = NULL,
   genes = NULL,
-  norm = "quant",
+  norm = "raw",
   convert = "cpm",
   filter = TRUE,
   transform = "log2",
   batch = "svaseq",
   name_column = "hgnc_symbol",
   condition_column = "condition",
-  test = "wilcox.test"
+  test = "wilcox.test",
+  excel = NULL
 )
 }
 \arguments{

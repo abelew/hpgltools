@@ -399,6 +399,7 @@ setGeneric("colors<-")
 #'
 #' @param exp Input data structure
 #' @param ... Arguments to pass along.
+#' @example inst/examples/attributes_se.R
 #' @export
 get_colors_by_condition <- function(exp, ...) {
   message("This function is intended to print 1 color per experimental condition.")
@@ -425,6 +426,14 @@ setMethod(
   definition = function(exp, fact = "condition", levels = NULL) {
     meta <- colData(exp)
     all_colors <- get_colors(exp)
+    ## This needs to be a little bit smart and check that the subset
+    ## has the correct samples in case a subset was done via []
+    check_colors <- names(all_colors) %in% rownames(colData(exp))
+    if (sum(!check_colors) > 0) {
+      message("A subset operation de-synced the colors.")
+      all_colors <- all_colors[check_colors]
+    }
+
     interesting_fact <- as.factor(meta[[fact]])
     names(all_colors) <- rownames(colData(exp))
     conditions_by_sample <- conditions(exp)
@@ -537,7 +546,6 @@ setGeneric("conditions")
 #' A getter to pull the conditions from an expt.
 #'
 #' @param exp Input expt
-#' @param ... extra args
 #' @export
 setMethod(
   "conditions", signature(exp = "expt"),
@@ -706,6 +714,7 @@ setGeneric("conditions<-")
 #'
 #' @param exp Output expt
 #' @param ... extra args
+#' @param value The new value (currently in ... I think)
 #' @export
 setMethod(
   "conditions<-", signature(exp = "expt"),
@@ -718,6 +727,7 @@ setMethod(
 #'
 #' @param exp Input summarized experiment.
 #' @param ... Arguments passed to set_conditions.
+#' @param value The new value (currently in ... I think)
 #' @example inst/examples/attributes_se.R
 #' @export
 setMethod(
@@ -1134,6 +1144,7 @@ set_se_colors <- function(se, colors = TRUE,
         RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
     mapping <- setNames(sample_colors, unique(chosen_colors))
     chosen_colors <- mapping[chosen_colors]
+    names(chosen_colors) <- rownames(colData(se))
   } else if (class(colors) == "factor") {
     if (change_by == "condition") {
       mesg("The new colors are a factor, changing according to condition.")
@@ -1207,7 +1218,7 @@ set_se_colors <- function(se, colors = TRUE,
       mesg("The new colors are a character, changing according to sampleID.")
       ## This is changing them by sample id.
       ## In this instance, we are changing specific colors to the provided colors.
-      chosen_colors <- se[["colors"]]
+      chosen_colors <- metadata(se)[["colors"]]
       for (snum in seq_along(names(colors))) {
         sampleid <- names(colors)[snum]
         sample_color <- colors[[snum]]
@@ -1241,7 +1252,7 @@ set_se_colors <- function(se, colors = TRUE,
         new_levels <- c(old_levels, changed_condition)
         levels(tmp_pdata[["condition"]]) <- new_levels
         tmp_pdata[sampleid, "condition"] <- changed_condition
-        colData(se[["expressionset"]]) <- tmp_pdata
+        colData(se) <- tmp_pdata
       }
     }
     chosen_idx <- complete.cases(chosen_colors)
@@ -1265,7 +1276,7 @@ set_se_colors <- function(se, colors = TRUE,
   }
 
   ## Catchall in case I forgot to set the names before now.
-  names(chosen_colors) <- chosen_names
+  names(chosen_colors) <- rownames(colData(se))
   metadata(se)[["colors"]] <- chosen_colors
   return(se)
 }

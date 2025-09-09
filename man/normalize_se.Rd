@@ -25,7 +25,7 @@ normalize_se(
   k = 1,
   cv_min = 0.01,
   cv_max = 1000,
-  na_to_zero = FALSE,
+  na_to_zero = TRUE,
   adjust_method = "ruv",
   verbose = TRUE,
   num_surrogates = "be",

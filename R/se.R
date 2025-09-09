@@ -919,7 +919,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
 
   ## I think the plot dimensions should increase as the number of samples increase
   plot_dim <- 6
-  num_samples <- ncol(exprs(se))
+  num_samples <- ncol(assay(se))
   if (num_samples > 12) {
     plot_dim <- ceiling(num_samples / 4)
   }

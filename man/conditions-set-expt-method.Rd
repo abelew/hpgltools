@@ -10,6 +10,8 @@
 \item{exp}{Output expt}
 
 \item{...}{extra args}
+
+\item{value}{The new value (currently in ... I think)}
 }
 \description{
 Add experimental conditions to an expt.

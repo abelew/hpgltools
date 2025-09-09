@@ -177,7 +177,6 @@ combine_expts <- function(expt1, expt2, condition = "condition", all_x = TRUE, a
 #' @seealso [Biobase] [cdm_expt_rda] [example_gff] [sb_annot] [sb_data] [extract_metadata()]
 #'  [set_expt_conditions()] [set_expt_batches()] [set_expt_samplenames()] [subset_expt()]
 #'  [set_expt_colors()] [set_expt_genenames()] [tximport] [load_annotations()]
-#' @example inst/examples/expt.R
 #' @examples
 #'  ## There are lots of other ways to use this, for example:
 #'  \dontrun{
@@ -859,7 +858,6 @@ features_less_than <- function(...) {
 #' @return A list of two elements, the first comprised of the number of genes
 #'   greater than the cutoff, the second with the identities of said genes.
 #' @seealso [Biobase]
-#' @example inst/examples/expt.R
 #' @export
 features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE) {
   if ("expt" %in% class(data) ||
@@ -912,7 +910,6 @@ features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE
 #' @param chosen Either choose a subset or all conditions to query.
 #' @return A set of features.
 #' @seealso [subset_expt()]
-#' @example inst/examples/expt.R
 #' @export
 features_in_single_condition <- function(expt, cutoff = 2, factor = "condition", chosen = NULL) {
   condition_set <- levels(as.factor(pData(expt)[[factor]]))
@@ -994,7 +991,6 @@ mean_by_factor <- function(data, fact = "condition") {
 #' @param fun Optionally choose mean or another function.
 #' @return Data frame of the medians.
 #' @seealso [Biobase] [matrixStats]
-#' @example inst/examples/expt.R
 #' @export
 median_by_factor <- function(data, fact = "condition", fun = "median") {
   if (length(fact) == 1) {
@@ -1575,7 +1571,6 @@ If this is not correctly performed, very few genes will be observed")
 #' @param semantic_column Column in the annotations to search.
 #' @return A presumably smaller expt.
 #' @seealso [Biobase]
-#' @example inst/examples/expt.R
 #' @export
 semantic_expt_filter <- function(input, invert = FALSE, topn = NULL,
                                  semantic = c("mucin", "sialidase", "RHS", "MASP", "DGF", "GP63"),
@@ -1659,7 +1654,6 @@ semantic_expt_filter <- function(input, invert = FALSE, topn = NULL,
 #' @param print_excluded Print out the samples which are removed via this filter?
 #' @return metadata Expt class which contains the smaller set of data.
 #' @seealso [Biobase] [pData()] [exprs()] [fData()]
-#' @example inst/examples/expt.R
 #' @export
 subset_expt <- function(expt, subset = NULL, ids = NULL,
                         nonzero = NULL, coverage = NULL,
@@ -1902,7 +1896,6 @@ sum_eupath_exon_counts <- function(counts) {
 #' @param transform and transformation,
 #' @param norm and normalization.
 #' @return Slightly modified gene annotations including the mean/variance.
-#' @example inst/examples/expt.R
 #' @export
 variance_expt <- function(expt, convert = "cpm", transform = "raw", norm = "raw") {
   start <- normalize_expt(expt, convert = convert,

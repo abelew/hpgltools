@@ -424,7 +424,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
                          low_to_zero = TRUE, ## extra parameters for batch correction
                          thresh = 2, min_samples = 2, p = 0.01, A = 1, k = 1,
                          cv_min = 0.01, cv_max = 1000,  ## extra parameters for low-count filtering
-                         na_to_zero = FALSE, adjust_method = "ruv", verbose = TRUE,
+                         na_to_zero = TRUE, adjust_method = "ruv", verbose = TRUE,
                          num_surrogates = "be", surrogate_method = NULL, cpus = 4,
                          noscale = TRUE, length_column = NULL,
                          ...) {

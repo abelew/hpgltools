@@ -495,21 +495,24 @@ load_biomart_annotations <- function(
   class(retlist) <- "annotations_biomart"
   return(retlist)
 }
-setOldClass("annotations_biomart")
+##setOldClass("annotations_biomart")
 
-#' Pull the dataframe from load_biomart_annotations()
-#'
-#' @param x Result from load_biomart_annotations()
-#' @param row.names Not currently used
-#' @param optional I am not sure
-#' @param ... Unused optional parameters.
-#' @importFrom BiocGenerics as.data.frame
-#' @export
-setMethod(
-  "as.data.frame", signature = signature(x = "annotations_biomart"),
-  definition = function(x, row.names = NULL, optional = FALSE, ...) {
-    as.data.frame(x[["gene_annotations"]])
-  })
+## Something in the following will sometimes, but not always
+## result in the error:
+## ! no applicable method for `@` applied to an object of class "environment"
+# #' Pull the dataframe from load_biomart_annotations()
+# #'
+# #' @param x Result from load_biomart_annotations()
+# #' @param row.names Not currently used
+# #' @param optional I am not sure
+# #' @param ... Unused optional parameters.
+# #' @importFrom BiocGenerics as.data.frame
+# #' @export
+#setMethod(
+#  "as.data.frame", signature = signature(x = "annotations_biomart"),
+#  definition = function(x, row.names = NULL, optional = FALSE, ...) {
+#    as.data.frame(x[["gene_annotations"]])
+#  })
 
 #' Print function for a set of annotations downloaded from biomart.
 #'

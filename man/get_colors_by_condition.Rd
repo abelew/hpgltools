@@ -14,3 +14,38 @@ get_colors_by_condition(exp, ...)
 \description{
 Get a list of colors by condition instead of by sample id.
 }
+\examples{
+## Use this for examples of SE attribute functions.
+pombe_se <- get0("pombe_se")
+if (is.null(pombe_se)) {
+  source(system.file("examples", "create_se.R", package = "hpgltools"))
+}
+
+## Use this data structure to change things in these examples.
+modify_se <- pombe_se
+
+## Pull the 'batch' column from the sample metadata.
+observed_batches <- batches(modify_se)
+head(observed_batches)
+
+new_batches <- rep("hi", length(observed_batches))
+batches(modify_se) <- new_batches
+batches(modify_se)
+
+## I have been messing with my various color setter/getters
+colors_by_cond <- get_colors_by_condition(modify_se)
+head(colors_by_cond)
+
+current_colors <- get_colors(modify_se)
+new_colors <- rep("red", length(current_colors))
+colors(modify_se) <- new_colors
+get_colors(modify_se)
+
+## I broke something in this: FIXME
+##current_libsize <- libsize(modify_se)
+##current_libsize
+##play_libsize <- current_libsize / 2
+##libsize(modify_se) <- play_libsize
+##current_libsize <- libsize(modify_se)
+##current_libsize
+}

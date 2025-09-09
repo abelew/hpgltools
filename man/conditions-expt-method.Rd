@@ -8,8 +8,6 @@
 }
 \arguments{
 \item{exp}{Input expt}
-
-\item{...}{extra args}
 }
 \description{
 A getter to pull the conditions from an expt.
