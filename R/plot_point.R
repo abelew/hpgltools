@@ -469,8 +469,8 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
   }
   nz_df <- data.frame(
     "id" = colnames(data),
-    "nonzero_genes" = colSums(data > 0),
-    "cpm" = colSums(data) * 1e-6,
+    "nonzero_genes" = colSums(data > 0, na.rm = TRUE),
+    "cpm" = colSums(data, na.rm = TRUE) * 1e-6,
     "condition" = condition,
     "batch" = batch,
     "color" = as.character(colors))
@@ -714,10 +714,10 @@ setMethod(
                         plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
                         y_intercept = 0.8, ...) {
     mtrx <- as.matrix(assay(data))
-    pd <- SummarizedExperiment::colData(data)
+    pd <- colData(data)
     condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
-    colors <- S4Vectors::metadata(data)[["colors"]]
+    colors <- colors(data)
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
                  exp_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
                  plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,

@@ -1273,7 +1273,8 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     do_varpart <- TRUE
     full_model <- as.formula("~ condition + batch")
     reduced_model <- as.formula("~ condition")
-    data_full_model <- try(stats::model.matrix.default(full_model, data = colData(filt)), silent = TRUE)
+    data_full_model <- try(stats::model.matrix.default(full_model, data = colData(filt)),
+                           silent = TRUE)
     data_reduced_model <- NULL
     full_model_columns <- 0
     reduced_model_columns <- 0
@@ -1334,17 +1335,17 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     }
   }
 
-  ## PCA table
+  ## PC table
   new_row <- new_row + plot_rows + 2
   new_col <- 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PCA res.",
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PC res.",
                                       startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   xls_result <- write_xlsx(data = metrics[["pc_summary"]], wb = wb, rownames = FALSE,
                            sheet = sheet, start_col = new_col, start_row = new_row)
   new_col <- xls_result[["end_col"]] + 6
   new_row <- new_row - 1
-  written_name <- openxlsx::writeData(wb, sheet, "Raw PCA table.",
+  written_name <- openxlsx::writeData(wb, sheet, "Raw PC table.",
                                       startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   xls_result <- write_xlsx(data = metrics[["pc_table"]], wb = wb, rownames = FALSE,
@@ -1395,7 +1396,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet))
   norm_metrics <- sm(graph_metrics(norm_data, qq = do_qq, gene_heat = do_sample_heat,
                                    ...))
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PCA res.",
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw PC res.",
                                       startRow = new_row, startCol = new_col)
   ## Start with library sizes.
   written_name <- openxlsx::writeData(wb, sheet, "Legend.",
@@ -1555,21 +1556,24 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   new_row <- new_row + 1
   try_result <- xlsx_insert_png(npca_plot, wb = wb, sheet = sheet, width = plot_dim,
                                 height = plot_dim, start_col = new_col, start_row = new_row,
-                                plotname = "29_npcaplot", savedir = excel_basename, fancy_type = "svg")
+                                plotname = "29_npcaplot", savedir = excel_basename,
+                                fancy_type = "svg")
   if (! "try-error" %in% class(try_result)) {
     image_files <- c(image_files, try_result[["filename"]])
   }
   new_col <- new_col + plot_cols + 1
   try_result <- xlsx_insert_png(npc_topnplot[["plot"]], wb = wb, sheet = sheet, width = plot_dim,
                                 height = plot_dim, start_col = new_col, start_row = new_row,
-                                plotname = "30_npcloadplot", savedir = excel_basename, fancy_type = "svg")
+                                plotname = "30_npcloadplot", savedir = excel_basename,
+                                fancy_type = "svg")
   if (! "try-error" %in% class(try_result)) {
     image_files <- c(image_files, try_result[["filename"]])
   }
   new_col <- new_col + plot_cols + 1
   try_result <- xlsx_insert_png(ntsne_plot, wb = wb, sheet = sheet, width = plot_dim,
                                 height = plot_dim, start_col = new_col, start_row = new_row,
-                                plotname = "31_ntsneplot", savedir = excel_basename, fancy_type = "svg")
+                                plotname = "31_ntsneplot", savedir = excel_basename,
+                                fancy_type = "svg")
   if (! "try-error" %in% class(try_result)) {
     image_files <- c(image_files, try_result[["filename"]])
   }
@@ -1611,17 +1615,16 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     }
   }
 
-  ## PCA table
+  ## PC table
   new_row <- new_row + plot_rows + 2
   new_col <- 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PCA res.",
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PC res.",
                                       startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   xls_result <- write_xlsx(data = norm_metrics[["pc_summary"]], wb = wb, rownames = FALSE,
                            sheet = sheet, start_col = new_col, start_row = new_row)
   new_col <- xls_result[["end_col"]] + 6
-  new_row <- new_row - 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PCA table.",
+  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PC table.",
                       startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   xls_result <- write_xlsx(data = norm_metrics[["pc_table"]], wb = wb, sheet = sheet,

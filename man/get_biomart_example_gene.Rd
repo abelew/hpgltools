@@ -49,11 +49,7 @@ archive_mart
 hs_annot <- try(load_biomart_annotations(year = 2023, month = 02))
 class(hs_annot)
 
-## I keep forgetting that load_biomart_annotations() returns a list
-## so I made a method to coerce it for me.
-dim(as.data.frame(hs_annot))
-
-## I also added a S3 print method to try to avoid being made sad if I
+## I added a S3 print method to try to avoid being made sad if I
 ## print the result from load_annotations.
 hs_annot
 

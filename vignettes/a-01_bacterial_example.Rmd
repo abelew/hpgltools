@@ -9,7 +9,7 @@ output:
   fig_caption: true
   fig_height: 7
   fig_width: 7
-  highlight: default
+  highlight: zenburn
   keep_md: false
   mode: selfcontained
   number_sections: true
@@ -395,9 +395,9 @@ Perhaps instead of looking at subsets of the data, we may want to consider wt/mg
 If so, we can just change the condition to any column in the design matrix.
 
 ```{r wt_mga, fig.show = "hide"}
-wt_mga_se <- set_se_conditions(se = cdm_se, fact = "type")
+wt_mga_se <- set_conditions(cdm_se, fact = "type")
 wt_mga_plots <- graph_metrics(wt_mga_se)
-wt_mga_norm <- normalize_se(wt_mga_se, transform = "log2", convert = "raw", filter = TRUE, norm = "quant")
+wt_mga_norm <- normalize(wt_mga_se, transform = "log2", convert = "raw", filter = TRUE, norm = "quant")
 wt_mga_nplots <- graph_metrics(wt_mga_norm)
 
 wt_mga_de <- all_pairwise(input = wt_mga_se)

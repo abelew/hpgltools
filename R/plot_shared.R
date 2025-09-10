@@ -414,7 +414,7 @@ plot_legend <- function(stuff) {
     ## Then assume it is a pca plot
     plot <- stuff
   } else {
-    color_fact <- get_input_colors(stuff)
+    color_fact <- get_colors_by_condition(stuff)
     plot <- plot_pca(stuff)[["plot"]]
   }
 

@@ -22,7 +22,7 @@ extract_keepers(
   lfc_cutoff = 1,
   p_cutoff = 0.05,
   format_sig = 4,
-  plot_colors = plot_colors,
+  plot_colors = NULL,
   z = 1.5,
   alpha = 0.4,
   z_lines = FALSE,

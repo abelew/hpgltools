@@ -99,7 +99,6 @@ setMethod(
 setMethod(
   "normalize", signature = signature(exp = "SummarizedExperiment"),
   definition = function(exp, ...) {
-    message("Running normalize_se.")
     normalize_se(exp, ...)
   })
 

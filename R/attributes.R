@@ -357,7 +357,14 @@ setGeneric("get_colors")
 setMethod(
   "get_colors", signature(exp = "SummarizedExperiment"),
   definition = function(exp, ...) {
+    ## This needs to be a little bit smart and check that the subset
+    ## has the correct samples in case a subset was done via []
     exp_colors <- S4Vectors::metadata(exp)[["colors"]]
+    check_colors <- names(exp_colors) %in% rownames(colData(exp))
+    if (sum(!check_colors) > 0) {
+      message("A subset operation de-synced the colors.")
+      exp_colors <- exp_colors[check_colors]
+    }
     if (is.null(colors)) {
       exp <- set_se_colors(exp, ...)
       exp_colors <- S4Vectors::metadata(exp)[["colors"]]
@@ -2026,33 +2033,6 @@ setMethod(
                            rownames(value))
     SummarizedExperiment::rowData(object) <- value
     return(object)
-  })
-
-
-#' I keep messing with my S4 dispatch of object attributes.
-#'
-#' @param input dimensional object with color information.
-get_input_colors <- function(input) {
-  message("I want to get away from expt-specific stuff.")
-}
-setGeneric("get_input_colors")
-
-#' Extract colors from an expt.
-#'
-#' @param input input expt.
-setMethod(
-  "get_input_colors", signature(input = "expt"),
-  definition = function(input) {
-    get_colors_by_condition(input)
-  })
-
-#' Extract colors from a SE.
-#'
-#' @param input input SE.
-setMethod(
-  "get_input_colors", signature(input = "SummarizedExperiment"),
-  definition = function(input) {
-    metadata(input)[["colors"]]
   })
 
 #' A getter to pull the library sizes from an expt.

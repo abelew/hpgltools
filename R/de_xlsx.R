@@ -181,7 +181,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## contrasts like mixed models via lmer or interaction models.
   includes <- check_includes(apr, includes = includes)
 
-  plot_colors <- get_input_colors(apr[["input"]])
+  plot_colors <- get_colors_by_condition(apr[["input"]])
   ## Create a list of image files so that they may be properly cleaned up
   ## after writing the xlsx file.
   image_files <- c()
@@ -465,8 +465,6 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
     ## I think I should plot the coefficient plot with the
     ## MA/volcano.  I am stealing the following 6 lines from the
     ## volcano/MA plotter to make pretty colors
-    color_high <- plot_colors[numerator]
-    color_low <- plot_colors[denominator]
     ## A quick short circuit for extra contrasts
     ## They will not have colors defined in the conditions of the input data and so will be NA
     ## here, so drop out now.
@@ -1269,12 +1267,13 @@ extract_keepers <- function(extracted, keepers, table_names,
                             excludes, padj_type, min_genes = 10,
                             fancy = FALSE, loess = FALSE,
                             lfc_cutoff = 1.0, p_cutoff = 0.05,
-                            format_sig = 4, plot_colors = plot_colors,
+                            format_sig = 4, plot_colors = NULL,
                             z = 1.5, alpha = 0.4, z_lines = FALSE,
                             label = 10, label_column = "hgnc_symbol",
                             wanted_genes = NULL, scale_p = FALSE) {
   ## First check that your set of keepers is in the data
   ## all_keepers is therefore the set of all coefficients in numerators/denominators
+  message("Looking for subscript invalid names, start of extract_keepers.")
   all_keepers <- as.character(unlist(keepers))
 
   ## keeper_names is the set of arbitrarily chosen names for the written sheets
@@ -1450,6 +1449,7 @@ extract_keepers <- function(extracted, keepers, table_names,
   } ## Ending the for loop of elements in the keepers list.
   extracted[["numerators"]] <- numerators
   extracted[["denominators"]] <- denominators
+  message("Looking for subscript invalid names, end of extract_keepers.")
   return(extracted)
 }
 setGeneric("extract_keepers")

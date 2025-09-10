@@ -258,7 +258,7 @@ setGeneric("plot_density")
 #' @example inst/examples/plot_distribution.R
 #' @export
 setMethod(
-  "plot_boxplot", signature(data = "matrix"),
+  "plot_density", signature(data = "matrix"),
   definition = function(data, colors = NULL, colors_by = "condition",
                         design = NULL, direct = NULL, fill = NULL,
                         label_chars = 10, plot_title = NULL,

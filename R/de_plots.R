@@ -560,7 +560,6 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       p_col <- glue("{type}_adjp")
     } else {
       p_col <- glue("{type}_p")
-
     }
     all_tables <- data[["data"]]
   } else {
@@ -568,7 +567,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   }
   mesg("  Using logFC column: ", fc_col, ".")
   mesg("  Using adjusted p-value column: ", p_col, ".")
-  mesg("  Using expression column: ", expr_col, ".")
+  mesg("  Using expression column: ", expr_col[1], ".")
 
   possible_tables <- names(all_tables)
   the_table <- NULL
@@ -631,13 +630,13 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
   ## methods will be available; indeed in many instances
   ## only edger and limma will be available
   ## Therefore, let us drop out now if the requisite columns are missing.
+  if (is.null(the_table[[expr_col[1]]])) {
+    return(NULL)
+  }
   if (length(expr_col) > 1) {
     tmpdf <- the_table[, expr_col]
     expr_col <- "basic_mean"
     the_table[[expr_col]] <- (tmpdf[[1]] + tmpdf[[2]]) / 2
-  }
-  if (is.null(the_table[[expr_col]])) {
-    return(NULL)
   }
 
   ## DESeq2 returns the median values as base 10, but we are using log2 (or log10?)
@@ -1832,7 +1831,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
                                intersections = "all", num_sets = "all") {
   ud_list <- list()
   wanted_tables <- names(combined[["data"]])
-  possible_colors <- get_input_colors(combined[["input"]][["input"]])
+  possible_colors <- get_colors_by_condition(combined[["input"]][["input"]])
   upset_contrasts <- data.frame(row.names = wanted_tables)
   upset_contrasts[["numerator"]] <- gsub(x = wanted_tables,
                                          pattern = "^(.*)_vs_.*$", replacement = "\\1")
