@@ -175,64 +175,42 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #' @seealso [PROPER] DOI:10.1093/bioinformatics/btu640
 #' @export
 simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experiment = "cheung",
-                          nsims = 20, reps = c(3, 5, 7, 10), de_method = "edger",
+                          nsims = 20, reps = c(3, 5, 7, 10), de_method = "deseq",
                           alpha_type = "fdr", alpha = 0.1, stratify = "expr", target = "lfc",
                           mean_or_median = "mean", filter = "none", delta = 1.0,
                           add_coverage = TRUE, target_power = 0.8, mean_gene_length = 2000,
                           nt_per_read = 200, describe_samples = 5) {
-  DEmethod <- "edgeR"
-  if (de_method == "edger") {
-    DEmethod <- "edgeR"
-  } else if (de_method == "deseq") {
-    DEmethod <- "DESeq2"
-  } else {
-    stop("This accepts only 'edger' or 'deseq'.")
-  }
+
   ## FIXME: Do this via dispatch
+  message("Hard-setting the method to edger until/unless I coerce DESeq to work with proper.")
+  de_method <- "edger"
   genes <- NULL
-  exprs_mtrx <- matrix()
-  if (is.null(mtrx)) {
-    exprs_mtrx <- exprs(de_tables[["input"]][["input"]])
-  } else if ("matrix" %in% class(mtrx)) {
-    exprs_mtrx <- mtrx
-  } else {
-    exprs_mtrx <- exprs(mtrx)
-  }
-  genes <- nrow(exprs_mtrx)
-  datum <- NULL
-  contrasts <- NULL
-  tables <- NULL
-  if (is.null(de)) {
-    datum <- de_tables[["data"]][[de_method]]
-    contrasts <- as.character(de_tables[["table_names"]])
-    tables <- datum[["all_tables"]]
-  } else if ("deseq_pairwise" %in% class(de_tables)) {
-    datum <- de_tables
-    contrasts <- names(de_tables[["all_tables"]])
-    tables <- datum[["all_tables"]]
-  } else {
-    datum <- de[[de_method]]
-    contrasts <- as.character(de_tables[["table_names"]])
-    tables <- de_tables[["all_tables"]]
-  }
+  de_results <- de_tables[["input"]]
+  exprs_mtrx <- assay(de_results[["input"]])
+  method_result <- de_results[[de_method]]
+  tables <- method_result[["all_tables"]]
+  model_used <- method_result[["model"]]
+  num_genes <- nrow(exprs_mtrx)
+  contrasts <- names(method_result[["all_tables"]])
 
   numerators <- c()
   denominators <- c()
-  for (con in contrasts) {
-    pair <- strsplit(con, "_vs_")
+  for (con in seq_along(contrasts)) {
+    contrast_name <- contrasts[con]
+    pair <- strsplit(contrast_name, "_vs_")
     numerators <- c(numerators, paste0("condition", pair[[1]][1]))
     denominators <- c(denominators, paste0("condition", pair[[1]][2]))
   }
 
   result_list <- list()
   ## For the moment this will hard-assume edger, but should be trivially changed for the others.
-  model_used <- datum[["model"]]
   all_samples <- rownames(model_used)
   count <- 0
   for (con_num in seq_along(contrasts)) {
     ## cheesing out with a paste0 for now.
     num <- numerators[con_num]
     den <- denominators[con_num]
+    den <- gsub(pattern = "-inverted", replacement = "", x = den)
     used_num_sample_idx <- model_used[, num] != 0
     used_den_sample_idx <- model_used[, den] != 0
     used_sample_idx <- used_num_sample_idx | used_den_sample_idx
@@ -260,7 +238,7 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
     }
     message("Working on contrast ", count, "/", clen, ": ", con, ".")
     simulation_options <- list(
-      "ngenes" = genes,
+      "ngenes" = num_genes,
       "p.DE" = p,
       "sim.seed" = as.numeric(Sys.time()),
       "design" = "2grp")
@@ -274,19 +252,21 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
     ## is kind of dumb, so I am not going to spend that time until/unless
     ## I need to.
     if (de_method == "edger") {
-      simulation_options[["lBaselineExpr"]] <- datum[["lrt"]][[d]][["AveLogCPM"]]
-      simulation_options[["lOD"]] = log2(datum[["lrt"]][[d]][["dispersion"]])
-      simulation_options[["lfc"]] = datum[["all_tables"]][[d]][["logFC"]]
+      simulation_options[["lBaselineExpr"]] <- method_result[["lrt"]][[d]][["AveLogCPM"]]
+      simulation_options[["lOD"]] = log2(method_result[["lrt"]][[d]][["dispersion"]])
+      simulation_options[["lfc"]] = method_result[["all_tables"]][[d]][["logFC"]]
     } else {
       simulation_options[["lBaselineExpr"]] = tables[[d]][["baseMean"]]
       simulation_options[["lOD"]] = tables[[d]][["lfcSE"]]
       simulation_options[["lfc"]] = tables[[d]][["logFC"]]
     }
 
-    simulation_result <- my_runsims(Nreps = reps,
-                                    sim.opts = simulation_options,
-                                    DEmethod = DEmethod,
-                                    nsims = nsims)
+    simulation_result <- try(my_runsims(Nreps = reps, sim.opts = simulation_options,
+                                        DEmethod = de_method, nsims = nsims))
+    if ("try-error" %in% class(simulation_result)) {
+      message("This contrast failed.")
+      next
+    }
     powers <- PROPER::comparePower(simulation_result,
                                    alpha.type = alpha_type,
                                    alpha.nominal = alpha,
@@ -464,7 +444,7 @@ update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 #' @param verbose Print some information along the way?
 #' @seealso [PROPER]
 my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
-                        DEmethod = c("edgeR", "DSS", "DESeq", "DESeq2"), verbose = TRUE) {
+                        DEmethod = c("edger", "deseq", "deseq2"), verbose = TRUE) {
   DEmethod <- match.arg(DEmethod)
   if (missing(Nreps2)) {
     Nreps2 <- Nreps
@@ -501,13 +481,9 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
       ix.valid <- ss > 0
       this.X.valid <- this.X[ix.valid, , drop = FALSE]
       data0 <- list(counts = this.X.valid, designs = this.design)
-      if (DEmethod == "edgeR") {
-        res1 <- proper_run_edgeR(data0)
-      }
-      if (DEmethod == "DSS") {
-        res1 <- proper_run_dss(data0)
-      }
-      if (DEmethod == "DESeq2") {
+      if (DEmethod == "edger") {
+        res1 <- proper_run_edger(data0)
+      } else {
         res1 <- proper_run_deseq2(data0)
       }
       pval <- fdr <- rep(1, nrow(this.X))
