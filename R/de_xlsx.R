@@ -468,6 +468,8 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
     ## A quick short circuit for extra contrasts
     ## They will not have colors defined in the conditions of the input data and so will be NA
     ## here, so drop out now.
+    color_high <- plot_colors[numerator]
+    color_low <- plot_colors[denominator]
     if (is.na(color_low) || is.na(color_high)) {
       warning("I think this is an extra contrast table, the plots may be weird.")
       color_high <- "darkred"

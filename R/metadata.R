@@ -2253,6 +2253,9 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
   permutations <- c()
   states <- list()
   for (f in factors) {
+    design[[f]] <- as.character(design[[f]])
+    design[[f]] <- gsub(x = design[[f]], pattern = " ", replacement = "_")
+    design[[f]] <- as.factor(design[[f]])
     state_levels <- levels(as.factor(design[[f]]))
     states[[f]] <- state_levels
     new_permutations <- tidyr::expand_grid(!!!states) |> purrr::pmap_chr(paste)
@@ -2953,13 +2956,13 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "deeptools_coverage" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bw"),
     "salmon_stranded" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr"),
     "salmon_mapped" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr"),
     "salmon_percent" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr"),
     "salmon_observed_genes" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/quant.sf"),
     ## The end should be the various output filenames.
     "input_r1" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/scripts/*trim_*.sh"),
@@ -2979,7 +2982,7 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "salmon_count_table" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/quant.sf"),
     "bbmap_coverage_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*bam2coverage*/coverage.tsv.xz"),
     "bbmap_coverage_per_nt" = list(
@@ -3031,13 +3034,13 @@ make_rnaseq_multibioproject <- function() {
     "trimomatic_ratio" = list(
       "column" = "trimomatic_percent"),
     "salmon_stranded" = list(
-      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
+      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr"),
     "salmon_count_table" = list(
-      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}/quant.sf"),
+      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}*/quant.sf"),
     "salmon_mapped" = list(
-      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr"),
+      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr"),
     "salmon_percent" = list(
-      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}/salmon_*.stderr")
+      "file" = "{basedir}/*/{meta[['sampleid']]}/outputs/*salmon_{species}*/salmon_*.stderr")
   )
   return(spec)
 }

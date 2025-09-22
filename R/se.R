@@ -158,9 +158,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   if (is.null(all_count_tables)) {
     ## If all_count_tables does not exist, then we want to read the various files
     ## in the sample definitions to get them.
-    filenames <- as.character(sample_definitions[[file_column]])
-    sample_ids <- rownames(sample_definitions)
-    count_data <- read_counts(sample_ids, filenames, countdir = countdir,
+    files <- as.character(sample_definitions[[file_column]])
+    ids <- rownames(sample_definitions)
+    count_data <- read_counts(ids, files, countdir = countdir,
                               file_type = file_type, tx_gene_map = tx_gene_map,
                               ignore_tx_version = ignore_tx_version,
                               ...)

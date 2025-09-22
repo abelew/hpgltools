@@ -4,13 +4,44 @@
 #' @param ... Arguments passed through.
 #'
 #' @export
-setGeneric("sanitize_annotations", function(input, ...) {
+sanitize_annotations <- function(input, ...) {
   message("This function is intended to sanitize annotations for a data structure.")
   message("It was passed an object of type ", class(input),
           " and does not know what to do with it.")
-  return(NULL)
   standardGeneric("sanitize_annotations")
-})
+}
+setGeneric("sanitize_annotations")
+
+#' Given an expressionset, sanitize the gene information data.
+#'
+#' @param input Input expressionset.
+#' @param columns Set of columns to sanitize, otherwise all of them.
+#' @param na_value Fill in NA with this.
+#' @param lower sanitize capitalization.
+#' @param punct Remove punctuation?
+#' @param factorize Convert columns to factors?  When set to 'heuristic'
+#'  this tries out as.factor and sees if the number of levels is silly.
+#' @param max_levels The definition of 'silly' above.
+#' @param spaces Allow spaces in the data?
+#' @param numbers Sanitize number formats (e.g. 1.000.000,0 vs. 1,000,000.0)
+#' @param numeric Set columns to numeric when possible?
+#' @export
+setMethod(
+  "sanitize_annotations", signature = signature(input = "SummarizedExperiment"),
+  definition =  function(input, columns = NULL, na_value = "notapplicable",
+                         lower = TRUE, punct = TRUE, factorize = "heuristic",
+                         max_levels = NULL, spaces = FALSE, numbers = NULL,
+                         numeric = FALSE) {
+    se <- input
+    meta <- as.data.frame(rowData(se))
+    sanitized <- sanitize_metadata(meta, columns = columns, na_value = na_value,
+                                   lower = lower, punct = punct, factorize = factorize,
+                                   max_levels = max_levels, spaces = spaces,
+                                   numbers = numbers, numeric = numeric)
+    rowData(se) <- sanitized
+    return(se)
+  })
+
 
 #' Given an expressionset, sanitize the gene information data.
 #'
@@ -40,36 +71,6 @@ setMethod(
                                    numbers = numbers, numeric = numeric)
     fData(expt) <- sanitized
     return(expt)
-  })
-
-#' Given an expressionset, sanitize the gene information data.
-#'
-#' @param input Input expressionset.
-#' @param columns Set of columns to sanitize, otherwise all of them.
-#' @param na_value Fill in NA with this.
-#' @param lower sanitize capitalization.
-#' @param punct Remove punctuation?
-#' @param factorize Convert columns to factors?  When set to 'heuristic'
-#'  this tries out as.factor and sees if the number of levels is silly.
-#' @param max_levels The definition of 'silly' above.
-#' @param spaces Allow spaces in the data?
-#' @param numbers Sanitize number formats (e.g. 1.000.000,0 vs. 1,000,000.0)
-#' @param numeric Set columns to numeric when possible?
-#' @export
-setMethod(
-  "sanitize_annotations", signature = signature(input = "SummarizedExperiment"),
-  definition =  function(input, columns = NULL, na_value = "notapplicable",
-                         lower = TRUE, punct = TRUE, factorize = "heuristic",
-                         max_levels = NULL, spaces = FALSE, numbers = NULL,
-                         numeric = FALSE) {
-    se <- input
-    meta <- rowData(se)
-    sanitized <- sanitize_metadata(meta, columns = columns, na_value = na_value,
-                                   lower = lower, punct = punct, factorize = factorize,
-                                   max_levels = max_levels, spaces = spaces,
-                                   numbers = numbers, numeric = numeric)
-    rowData(se) <- sanitized
-    return(se)
   })
 
 #' Metadata sanitizers
@@ -187,7 +188,6 @@ setMethod(
         }
       } ## End checking if we are sanitizing numeric or other data.
     } ## End iterating over the columns of interest
-
     return(meta)
   })
 
@@ -270,6 +270,7 @@ setMethod(
                                   factorize = factorize, max_levels = max_levels,
                                   spaces = spaces, numbers = numbers, numeric = numeric)
     colData(se) <- new_meta
+    print(summary(new_meta))
     return(se)
   })
 

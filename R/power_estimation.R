@@ -205,11 +205,14 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
   result_list <- list()
   ## For the moment this will hard-assume edger, but should be trivially changed for the others.
   all_samples <- rownames(model_used)
-  count <- 0
   for (con_num in seq_along(contrasts)) {
     ## cheesing out with a paste0 for now.
     num <- numerators[con_num]
     den <- denominators[con_num]
+    vs_string <- glue("{num}_vs_{den}")
+    ## The variable 'used' is a string describing the contrast
+    ## for the grant text.
+    used_string <- glue("{num}/{den}")
     den <- gsub(pattern = "-inverted", replacement = "", x = den)
     used_num_sample_idx <- model_used[, num] != 0
     used_den_sample_idx <- model_used[, den] != 0
@@ -236,21 +239,12 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
         x_intercept <- adder + ((all_coverage - cutoffs[adder]) / cutoff)
       }
     }
-    message("Working on contrast ", count, "/", clen, ": ", con, ".")
+    message("Working on contrast ", con_num, "/", clen, ": ", vs_string, ".")
     simulation_options <- list(
       "ngenes" = num_genes,
       "p.DE" = p,
       "sim.seed" = as.numeric(Sys.time()),
       "design" = "2grp")
-    ## Note to self when this fails, I replaced the unbound variable 'used'
-    ## with the counter 'd' in the hopes that it will work out
-    ## it probably will not and I will need to trace this and find
-    ## the correct variable; whatever it is, it will need to evaluate
-    ## to the name of the contrast for each iteration of run.edger
-    ## There is a decent chance that d is in fact the correct variable
-    ## but until I try it out I will not know; and I think proper
-    ## is kind of dumb, so I am not going to spend that time until/unless
-    ## I need to.
     if (de_method == "edger") {
       simulation_options[["lBaselineExpr"]] <- method_result[["lrt"]][[d]][["AveLogCPM"]]
       simulation_options[["lOD"]] = log2(method_result[["lrt"]][[d]][["dispersion"]])
@@ -371,7 +365,7 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
     pct <- target_power * 100.0
 
     interpolated_text <- glue("  Assuming similar expression patterns and variance to the
-provided experiment, comparing {used}, and a FDR
+provided experiment, comparing {used_string}, and a FDR
 cutoff of {p}, simulations by PROPER (DOI:10.1093/bioinformatics/btu640)
 suggest that it should be possible to identify {pct}% of DE genes with a |log2FC| >= {delta}
 when the sequencing depth is in the range of {chosen_rep_stratum} using {describe_samples}
@@ -403,7 +397,7 @@ treatment group."
       "power_table" = power_table,
       "grant_text" = grant_text,
       "interpolated_text" = interpolated_text)
-    result_list[[used]] <- retlist
+    result_list[[vs_string]] <- retlist
   }
   class(result_list) <- "proper_estimate"
   return(result_list)

@@ -34,10 +34,9 @@ save(list = ls(), file = "pasilla_df.rda")
 
 ## Make sure it is still possible to create an expt
 pasilla_se <- create_se(count_dataframe = counts, metadata = metadata,
-                        savefile = "pasilla.rda", gene_info = gene_info)
-pasilla_se <- sanitize_annotations(pasilla_se,
-                                   columns = c("start_position", "end_position"),
-                                   na_value = 0, numeric = TRUE)
+                        savefile = "pasilla.rda", gene_info = gene_info) %>%
+  sanitize_annotations(columns = c("start_position", "end_position"),
+                       na_value = 0, numeric = TRUE)
 ## Recent changes to how my expressionsets are created mean that the order of
 ## genes is hard-set to the order of annotations in the annotation data and
 ## therefore _not_ the order of genes found in the count tables.
