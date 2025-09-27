@@ -9,7 +9,7 @@ my_runsims(
   Nreps2,
   nsims = 100,
   sim.opts,
-  DEmethod = c("edgeR", "DSS", "DESeq", "DESeq2"),
+  DEmethod = c("edger", "deseq", "deseq2"),
   verbose = TRUE
 )
 }

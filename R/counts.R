@@ -208,9 +208,16 @@ It is likely to require the transcript ID followed by a '.' and the ensembl colu
 If this is not correctly performed, very few genes will be observed")
     txout <- FALSE
   }
+  na_to_zero <- FALSE
 
   if (is.null(file_type)) {
-    if (grepl(pattern = "\\.tsv|\\.h5", x = files[1])) {
+    if (grepl(pattern = "kraken_.*\\.tsv", x = files[1])) {
+      ## Make an explicit kraken type
+      file_type <- "table"
+      all.x = TRUE
+      all.y = TRUE
+      na_to_zero = TRUE
+    } else if (grepl(pattern = "\\.tsv|\\.h5", x = files[1])) {
       file_type <- "kallisto"
     } else if (grepl(pattern = "\\.genes\\.results", x = files[1])) {
       file_type <- "rsem"
@@ -343,6 +350,10 @@ If this is not correctly performed, very few genes will be observed")
     na_rownames <- ""
     if (sum(na_idx) > 0) {
       na_rownames <- count_table[na_idx, "rownames"]
+    }
+    if (isTRUE(na_to_zero)) {
+      na_idx <- is.na(count_table)
+      count_table[na_idx] <- 0
     }
     keepers_idx <- count_table[["rownames"]] != na_rownames
     count_table <- count_table[keepers_idx, ]
@@ -523,6 +534,7 @@ If this is not correctly performed, very few genes will be observed")
   } else {
     stop("I do not understand this count data type.")
   }
-  mesg("Finished reading count data.")
+  mesg("Finished reading count data, final matrix has ", nrow(count_table),
+       " rows and ", ncol(count_table), " columns.")
   return(retlist)
 }

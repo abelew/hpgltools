@@ -9,36 +9,37 @@ all_cprofiler(
   tables,
   according_to = "deseq",
   together = FALSE,
+  todo = NULL,
   orgdb = "org.Hs.eg.db",
   orgdb_from = NULL,
   orgdb_to = "ENTREZID",
   go_level = 3,
   pcutoff = 0.05,
-  qcutoff = 0.2,
+  qcutoff = 0.1,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
   internal = FALSE,
   updown = "up",
   permutations = 1000,
   min_groupsize = 5,
+  max_groupsize = 500,
   kegg_prefix = NULL,
   kegg_organism = NULL,
-  do_gsea = TRUE,
-  categories = 12,
-  do_david = FALSE,
-  do_kegg = TRUE,
-  padj_type = "BH",
-  plot_type = "all",
-  do_reactome = TRUE,
   organism = "human",
-  max_groupsize = 500,
-  do_dose = TRUE,
-  do_mesh = TRUE,
-  do_msigdb = TRUE,
+  categories = 12,
+  padj_type = "BH",
   mesh_category = "C",
   mesh_dbname = "gendoo",
   msigdb_category = "C2",
   msig_db = NULL,
+  kegg_universe = NULL,
+  reactome_organism = NULL,
+  mesh_db = NULL,
+  ah_data = NULL,
+  signature_data = NULL,
+  signature_df = NULL,
+  de_table_namedf = NULL,
+  sig_genes_namedf = NULL,
   excel = "excel/all_cp.xlsx",
   ...
 )
@@ -76,34 +77,17 @@ all_cprofiler(
 
 \item{min_groupsize}{Ignore groups with less than x genes.}
 
+\item{max_groupsize}{Ignore groups which are too big.}
+
 \item{kegg_prefix}{Prefix of this kegg organism ID.}
 
 \item{kegg_organism}{Full name of this organism when querying KEGG.}
 
-\item{do_gsea}{Perform a full gene set enrichment analysis.}
+\item{organism}{String name of the organism.}
 
 \item{categories}{Plot this number of categories by default.}
 
-\item{do_david}{Do a david over representation search? (the java
-DAVID interface is kind of broken, this should stay FALSE)}
-
-\item{do_kegg}{Attempt a KEGG over representation analysis.}
-
 \item{padj_type}{Use this FDR}
-
-\item{plot_type}{Choose specific plot(s).}
-
-\item{do_reactome}{what it says on the tin.}
-
-\item{organism}{String name of the organism.}
-
-\item{max_groupsize}{Ignore groups which are too big.}
-
-\item{do_dose}{Attempt disease ontology search.}
-
-\item{do_mesh}{Attempt MESH search.}
-
-\item{do_msigdb}{Attempt mSigDB search.}
 
 \item{mesh_category}{Use this category for MESH.}
 
@@ -116,6 +100,23 @@ DAVID interface is kind of broken, this should stay FALSE)}
 \item{excel}{Output xlsx filename.}
 
 \item{...}{Arguments to pass to simple_clusterprofiler().}
+
+\item{do_gsea}{Perform a full gene set enrichment analysis.}
+
+\item{do_david}{Do a david over representation search? (the java
+DAVID interface is kind of broken, this should stay FALSE)}
+
+\item{do_kegg}{Attempt a KEGG over representation analysis.}
+
+\item{plot_type}{Choose specific plot(s).}
+
+\item{do_reactome}{what it says on the tin.}
+
+\item{do_dose}{Attempt disease ontology search.}
+
+\item{do_mesh}{Attempt MESH search.}
+
+\item{do_msigdb}{Attempt mSigDB search.}
 }
 \description{
 Most of the options are taken from simple_cprofiler and passed directly down.

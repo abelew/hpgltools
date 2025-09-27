@@ -8,6 +8,7 @@ simple_clusterprofiler(
   sig_genes,
   de_table = NULL,
   orgdb = "org.Hs.eg.db",
+  todo = NULL,
   orgdb_from = NULL,
   orgdb_to = "ENTREZID",
   go_level = 3,
@@ -23,22 +24,23 @@ simple_clusterprofiler(
   max_groupsize = 500,
   kegg_prefix = NULL,
   kegg_organism = NULL,
-  do_gsea = TRUE,
   categories = 12,
   excel = NULL,
-  do_david = FALSE,
-  do_kegg = TRUE,
   david_id = "ENTREZ_GENE_ID",
   padj_type = "BH",
   david_user = "abelew@umd.edu",
-  do_reactome = TRUE,
-  do_dose = FALSE,
-  do_mesh = FALSE,
-  do_msigdb = FALSE,
   mesh_category = "C",
   mesh_dbname = "gendoo",
   msigdb_category = "C2",
-  msig_db = NULL
+  msig_db = NULL,
+  kegg_universe = NULL,
+  reactome_organism = NULL,
+  mesh_db = NULL,
+  ah_data = NULL,
+  signature_data = NULL,
+  signature_df = NULL,
+  de_table_namedf = NULL,
+  sig_genes_namedf = NULL
 )
 }
 \arguments{
@@ -81,29 +83,15 @@ should be tried the second time around?}
 
 \item{kegg_organism}{Choose the 3 letter KEGG organism name here.}
 
-\item{do_gsea}{Perform gsea searches?}
-
 \item{categories}{How many categories should be plotted in bar/dot plots?}
 
 \item{excel}{Print the results to an excel file?}
-
-\item{do_david}{Attempt to use the DAVID database for a search?}
-
-\item{do_kegg}{Perform kegg search?}
 
 \item{david_id}{Which column to use for cross-referencing to DAVID?}
 
 \item{padj_type}{Use this FDR}
 
 \item{david_user}{Default registered username to use.}
-
-\item{do_reactome}{what it says on the tin.}
-
-\item{do_dose}{Attempt disease ontology search.}
-
-\item{do_mesh}{Attempt MESH search.}
-
-\item{do_msigdb}{Attempt mSigDB search.}
 
 \item{mesh_category}{Use this category for MESH.}
 
@@ -112,6 +100,20 @@ should be tried the second time around?}
 \item{msigdb_category}{Use this mSigDB sub-database.}
 
 \item{msig_db}{Use this database file for the msigdb data.}
+
+\item{do_gsea}{Perform gsea searches?}
+
+\item{do_david}{Attempt to use the DAVID database for a search?}
+
+\item{do_kegg}{Perform kegg search?}
+
+\item{do_reactome}{what it says on the tin.}
+
+\item{do_dose}{Attempt disease ontology search.}
+
+\item{do_mesh}{Attempt MESH search.}
+
+\item{do_msigdb}{Attempt mSigDB search.}
 }
 \value{
 a list

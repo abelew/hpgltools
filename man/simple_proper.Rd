@@ -12,7 +12,7 @@ simple_proper(
   experiment = "cheung",
   nsims = 20,
   reps = c(3, 5, 7, 10),
-  de_method = "edger",
+  de_method = "deseq",
   alpha_type = "fdr",
   alpha = 0.1,
   stratify = "expr",
