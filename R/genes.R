@@ -102,13 +102,12 @@ subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL
     tximport_info[["scaled"]][["length"]] <- df
     txinfo(se) <- tximport_info
   }
-
-  message("remove_genes_exp(), before removal, there were ",
+  message("subset_genes(), before removal, there were ",
           nrow(rowData(orig)), " genes, now there are ",
-          nrow(rowData(se)), ".")
+          nrow(rowData(kept)), ".")
   all_tables <- assay(orig)
   all_sums <- colSums(all_tables)
-  kept_tables <- assay(se)
+  kept_tables <- assay(kept)
   kept_sums <- colSums(kept_tables)
   removed_tables <- assay(removed)
   removed_sums <- colSums(removed_tables)
@@ -127,7 +126,7 @@ subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL
   ## FIXME: This should be handled by dispatch
   S4Vectors::metadata(se)[["summary_table"]] <- summary_table
   if (!is.null(meta_column)) {
-    colData(se)[meta_column] <- summary_table["pct_removed", ]
+    colData(kept)[meta_column] <- summary_table["pct_removed", ]
   }
 
   warning_idx <- summary_table["pct_kept", ] < warning_cutoff
@@ -136,7 +135,7 @@ subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL
             warning_cutoff, " percent counts.")
     print(summary_table["pct_kept", warning_idx])
   }
-  return(se)
+  return(kept)
 }
 setGeneric("subset_genes")
 

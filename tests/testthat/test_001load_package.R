@@ -3,7 +3,6 @@ start_time <- as.POSIXlt(Sys.time())
 ##library(hpgltools)
 
 context("001load_package.R: Does hpgltools load properly?")
-
 installedp <- utils::vignette(package = "hpgltools")
 available_vignettes <- as.character(as.data.frame(installedp[["results"]])[["Item"]])
 

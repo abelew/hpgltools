@@ -49,19 +49,19 @@ test_that("Do we get expression from our expt?", {
   expect_equal(actual[6], expected[6], tolerance = 0.001)
 })
 
-test_expt <- concatenate_runs(expt = pombe_se, column = "minute")
-actual <- dim(colData(test_expt))
+test_se <- concatenate_runs(se = pombe_se, column = "minute")
+actual <- dim(colData(test_se))
 expected <- c(6, 7)
 test_that("Do we get a reasonable number of resulting samples if we collapse by time?", {
   expect_equal(actual[1], expected[1], tolerance = 0.001)
   expect_equal(actual[2], expected[2], tolerance = 0.001)
 })
 
-no_rrna <- exclude_genes_expt(pombe_se,
-                              column = "gene_biotype",
-                              patterns = c("ncRNA", "pseudogene"))
+no_rrna <- subset_genes(pombe_se,
+                        column = "gene_biotype",
+                        patterns = c("ncRNA", "pseudogene"))
 expected <- 5479
-actual <- nrow(exprs(no_rrna))
+actual <- nrow(assay(no_rrna))
 test_that("Does exclude_genes_expt remove stuff?", {
   expect_equal(actual, expected)
 })
@@ -104,7 +104,7 @@ test_that("Did we get some old/new colors?", {
   expect_equal(new_actual, new_expected)
 })
 
-testing <- set_se_conditions(pombe_se, fact = "minute")
+testing <- set_conditions(pombe_se, fact = "minute")
 expected <- levels(pombe_se[["design"]][["minute"]])
 actual <- levels(testing[["design"]][["condition"]])
 test_that("Did we get some new conditions?", {
@@ -128,8 +128,8 @@ test_that("Can we subset a se?", {
   expect_equal(expected, actual)
 })
 
-testing <- normalize_se(pombe_se, transform = "log2", norm = "tmm",
-                        convert = "cpm", filter = TRUE, batch = "sva")
+testing <- normalize(pombe_se, transform = "log2", norm = "tmm",
+                     convert = "cpm", filter = TRUE, batch = "sva")
 actual <- what_happened(testing)
 expected <- glue::glue("log2(sva(cpm(tmm(cbcb(data)))))")
 test_that("Will an expt tell us what happened to it?", {

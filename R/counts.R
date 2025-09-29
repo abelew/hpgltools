@@ -7,20 +7,20 @@
 #' Untested as of 2016-12-01, but used in a couple of projects where sequencing
 #' runs got repeated.
 #'
-#' @param expt Experiment class containing the requisite metadata and count tables.
+#' @param se Experiment class containing the requisite metadata and count tables.
 #' @param column Column of the design matrix used to specify which samples are replicates.
-#' @return Expt with the concatenated counts, new design matrix, batches, conditions, etc.
-#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_expt()]
+#' @return Se with the concatenated counts, new design matrix, batches, conditions, etc.
+#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_se()]
 #' @examples
 #' \dontrun{
-#'  compressed <- concatenate_runs(expt)
+#'  compressed <- concatenate_runs(se)
 #' }
 #' @export
-concatenate_runs <- function(expt, column = "replicate") {
-  design <- pData(expt)
+concatenate_runs <- function(se, column = "replicate") {
+  design <- pData(se)
   message("The original expressionset has ", nrow(design), " samples.")
   replicates <- levels(as.factor(design[[column]]))
-  final_expt <- expt
+  final_se <- se
   final_data <- NULL
   final_design <- NULL
   column_names <- list()
@@ -31,30 +31,30 @@ concatenate_runs <- function(expt, column = "replicate") {
   for (rep in replicates) {
     ## expression <- paste0(column, "=='", rep, "'")
     expression <- glue("{column} == '{rep}'")
-    tmp_expt <- subset_expt(expt, expression)
-    tmp_data <- rowSums(exprs(tmp_expt))
-    tmp_design <- pData(tmp_expt)[1, ]
+    tmp_se <- subset_se(se, expression)
+    tmp_data <- rowSums(exprs(tmp_se))
+    tmp_design <- pData(tmp_se)[1, ]
     final_data <- cbind(final_data, tmp_data)
     final_design <- rbind(final_design, tmp_design)
     column_names[[rep]] <- as.character(tmp_design[, "sampleid"])
-    colors[[rep]] <- as.character(tmp_expt[["colors"]][1])
-    batches[[rep]] <- as.character(pData(tmp_expt)[["batch"]][1])
-    conditions[[rep]] <- as.character(pData(tmp_expt)[["condition"]][1])
+    colors[[rep]] <- as.character(tmp_se[["colors"]][1])
+    batches[[rep]] <- as.character(pData(tmp_se)[["batch"]][1])
+    conditions[[rep]] <- as.character(pData(tmp_se)[["condition"]][1])
     samplenames[[rep]] <- paste(conditions[[rep]], batches[[rep]], sep = "-")
     colnames(final_data) <- column_names
   }
   metadata <- new("AnnotatedDataFrame", final_design)
   sampleNames(metadata) <- colnames(final_data)
-  feature_data <- new("AnnotatedDataFrame", fData(expt))
+  feature_data <- new("AnnotatedDataFrame", fData(se))
   featureNames(feature_data) <- rownames(final_data)
   experiment <- new("ExpressionSet", exprs = final_data,
                     phenoData = metadata, featureData = feature_data)
-  final_expt[["expressionset"]] <- experiment
-  final_expt[["samples"]] <- final_design
-  final_expt[["colors"]] <- as.character(colors)
-  final_expt[["samplenames"]] <- as.character(samplenames)
-  message("The final expressionset has ", nrow(pData(final_expt)), " samples.")
-  return(final_expt)
+  final_se[["expressionset"]] <- experiment
+  final_se[["samples"]] <- final_design
+  final_se[["colors"]] <- as.character(colors)
+  final_se[["samplenames"]] <- as.character(samplenames)
+  message("The final expressionset has ", nrow(pData(final_se)), " samples.")
+  return(final_se)
 }
 setGeneric("concatenate_runs")
 
@@ -67,22 +67,22 @@ setGeneric("concatenate_runs")
 #' Untested as of 2016-12-01, but used in a couple of projects where sequencing
 #' runs got repeated.
 #'
-#' @param expt Experiment class containing the requisite metadata and count tables.
+#' @param se Experiment class containing the requisite metadata and count tables.
 #' @param column Column of the design matrix used to specify which samples are replicates.
-#' @return Expt with the concatenated counts, new design matrix, batches, conditions, etc.
-#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_expt()]
+#' @return Se with the concatenated counts, new design matrix, batches, conditions, etc.
+#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_se()]
 #' @examples
 #' \dontrun{
-#'  compressed <- concatenate_runs(expt)
+#'  compressed <- concatenate_runs(se)
 #' }
 #' @export
 setMethod(
-  "concatenate_runs", signature(expt = "SummarizedExperiment", column = "character"),
-  definition = function(expt, column = "replicate") {
-    design <- colData(expt)
+  "concatenate_runs", signature(se = "SummarizedExperiment", column = "character"),
+  definition = function(se, column = "replicate") {
+    design <- colData(se)
     message("The original SE has ", nrow(design), " samples.")
     replicates <- levels(as.factor(design[[column]]))
-    final_expt <- expt
+    final_se <- se
     final_data <- NULL
     final_design <- NULL
     column_names <- list()
@@ -92,7 +92,7 @@ setMethod(
     samplenames <- list()
     for (rep in replicates) {
       idx <- design[[column]] == rep
-      sub <- expt[, idx]
+      sub <- se[, idx]
       tmp_data <- rowSums(assay(sub))
       tmp_design <- colData(sub)[1, ]
       final_data <- cbind(final_data, tmp_data)
@@ -107,11 +107,11 @@ setMethod(
 
     metadata <- new("AnnotatedDataFrame", as.data.frame(final_design))
     sampleNames(metadata) <- colnames(final_data)
-    feature_data <- new("AnnotatedDataFrame", as.data.frame(rowData(expt)))
+    feature_data <- new("AnnotatedDataFrame", as.data.frame(rowData(se)))
     featureNames(feature_data) <- rownames(final_data)
     experiment <- SummarizedExperiment(assays = final_data,
                                        colData = as.data.frame(final_design),
-                                       rowData = as.data.frame(rowData(expt)))
+                                       rowData = as.data.frame(rowData(se)))
     colors(experiment) <- colors
     message("The final SE has ", nrow(colData(experiment)), " samples.")
     return(experiment)
@@ -123,7 +123,7 @@ setMethod(
 #' lab's data storage structure. It shouldn't interfere with other usages, but
 #' it attempts to take into account different ways the data might be stored.
 #'
-#' Used primarily in create_expt()
+#' Used primarily in create_se()
 #' This is responsible for reading count tables given a list of filenames.  It
 #' tries to take into account upper/lowercase filenames and uses data.table to
 #' speed things along.
@@ -145,7 +145,7 @@ setMethod(
 #'  stupid transcript ID .x suffix.
 #' @param ... More options for happy time!
 #' @return Data frame of count tables.
-#' @seealso [data.table] [create_expt()] [tximport]
+#' @seealso [data.table] [create_se()] [tximport]
 #' @examples
 #' \dontrun{
 #'  count_tables <- read_counts(as.character(sample_ids), as.character(count_filenames))
