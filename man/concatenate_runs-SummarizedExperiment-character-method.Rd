@@ -4,15 +4,15 @@
 \alias{concatenate_runs,SummarizedExperiment,character-method}
 \title{Sum the reads/gene for multiple sequencing runs of a single condition/batch.}
 \usage{
-\S4method{concatenate_runs}{SummarizedExperiment,character}(expt, column = "replicate")
+\S4method{concatenate_runs}{SummarizedExperiment,character}(se, column = "replicate")
 }
 \arguments{
-\item{expt}{Experiment class containing the requisite metadata and count tables.}
+\item{se}{Experiment class containing the requisite metadata and count tables.}
 
 \item{column}{Column of the design matrix used to specify which samples are replicates.}
 }
 \value{
-Expt with the concatenated counts, new design matrix, batches, conditions, etc.
+Se with the concatenated counts, new design matrix, batches, conditions, etc.
 }
 \description{
 On occasion we have multiple technical replicates of a sequencing run.  This
@@ -25,9 +25,9 @@ runs got repeated.
 }
 \examples{
 \dontrun{
- compressed <- concatenate_runs(expt)
+ compressed <- concatenate_runs(se)
 }
 }
 \seealso{
-[Biobase] [exprs()] [fData()] [pData()] [create_expt()]
+[Biobase] [exprs()] [fData()] [pData()] [create_se()]
 }

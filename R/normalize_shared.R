@@ -425,7 +425,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
                          cv_min = 0.01, cv_max = 1000,  ## extra parameters for low-count filtering
                          na_to_zero = TRUE, adjust_method = "ruv", verbose = TRUE,
                          num_surrogates = "be", surrogate_method = NULL, cpus = 4,
-                         noscale = TRUE, length_column = NULL,
+                         noscale = TRUE, length_column = NULL, model_fstring = "~ 0 + condition + batch",
                          ...) {
   arglist <- list(...)
 
@@ -589,7 +589,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     mesg("Step 2: not normalizing the data.")
   } else {
     mesg("Step 2: Normalizing the data with ", norm, ".")
-    normalized_counts <- normalize_counts(data = count_table, method = norm,
+    normalized_counts <- normalize_counts(data = count_table, method = norm, design = design,
                                           ...)
     current_libsize <- normalized_counts[["libsize"]]
     count_table <- normalized_counts[["count_table"]]
@@ -654,7 +654,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     mesg("Step 4: not transforming the data.")
   } else {
     mesg("Step 4: transforming the data with ", transform, ".")
-    transformed_counts <- transform_counts(count_table, method = transform,
+    transformed_counts <- transform_counts(count_table, method = transform, design = design, model_fstring = model_fstring,
                                            ...)
     ## transformed_counts <- transform_counts(count_table, transform = transform)
     current_libsize <- transformed_counts[["libsize"]]

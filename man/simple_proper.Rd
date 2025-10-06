@@ -6,13 +6,13 @@
 \usage{
 simple_proper(
   de_tables,
-  de = NULL,
+  apr = NULL,
   mtrx = NULL,
   p = 0.05,
   experiment = "cheung",
   nsims = 20,
   reps = c(3, 5, 7, 10),
-  de_method = "deseq",
+  de_method = "edger",
   alpha_type = "fdr",
   alpha = 0.1,
   stratify = "expr",
@@ -24,16 +24,14 @@ simple_proper(
   target_power = 0.8,
   mean_gene_length = 2000,
   nt_per_read = 200,
-  describe_samples = 5
+  describe_samples = 5,
+  seed = NULL,
+  contrasts = NULL,
+  x_intercept = 1
 )
 }
 \arguments{
-\item{de_tables}{A set of differential expression results, presumably from
-EdgeR or DESeq2.}
-
-\item{de}{FIXME, I think not used}
-
-\item{mtrx}{FIXME, I think not used.}
+\item{de_tables}{The result of combined_de_tables.}
 
 \item{p}{Cutoff}
 
@@ -69,6 +67,12 @@ old, my version of this only accepts deseq or edger.}
 \item{nt_per_read}{Specify how many reads are in each read(pair).}
 
 \item{describe_samples}{Add a guestimate of the number of samples required for the power goal.}
+
+\item{seed}{Specify a seed if deemed necessary.}
+
+\item{contrasts}{Specify contrasts of interest when passing the result from combine_de_tables().}
+
+\item{x_intercept}{Intercept for power deemed significant.}
 }
 \value{
 List containin the various tables and plots returned by PROPER.

@@ -276,18 +276,17 @@ pca_information <- function(input, ...) {
 #' }
 #' @include expt.R
 #' @export
-pca_information <- function(input, input_design = NULL, input_factors = c("condition", "batch"),
-                            colors_chosen = NULL, input_state = NULL, num_components = NULL, plot_pcas = FALSE, ...) {
+pca_information <- function(input, input_design = NULL, factors = c("condition", "batch"),
+                            colors_chosen = NULL, input_state = NULL,
+                            num_components = NULL, plot_pcas = FALSE, ...) {
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
   if (is.null(colors_chosen)) {
-    colors_chosen <- as.numeric(as.factor(input_design[["condition"]]))
-    num_chosen <- max(3, length(levels(as.factor(colors_chosen))))
-    colors_chosen <- RColorBrewer::brewer.pal(num_chosen, "Dark2")[colors_chosen]
-    names(colors_chosen) <- rownames(input_design)
+    colors_chosen <- get_colors_by_condition(input)
   }
 
-  initial_pca <- plot_pca(data = input, design = input_design, state = input_state, plot_colors = colors_chosen,
+  initial_pca <- plot_pca(data = input, design = input_design, state = input_state,
+                          plot_colors = colors_chosen,
                           ...)
   v <- initial_pca[["result"]][["v"]]
   u <- initial_pca[["result"]][["u"]]
@@ -298,7 +297,7 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   pca_data <- initial_pca[["table"]]
 
   if (is.null(num_components)) {
-    num_components <- length(input_factors)
+    num_components <- length(factors)
   }
   max_components <- ncol(v)
   if (max_components < num_components) {
@@ -340,7 +339,7 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   factor_df <- data.frame(
     "sampleid" = rownames(input_design))
   rownames(factor_df) <- rownames(input_design)
-  for (fact in input_factors) {
+  for (fact in factors) {
     if (!is.null(input_design[[fact]])) {
       factor_df[[fact]] <- as.numeric(as.factor(as.character(input_design[, fact])))
     } else {
@@ -358,8 +357,8 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   anova_p <- data.frame()
   anova_rss <- data.frame()
   anova_fstats <- data.frame()
-  for (f in seq_along(input_factors)) {
-    fact <- input_factors[f]
+  for (f in seq_along(factors)) {
+    fact <- factors[f]
     for (pc in seq_len(num_components)) {
       pc_name <- glue::glue("pc_{pc}")
       tmp_df <- merge(factor_df, pca_data, by = "row.names")
@@ -433,10 +432,10 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
-  pc_factor_corheat <- heatmap.3(as.matrix(cor_df), scale = "none", trace = "none",
-                                 linewidth = 0.5, keysize = 2, margins = c(8, 8),
-                                 col = silly_colors, dendrogram = "none", Rowv = FALSE,
-                                 Colv = FALSE, main = "cor(factor, PC)")
+  pc_factor_corheat <- try(heatmap.3(as.matrix(cor_df), scale = "none", trace = "none",
+                                     linewidth = 0.5, keysize = 2, margins = c(8, 8),
+                                     col = silly_colors, dendrogram = "none", Rowv = FALSE,
+                                     Colv = FALSE, main = "cor(factor, PC)"))
   pc_factor_corheat <- grDevices::recordPlot()
   dev.off()
   removed <- file.remove(tmp_file)
@@ -446,10 +445,10 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
-  anova_f_heat <- heatmap.3(as.matrix(anova_f), scale = "none", trace = "none",
-                            linewidth = 0.5, keysize = 2, margins = c(8, 8),
-                            col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
-                            Colv = FALSE, main = "anova fstats for (factor, PC)")
+  anova_f_heat <- try(heatmap.3(as.matrix(anova_f), scale = "none", trace = "none",
+                                linewidth = 0.5, keysize = 2, margins = c(8, 8),
+                                col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
+                                Colv = FALSE, main = "anova fstats for (factor, PC)"))
   anova_f_heat <- grDevices::recordPlot()
   dev.off()
   removed <- file.remove(tmp_file)
@@ -459,10 +458,10 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
-  anova_fstat_heat <- heatmap.3(as.matrix(anova_fstats), scale = "none", trace = "none",
-                                linewidth = 0.5, keysize = 2, margins = c(8, 8),
-                                col = anova_fstat_colors, dendrogram = "none", Rowv = FALSE,
-                                Colv = FALSE, main = "anova fstats for (factor, PC)")
+  anova_fstat_heat <- try(heatmap.3(as.matrix(anova_fstats), scale = "none", trace = "none",
+                                    linewidth = 0.5, keysize = 2, margins = c(8, 8),
+                                    col = anova_fstat_colors, dendrogram = "none", Rowv = FALSE,
+                                    Colv = FALSE, main = "anova fstats for (factor, PC)"))
   anova_fstat_heat <- grDevices::recordPlot()
   dev.off()
   removed <- file.remove(tmp_file)
@@ -476,10 +475,10 @@ pca_information <- function(input, input_design = NULL, input_factors = c("condi
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
-  anova_neglogp_heat <- heatmap.3(as.matrix(neglog_p), scale = "none", trace = "none",
-                                  linewidth = 0.5, keysize = 2, margins = c(8, 8),
-                                  col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
-                                  Colv = FALSE, main = "-log(anova_p values)")
+  anova_neglogp_heat <- try(heatmap.3(as.matrix(neglog_p), scale = "none", trace = "none",
+                                      linewidth = 0.5, keysize = 2, margins = c(8, 8),
+                                      col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
+                                      Colv = FALSE, main = "-log(anova_p values)"))
   anova_neglogp_heat <- grDevices::recordPlot()
   dev.off()
   removed <- file.remove(tmp_file)

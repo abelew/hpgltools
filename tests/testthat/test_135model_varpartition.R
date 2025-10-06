@@ -3,10 +3,9 @@ context("135model_varpartition.R")
 ## 2017-12, exported functions in model_varpartition:
 ## replot_varpart_percent(), varpart(), varpart_summaries()
 
-pombe_expt <- make_pombe_expt(annotation = TRUE)
 pombe_se <- make_pombe_se(annotation = TRUE)
 
-pombe_varpart <- simple_varpart(pombe_expt)
+pombe_varpart <- simple_varpart(pombe_se)
 
 ## I decided to move away from the mixed models.
 ##expected <- "(1 | condition) + (1 | batch)"

@@ -10,7 +10,6 @@ needed inside it.}
   input_design = NULL,
   input_factors = c("condition", "batch"),
   colors_chosen = NULL,
-  input_state = NULL,
   num_components = NULL,
   plot_pcas = FALSE,
   ...
@@ -27,8 +26,6 @@ cells, whatever...}
 R^2 against the fast.svd of the data.}
 
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
-
-\item{input_state}{State of the input.}
 
 \item{num_components}{Number of principle components to compare the design
 factors against. If left null, it will query the same number of components

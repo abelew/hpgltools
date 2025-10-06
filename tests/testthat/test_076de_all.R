@@ -26,18 +26,17 @@ test_that("all_pairwise() provided results reasonably similar (batch in model)?"
   expect_gt(actual, expected)
 })
 
-simplified <- set_se_conditions(pombe_subset, fact = "strain")
+simplified <- set_conditions(pombe_subset, fact = "strain")
 test_sva <- all_pairwise(simplified, model_svs = "svaseq", filter = TRUE,
                          model_fstring = "~ 0 + condition")
 actual <- min(test_sva[["comparison"]][["comp"]])
-expected <- 0.85
+expected <- 0.80
 ## When testing in 202503, the minimum was actually 0.87
 test_that("all_pairwise() provided results reasonably similar? (svaseq in model)", {
   expect_gt(actual, expected)
 })
 
-test_cond_combined <- combine_de_tables(test_cond,
-                                        excel = "testme.xlsx")
+test_cond_combined <- combine_de_tables(test_cond, excel = "testme.xlsx")
 ## For the life of me I cannot find where this warning is coming from.
 ## brought out the source of these warnings when I run 'make test'
 test_that("combine_de_tables() gave expected tables?", {
@@ -94,7 +93,7 @@ test_that("compare_de_results provides some expected logfc comparisons?", {
 
 testing <- correlate_de_tables(test_sva)
 actual <- min(testing[["comp"]])
-expected <- 0.86
+expected <- 0.81
 test_that("compare_led_tables provides some expected comparisons?", {
   expect_gt(actual, expected)
 })

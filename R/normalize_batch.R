@@ -1585,65 +1585,69 @@ compare_batches <- function(expt = NULL, methods = NULL) {
 #' @return List of the results.
 #' @seealso [normalize()] [plot_pca()] [all_adjuster()] [corrplot] [ffpe]
 #' @export
-compare_surrogate_estimates <- function(expt, extra_factors = NULL,
+compare_surrogate_estimates <- function(exp, extra_factors = NULL,
                                         filter_it = TRUE, filter_type = TRUE,
                                         do_catplots = FALSE, num_surrogates = "be", ...) {
   arglist <- list(...)
-  design <- pData(expt)
+  design <- colData(exp)
   do_batch <- TRUE
   if (length(levels(design[["batch"]])) == 1) {
     mesg("There is 1 batch in the data, fitting condition+batch will fail.")
     do_batch <- FALSE
   }
 
-  if (isTRUE(filter_it) && expt[["state"]][["filter"]] == "raw") {
-    mesg("The expt has not been filtered, ",
+  the_state <- state(exp)
+  the_colors <- colors(exp)
+
+  if (isTRUE(filter_it) && the_state[["filter"]] == "raw") {
+    mesg("The exp has not been filtered, ",
          "set filter_type/filter_it if you want other options.")
-    expt <- normalize(expt, filter = filter_type,
+    exp <- normalize(exp, filter = filter_type,
                            ...)
   }
   pca_plots <- list()
-  pca_plots[["null"]] <- plot_pca(expt)[["plot"]]
+  pca_plots[["null"]] <- plot_pca(exp)[["plot"]]
 
-  pca_adjust <- all_adjusters(expt, estimate_type = "pca",
+  pca_adjust <- all_adjusters(exp, estimate_type = "pca",
                               num_surrogates = num_surrogates)
   pca_plots[["pca"]] <- plot_pca(pca_adjust[["new_counts"]],
                                  design = design,
-                                 plot_colors = expt[["colors"]])[["plot"]]
+                                 plot_colors = the_colors)[["plot"]]
 
-  sva_supervised <- sm(all_adjusters(expt, estimate_type = "sva_supervised",
+  sva_supervised <- sm(all_adjusters(exp, estimate_type = "sva_supervised",
                                      num_surrogates = num_surrogates))
   pca_plots[["svasup"]] <- plot_pca(sva_supervised[["new_counts"]],
                                     design = design,
-                                    plot_colors = expt[["colors"]])[["plot"]]
+                                    plot_colors = the_colors)[["plot"]]
 
-  sva_unsupervised <- sm(all_adjusters(expt, estimate_type = "sva_unsupervised",
+  sva_unsupervised <- sm(all_adjusters(exp, estimate_type = "sva_unsupervised",
                                        num_surrogates = num_surrogates))
   pca_plots[["svaunsup"]] <- plot_pca(sva_unsupervised[["new_counts"]],
                                       design = design,
-                                      plot_colors = expt[["colors"]])[["plot"]]
+                                      plot_colors = the_colors)[["plot"]]
 
-  ruv_supervised <- sm(all_adjusters(expt, estimate_type = "ruv_supervised",
+  ruv_supervised <- sm(all_adjusters(exp, estimate_type = "ruv_supervised",
                                      num_surrogates = num_surrogates))
   pca_plots[["ruvsup"]] <- plot_pca(ruv_supervised[["new_counts"]],
                                     design = design,
-                                    plot_colors = expt[["colors"]])[["plot"]]
+                                    plot_colors = the_colors)[["plot"]]
 
-  ruv_residuals <- sm(all_adjusters(expt, estimate_type = "ruv_residuals",
+  ruv_residuals <- sm(all_adjusters(exp, estimate_type = "ruv_residuals",
                                     num_surrogates = num_surrogates))
   pca_plots[["ruvresid"]] <- plot_pca(ruv_residuals[["new_counts"]],
                                       design = design,
-                                      plot_colors = expt[["colors"]])[["plot"]]
+                                      plot_colors = the_colors)[["plot"]]
 
-  ruv_empirical <- sm(all_adjusters(expt, estimate_type = "ruv_empirical",
+  ruv_empirical <- sm(all_adjusters(exp, estimate_type = "ruv_empirical",
                                     num_surrogates = num_surrogates))
   pca_plots[["ruvemp"]] <- plot_pca(ruv_empirical[["new_counts"]],
                                     design = design,
-                                    plot_colors = expt[["colors"]])[["plot"]]
-
+                                    plot_colors = the_colors)[["plot"]]
+  c_fact <- conditions(exp)
+  b_fact <- batches(exp)
   first_svs <- data.frame(
-    "condition" = as.numeric(as.factor(expt[["conditions"]])),
-    "batch" = as.numeric(as.factor(expt[["batches"]])),
+    "condition" = as.numeric(c_fact),
+    "batch" = as.numeric(b_fact),
     "pca_adjust" = pca_adjust[["model_adjust"]][, 1],
     "sva_supervised" = sva_supervised[["model_adjust"]][, 1],
     "sva_unsupervised" = sva_unsupervised[["model_adjust"]][, 1],
@@ -1651,8 +1655,8 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
     "ruv_residuals" = ruv_residuals[["model_adjust"]][, 1],
     "ruv_empirical" = ruv_empirical[["model_adjust"]][, 1])
   batch_adjustments <- list(
-    "condition" = as.factor(expt[["conditions"]]),
-    "batch" = as.factor(expt[["batches"]]),
+    "condition" = c_fact,
+    "batch" = b_fact,
     "pca_adjust" = pca_adjust[["model_adjust"]],
     "sva_supervised" = sva_supervised[["model_adjust"]],
     "sva_unsupervised" = sva_unsupervised[["model_adjust"]],
@@ -1692,7 +1696,7 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
                    "+ batch_adjustments$ruv_emp")
   adjust_names <- gsub(
     pattern = "^.*adjustments\\$(.*)$", replacement = "\\1", x = adjustments)
-  starter <- edgeR::DGEList(counts = exprs(expt))
+  starter <- edgeR::DGEList(counts = exprs(exp))
   norm_start <- edgeR::calcNormFactors(starter)
 
   ## Create a baseline to compare against.
@@ -1795,7 +1799,7 @@ compare_surrogate_estimates <- function(expt, extra_factors = NULL,
 #' resulting count table look like? Hopefully this function answers that
 #' question.
 #'
-#' @param data Original count table, may be an expt/expressionset or df/matrix.
+#' @param data Original count table, may be an exp/expressionset or df/matrix.
 #' @param adjust Surrogates with which to adjust the data.
 #' @param design Experimental design if it is not included in the expressionset.
 #' @param method Which methodology to follow, ideally these agree but
@@ -1817,7 +1821,7 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
   my_design <- NULL
   conditions <- NULL
   batches <- NULL
-  expr <- sum(c("expt", "ExpressionSet", "SummarizedExperiment") %in% class(data))
+  expr <- sum(c("exp", "ExpressionSet", "SummarizedExperiment") %in% class(data))
   if (expr) {
     my_design <- pData(data)
     data_mtrx <- exprs(data)
@@ -2278,7 +2282,7 @@ plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0
 #' Hector was her professor before she joined us, and Hector suggested
 #' the PC idea to me).
 #'
-#' @param expt Input expressionset, redo everything to use SE, stupid.
+#' @param exp Input expressionset, redo everything to use SE, stupid.
 #' @param num_surrogates Specificy the number of surrogates or let it choose.
 #' @param filter Pre-filter the data?
 #' @param norm Pre-normalize?
@@ -2289,24 +2293,24 @@ plot_sv_meta <- function(sv_meta, meta_column = "typeofcells", sv = 1, alpha = 0
 #' @param queries List of metadata factors to query.
 #' @param ... Used to make compatible with pc_fstatistics and to pass stuff to normalize().
 #' @export
-sv_fstatistics <- function(expt, num_surrogates = NULL,
+sv_fstatistics <- function(exp, num_surrogates = NULL,
                            filter = TRUE, norm = "raw",
                            convert = "cpm", transform = "log2", batch = "svaseq",
                            sv_df = NULL, queries = c("typeofcells", "visitnumber", "donor"),
                            ...) {
-  svs_expt <- normalize(expt, filter = filter, norm = norm, convert = convert,
+  svs_exp <- normalize(exp, filter = filter, norm = norm, convert = convert,
                              transform = transform, batch = batch,
                              ...)
   if (is.null(sv_df)) {
-    sv_df <- svs_expt[["sv_df"]]
+    sv_df <- svs_exp[["sv_df"]]
   }
-  pre_exprs <- exprs(expt)
-  meta <- pData(expt)
+  pre_exprs <- exprs(exp)
+  meta <- pData(exp)
   sv_meta <- merge(meta, sv_df, by = "row.names")
   rownames(sv_meta) <- sv_meta[["Row.names"]]
   sv_meta[["Row.names"]] <- NULL
   retlist <- list(
-    "sv_expt" = svs_expt,
+    "sv_exp" = svs_exp,
     "sv_meta"= sv_meta)
 
   sv_vector <- seq_len(ncol(sv_df))
@@ -2335,20 +2339,20 @@ sv_fstatistics <- function(expt, num_surrogates = NULL,
 
 #' Get the f-stats before/after messing with sva.
 #'
-#' @param expt input
+#' @param exp input
 #' @param ... Args passed to everything else.
 #' @export
-svpc_fstats <- function(expt, ...) {
-  if (expt[["state"]][["transform"]] == "raw") {
+svpc_fstats <- function(exp, ...) {
+  if (exp[["state"]][["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
-    pre_norm <- normalize(expt, transform = "log2", convert = "cpm",
+    pre_norm <- normalize(exp, transform = "log2", convert = "cpm",
                                filter = TRUE)
   } else {
-    pre_norm <- expt
+    pre_norm <- exp
   }
   pre_pcf <- pc_fstatistics(pre_norm, ...)
-  svf <- sv_fstatistics(expt, ...)
-  post_pcf <- pc_fstatistics(svf[["sv_expt"]], ...)
+  svf <- sv_fstatistics(exp, ...)
+  post_pcf <- pc_fstatistics(svf[["sv_exp"]], ...)
   retlist <- list(
     "pre_f" = pre_pcf[["fvalues"]],
     "pre_p" = pre_pcf[["pvalues"]],

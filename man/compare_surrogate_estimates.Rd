@@ -5,7 +5,7 @@
 \title{Perform a comparison of the surrogate estimators demonstrated by Jeff Leek.}
 \usage{
 compare_surrogate_estimates(
-  expt,
+  exp,
   extra_factors = NULL,
   filter_it = TRUE,
   filter_type = TRUE,
@@ -15,8 +15,6 @@ compare_surrogate_estimates(
 )
 }
 \arguments{
-\item{expt}{Experiment containing a design and other information.}
-
 \item{extra_factors}{Character list of extra factors which may be included in
 the final plot of the data.}
 
@@ -32,6 +30,8 @@ so probably no.}
 number.}
 
 \item{...}{Extra arguments when filtering.}
+
+\item{expt}{Experiment containing a design and other information.}
 }
 \value{
 List of the results.

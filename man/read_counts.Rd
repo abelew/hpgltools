@@ -59,7 +59,7 @@ lab's data storage structure. It shouldn't interfere with other usages, but
 it attempts to take into account different ways the data might be stored.
 }
 \details{
-Used primarily in create_expt()
+Used primarily in create_se()
 This is responsible for reading count tables given a list of filenames.  It
 tries to take into account upper/lowercase filenames and uses data.table to
 speed things along.
@@ -70,5 +70,5 @@ speed things along.
 }
 }
 \seealso{
-[data.table] [create_expt()] [tximport]
+[data.table] [create_se()] [tximport]
 }

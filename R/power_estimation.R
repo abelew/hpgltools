@@ -149,10 +149,7 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #' version of 'default_proper()' above and invokes PROPER after re-formatting a
 #' given dataset in the way expected by PROPER.
 #'
-#' @param de_tables A set of differential expression results, presumably from
-#'  EdgeR or DESeq2.
-#' @param de FIXME, I think not used
-#' @param mtrx FIXME, I think not used.
+#' @param de_tables The result of combined_de_tables.
 #' @param p Cutoff
 #' @param experiment The default data set in PROPER is entitled 'cheung'.
 #' @param nsims Number of simulations to perform.
@@ -171,22 +168,38 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #' @param mean_gene_length When making text, specify the mean gene length expected.
 #' @param nt_per_read Specify how many reads are in each read(pair).
 #' @param describe_samples Add a guestimate of the number of samples required for the power goal.
+#' @param seed Specify a seed if deemed necessary.
+#' @param contrasts Specify contrasts of interest when passing the result from combine_de_tables().
+#' @param x_intercept Intercept for power deemed significant.
 #' @return List containin the various tables and plots returned by PROPER.
 #' @seealso [PROPER] DOI:10.1093/bioinformatics/btu640
 #' @export
-simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experiment = "cheung",
-                          nsims = 20, reps = c(3, 5, 7, 10), de_method = "deseq",
+simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experiment = "cheung",
+                          nsims = 20, reps = c(3, 5, 7, 10), de_method = "edger",
                           alpha_type = "fdr", alpha = 0.1, stratify = "expr", target = "lfc",
                           mean_or_median = "mean", filter = "none", delta = 1.0,
                           add_coverage = TRUE, target_power = 0.8, mean_gene_length = 2000,
-                          nt_per_read = 200, describe_samples = 5) {
+                          nt_per_read = 200, describe_samples = 5, seed = NULL,
+                          contrasts = NULL, x_intercept = 1) {
+
+  if (is.null(seed)) {
+    seed <- as.numeric(Sys.time())
+  }
 
   ## FIXME: Do this via dispatch
-  message("Hard-setting the method to edger until/unless I coerce DESeq to work with proper.")
+  # message("Forcing method to edger until I figure out wtf is up.")
   de_method <- "edger"
   genes <- NULL
   de_results <- de_tables[["input"]]
-  exprs_mtrx <- assay(de_results[["input"]])
+  if (is.null(de_results)) {
+    de_results <- apr
+    exprs_mtrx <- mtrx
+    if ("SummarizedExperiment" %in% class(exprs_mtrx)) {
+      exprs_mtrx <- assay(exprs_mtrx)
+    }
+  } else {
+    exprs_mtrx <- assay(de_results[["input"]])
+  }
   method_result <- de_results[[de_method]]
   tables <- method_result[["all_tables"]]
   model_used <- method_result[["model"]]
@@ -243,16 +256,27 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
     simulation_options <- list(
       "ngenes" = num_genes,
       "p.DE" = p,
-      "sim.seed" = as.numeric(Sys.time()),
+      "sim.seed" = seed,
       "design" = "2grp")
+    ## I might get the itch to do something with these, lets
+    ## put them in this scope and think about it.
+    base_expr <- NULL
+    standard_errors <- NULL
+    fc_values <- NULL
     if (de_method == "edger") {
-      simulation_options[["lBaselineExpr"]] <- method_result[["lrt"]][[d]][["AveLogCPM"]]
-      simulation_options[["lOD"]] = log2(method_result[["lrt"]][[d]][["dispersion"]])
-      simulation_options[["lfc"]] = method_result[["all_tables"]][[d]][["logFC"]]
+      base_expr <- method_result[["lrt"]][[con_num]][["AveLogCPM"]]
+      simulation_options[["lBaselineExpr"]] <- base_expr
+      standard_errors <- log2(method_result[["lrt"]][[con_num]][["dispersion"]])
+      simulation_options[["lOD"]] = standard_errors
+      fc_values <- method_result[["all_tables"]][[con_num]][["logFC"]]
+      simulation_options[["lfc"]] = fc_values
     } else {
-      simulation_options[["lBaselineExpr"]] = tables[[d]][["baseMean"]]
-      simulation_options[["lOD"]] = tables[[d]][["lfcSE"]]
-      simulation_options[["lfc"]] = tables[[d]][["logFC"]]
+      base_expr <- tables[[con_num]][["baseMean"]]
+      simulation_options[["lBaselineExpr"]] = base_expr
+      standard_errors <- tables[[con_num]][["lfcSE"]]
+      simulation_options[["lOD"]] = standard_errors
+      fc_values <- tables[[con_num]][["logFC"]]
+      simulation_options[["lfc"]] = fc_values
     }
 
     simulation_result <- try(my_runsims(Nreps = reps, sim.opts = simulation_options,
@@ -268,80 +292,7 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
                                    filter.by = filter,
                                    target.by = target,
                                    delta = delta)
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    ## PROPER's plotting functions result in a bunch of annoying warnings.
-    suppressWarnings(PROPER::plotPower(powers))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    power_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotPowerTD(powers))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    powertd_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotPowerFD(powers))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    powerfd_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotFDcost(powers))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    fdcost_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotPowerHist(powerOutput = powers, simResult = simulation_result))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    powerhist_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
-    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotPowerAlpha(powers))
-    if (isTRUE(add_coverage)) {
-      abline(v = x_intercept)
-    }
-    poweralpha_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
-
+    plots <- proper_plots(powers, add_coverage = add_coverage, x_intercept = x_intercept)
     ## Stealing from plotPower to get the relevant cutoffs
     nsims = dim(powers[["power"]])[3]
     observed_power = apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
@@ -357,7 +308,8 @@ simple_proper <- function(de_tables, de = NULL, mtrx = NULL, p = 0.05, experimen
                                           target_power)[1]
     chosen_rep_stratum <- strata[chosen_replicates_first_gt]
     max_required_coverage <- gsub(x = chosen_rep_stratum,
-                                  pattern = "^.*,(\\d+)\\]$", replacement = "\\1")
+                                  pattern = "^.*,(\\d+)\\]$",
+                                  replacement = "\\1")
     assumed_gene_sum <- mean_gene_length * genes
     max_coverage <- max(sample_coverages)
     assumed_reads_for_coverage <- (assumed_gene_sum / nt_per_read) *
@@ -388,12 +340,12 @@ treatment group."
       "options" = simulation_options,
       "simulation" = simulation_result,
       "powers" = powers,
-      "power_plot" = power_plot,
-      "powertd_plot" = powertd_plot,
-      "powerfd_plot" = powerfd_plot,
-      "fdcost_plot" = fdcost_plot,
-      "powerhist_plot" = powerhist_plot,
-      "poweralpha_plot" = poweralpha_plot,
+      "power_plot" = plots[["power"]],
+      "powertd_plot" = plots[["powertd"]],
+      "powerfd_plot" = plots[["powerfd"]],
+      "fdcost_plot" = plots[["fdcost"]],
+      "powerhist_plot" = plots[["powerhist"]],
+      "poweralpha_plot" = plots[["poweralpha"]],
       "power_table" = power_table,
       "grant_text" = grant_text,
       "interpolated_text" = interpolated_text)
@@ -503,6 +455,95 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
     "Nreps2" = Nreps2,
     "sim.opts" = sim.opts)
   return(retlist)
+}
+
+#' Given the result of simple_proper, plot the various results.
+#'
+#' @param powers The result from comparePowers()
+#' @param add_coverage Add a line of the actual coverage in an experiment.
+#' @param x_intercept Add a line showing the significance deemed interesting.
+proper_plots <- function(powers, add_coverage = TRUE, x_intercept = 1) {
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    ## PROPER's plotting functions result in a bunch of annoying warnings.
+    suppressWarnings(PROPER::plotPower(powers))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    power_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    suppressWarnings(PROPER::plotPowerTD(powers))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    powertd_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    suppressWarnings(PROPER::plotPowerFD(powers))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    powerfd_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+
+
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    suppressWarnings(PROPER::plotFDcost(powers))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    fdcost_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    suppressWarnings(PROPER::plotPowerHist(powerOutput = powers, simResult = simulation_result))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    powerhist_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+
+    tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
+    this_plot <- png(filename = tmp_file)
+    controlled <- dev.control("enable")
+    suppressWarnings(PROPER::plotPowerAlpha(powers))
+    if (isTRUE(add_coverage)) {
+      abline(v = x_intercept)
+    }
+    poweralpha_plot <- grDevices::recordPlot()
+    off <- dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+    retlist <- list(
+      "power" = power_plot,
+      "powertd" = powertd_plot,
+      "powerfd" = powerfd_plot,
+      "fdcost" = fdcost_plot,
+      "powerhist" = powerhist_plot,
+      "poweralpha" = poweralpha_plot)
+    return(retlist)
+
 }
 
 #' Stealing the hiddent function run.deseq2 from PROPER.

@@ -5,10 +5,10 @@ context("115dimension_reduction.R")
 ## pca_information() pca_highscores() pcRes() plot_pca()
 ## plot_pcs() test_pca_methods()
 
-pombe_expt <- make_pombe_se()
+pombe_se <- make_pombe_se()
 
-testing <- pca_information(pombe_expt, plot_pcas = TRUE,
-                           expt_factors = c("strain", "minute", "replicate"))
+testing <- pca_information(pombe_se, plot_pcas = TRUE,
+                           factors = c("strain", "minute", "replicate"))
 expected <- c(94.15, 4.61, 0.79, 0.12, 0.11, 0.08)
 actual <- head(testing[["rsquared_table"]][["prop_var"]])
 test_that("pca_information() provides a rsquared table?", {
@@ -16,7 +16,7 @@ test_that("pca_information() provides a rsquared table?", {
 })
 
 ## I changed this to default to means vs. medians.
-testing <- pca_highscores(pombe_expt)
+testing <- pca_highscores(pombe_se)
 expected <- c(-2.538439, -2.853661, 1.458443, -11.445837, -5.929639, -5.814761)
 actual <- head(as.numeric(testing[["scores"]][, "Comp.1"]))
 ## 02
@@ -24,7 +24,7 @@ test_that("pca_highscores() provides some scores by PC?", {
   expect_equal(expected, actual, tolerance = 0.01)
 })
 
-testing <- plot_pca(pombe_expt)
+testing <- plot_pca(pombe_se)
 expected <- c(6008536.5, 1329859.1, 550763.0, 214403.7, 203382.4, 176304.0)
 actual <- head(testing[["result"]][["d"]])
 test_that("plot_pca() provides expected SVD data?", {

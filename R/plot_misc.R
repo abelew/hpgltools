@@ -16,7 +16,8 @@
 #' @seealso [png()] [svg()] [postscript()] [cairo_ps()] [cairo_pdf()] [tiff()] [devEMF::emf()]
 #'  [jpg()] [bmp()]
 #' @export
-pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE, ...) {
+pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE,
+               ...) {
   ext <- tolower(tools::file_ext(file))
   file_dir <- dirname(file)
   if (!file.exists(file_dir)) {
@@ -32,31 +33,31 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
   result <- NULL
   switchret <- switch(
     ext,
+    "bmp" = {
+      result <- bmp(filename = file, width = width, height = height, ...)
+    },
+    "emf" = {
+      result <- devEMF::emf(file = file, width = width, height = height, ...)
+    },
+    "eps" = {
+      result <- cairo_ps(filename = file, width = width, height = height, ...)
+    },
+    "jpg" = {
+      result <- jpeg(filename = file, width = width, height = height, ...)
+    },
+    "pdf" = {
+      result <- cairo_pdf(filename = file, width = width, height = height, ...)
+    },
     "png" = {
       result <- png(filename = file, width = width, height = height,
                     units = "in", res = res,
                     ...)
     },
-    "bmp" = {
-      result <- bmp(filename = file, width = width, height = height, ...)
-    },
-    "jpg" = {
-      result <- jpeg(filename = file, width = width, height = height, ...)
-    },
-    "webp" = {
-      result <- webp::write_webp(target = file, ...)
-    },
-    "svg" = {
-      result <- svg(filename = file, width = width, height = height,  ...)
-    },
     "ps" = {
       result <- postscript(file = file, width = width, height = height, ...)
     },
-    "eps" = {
-      result <- cairo_ps(filename = file, width = width, height = height, ...)
-    },
-    "pdf" = {
-      result <- cairo_pdf(filename = file, width = width, height = height, ...)
+    "svg" = {
+      result <- svg(filename = file, width = width, height = height,  ...)
     },
     "tif" = {
       result <- tiff(filename = file, width = width, height = height,
@@ -66,8 +67,8 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
       result <- tiff(filename = file, width = width, height = height,
                      units = "in", res = res, ...)
     },
-    "emf" = {
-      result <- devEMF::emf(file = file, width = width, height = height, ...)
+    "webp" = {
+      result <- webp::write_webp(target = file, ...)
     },
     {
       mesg("Defaulting to tiff.")

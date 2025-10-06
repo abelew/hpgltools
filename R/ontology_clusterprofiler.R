@@ -890,7 +890,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
       todo[["gse_msigdb"]] <- FALSE
       msigdb_all <- NULL
     } else {
-      msigdb_all_df <- as.data.frame(all_msigdb, stringsAsFactors = FALSE)
+      msigdb_all_df <- as.data.frame(msigdb_all, stringsAsFactors = FALSE)
       sig_idx <- msigdb_all_df[["p.adjust"]] <= pcutoff
       msigdb_sig_df <- msigdb_all_df[sig_idx, ]
       mesg("Found ", nrow(msigdb_sig_df), " KEGG GSE hits.")

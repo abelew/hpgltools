@@ -3,11 +3,11 @@ context("155normalize_convert.R")
 ## 2018-04, exported functions in normalize_convert:
 ## convert_counts(), divide_seq(), hpgl_rpkm()
 
-pombe_expt <- make_pombe_expt()
+pombe_se <- make_pombe_se()
 
-## I will mostly access these functions from normalize_expt, so first invoke them from there.
-testing <- normalize_expt(pombe_expt, convert = "cpm")
-test_counts <- exprs(testing)
+## I will mostly access these functions from normalize_se, so first invoke them from there.
+testing <- normalize(pombe_se, convert = "cpm")
+test_counts <- assay(testing)
 
 test_genes <- c("SPAC212.11", "SPAC212.09c", "SPNCRNA.70", "SPAC212.12", "SPAC212.04c",
                 "SPAC212.03", "SPAC212.02", "SPAC212.01c", "SPAC977.03", "SPAC977.04")
@@ -20,9 +20,9 @@ test_that("cpm modification provides expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
 
-testing <- normalize_expt(pombe_expt, convert = "rpkm", column = "cds_length")
-test_counts <- exprs(testing)
-expected <- c(0.09019446, NA, NA, 0.17159982, 2.72422131,
+testing <- normalize(pombe_se, convert = "rpkm", length_column = "cds_length")
+test_counts <- assay(testing)
+expected <- c(0.09019446, 0, 0, 0.17159982, 2.72422131,
               0.00000000, 0.00000000, 0.15144752, 0.00000000, 0.00000000)
 names(expected) <- test_genes
 actual <- test_counts[test_genes, 1]
@@ -32,7 +32,7 @@ test_that("rpkm modification provides expected values?", {
 
 ## Since I do not seem to have a usable fission BSgenome, I would ask the reader to
 ## look to ../travis/test_11norm_convert.R for the test of convert_counts()
-## using pasilla_expt and the method 'cp_seq_m'.
+## using pasilla_se and the method 'cp_seq_m'.
 
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = as.numeric(end - start))

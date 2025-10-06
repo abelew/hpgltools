@@ -2,25 +2,25 @@ start <- as.POSIXlt(Sys.time())
 context("160normalize_filter.R")
 ## 2017-12, exported functions in annotation_gff:
 
-pombe_expt <- make_pombe_expt()
+pombe_se <- make_pombe_se()
 
-testing <- normalize_expt(pombe_expt, filter = TRUE)
-test_counts <- exprs(testing)
+testing <- normalize(pombe_se, filter = TRUE)
+test_counts <- assay(testing)
 
 expected <- c(23, 37, 155, 19, 91, 184, 49, 105, 151, 22)
 actual <- as.numeric(test_counts[1:10, 1])
 test_that("Does default filtering provide expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
-testing <- normalize_expt(pombe_expt, filter = "hpgl")
-test_counts <- exprs(testing)
+testing <- normalize(pombe_se, filter = "hpgl")
+test_counts <- assay(testing)
 actual <- as.numeric(test_counts[1:10, 1])
 test_that("Does the hpgl filter provide expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
 
-testing <- normalize_expt(pombe_expt, filter = "pofa")
-test_counts <- exprs(testing)
+testing <- normalize(pombe_se, filter = "pofa")
+test_counts <- assay(testing)
 
 expected <- c(8, 23, 1, 37, 2, 0, 0, 36, 3, 155)
 actual <- as.numeric(test_counts[1:10, 1])
@@ -28,15 +28,15 @@ test_that("Does genefilter's pofa filtering provide expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
 
-testing <- normalize_expt(pombe_expt, filter = "kofa")
-test_counts <- exprs(testing)
+testing <- normalize(pombe_se, filter = "kofa")
+test_counts <- assay(testing)
 actual <- as.numeric(test_counts[1:10, 1])
 test_that("Does genefilter's kofa filtering provide expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)
 })
 
-testing <- normalize_expt(pombe_expt, filter = "kofa")
-test_counts <- exprs(testing)
+testing <- normalize(pombe_se, filter = "kofa")
+test_counts <- assay(testing)
 actual <- as.numeric(test_counts[1:10, 1])
 test_that("Does genefilter's cv filtering provide expected values?", {
   expect_equal(expected, actual, tolerance = 0.0001)

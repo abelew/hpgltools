@@ -5,7 +5,7 @@
 \title{Calculate f-statistics between metadata factors and surrogate estimates.}
 \usage{
 sv_fstatistics(
-  expt,
+  exp,
   num_surrogates = NULL,
   filter = TRUE,
   norm = "raw",
@@ -18,7 +18,7 @@ sv_fstatistics(
 )
 }
 \arguments{
-\item{expt}{Input expressionset, redo everything to use SE, stupid.}
+\item{exp}{Input expressionset, redo everything to use SE, stupid.}
 
 \item{num_surrogates}{Specificy the number of surrogates or let it choose.}
 

@@ -4,13 +4,13 @@ context("066power_estimation.R")
 apr <- new.env()
 tt <- load(file = "test_065_de.rda", envir = apr)
 apr <- apr[["cb_de"]]
-expt <- new.env()
-tt <- load(file = "expt.rda", envir = expt)
-expt <- expt[["expt"]]
+se <- new.env()
+tt <- load(file = "se.rda", envir = se)
+se <- se[["se"]] ## Pull the data from the environment
 small_combined <- new.env()
 tt <- load(file = "test_065_combined.rda", envir = small_combined)
 small_combined <- small_combined[["test_065_combined"]]
-test_proper <- simple_proper(small_combined, de = apr, mtrx = expt, reps = c(3, 5), nsims = 10)
+test_proper <- simple_proper(small_combined, apr = apr, mtrx = se, reps = c(3, 5), nsims = 10)
 expected <- 6
 actual <- nrow(test_proper[[1]][["power_table"]])
 test_that("Minimal check for proper functionality:", {

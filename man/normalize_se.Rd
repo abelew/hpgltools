@@ -33,6 +33,7 @@ normalize_se(
   cpus = 4,
   noscale = TRUE,
   length_column = NULL,
+  model_fstring = "~ 0 + condition + batch",
   ...
 )
 }

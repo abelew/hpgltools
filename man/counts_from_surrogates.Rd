@@ -16,7 +16,7 @@ counts_from_surrogates(
 )
 }
 \arguments{
-\item{data}{Original count table, may be an expt/expressionset or df/matrix.}
+\item{data}{Original count table, may be an exp/expressionset or df/matrix.}
 
 \item{adjust}{Surrogates with which to adjust the data.}
 

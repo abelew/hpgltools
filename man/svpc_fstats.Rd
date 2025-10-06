@@ -4,10 +4,10 @@
 \alias{svpc_fstats}
 \title{Get the f-stats before/after messing with sva.}
 \usage{
-svpc_fstats(expt, ...)
+svpc_fstats(exp, ...)
 }
 \arguments{
-\item{expt}{input}
+\item{exp}{input}
 
 \item{...}{Args passed to everything else.}
 }

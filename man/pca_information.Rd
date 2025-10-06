@@ -7,7 +7,7 @@
 pca_information(
   input,
   input_design = NULL,
-  input_factors = c("condition", "batch"),
+  factors = c("condition", "batch"),
   colors_chosen = NULL,
   input_state = NULL,
   num_components = NULL,
@@ -22,9 +22,6 @@ pca_information(
 columns with useful information like the conditions, batches, number of
 cells, whatever...}
 
-\item{input_factors}{Character list of experimental conditions to query for
-R^2 against the fast.svd of the data.}
-
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
 
 \item{input_state}{State of the input.}
@@ -36,6 +33,9 @@ as factors asked for.}
 \item{plot_pcas}{Plot the set of PCA plots for every pair of PCs queried.}
 
 \item{...}{Extra arguments for the pca plotter}
+
+\item{input_factors}{Character list of experimental conditions to query for
+R^2 against the fast.svd of the data.}
 }
 \value{
 a list of fun pca information:

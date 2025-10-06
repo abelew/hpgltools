@@ -16,8 +16,9 @@ test_that("noiseq performed the expected number of contrasts?", {
 })
 
 test <- testing[["all_tables"]][["wt0_vs_mut0"]]
-actual <- sum(test[["logFC"]] > 2)
-expected <- 1
+## Random thought, why did I choose 4 fold here?  I might drop this to 2 fold.
+actual <- sum(test[["logFC"]] >= 1.0)
+expected <- 21
 test_that("noiseq got some expected results (logFC)?", {
   expect_equal(expected, actual)
 })

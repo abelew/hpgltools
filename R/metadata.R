@@ -1037,6 +1037,62 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose, basedir = basedir)
     },
+    "kraken_bacterial_classified" = {
+      search <- "^\\s+\\d+ sequences classified.*$"
+      replace <- "^\\s+(\\d+) sequences classified.*$"
+      mesg("Searching for reads classified by the kraken virus database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_bacterial_unclassified" = {
+      search <- "^\\s+\\d+ sequences unclassified.*$"
+      replace <- "^\\s+(\\d+) sequences unclassified.*$"
+      mesg("Searching for reads not classified by the kraken virus database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_first_bacterial_species" = {
+      search <- "^.*s__.*\\t\\d+$"
+      replace <- "^.*s__(.*)\\t\\d+$"
+      mesg("Searching for the most represented species by the kraken viral database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_first_bacterial_species_reads" = {
+      search <- "^.*s__.*\\t\\d+$"
+      replace <- "^.*s__.*\\t(\\d+)$"
+      mesg("Searching for the number of reads most represented by the kraken viral database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_standard_classified" = {
+      search <- "^\\s+\\d+ sequences classified.*$"
+      replace <- "^\\s+(\\d+) sequences classified.*$"
+      mesg("Searching for reads classified by the kraken virus database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_standard_unclassified" = {
+      search <- "^\\s+\\d+ sequences unclassified.*$"
+      replace <- "^\\s+(\\d+) sequences unclassified.*$"
+      mesg("Searching for reads not classified by the kraken virus database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_first_standard_species" = {
+      search <- "^.*s__.*\\t\\d+$"
+      replace <- "^.*s__(.*)\\t\\d+$"
+      mesg("Searching for the most represented species by the kraken viral database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
+    "kraken_first_standard_species_reads" = {
+      search <- "^.*s__.*\\t\\d+$"
+      replace <- "^.*s__.*\\t(\\d+)$"
+      mesg("Searching for the number of reads most represented by the kraken viral database.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+    },
     "kraken_viral_classified" = {
       search <- "^\\s+\\d+ sequences classified.*$"
       replace <- "^\\s+(\\d+) sequences classified.*$"
@@ -1066,6 +1122,21 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_matrix" = {
+      mesg("Searching for a matrix of reads/taxonomy from kraken.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "kraken_matrix_viral" = {
+      mesg("Searching for a matrix of reads/taxonomy from kraken.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "kraken_matrix_bacterial" = {
+      mesg("Searching for a matrix of reads/taxonomy from kraken.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, basedir = basedir)
+    },
+    "kraken_matrix_standard" = {
       mesg("Searching for a matrix of reads/taxonomy from kraken.")
       entries <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, basedir = basedir)
@@ -1214,6 +1285,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching the likely library type observed by salmon.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
+        species = species, type = type, subtype = subtype, tag = tag,
         basedir = basedir, which = "first", ...)
     },
     "salmon_mapped" = {
@@ -1222,7 +1294,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching the number of reads quantified by salmon.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
-        basedir = basedir, ...)
+        species = species, type = type, subtype = subtype, tag = tag,
+        as = "numeric", basedir = basedir, ...)
     },
     "salmon_percent" = {
       search <- "^.* Mapping rate = \\d+\\.\\d+%"
@@ -1230,20 +1303,21 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching the percentage reads quantified by salmon.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
-        basedir = basedir, ...)
+        species = species, type = type, subtype = subtype, tag = tag,
+        as = "numeric", basedir = basedir, ...)
     },
     "salmon_count_table" = {
       mesg("Searching for the salmon quantitation file.")
       entries <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, species = species,
-        type = "genome", basedir = basedir)
+        type = type, subtype = subtype, tag = tag, basedir = basedir)
     },
     "salmon_observed_genes" = {
       search <- "^.*\t0\\.0+$"
       mesg("Searching for the number of genes observed by salmon.")
       entries <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose, basedir = basedir, inverse = TRUE,
-        type = type, species = species)
+        species = species, type = type, subtype = subtype, tag = tag)
     },
     "shovill_contigs" = {
       ## [shovill] It contains 1 (min=131) contigs totalling 40874 bp.
@@ -2909,8 +2983,36 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
     "fastqc_most_overrepresented" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
-    "kraken_matrix" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_*/kraken_report_matrix.tsv"),
+    "kraken_standard_classified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr"),
+    "kraken_standard_unclassified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr"),
+    "kraken_first_standard_species" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt"),
+    "kraken_first_standard_species_reads" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt"),
+    "kraken_bacterial_classified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr"),
+    "kraken_bacterial_unclassified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr"),
+    "kraken_first_bacterial_species" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt"),
+    "kraken_first_bacterial_species_reads" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt"),
+    "kraken_viral_classified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr"),
+    "kraken_viral_unclassified" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr"),
+    "kraken_first_viral_species" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt"),
+    "kraken_first_viral_species_reads" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt"),
+    "kraken_matrix_viral" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral/kraken_report_matrix.tsv"),
+    "kraken_matrix_bacterial" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria/kraken_report_matrix.tsv"),
+    "kraken_matrix_standard" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard/kraken_report_matrix.tsv"),
     "hisat_rrna_input_reads" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_single_concordant" = list(
@@ -3016,7 +3118,6 @@ make_rnaseq_spec <- function(umi = FALSE) {
     specification[["umi_dedup_max_umi_per_pos"]] = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*umi_dedup/umi_dedup.stderr")
   }
-
   return(specification)
 }
 

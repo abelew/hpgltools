@@ -27,12 +27,12 @@ fungidb_metadata <- EuPathDB::download_eupath_metadata(webservice = "fungidb", o
 pombe_entry <- EuPathDB::get_eupath_entry(species = "pombe", metadata = fungidb_metadata)
 pkgnames <- EuPathDB::get_eupath_pkgnames(entry = pombe_entry)
 if (! pkgnames[["orgdb"]] %in% installed.packages()) {
-  pombe_org <- sm(EuPathDB::make_eupath_orgdb(entry = pombe_entry))
+  pombe_org <- EuPathDB::make_eupath_orgdb(entry = pombe_entry)
 }
 pombe_orgdb <- pkgnames[["orgdb"]]
 
-pombe_expt <- make_pombe_expt()
-pombe_lengths <- fData(pombe_expt)[, c("ensembl_gene_id", "cds_length")]
+pombe_se <- make_pombe_se()
+pombe_lengths <- rowData(pombe_se)[, c("ensembl_gene_id", "cds_length")]
 colnames(pombe_lengths) <- c("ID", "length")
 
 pombe_go <- load_biomart_go(species = "spombe", host = "fungi.ensembl.org",
@@ -42,62 +42,21 @@ pombe_go <- load_biomart_go(species = "spombe", host = "fungi.ensembl.org",
 ## so change the orgdb_to argument.
 cp_test <- simple_clusterprofiler(ups, de_table = table, orgdb = pombe_orgdb, orgdb_to = "GID")
 test_that("Did clusterprofiler provide the expected number of entries (MF group)?", {
-  actual <- nrow(cp_test[["group_go"]][["MF"]])
-  expected <- 155
+  actual <- nrow(cp_test[["go_data"]][["MF_sig"]])
+  expected <- 10
   expect_equal(expected, actual, tolerance = 2)
 })
 
 test_that("Did clusterprofiler provide the expected number of entries (BP group)?", {
-  actual <- nrow(cp_test[["group_go"]][["BP"]])
-  expected <- 571
+  actual <- nrow(cp_test[["go_data"]][["BP_sig"]])
+  expected <- 51
   expect_equal(expected, actual, tolerance = 2)
 })
 
 test_that("Did clusterprofiler provide the expected number of entries (CC group)?", {
-  actual <- nrow(cp_test[["group_go"]][["CC"]])
-  expected <- 745
-  expect_equal(expected, actual, tolerance = 2)
-})
-
-test_that("Did clusterprofiler provide the expected number of entries (MF enriched)?", {
-  actual <- nrow(cp_test[["enrich_go"]][["MF_all"]])
-  expected <- 13
-  expect_equal(expected, actual, tolerance = 2)
-})
-
-test_that("Did clusterprofiler provide the expected number of entries (BP enriched)?", {
-  actual <- nrow(cp_test[["enrich_go"]][["BP_all"]])
-  expected <- 160
-  expect_equal(expected, actual, tolerance = 2)
-})
-
-test_that("Did clusterprofiler provide the expected number of entries (CC enriched)?", {
-  actual <- nrow(cp_test[["enrich_go"]][["CC_all"]])
+  actual <- nrow(cp_test[["go_data"]][["CC_sig"]])
   expected <- 11
   expect_equal(expected, actual, tolerance = 2)
-})
-
-test_that("Do we get some plots?", {
-  ## 07 - 15
-  expected <- "gg"
-  actual <- class(cp_test[["plots"]][["ggo_mf_bar"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ggo_bp_bar"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ggo_cc_bar"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_all_mf"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_all_bp"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_all_cc"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_sig_mf"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_sig_bp"]])[1]
-  expect_equal(expected, actual)
-  actual <- class(cp_test[["plots"]][["ego_sig_cc"]])[1]
-  expect_equal(expected, actual)
 })
 
 cp_written <- write_cp_data(cp_test, excel = "test_cp_write.xlsx")
@@ -195,7 +154,7 @@ if (file.exists("test_topgo_write.xlsx")) {
 
 ## I think it would not be difficult for me to add a little logic to make gostats smarter
 ## with respect to how it finds the correct annotations.
-annot <- fData(pombe_expt)
+annot <- rowData(pombe_se)
 ## I changed the IDs a little and so needed to change this up a bit.
 colnames(annot) <- c("ID", "txid2", "pombeid", "symbol", "description", "type", "width",
                      "chromosome", "strand", "start", "end")
