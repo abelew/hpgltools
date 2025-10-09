@@ -37,6 +37,70 @@
 #' @importFrom SummarizedExperiment assay rowData colData
 NULL
 
+#' Generic get_annotations function with a reminder if I pass it something new.
+#'
+#' @param exp Input data structure.
+#' @export
+annotation <- function(exp) {
+  message("This function is intended to extract the orgdb annotations from a dataset.")
+  message("It was passed an object of type ", class(exp),
+          " and does not know what to do.")
+  standardGeneric("annotation")
+}
+setGeneric("annotation")
+
+#' Get the batch column from a se.
+#'
+#' @param exp Input summarized experiment.
+#' @example inst/examples/attributes_se.R
+#' @export
+setMethod(
+  "annotation", signature(exp = "SummarizedExperiment"),
+  definition = function(exp) {
+    annotation_pkg <- mcols(exp)[["annotation"]]
+    return(annotation_pkg)
+  })
+
+#' Create a generic set_batches function in case I pass something unknown.
+#'
+#' I like to think in terms of conditions and batches.  This function
+#' is intended to set the latter for a dataset.
+#'
+#' @param exp Input data structure.
+#' @param ... Arguments passed along.
+#' @export
+set_annotation <- function(exp, annot, ...) {
+  message("set_annotation was passed an object of type ", class(exp),
+          " and does not know what to do with it.")
+  standardGeneric("set_annotation")
+  return(exp)
+}
+setGeneric("set_annotation")
+
+#' Get the annotation pkg from a SummarizedExperiment
+#'
+#' @param exp Input SE
+#' @param annot Annotation package name
+#' @param ... The rest of the arguments to set_annotation()
+#' @export
+setMethod(
+  "set_annotation", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, ...) {
+    mcols(exp)[["annotation"]] <- annot
+    return(exp)
+  })
+
+#' Add a annotation mcolumn to a se.
+#'
+#' @param se Summarized Experiment to modify.
+#' @param value vector of batches.
+#' @export
+`annotation<-` <- function(se, value) {
+  mcols(se)[["annotation"]] <- value
+  return(se)
+}
+setGeneric("annotation<-")
+
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'
 #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
@@ -990,7 +1054,7 @@ set_expt_colors <- function(expt, colors = TRUE,
       if (sum(colors_allocated) < length(colors)) {
         missing_colors <- colors[!colors_allocated]
         stop("Colors for the following categories are not being used: ",
-             names(missing_colors), ".")
+             toString(names(missing_colors)), ".")
       }
       possible_conditions <- levels(pData(expt)[["condition"]])
       conditions_allocated <- possible_conditions %in% names(colors)
@@ -1035,7 +1099,7 @@ set_expt_colors <- function(expt, colors = TRUE,
       if (sum(colors_allocated) < length(colors)) {
         missing_colors <- colors[!colors_allocated]
         warning("Colors for the following categories are not being used: ",
-                names(missing_colors), ".")
+                toString(names(missing_colors)), ".")
       }
       conditions_allocated <- possible_conditions %in% names(colors)
       if (sum(conditions_allocated) < length(possible_conditions)) {
@@ -1160,7 +1224,7 @@ set_se_colors <- function(se, colors = TRUE,
       if (sum(colors_allocated) < length(colors)) {
         missing_colors <- colors[!colors_allocated]
         stop("Colors for the following categories are not being used: ",
-             names(missing_colors), ".")
+             toString(names(missing_colors)), ".")
       }
       possible_conditions <- levels(colData(se)[["condition"]])
       conditions_allocated <- possible_conditions %in% names(colors)
@@ -1205,7 +1269,7 @@ set_se_colors <- function(se, colors = TRUE,
       if (sum(colors_allocated) < length(colors)) {
         missing_colors <- colors[!colors_allocated]
         warning("Colors for the following categories are not being used: ",
-                names(missing_colors), ".")
+                toString(names(missing_colors)), ".")
       }
       conditions_allocated <- possible_conditions %in% names(colors)
       if (sum(conditions_allocated) < length(possible_conditions)) {

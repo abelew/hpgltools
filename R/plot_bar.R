@@ -10,7 +10,8 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
                                      min_genes = 10) {
   ## Shush, R CMD check
   assay_mean <- genes <- assay_var <- NULL
-  start <- data.frame(row.names = unique(rowData(exp)[["chromosome"]]))
+  chromosomes <- as.character(levels(as.factor(rowData(exp)[[chromosome_column]])))
+  start <- data.frame(row.names = chromosomes)
   start[["genes"]] <- 0
   start[["assay_mean"]] <- 0
   start[["assay_stdev"]] <- 0
@@ -20,12 +21,15 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
   start[["assay_qt3"]] <- 0
   start[["assay_median"]] <- 0
   start[["assay_max"]] <- 0
-  for (ch in rownames(start)) {
-    gene_id_idx <- rowData(exp)[["chromosome"]] == ch
+  for (num in seq_along(rownames(start))) {
+    ch <- rownames(start)[num]
+    gene_id_idx <- rowData(exp)[[chromosome_column]] == ch
     gene_ids <- rownames(rowData(exp))[gene_id_idx]
     start[ch, "genes"] <- length(gene_ids)
     subset_assay <- assay(exp)[gene_ids, ]
-    if (length(gene_ids) == 1) {
+    if (length(gene_ids) == 0) {
+      next
+    } else if (length(gene_ids) == 1) {
       start[ch, "assay_mean"] <- mean(subset_assay)
       start[ch, "assay_stdev"] <- stats::sd(subset_assay)
       start[ch, "assay_min"] <- min(subset_assay)
@@ -44,18 +48,17 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
       start[ch, "assay_qt1"] <- as.numeric(summary(rowMeans(subset_assay)))[2]
       start[ch, "assay_qt3"] <- as.numeric(summary(rowMeans(subset_assay)))[5]
     }
-
-    min_idx <- start[["genes"]] >= min_genes
-    start <- start[min_idx, ]
-
-    plt <- ggplot(start, aes(y = assay_mean, x = genes)) +
-      ggplot2::geom_point() +
-      ggplot2::scale_y_log10()
-    plt <- ggplot(start, aes(y = assay_var, x = genes)) +
-      ggplot2::geom_point()
   }
+  min_idx <- start[["genes"]] >= min_genes
+  start <- start[min_idx, ]
+  mean_plt <- ggplot(start, aes(y = assay_mean, x = genes)) +
+    ggplot2::geom_point() +
+    ggplot2::scale_y_log10()
+  var_plt <- ggplot(start, aes(y = assay_var, x = genes)) +
+    ggplot2::geom_point()
   retlist <- list(
-    "plot" = plt,
+    "plot" = mean_plt,
+    "var_plot" = var_plt,
     "info" = start)
   return(retlist)
 }

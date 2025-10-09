@@ -1,4 +1,30 @@
-
+## I think the correct thing to do here is to use cbind()
+combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = TRUE,
+                          batch = "batch", merge_meta = TRUE) {
+  ##testthat::expect_equal(rownames(exprs(exp1)), rownames(exprs(exp2)))
+  design_both <- colData(se1)
+  if (isTRUE(merge_meta)) {
+    design1 <- as.data.frame(colData(se1))
+    d1_rows <- seq_len(nrow(design1))
+    design2 <- as.data.frame(colData(se2))
+    design_both <- as.data.frame(rbindlist(list(design1, design2), fill = TRUE))
+    d2_rows <- (nrow(design1) + 1):nrow(design_both)
+    new_design1 <- design_both[d1_rows, ]
+    rownames(new_design1) <- rownames(design1)
+    new_design2 <- design_both[d2_rows, ]
+    rownames(new_design2) <- rownames(design2)
+  }
+  exprs1 <- assay(se1)
+  exprs2 <- assay(se2)
+  exprs_both <- cbind(exprs1, exprs2)
+  meta1 <- metadata(se1)
+  meta2 <- metadata(se2)
+  ## Not sure how I want to deal with the metadata.
+  both_se <- SummarizedExperiment(assays = exprs_both,
+                                  rowData = rowData(se1),
+                                  colData = design_both)
+  return(both_se)
+}
 
 #' Create a SummarizedExperiment given some metadata
 #'

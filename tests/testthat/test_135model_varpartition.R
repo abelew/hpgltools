@@ -32,7 +32,6 @@ test_that("Does the partition plot get generated?", {
   expect_equal(expected, actual)
 })
 
-
 pombese_varpart <- simple_varpart(pombe_se)
 ## I decided to move away from the mixed models.
 ##expected <- "(1 | condition) + (1 | batch)"

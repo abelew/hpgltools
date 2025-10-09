@@ -276,18 +276,15 @@ pca_information <- function(input, ...) {
 #' }
 #' @include expt.R
 #' @export
-pca_information <- function(input, input_design = NULL, factors = c("condition", "batch"),
-                            colors_chosen = NULL, input_state = NULL,
+pca_information <- function(exp, factors = c("condition", "batch"),
                             num_components = NULL, plot_pcas = FALSE, ...) {
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
   if (is.null(colors_chosen)) {
-    colors_chosen <- get_colors_by_condition(input)
+    colors_chosen <- get_colors_by_condition(exp)
   }
 
-  initial_pca <- plot_pca(data = input, design = input_design, state = input_state,
-                          plot_colors = colors_chosen,
-                          ...)
+  initial_pca <- plot_pca(exp, ...)
   v <- initial_pca[["result"]][["v"]]
   u <- initial_pca[["result"]][["u"]]
   d <- initial_pca[["result"]][["d"]]
@@ -336,6 +333,7 @@ pca_information <- function(input, input_design = NULL, factors = c("condition",
   }
 
   ## Now start filling in data which may be used for correlations/fstats/etc.
+  input_design <- colData(exp)
   factor_df <- data.frame(
     "sampleid" = rownames(input_design))
   rownames(factor_df) <- rownames(input_design)
@@ -517,35 +515,15 @@ setGeneric("pca_information")
 #' @inheritParams pca_information
 #' @export
 setMethod(
-  "pca_information", signature = signature(input = "data.frame"),
-  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
+  "pca_information", signature = signature(exp = "data.frame"),
+  definition = function(exp, factors = c("condition", "batch"),
+                        num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    input <- as.matrix(input)
+    input <- as.matrix(exp)
     pca_information(input, input_design = input_design, input_state = input_state,
-                    input_factors = input_factors, colors_chosen = colors_chosen,
+                    factors = factors, colors_chosen = colors_chosen,
                     num_components = num_components,
-                    plot_pcas = plot_pcas, ...)
-  })
-
-#' If pca_information is invoked on an expt, it should have everything
-#' needed inside it.
-#'
-#' @inheritParams pca_information
-#' @export
-setMethod(
-  "pca_information", signature = signature(input = "expt"),
-  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
-                        plot_pcas = FALSE, ...) {
-    colors_chosen <- get_colors(input)
-    input_design <- pData(input)
-    input_state <- state(input)
-    input <- exprs(input)
-    pca_information(input, input_design = input_design, input_state = input_state,
-                    input_factors = input_factors, colors_chosen = colors_chosen,
-                    num_components = num_components,
-                    plot_pcas = plot_pcas, ...)
+                    plot_pcas = plot_pcas)
   })
 
 #' If pca_information is run on an expressionset, everything except
@@ -554,36 +532,17 @@ setMethod(
 #' @inheritParams pca_information
 #' @export
 setMethod(
-  "pca_information", signature = signature(input = "ExpressionSet"),
-  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
+  "pca_information", signature = signature(exp = "ExpressionSet"),
+  definition = function(exp, factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    colors_chosen <- get_colors(input)
-    input_design <- pData(input)
-    input_state <- state(input)
-    input <- exprs(input)
+    colors_chosen <- get_colors_by_condition(exp)
+    input_state <- state(exp)
+    input <- exprs(exp)
     pca_information(input, input_design = input_design, input_state = input_state,
-                    input_factors = input_factors, colors_chosen = colors_chosen,
+                    factors = factors, colors_chosen = colors_chosen,
                     num_components = num_components,
-                    plot_pcas = plot_pcas, ...)
-  })
-
-#' If pca_information is invoked on a SE, everything required should
-#' be there already.
-#'
-#' @inheritParams pca_information
-#' @export
-setMethod(
-  "pca_information", signature = signature(input = "SummarizedExperiment"),
-  definition = function(input, input_design = NULL, input_factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
-                        plot_pcas = FALSE, ...) {
-    colors_chosen <- get_colors(input)
-    input_design <- colData(input)
-    input <- assay(input)
-    pca_information(input, input_design = input_design, input_factors = input_factors,
-                    colors_chosen = colors_chosen, num_components = num_components,
-                    plot_pcas = plot_pcas, ...)
+                    plot_pcas = plot_pcas)
   })
 
 #' Get the highest/lowest scoring genes for every principle component.
