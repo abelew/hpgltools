@@ -6,9 +6,8 @@
 perhaps colors should already be there.}
 \usage{
 \S4method{pca_information}{ExpressionSet}(
-  input,
-  input_design = NULL,
-  input_factors = c("condition", "batch"),
+  exp,
+  factors = c("condition", "batch"),
   colors_chosen = NULL,
   num_components = NULL,
   plot_pcas = FALSE,
@@ -16,15 +15,6 @@ perhaps colors should already be there.}
 )
 }
 \arguments{
-\item{input}{Data to analyze (usually exprs(somedataset)).}
-
-\item{input_design}{Dataframe describing the experimental design, containing
-columns with useful information like the conditions, batches, number of
-cells, whatever...}
-
-\item{input_factors}{Character list of experimental conditions to query for
-R^2 against the fast.svd of the data.}
-
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
 
 \item{num_components}{Number of principle components to compare the design

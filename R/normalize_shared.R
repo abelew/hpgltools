@@ -63,33 +63,17 @@ do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
 
 #' Every time I think I have a handle on R dispatch I get some BS like this.
 #'
-#' @param exp Input to normalize
-#' @param ... other arguments passed along to BiocGenerics::normalize().
+#' @param object Input to normalize
+#' @param ... other arguments passed along.
 #' @export
-normalize <- function(exp, ...) {
+normalize <- function(object, ...) {
   message("This function is intended to normalize an experimental dataset.")
-  message("It was passed an object of type ", class(exp),
+  message("It was passed an object of type ", class(object),
           " and does not know what to do.")
   standardGeneric("normalize")
   return(NULL)
 }
 setGeneric("normalize")
-
-#' Normalization of an expt
-#'
-#' The primary definition for normalize resides in BiocGenerics.
-#'
-#' @param exp Data structure to normalize
-#' @param ... Other options.
-#' @include 01_hpgltools.R
-#' @importFrom BiocGenerics normalize
-#' @export
-setMethod(
-  "normalize", signature = signature(exp = "expt"),
-  definition = function(exp, ...) {
-    message("Running normalize.")
-    normalize_expt(exp, ...)
-  })
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
 #'
@@ -97,11 +81,12 @@ setMethod(
 #' @param ... Other options.
 #' @export
 setMethod(
-  "normalize", signature = signature(exp = "SummarizedExperiment"),
-  definition = function(exp, ...) {
-    normalize_se(exp, ...)
+  "normalize", signature = signature(object = "SummarizedExperiment"),
+  definition = function(object, ...) {
+    normalize_se(object, ...)
   })
 
+## It is just about time to delete the following function.
 #' Normalize the data of an expt object.  Save the original data, and note what
 #' was done.
 #'

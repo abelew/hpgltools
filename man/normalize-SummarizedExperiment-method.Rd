@@ -4,12 +4,12 @@
 \alias{normalize,SummarizedExperiment-method}
 \title{Normalization of se, taking a hint from BiocGenerics::normalize()}
 \usage{
-\S4method{normalize}{SummarizedExperiment}(exp, ...)
+\S4method{normalize}{SummarizedExperiment}(object, ...)
 }
 \arguments{
-\item{exp}{Data structure to normalize}
-
 \item{...}{Other options.}
+
+\item{exp}{Data structure to normalize}
 }
 \description{
 Normalization of se, taking a hint from BiocGenerics::normalize()

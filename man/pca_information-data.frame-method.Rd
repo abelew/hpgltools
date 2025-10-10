@@ -6,27 +6,14 @@
 data; dispatch accordingly.}
 \usage{
 \S4method{pca_information}{data.frame}(
-  input,
-  input_design = NULL,
-  input_factors = c("condition", "batch"),
-  colors_chosen = NULL,
+  exp,
+  factors = c("condition", "batch"),
   num_components = NULL,
   plot_pcas = FALSE,
   ...
 )
 }
 \arguments{
-\item{input}{Data to analyze (usually exprs(somedataset)).}
-
-\item{input_design}{Dataframe describing the experimental design, containing
-columns with useful information like the conditions, batches, number of
-cells, whatever...}
-
-\item{input_factors}{Character list of experimental conditions to query for
-R^2 against the fast.svd of the data.}
-
-\item{colors_chosen}{Colors to use when comparing fstats etc.}
-
 \item{num_components}{Number of principle components to compare the design
 factors against. If left null, it will query the same number of components
 as factors asked for.}

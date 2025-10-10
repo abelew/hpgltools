@@ -4,12 +4,12 @@
 \alias{normalize}
 \title{Every time I think I have a handle on R dispatch I get some BS like this.}
 \usage{
-normalize(exp, ...)
+normalize(object, ...)
 }
 \arguments{
-\item{exp}{Input to normalize}
+\item{object}{Input to normalize}
 
-\item{...}{other arguments passed along to BiocGenerics::normalize().}
+\item{...}{other arguments passed along.}
 }
 \description{
 Every time I think I have a handle on R dispatch I get some BS like this.
