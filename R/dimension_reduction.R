@@ -276,8 +276,9 @@ pca_information <- function(input, ...) {
 #' }
 #' @include expt.R
 #' @export
-pca_information <- function(exp, factors = c("condition", "batch"),
+pca_information <- function(exp, factors = c("condition", "batch"), colors_chosen = NULL,
                             num_components = NULL, plot_pcas = FALSE, ...) {
+  arglist <- list(...)
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
   if (is.null(colors_chosen)) {
