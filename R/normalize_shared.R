@@ -1,6 +1,12 @@
 ## normalize_shared.r: Functions which bring together everything in the other
 ## normalize_* files.
 
+## These normalization functions I think must be collated after
+## se.R in order to get properly added to the methods table.
+
+#' @include se.R
+NULL
+
 #' Actually runs the batch method, this more than anything shows that
 #' hpgl_norm is too complicated.
 #'
@@ -77,7 +83,7 @@ setGeneric("normalize")
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
 #'
-#' @param exp Data structure to normalize
+#' @param object Data structure to normalize
 #' @param ... Other options.
 #' @export
 setMethod(

@@ -33,6 +33,7 @@
 
 #' @include 01_hpgltools.R
 #' @include expt.R
+#' @include se.R
 #' @importFrom BiocGenerics conditions conditions<-
 #' @importFrom SummarizedExperiment assay rowData colData
 NULL

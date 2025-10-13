@@ -7,9 +7,9 @@
 \S4method{normalize}{SummarizedExperiment}(object, ...)
 }
 \arguments{
-\item{...}{Other options.}
+\item{object}{Data structure to normalize}
 
-\item{exp}{Data structure to normalize}
+\item{...}{Other options.}
 }
 \description{
 Normalization of se, taking a hint from BiocGenerics::normalize()
