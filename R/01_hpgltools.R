@@ -112,9 +112,8 @@ NULL
 #' \code{browseVignettes(package = 'hpgltools')}
 #'
 #' @name hpgltools
-#' @import SummarizedExperiment
 #' @import Biobase
-#' @import BiocGenerics
+#' @importFrom BiocGenerics normalize conditions conditions<-
 #' @importFrom data.table data.table as.data.table setkey rbindlist
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
@@ -131,6 +130,7 @@ NULL
 #'  lowess median model.matrix na.omit order.dendrogram p.adjust
 #'  p.adjust.methods pnorm princomp quantile relevel reorder resid
 #'  rnbinom setNames step t.test wilcox.test
+#' @importFrom SummarizedExperiment assay rowData colData
 #' @importFrom utils
 #'  capture.output data download.file head installed.packages read.csv read.delim
 #'  read.table setTxtProgressBar tail write.csv write.table

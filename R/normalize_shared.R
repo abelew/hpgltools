@@ -4,7 +4,13 @@
 ## These normalization functions I think must be collated after
 ## se.R in order to get properly added to the methods table.
 
+#' @include 01_hpgltools.R
 #' @include se.R
+#' @include normalize_convert.R
+#' @include normalize_filter.R
+#' @include normalize_norm.R
+#' @include normalize_transform.R
+#' @include normalize_batch.R
 NULL
 
 #' Actually runs the batch method, this more than anything shows that
@@ -67,10 +73,11 @@ do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
   return(retlist)
 }
 
-#' Every time I think I have a handle on R dispatch I get some BS like this.
+#' I think this is already defined in BiocGenerics
 #'
-#' @param object Input to normalize
-#' @param ... other arguments passed along.
+#' But for reasons passing all understanding, it is giving me grief.
+#' @param object thing to nromalize
+#' @param ... args passed along.
 #' @export
 normalize <- function(object, ...) {
   message("This function is intended to normalize an experimental dataset.")

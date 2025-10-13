@@ -34,8 +34,6 @@
 #' @include 01_hpgltools.R
 #' @include expt.R
 #' @include se.R
-#' @importFrom BiocGenerics conditions conditions<-
-#' @importFrom SummarizedExperiment assay rowData colData
 NULL
 
 #' Generic get_annotations function with a reminder if I pass it something new.
