@@ -332,4 +332,59 @@ print.ggcoverage_plot <- function(x, ...) {
   return(invisible(x))
 }
 
+plot_ggbio_heatmap <- function(grange, tbl, tilesize = 1000,
+                               scaffolds = FALSE) {
+  scaffold_idx <- grepl(x = as.character(seqnames(grange_data)), pattern = "SCAF")
+  no_scaffolds <- grange_data[!scaffold_idx]
+  scaffold_idx <- grepl(x = as.character(names(seqinfo(grange_data))), pattern = "SCAF")
+  chr_names <- names(seqinfo(grange_data))[!scaffold_idx]
+  no_scaffolds <- seqinfo(grange_data)[chr_names]
+
+  tbl[["position2"]] <- tbl[["Position"]]
+  tbl[["SNP"]] <- NULL
+  rownames(tbl) <- NULL
+  bins_1k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize,
+                                       cut.last.tile.in.chrom = TRUE)
+  bins_5k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize * 5,
+                                     cut.last.tile.in.chrom = TRUE)
+  bins_10k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize * 10,
+                                        cut.last.tile.in.chrom = TRUE)
+  bins_1nt <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize / 10,
+                                      cut.last.tile.in.chrom = TRUE)
+  tbl[["strand"]] <- "+"
+  ## I want to calculate the number of intersecting positions between my auto_tbl and the 1k bins.
+  start <- tbl[, c("Chromosome", "Position", "position2", "strand", "strong23")]
+  colnames(start) <- c("chr", "start", "end", "strand", "z23")
+  start[["chr"]] <- gsub(x = start[["chr"]], pattern = "-", replacement = "_")
+  var_grange <- makeGRangesFromDataFrame(start, seqinfo = no_scaffolds, keep.extra.columns = TRUE)
+  vars_per_bin <- findOverlaps(bins_1k, var_grange)
+  vars_per_bin_numeric <- as.data.frame(bins_1k)
+  vars_per_bin_numeric[["bin"]] <- rownames(vars_per_bin_numeric)
+
+  count_per_bin <- as.data.frame(vars_per_bin) %>%
+    group_by(queryHits) %>%
+    dplyr::tally()
+  colnames(count_per_bin) <- c("bin", "num")
+  vars_per_bin_numeric <- merge(vars_per_bin_numeric, count_per_bin, by = "bin", all.x = TRUE)
+  missing_idx <- is.na(vars_per_bin_numeric[["num"]])
+  vars_per_bin_numeric[missing_idx, "num"] <- 0
+  vars_per_bin <- vars_per_bin_numeric[, c("seqnames", "start", "end", "width", "strand", "num")]
+  vpb_grange <- makeGRangesFromDataFrame(vars_per_bin, seqinfo = no_scaffolds, keep.extra.columns = TRUE)
+  kary <- autoplot(vpb_grange, layout = "karyogram", aes(color = num, fill = num)) +
+    scale_color_gradient(low = "blue", high = "red") +
+    scale_fill_gradient(low = "blue", high = "red")
+  ## theme_bw(base_size = 10) +
+  kary
+  var_kary <- ggbio() +
+    layout_karyogram(vpb_grange, aes(color = num, fill = num)) +
+    scale_fill_gradient(low = "blue", high = "white") +
+    scale_color_gradient(low = "blue", high = "white") +
+    theme_bw(base_size = 10)
+  var_kary
+  retlist <- list(
+    "kary" = kary,
+    "variants" = var_kary)
+  return(retlist)
+}
+
 ## EOF

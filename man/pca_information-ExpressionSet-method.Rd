@@ -9,7 +9,9 @@ perhaps colors should already be there.}
   exp,
   factors = c("condition", "batch"),
   colors_chosen = NULL,
+  input_design = NULL,
   num_components = NULL,
+  input_state = NULL,
   plot_pcas = FALSE,
   ...
 )
@@ -17,9 +19,15 @@ perhaps colors should already be there.}
 \arguments{
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
 
+\item{input_design}{Dataframe describing the experimental design, containing
+columns with useful information like the conditions, batches, number of
+cells, whatever...}
+
 \item{num_components}{Number of principle components to compare the design
 factors against. If left null, it will query the same number of components
 as factors asked for.}
+
+\item{input_state}{State of the input.}
 
 \item{plot_pcas}{Plot the set of PCA plots for every pair of PCs queried.}
 

@@ -428,8 +428,9 @@ setMethod(
       message("A subset operation de-synced the colors.")
       exp_colors <- exp_colors[check_colors]
     }
-    if (is.null(colors)) {
-      exp <- set_se_colors(exp, ...)
+    if (is.null(exp_colors)) {
+      exp <- set_se_colors(exp,
+                           ...)
       exp_colors <- S4Vectors::metadata(exp)[["colors"]]
     }
     return(exp_colors)
@@ -664,7 +665,7 @@ setGeneric("set_conditions")
 #' @export
 setMethod(
   "set_conditions", signature(exp = "SummarizedExperiment"),
-  definition = function(exp, fact = NULL, ids = NULL, prefix = NULL,
+  definition = function(exp, fact = NULL, ids = NULL, prefix = NULL, handle_na = "unknown",
                         null_cell = "null", colors = TRUE, ...) {
     arglist <- list(...)
     if (!is.null(arglist[["factor"]])) {
@@ -716,6 +717,19 @@ setMethod(
       colData(new_se)[["condition"]] <- fact
       ## new_se[["design"]][["condition"]] <- fact
       fact_vector <- fact
+    }
+
+    if (!is.null(handle_na)) {
+      fact <- colData(new_se)[["condition"]]
+      na_idx <- is.na(fact)
+      if (sum(na_idx) > 0) {
+        fact[na_idx] <- handle_na
+      }
+      na_idx <- is.null(fact)
+      if (sum(na_idx) > 0) {
+        fact[na_idx] <- handle_na
+      }
+      colData(new_se)[["condition"]] <- fact
     }
 
     message("The numbers of samples by condition are: ")
@@ -974,7 +988,7 @@ setGeneric("set_expt_batches")
 #' @param fact factor of new batches
 #' @param ids specific IDs to change
 #' @export
-set_se_batches <- function(se, fact, ids = NULL) {
+set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown") {
   original_batches <- colData(se)[["batch"]]
   original_length <- length(original_batches)
   if (length(fact) == 1) {
@@ -987,6 +1001,16 @@ set_se_batches <- function(se, fact, ids = NULL) {
   }
   if (length(fact) != original_length) {
     stop("The new factor of batches is not the same length as the original.")
+  }
+  if (!is.null(handle_na)) {
+    na_idx <- is.na(fact)
+    if (sum(na_idx) > 0) {
+      fact[na_idx] <- handle_na
+    }
+    na_idx <- is.null(fact)
+    if (sum(na_idx) > 0) {
+      fact[na_idx] <- handle_na
+    }
   }
   colData(se)[["batch"]] <- fact
   message("The number of samples by batch are: ")

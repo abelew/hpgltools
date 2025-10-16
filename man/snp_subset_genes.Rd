@@ -13,6 +13,7 @@ snp_subset_genes(
   snp_name_column = "chromosome",
   snp_start_column = "position",
   exp_gid_column = "gid",
+  ignore_strand = TRUE,
   genes = c("LPAL13_120010900", "LPAL13_340013000", "LPAL13_000054100",
     "LPAL13_140006100", "LPAL13_180018500", "LPAL13_320022300")
 )

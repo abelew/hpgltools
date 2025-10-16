@@ -9,6 +9,7 @@
   fact = NULL,
   ids = NULL,
   prefix = NULL,
+  handle_na = "unknown",
   null_cell = "null",
   colors = TRUE,
   ...

@@ -835,8 +835,11 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
     values <- by_factor_data[["sums"]]
     observed <- values
     spc <- by_factor_data[["samples_per_condition"]]
-    for (f in 1:length(spc)) {
-      num <- spc[f]
+    for (f in seq_along(spc)) {
+      num <- as.numeric(spc[f])
+      if (num == 0) {
+        next
+      }
       fact <- names(spc)[f]
       observed[[fact]] <- observed[[fact]] / num
     }
@@ -1320,6 +1323,7 @@ and combination of factors in the data.")
 snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = "end",
                              exp_name_column = "chromosome", snp_name_column = "chromosome",
                              snp_start_column = "position", exp_gid_column = "gid",
+                             ignore_strand = TRUE,
                              genes = c("LPAL13_120010900", "LPAL13_340013000", "LPAL13_000054100",
                                        "LPAL13_140006100", "LPAL13_180018500", "LPAL13_320022300")) {
   features <- rowData(exp)
@@ -1341,7 +1345,7 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 
   ## Therefore, in order to cross reference, I need to do the same here.
   ## In this invocation, I need the seqnames to be the chromosome of each gene.
-  exp_granges <- GenomicRanges::makeGRangesFromDataFrame(features,
+  exp_granges <- GenomicRanges::makeGRangesFromDataFrame(features, ignore.strand = ignore_strand,
                                                           seqnames.field = exp_name_column,
                                                           start.field = start_column,
                                                           end.field = end_column)
@@ -1349,24 +1353,25 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 
   snp_annot <- rowData(snp_exp)
   snp_annot[[snp_start_column]] <- as.numeric(snp_annot[[snp_start_column]])
+  snp_annot[["start"]] <- snp_annot[[snp_start_column]]
   snp_annot[["end"]] <- snp_annot[[snp_start_column]] + 1
-  snp_granges <- GenomicRanges::makeGRangesFromDataFrame(snp_annot,
+  snp_granges <- GenomicRanges::makeGRangesFromDataFrame(snp_annot, ignore.strand = ignore_strand,
                                                          seqnames.field = snp_name_column,
-                                                         start.field = snp_start_column,
+                                                         start.field = "start",
                                                          end.field = "end")
 
   snps_in_genes <- IRanges::subsetByOverlaps(snp_granges, exp_subset,
                                              type = "within", ignore.strand = TRUE)
   snp_exp_ids <- names(snps_in_genes)
-  snp_subset <- exclude_genes(snp_exp, ids = snp_exp_ids, method = "keep")
+  snp_subset <- subset_genes(snp_exp, ids = snp_exp_ids, method = "keep")
 
-  snp_fdata <- as.data.frame(snps_in_genes)
-  exp_fdata <- as.data.frame(exp_subset)
-  exp_fdata[["gene"]] <- rownames(exp_fdata)
-  exp_fdata <- exp_fdata[, c("seqnames", "gene")]
-  snp_fdata <- merge(snp_fdata, exp_fdata, by = "seqnames", all.x = TRUE)
-  snp_fdata <- merge(snp_fdata, features, by.x = "gene", by.y = exp_gid_column, all.x = TRUE)
-  fData(snp_subset[["expressionset"]]) <- snp_fdata
+  snp_rowdata <- as.data.frame(snps_in_genes)
+  exp_rowdata <- as.data.frame(exp_subset)
+  exp_rowdata[["gene"]] <- rownames(exp_rowdata)
+  exp_rowdata <- exp_rowdata[, c("seqnames", "gene")]
+  snp_rowdata <- merge(snp_rowdata, exp_rowdata, by = "seqnames", all.x = TRUE)
+  snp_rowdata <- merge(snp_rowdata, features, by.x = "gene", by.y = exp_gid_column, all.x = TRUE)
+  rowData(snp_subset) <- snp_rowdata
   return(snp_subset)
 }
 
@@ -1426,7 +1431,8 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   ## In this invocation, I need the seqnames to be the chromosome of each gene.
   exp_granges <- GenomicRanges::makeGRangesFromDataFrame(
     features, seqnames.field = chr_column,
-    start.field = start_column, end.field = end_column)
+    start.field = start_column, end.field = end_column,
+    ignore.strand = ignore_strand)
   ## keep.extra.columns = FALSE
   ## ignore.strand = FALSE
   ## seqinfo = NULL
@@ -1473,8 +1479,8 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   ## This will let us find the positions unique to a condition.
   mcols(snp_granges)[, "snp_name"] <- names(snp_granges)
   snp_columns <- colnames(snp_result[["observations"]])
-  for (c in seq_along(snp_columns)) {
-    colname <- snp_columns[c]
+  for (count in seq_along(snp_columns)) {
+    colname <- snp_columns[count]
     mcols(snp_granges)[, colname] <- snp_result[["observations"]][[colname]]
   }
   message("The snp grange data has ", length(snp_granges), " elements.")
@@ -1484,7 +1490,12 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
             sum(observed_snp_idx), " elements.")
     snp_granges <- snp_granges[observed_snp_idx, ]
   }
-
+  ## This is a place of confusion, some gene annotation databases (TriTrypDB)
+  ## have multiple chromosome columns with different ways of writing the chromosomes.
+  first_snp_chr <- as.character(head(levels(seqnames(snp_granges))))
+  first_exp_chr <- as.character(head(levels(seqnames(exp_granges))))
+  message("The first few snp chromosomes are: ", toString(first_snp_chr))
+  message("The first few exp chromosomes are: ", toString(first_exp_chr))
   snps_by_chr <- suppressWarnings(
     IRanges::subsetByOverlaps(snp_granges, exp_granges,
                               type = "within", ignore.strand = ignore_strand))

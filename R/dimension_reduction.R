@@ -215,19 +215,6 @@ pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
   return(retlist)
 }
 
-## I keep getting the warning: "in method for ‘pca_information’ with
-## signature ‘input="expt"’: no definition for class “expt”"
-## This warning does not make any sense to me because I have a method
-## defined shortly after the following function which AFAICT does
-## exactly that.
-## In addition, I have a bunch of other S3/S4 dispatches all over the
-## place which do not print this; so there must be something about
-## how I defined this particular thing which is wrong.
-pca_information <- function(input, ...) {
-  message("Still working on my understanding of R OO.")
-  UseMethod("pca_information")
-}
-
 #' Gather information about principle components.
 #'
 #' Calculate some information useful for generating PCA plots.
@@ -277,15 +264,14 @@ pca_information <- function(input, ...) {
 #' @include expt.R
 #' @export
 pca_information <- function(exp, factors = c("condition", "batch"), colors_chosen = NULL,
-                            num_components = NULL, plot_pcas = FALSE, ...) {
+                            input_design = NULL, num_components = NULL, input_state = NULL,
+                            plot_pcas = FALSE, ...) {
   arglist <- list(...)
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
-  if (is.null(colors_chosen)) {
-    colors_chosen <- get_colors_by_condition(exp)
-  }
 
-  initial_pca <- plot_pca(exp, ...)
+  initial_pca <- plot_pca(exp, design = input_design, state = input_state,
+                          plot_colors = colors_chosen, ...)
   v <- initial_pca[["result"]][["v"]]
   u <- initial_pca[["result"]][["u"]]
   d <- initial_pca[["result"]][["d"]]
@@ -334,7 +320,6 @@ pca_information <- function(exp, factors = c("condition", "batch"), colors_chose
   }
 
   ## Now start filling in data which may be used for correlations/fstats/etc.
-  input_design <- colData(exp)
   factor_df <- data.frame(
     "sampleid" = rownames(input_design))
   rownames(factor_df) <- rownames(input_design)
@@ -518,9 +503,10 @@ setGeneric("pca_information")
 setMethod(
   "pca_information", signature = signature(exp = "data.frame"),
   definition = function(exp, factors = c("condition", "batch"),
-                        num_components = NULL,
+                        colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
     input <- as.matrix(exp)
+    input_state <- NULL
     pca_information(input, input_design = input_design, input_state = input_state,
                     factors = factors, colors_chosen = colors_chosen,
                     num_components = num_components,
@@ -537,9 +523,29 @@ setMethod(
   definition = function(exp, factors = c("condition", "batch"),
                         colors_chosen = NULL, num_components = NULL,
                         plot_pcas = FALSE, ...) {
-    colors_chosen <- get_colors_by_condition(exp)
+    colors_chosen <- get_colors(exp)
     input_state <- state(exp)
     input <- exprs(exp)
+    pca_information(input, input_design = input_design, input_state = input_state,
+                    factors = factors, colors_chosen = colors_chosen,
+                    num_components = num_components,
+                    plot_pcas = plot_pcas)
+  })
+
+#' If pca_information is run on an expressionset, everything except
+#' perhaps colors should already be there.
+#'
+#' @inheritParams pca_information
+#' @export
+setMethod(
+  "pca_information", signature = signature(exp = "SummarizedExperiment"),
+  definition = function(exp, factors = c("condition", "batch"),
+                        colors_chosen = NULL, num_components = NULL,
+                        plot_pcas = FALSE, ...) {
+    colors_chosen <- get_colors(exp)
+    input_design <- colData(exp)
+    input_state <- state(exp)
+    input <- assay(exp)
     pca_information(input, input_design = input_design, input_state = input_state,
                     factors = factors, colors_chosen = colors_chosen,
                     num_components = num_components,
@@ -1172,12 +1178,18 @@ setMethod(
     design <- colData(data)
     plot_colors <- get_colors(data)
     mtrx <- assay(data)
-    plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
+    retlist <- plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
              plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
              plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
              x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
              expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
              ...)
+    pc_table <- retlist[["table"]]
+    pc_columns <- grepl(x = colnames(pc_table), pattern = "^pc_")
+    pc_subset <- pc_table[, pc_columns]
+    colData(data) <- cbind(colData(data), pc_subset)
+    retlist[["modified_input"]] <- data
+    return(retlist)
   })
 
 #' Using plot_pca with an expt should not need any extra arguments.

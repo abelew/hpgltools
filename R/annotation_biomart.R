@@ -234,8 +234,7 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
 #' @seealso [biomaRt::listDatasets()] [biomaRt::getBM()] [find_working_mart()]
 #' @example inst/examples/annotation_biomart.R
 #' @export
-load_biomart_annotations <- function(
-                                     species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
+load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
                                      trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
                                      default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                                        "www.ensembl.org", "asia.ensembl.org"),
@@ -384,7 +383,16 @@ load_biomart_annotations <- function(
     symbol_columns_idx <- grepl(x = available_attribs, pattern = "symbol")
     ## I am only taking the first because there is some weird error with
     ## the uniprot symbol when I ask for it.
-    symbol_columns <- available_attribs[symbol_columns_idx[1]]
+    idx <- which(symbol_columns_idx)
+    found <- sum(symbol_columns_idx)
+    first <- available_attribs[idx[1]]
+    message("Found ", found, " potential symbol columns, using the first:",
+            first, ".")
+    if (found > 0) {
+      symbol_columns <- first
+    } else {
+      symbol_columns <- NULL
+    }
   }
   symbol_columns <- c(gene_id_column, symbol_columns)
   symbol_annotations <- try(biomaRt::getBM(

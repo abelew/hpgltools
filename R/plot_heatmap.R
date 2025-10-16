@@ -638,14 +638,15 @@ setMethod(
                         input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
                         Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    input_design <- pData(data)
-    input_colors <- S4Vectors::metadata(data)[["colors"]]
-    input_names <- S4Vectors::metadata(data)[["input_names"]]
-    input_data <- exprs(data)
+    input_design <- colData(data)
+    input_colors <- get_colors(data)
+    input_names <- sampleNames(data)
+    input_data <- assay(data)
     plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
       input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
-      Colv = Colv, label_chars = label_chars, filter = filter, ...)
+      Colv = Colv, label_chars = label_chars, filter = filter,
+      ...)
   })
 
 #' An experiment to see if I can visualize the genes with the highest variance.

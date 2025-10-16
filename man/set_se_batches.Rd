@@ -4,7 +4,7 @@
 \alias{set_se_batches}
 \title{Set the batches for a summarized experiment.}
 \usage{
-set_se_batches(se, fact, ids = NULL)
+set_se_batches(se, fact, ids = NULL, handle_na = "unknown")
 }
 \arguments{
 \item{se}{Input se}
