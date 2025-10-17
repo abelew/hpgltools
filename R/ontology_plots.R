@@ -107,7 +107,7 @@ plot_topgo_densities <- function(godatum, table) {
     tmp_file <- tmpmd5file(pattern = "topgodensity", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
-    plt <- hpgl_GroupDensity(godatum, id, ranks = TRUE)
+    plt <- hpgl_GroupDensity(godatum, id, ranks = TRUE, rm.one = FALSE)
     plot(plt)
     added_plot <- recordPlot()
     dev.off()

@@ -98,6 +98,8 @@ gather_ontology_genes <- function(result, ontology = NULL,
   }
   input <- result[["input"]]
   sig_idx <- categories[[column]] <= pval
+  na_idx <- is.na(sig_idx)
+  sig_idx[na_idx] <- FALSE
   filtered_categories <- categories[sig_idx, ]
   if (!grepl(x = rownames(filtered_categories)[1], pattern = "^GO")) {
     rownames(filtered_categories) <- filtered_categories[[1]]
@@ -156,9 +158,15 @@ gather_ontology_genes <- function(result, ontology = NULL,
   }
   gene_list <- lapply(cats, genes_per_ont)
   names(gene_list) <- cats
-  gene_df <- data.table::rbindlist(gene_list)
-  gene_df <- as.data.frame(gene_df)
-  rownames(gene_df) <- cats
+  gene_df <- data.frame(row.names = cats)
+  gene_df[["all"]] <- ""
+  gene_df[["sig"]] <- ""
+  for (i in seq_along(gene_list)) {
+    all_string <- gene_list[[i]][["all"]]
+    gene_df[i, "all"] <- all_string
+    sig_string <- gene_list[[i]][["sig"]]
+    gene_df[i, "sig"] <- toString(sig_string)
+  }
   return(gene_df)
 }
 

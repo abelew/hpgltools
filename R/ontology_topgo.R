@@ -62,7 +62,7 @@ df_to_mappings <- function(go_db) {
 simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
                          pvals = NULL, limitby = "fisher", limit = 0.1, signodes = 100,
                          sigforall = TRUE, numchar = 300, selector = "topDiffGenes",
-                         pval_column = "deseq_adjp", overwrite = FALSE, densities = FALSE,
+                         pval_column = "deseq_adjp", overwrite = FALSE, densities = TRUE,
                          pval_plots = TRUE, parallel = TRUE, excel = NULL, ...) {
   ## Some neat ideas from the topGO documentation:
   ## geneList <- getPvalues(exprs(eset), classlabel = y, alternative = "greater")
@@ -225,9 +225,9 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
     bp_densities <- sm(
       plot_topgo_densities(godata[["fisher_bp"]], tables[["bp_interesting"]]))
     mf_densities <- sm(
-      plot_topgo_densities(results[["fmf_godata"]], tables[["mf_interesting"]]))
+      plot_topgo_densities(godata[["fisher_mf"]], tables[["mf_interesting"]]))
     cc_densities <- sm(
-      plot_topgo_densities(results[["fcc_godata"]], tables[["cc_interesting"]]))
+      plot_topgo_densities(godata[["fisher_cc"]], tables[["cc_interesting"]]))
   } else {
     message("simple_topgo(): Set densities = TRUE for ontology density plots.")
   }
@@ -247,7 +247,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   for (ont in c("bp", "mf", "cc")) {
     message("Getting enrichResult for ontology: ", ont, ".")
     enrich_results[[ont]] <- topgo2enrich(retlist, ontology = ont, pval = limit,
-                                                  column = limitby)
+                                          column = limitby)
   }
   retlist[["enrich_results"]] <- enrich_results
 
@@ -495,7 +495,12 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   bg_genes <- godata@allGenes
   scores <- interesting[[column]]
   adjusted <- p.adjust(scores)
-  sig_genes <- rownames(retlist[["input"]])
+  input_type <- class(retlist[["input"]])
+  if (input_type == "data.frame") {
+    sig_genes <- rownames(retlist[["input"]])
+  } else {
+    sig_genes <- retlist[["input"]]
+  }
   mesg("Gather genes per category, this is slow.")
   genes_per_category <- gather_ontology_genes(retlist, ontology = ontology, pval = pval,
                                               column = column, include_all = FALSE)
@@ -556,26 +561,26 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
 #' @return prettier tables
 #' @seealso [topGO]
 #' @export
-topgo_tables <- function(result, godata, limit = 0.1, limitby = "fisher",
+topgo_tables <- function(results, godata, limit = 0.1, limitby = "fisher",
                          numchar = 300, orderby = "fisher", ranksof = "fisher") {
   ## The following if statement could be replaced by get(limitby)
   ## But I am leaving it as a way to ensure that no shenanigans ensue
   if (limitby == "fisher") {
-    mf_siglist <- names(which(result[["fisher_mf"]]@score <= limit))
-    bp_siglist <- names(which(result[["fisher_bp"]]@score <= limit))
-    cc_siglist <- names(which(result[["fisher_bp"]]@score <= limit))
+    mf_siglist <- names(which(results[["fisher_mf"]]@score <= limit))
+    bp_siglist <- names(which(results[["fisher_bp"]]@score <= limit))
+    cc_siglist <- names(which(results[["fisher_bp"]]@score <= limit))
   } else if (limitby == "KS") {
-    mf_siglist <- names(which(result[["ks_mf"]]@score <= limit))
-    bp_siglist <- names(which(result[["ks_bp"]]@score <= limit))
-    cc_siglist <- names(which(result[["ks_bp"]]@score <= limit))
+    mf_siglist <- names(which(results[["ks_mf"]]@score <= limit))
+    bp_siglist <- names(which(results[["ks_bp"]]@score <= limit))
+    cc_siglist <- names(which(results[["ks_bp"]]@score <= limit))
   } else if (limitby == "EL") {
-    mf_siglist <- names(which(result[["el_mf"]]@score <= limit))
-    bp_siglist <- names(which(result[["el_bp"]]@score <= limit))
-    cc_siglist <- names(which(result[["el_bp"]]@score <= limit))
+    mf_siglist <- names(which(results[["el_mf"]]@score <= limit))
+    bp_siglist <- names(which(results[["el_bp"]]@score <= limit))
+    cc_siglist <- names(which(results[["el_bp"]]@score <= limit))
   } else if (limitby == "weight") {
-    mf_siglist <- names(which(result[["weight_mf"]]@score <= limit))
-    bp_siglist <- names(which(result[["weight_bp"]]@score <= limit))
-    cc_siglist <- names(which(result[["weight_bp"]]@score <= limit))
+    mf_siglist <- names(which(results[["weight_mf"]]@score <= limit))
+    bp_siglist <- names(which(results[["weight_bp"]]@score <= limit))
+    cc_siglist <- names(which(results[["weight_bp"]]@score <= limit))
   } else {
     stop("I can only limit by: fisher, KS, EL, or weight.")
   }
@@ -594,74 +599,82 @@ topgo_tables <- function(result, godata, limit = 0.1, limitby = "fisher",
     ks_name <- glue::glue("ks_{ont}")
     el_name <- glue::glue("el_{ont}")
     weight_name <- glue::glue("weight_{ont}")
-    if (topnode_list[[ont]] > 0) {
-      fisher <- try(topGO::GenTable(godata[[fisher_name]], result[[fisher_name]],
-                                    topNodes = topnode_list[[ont]], numChar = numchar),
-                    silent = TRUE)
-      if ("try-error" %in% class(fisher)) {
-        interest_lst[[ont]] <- data.frame()
-        all_lst[[ont]] <- data.frame()
-        next
-      }
-      colnames(fisher) <- paste0(colnames(fisher), "_fisher")
-      ks <- try(topGO::GenTable(godata[[ks_name]], result[[ks_name]],
-                                topNodes = topnode_list[[ont]], numChar = numchar),
-                silent = TRUE)
-      if ("try-error" %in% class(ks)) {
-        interest_lst[[ont]] <- data.frame()
-        all_lst[[ont]] <- data.frame()
-        next
-      }
-      colnames(ks) <- paste0(colnames(ks), "_ks")
-      el <- try(topGO::GenTable(godata[[el_name]], result[[el_name]],
-                                topNodes = topnode_list[[ont]], numChar = numchar),
-                silent = TRUE)
-      if ("try-error" %in% class(el)) {
-        interest_lst[[ont]] <- data.frame()
-        all_lst[[ont]] <- data.frame()
-        next
-      }
-      colnames(el) <- paste0(colnames(el), "_el")
-      weight <- try(topGO::GenTable(godata[[weight_name]], result[[weight_name]],
-                                    topNodes = topnode_list[[ont]], numChar = numchar),
-                    silent = TRUE)
-      if ("try-error" %in% class(weight)) {
-        interest_lst[[ont]] <- data.frame()
-        all_lst[[ont]] <- data.frame()
-        next
-      }
-      colnames(weight) <- paste0(colnames(weight), "_weight")
-      all <- merge(fisher, ks, by.x = "GO.ID_fisher", by.y = "GO.ID_ks")
-      all <- merge(all, el, by.x = "GO.ID_fisher", by.y = "GO.ID_el")
-      all <- merge(all, weight, by.x = "GO.ID_fisher", by.y = "GO.ID_weight")
-      colnames(all)[1] <- "GO.ID"
-      all[["GO.ID"]] <- gsub(
-          pattern = "GO\\.", replacement = "GO:", x = all[["GO.ID"]])
-      rownames(all) <- all[["GO.ID"]]
-      all[["GO.ID"]] <- NULL
-      colnames(all) <- gsub(x = colnames(all), pattern = "^result1_", replacement = "")
-      all[["fisher"]] <- gsub(x = all[["fisher"]], pattern = "^< ", replacement = "")
-      all[["fisher"]] <- as.numeric(all[["fisher"]])
-      all[["ks"]] <- gsub(x = all[["ks"]], pattern = "^< ", replacement = "")
-      all[["ks"]] <- as.numeric(all[["ks"]])
-      all[["el"]] <- gsub(x = all[["el"]], pattern = "^< ", replacement = "")
-      all[["el"]] <- as.numeric(all[["el"]])
-      all[["weight"]] <- gsub(x = all[["weight"]], pattern = "^< ", replacement = "")
-      all[["weight"]] <- as.numeric(all[["weight"]])
-      all_lst[[ont]] <- all
-
-      if (class(all) != "try-error") {
-        all[["padj_fisher"]] <- p.adjust(all[["fisher"]])
-        all[["padj_ks"]] <- p.adjust(all[["ks"]])
-        all[["padj_el"]] <- p.adjust(all[["el"]])
-        all[["padj_weight"]] <- p.adjust(all[["weight"]])
-        interest_idx <- all[[limitby]] <= limit
-        interesting <- all[interest_idx, ]
-        interesting[["ont"]] <- "MF"
-        interest_lst[[ont]] <- interesting
-      }
+    if (topnode_list[[ont]] == 0) {
+      next
     }
-  } ## End for mf/bp/cc
+    fisher <- try(topGO::GenTable(godata[[fisher_name]], results[[fisher_name]],
+                                  topNodes = topnode_list[[ont]], numChar = numchar))
+    if ("try-error" %in% class(fisher)) {
+      interest_lst[[ont]] <- data.frame()
+      all_lst[[ont]] <- data.frame()
+      next
+    }
+    colnames(fisher) <- paste0(colnames(fisher), "_fisher")
+    ks <- try(topGO::GenTable(godata[[ks_name]], results[[ks_name]],
+                              topNodes = topnode_list[[ont]], numChar = numchar))
+    if ("try-error" %in% class(ks)) {
+      interest_lst[[ont]] <- data.frame()
+      all_lst[[ont]] <- data.frame()
+      next
+    }
+    colnames(ks) <- paste0(colnames(ks), "_ks")
+    el <- try(topGO::GenTable(godata[[el_name]], results[[el_name]],
+                              topNodes = topnode_list[[ont]], numChar = numchar))
+    if ("try-error" %in% class(el)) {
+      interest_lst[[ont]] <- data.frame()
+      all_lst[[ont]] <- data.frame()
+      next
+    }
+    colnames(el) <- paste0(colnames(el), "_el")
+    weight <- try(topGO::GenTable(godata[[weight_name]], results[[weight_name]],
+                                  topNodes = topnode_list[[ont]], numChar = numchar))
+    if ("try-error" %in% class(weight)) {
+      interest_lst[[ont]] <- data.frame()
+      all_lst[[ont]] <- data.frame()
+      next
+    }
+    colnames(weight) <- paste0(colnames(weight), "_weight")
+    rownames(fisher) <- fisher[["GO.ID_fisher"]]
+    fisher[["GO.ID_fisher"]] <- NULL
+    rownames(ks) <- ks[["GO.ID_ks"]]
+    ks[["GO.ID_ks"]] <- NULL
+    rownames(el) <- el[["GO.ID_el"]]
+    el[["GO.ID_el"]] <- NULL
+    rownames(weight) <- weight[["GO.ID_weight"]]
+    weight[["GO.ID_weight"]] <- NULL
+    all <- merge(fisher, ks, by = "row.names", all = TRUE)
+    rownames(all) <- all[["Row.names"]]
+    all[["Row.names"]] <- NULL
+    all <- merge(all, el, by = "row.names", all = TRUE)
+    rownames(all) <- all[["Row.names"]]
+    all[["Row.names"]] <- NULL
+    all <- merge(all, weight, by = "row.names", all = TRUE)
+    rownames(all) <- all[["Row.names"]]
+    all[["Row.names"]] <- NULL
+    colnames(all) <- gsub(x = colnames(all), pattern = "^result1_", replacement = "")
+    all[["fisher"]] <- gsub(x = all[["fisher"]], pattern = "^< ", replacement = "")
+    all[["fisher"]] <- as.numeric(all[["fisher"]])
+    all[["ks"]] <- gsub(x = all[["ks"]], pattern = "^< ", replacement = "")
+    all[["ks"]] <- as.numeric(all[["ks"]])
+    all[["el"]] <- gsub(x = all[["el"]], pattern = "^< ", replacement = "")
+    all[["el"]] <- as.numeric(all[["el"]])
+    all[["weight"]] <- gsub(x = all[["weight"]], pattern = "^< ", replacement = "")
+    all[["weight"]] <- as.numeric(all[["weight"]])
+    all_lst[[ont]] <- all
+
+    if ("data.frame" %in% class(all)) {
+      all[["padj_fisher"]] <- p.adjust(all[["fisher"]])
+      all[["padj_ks"]] <- p.adjust(all[["ks"]])
+      all[["padj_el"]] <- p.adjust(all[["el"]])
+      all[["padj_weight"]] <- p.adjust(all[["weight"]])
+      interest_idx <- all[[limitby]] <= limit
+      na_idx <- is.na(interest_idx)
+      interest_idx[na_idx] <- FALSE
+      interesting <- all[interest_idx, ]
+      interesting[["ont"]] <- ont
+      interest_lst[[ont]] <- interesting
+    }
+  }
 
   tables <- list(
       "mf_subset" = all_lst[["mf"]],
@@ -936,7 +949,7 @@ hpgl_GOplot <- function(dag, sigNodes, dag.name = "GO terms", edgeTypes = TRUE,
 #' @return plot of group densities.
 hpgl_GroupDensity <- function(object, whichGO, ranks = TRUE, rm.one = FALSE) {
   ##   groupMembers <- try(topGO::genesInTerm(object, whichGO)[[1]])
-  groupMembers <- try(topGO::genesInTerm(object, "MF"))
+  groupMembers <- try(topGO::genesInTerm(object))
   if (class(groupMembers)[1] == "try-error") {
     return(NULL)
   }

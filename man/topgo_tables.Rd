@@ -5,7 +5,7 @@
 \title{Make pretty tables out of topGO data}
 \usage{
 topgo_tables(
-  result,
+  results,
   godata,
   limit = 0.1,
   limitby = "fisher",
@@ -15,8 +15,6 @@ topgo_tables(
 )
 }
 \arguments{
-\item{result}{Topgo result.}
-
 \item{godata}{The ontology database.}
 
 \item{limit}{Pvalue limit defining 'significant'.}
@@ -28,6 +26,8 @@ topgo_tables(
 \item{orderby}{Which of the available columns to order the table by?}
 
 \item{ranksof}{Which of the available columns are used to rank the data?}
+
+\item{result}{Topgo result.}
 }
 \value{
 prettier tables

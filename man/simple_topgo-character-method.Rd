@@ -17,7 +17,7 @@
   selector = "topDiffGenes",
   pval_column = "deseq_adjp",
   overwrite = FALSE,
-  densities = FALSE,
+  densities = TRUE,
   pval_plots = TRUE,
   parallel = TRUE,
   excel = NULL,
