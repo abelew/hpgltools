@@ -10,7 +10,8 @@ get_snp_sets(
   stringency = NULL,
   do_save = FALSE,
   savefile = "variants.rda",
-  proportion = 0.9
+  proportion = 0.9,
+  max_cutoff = 0
 )
 }
 \arguments{

@@ -388,7 +388,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                           title = "BP REsults from cp.", start_row = new_row)
     bp_plots <- list()
     if (!is.null(cp_result[["go_data"]][["BP_enrich"]])) {
-      bp_plots <- plot_enrichresult(cp_result[["go_data"]][["BP_enrich"]])
+      bp_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["BP_enrich"]]))
     }
     a_plot <- bp_plots[["dot"]]
     plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -421,7 +421,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
     mf_plots <- list()
     if (!is.null(cp_result[["go_data"]][["MF_enrich"]])) {
-      mf_plots <- plot_enrichresult(cp_result[["go_data"]][["MF_enrich"]])
+      mf_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["MF_enrich"]]))
     }
     a_plot <- mf_plots[["dot"]]
     plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -456,7 +456,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       cc_plots <- list()
       if (!is.null(cp_result[["go_data"]][["CC_enrich"]])) {
-        cc_plots <- plot_enrichresult(cp_result[["go_data"]][["CC_enrich"]])
+        cc_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["CC_enrich"]]))
       }
       a_plot <- cc_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -491,7 +491,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       kegg_plots <- list()
       if (!is.null(cp_result[["kegg_data"]])) {
-        kegg_plots <- plot_enrichresult(cp_result[["kegg_data"]][["kegg_enrich"]])
+        kegg_plots <- suppressWarnings(plot_enrichresult(cp_result[["kegg_data"]][["kegg_enrich"]]))
       }
       a_plot <- kegg_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -526,7 +526,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       reactome_plots <- list()
       if (!is.null(cp_result[["reactome_data"]])) {
-        reactome_plots <- plot_enrichresult(cp_result[["reactome_data"]][["reactome_enrich"]])
+        reactome_plots <- suppressWarnings(plot_enrichresult(cp_result[["reactome_data"]][["reactome_enrich"]]))
       }
       a_plot <- reactome_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -561,7 +561,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       dose_plots <- list()
       if (!is.null(cp_result[["dose_data"]])) {
-        dose_plots <- plot_enrichresult(cp_result[["dose_data"]][["dose_enrich"]])
+        dose_plots <- suppressWarnings(plot_enrichresult(cp_result[["dose_data"]][["dose_enrich"]]))
       }
       a_plot <- dose_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -596,7 +596,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       mesh_plots <- list()
       if (!is.null(cp_result[["mesh_data"]])) {
-        mesh_plots <- plot_enrichresult(cp_result[["mesh_data"]][["mesh_enrich"]])
+        mesh_plots <- suppressWarnings(plot_enrichresult(cp_result[["mesh_data"]][["mesh_enrich"]]))
       }
       a_plot <- mesh_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -631,7 +631,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (isTRUE(add_plots)) {
       msigdb_plots <- list()
       if (!is.null(cp_result[["msigdb_data"]])) {
-        msigdb_plots <- plot_enrichresult(cp_result[["msigdb_data"]][["msigdb_enrich"]])
+        msigdb_plots <- suppressWarnings(plot_enrichresult(cp_result[["msigdb_data"]][["msigdb_enrich"]]))
       }
       a_plot <- msigdb_plots[["dot"]]
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -888,13 +888,14 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
       categories <- categories[, -1]
       order_idx <- order(categories[[order_by]], decreasing = decreasing)
       categories <- categories[order_idx, ]
+      categories[["ontology"]] <- ont
       kept_columns <- c("ontology", "category", "term", "over_represented_pvalue",
-                        "qvalue", "sig", "all", "numDEInCat", "numInCat",
-                        "limma_sigfc", "deseq_sigfc", "edger_sigfc")
+                        "qvalue", "sig", "all", "numDEInCat", "numInCat")
+      ##"limma_sigfc", "deseq_sigfc", "edger_sigfc")
       categories <- categories[, kept_columns]
       better_column_names <- c("Ontology", "Category", "Term", "Over p-value", "Q-value",
-                               "DE genes in cat", "All genes in cat", "Num. DE", "Num. in cat.",
-                               "FC from limma", "FC from DESeq", "FC from edgeR")
+                               "DE genes in cat", "All genes in cat", "Num. DE", "Num. in cat.")
+      ## "FC from limma", "FC from DESeq", "FC from edgeR")
       colnames(categories) <- better_column_names
     }
 
@@ -1046,12 +1047,12 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
     order_idx <- order(categories[[order_by]], decreasing = decreasing)
     categories <- categories[order_idx, ]
     kept_columns <- c("ontology", "Row.names", "Term", "Pvalue", "qvalue",
-                      "Count", "Size", "OddsRatio", "ExpCount",
-                      "limma_sigfc", "deseq_sigfc", "edger_sigfc")
+                      "Count", "Size", "OddsRatio", "ExpCount")
+  ##                      "limma_sigfc", "deseq_sigfc", "edger_sigfc")
     categories <- categories[, kept_columns]
     better_column_names <- c("Ontology", "Category", "Term", "Over p-value", "Q-value",
-                             "DE genes in cat", "All genes in cat", "Odds Ratio", "Exp. Count",
-                             "FC from limma", "FC from DESeq", "FC from edgeR")
+                             "DE genes in cat", "All genes in cat", "Odds Ratio", "Exp. Count")
+                             ## "FC from limma", "FC from DESeq", "FC from edgeR")
     colnames(categories) <- better_column_names
 
     ## Now write the data

@@ -576,7 +576,7 @@ plot_sample_bars <- function(sample_df, condition = NULL, colors = NULL,
   text_colors <- sample_df[["text_color"]]
 
   sample_plot <- ggplot(data = sample_df,
-                        colour = colors,
+                        ## colour = colors,
                         aes(x = .data[["order"]], y = .data[["sum"]])) +
     ggplot2::geom_bar(stat = "identity",
                       colour = "black",

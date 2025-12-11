@@ -44,9 +44,8 @@ test_that("combine_de_tables() gave expected tables?", {
 })
 removed <- file.remove("testme.xlsx")
 
-test_condbatch_combined <- combine_de_tables(test_condbatch,
-                                             rda = "test_065_combined.rda",
-                                             excel = "testme.xlsx")
+test_condbatch_combined <- combine_de_tables(
+  test_condbatch, rda = "test_065_combined.rda", excel = "testme.xlsx")
 ## For the life of me I cannot find where this warning is coming from.
 ## brought out the source of these warnings when I run 'make test'
 test_that("combine_de_tables() gave expected tables?", {
@@ -137,11 +136,12 @@ test_that("Did get_sig_genes() get some stuff?", {
   expect_equal(expected[2], actual[2])
 })
 
+expected <- "ggplot2::ggplot"
 testing <- significant_barplots(combined = test_condbatch_combined)
 test_that("significant_barplots() gave some plots?", {
-  expect_equal(class(testing[["deseq"]]), c("gg", "ggplot"))
-  expect_equal(class(testing[["limma"]]), c("gg", "ggplot"))
-  expect_equal(class(testing[["edger"]]), c("gg", "ggplot"))
+  expect_equal(class(testing[["deseq"]])[1], expected)
+  expect_equal(class(testing[["limma"]])[1], expected)
+  expect_equal(class(testing[["edger"]])[1], expected)
 })
 
 testing <- de_venn(test_condbatch_combined[["data"]][[1]])
@@ -151,12 +151,11 @@ test_that("de_venn() gave some plots?", {
 })
 
 testing <- plot_num_siggenes(test_condbatch_combined[["data"]][[1]])
-expected <- c("gg", "ggplot")
 test_that("plot_num_siggenes() gave some plots?", {
-  expect_equal(class(testing[["up"]]), expected)
-  expect_equal(class(testing[["down"]]), expected)
-  expect_equal(class(testing[["pup"]]), expected)
-  expect_equal(class(testing[["pdown"]]), expected)
+  expect_equal(class(testing[["up"]])[1], expected)
+  expect_equal(class(testing[["down"]])[1], expected)
+  expect_equal(class(testing[["pup"]])[1], expected)
+  expect_equal(class(testing[["pdown"]])[1], expected)
 })
 
 testing <- extract_abundant_genes(test_sva, excel = NULL)
@@ -173,7 +172,7 @@ test_that("Did write_de_table() write something?", {
 ## experiments with Steve Christensen's function.
 compare <- rank_order_scatter(test_condbatch, test_cond)
 test_that("Did we compare the two de results with a rank order plot?", {
-  expect_equal(class(compare[["plot"]])[1], "gg")
+  expect_equal(class(compare[["plot"]])[1], expected)
   expect_gt(as.numeric(compare[["correlation"]][["estimate"]]), 0.97)
 })
 

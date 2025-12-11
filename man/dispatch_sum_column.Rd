@@ -13,7 +13,8 @@ dispatch_sum_column(
   type = "genome",
   subtype = "gene",
   new_spec = NULL,
-  tag = "ID"
+  tag = "ID",
+  sum_column = "last"
 )
 }
 \arguments{

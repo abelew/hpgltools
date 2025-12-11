@@ -9,7 +9,8 @@ read_snp_columns(
   file_lst,
   column = "diff_count",
   verbose = FALSE,
-  reader = "readr"
+  reader = "readr",
+  scale = c(0, 1)
 )
 }
 \arguments{

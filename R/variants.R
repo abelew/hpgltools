@@ -244,7 +244,8 @@ print.classified_mutations <- function(x, ...) {
 #' @export
 count_snps <- function(exp, annot_column = "bcftable",
                        snp_column = NULL, numerator_column = "PAO",
-                       denominator_column = "DP", reader = "table", verbose = FALSE) {
+                       denominator_column = "DP", reader = "table", verbose = FALSE,
+                       scale = c(0, 1)) {
   meta <- colData(exp)
   file_lst <- meta[[annot_column]]
   na_files <- is.na(meta[[annot_column]])
@@ -259,22 +260,22 @@ count_snps <- function(exp, annot_column = "bcftable",
   if (!is.null(snp_column)) {
     message("Using the snp column: ", snp_column, " from the sample annotations.")
     snp_dt <- read_snp_columns(samples, file_lst, column = snp_column,
-                               reader = reader, verbose = verbose)
+                               reader = reader, verbose = verbose, scale = scale)
   } else if (is.null(numerator_column) && is.null(denominator_column)) {
     message("Using the snp column: ", snp_column, " from the sample_annotations.")
     snp_dt <- read_snp_columns(samples, file_lst, column = snp_column,
-                               reader = reader, verbose = verbose)
+                               reader = reader, verbose = verbose, scale = scale)
   } else if (is.null(denominator_column)) {
     message("Using only the numerator column: ", numerator_column, " from the sample_annotations.")
     snp_dt <- read_snp_columns(samples, file_lst, column = numerator_column,
-                               reader = reader, verbose = verbose)
+                               reader = reader, verbose = verbose, scale = scale)
   } else {
     message("Using columns: ", numerator_column, " and ", denominator_column,
             " from the sample_annotations.")
     numerator_dt <- read_snp_columns(samples, file_lst, column = numerator_column,
-                                     reader = reader, verbose = verbose)
+                                     reader = reader, verbose = verbose, scale = scale)
     denominator_dt <- read_snp_columns(samples, file_lst, column = denominator_column,
-                                       reader = reader, verbose = verbose)
+                                       reader = reader, verbose = verbose, scale = scale)
     snp_dt <- numerator_dt
     for (col in colnames(snp_dt)) {
       if (col == "rownames") {
@@ -804,7 +805,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
 get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                          stringency = NULL, do_save = FALSE,
                          savefile = "variants.rda",
-                         proportion = 0.9) {
+                         proportion = 0.9, max_cutoff = 0) {
   if (is.null(colData(snp_exp)[[factor]])) {
     stop("The factor does not exist in the exp.")
   } else {
@@ -821,10 +822,12 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   if (!is.null(proportion)) {
     message("Using a proportion of observed variants, converting the data to binary observations.")
     nonzero <- assay(snp_exp)
-    nonzero[nonzero > 0] <- 1
+    booleans <- matrix(0, nrow(nonzero), ncol(nonzero))
+    booleans[nonzero > max_cutoff] <- 1
     stringency <- "proportion"
-    nonzero <- as.matrix(nonzero)
-    assay(snp_exp) <- nonzero
+    rownames(booleans) <- rownames(nonzero)
+    colnames(booleans) <- colnames(nonzero)
+    assay(snp_exp) <- booleans
   }
 
   ## This function should be renamed to summarize_by_factor.
@@ -1061,7 +1064,7 @@ snpnames2gr <- function(names, gr = NULL) {
 #' @seealso [readr]
 #' @return A big honking data table.
 read_snp_columns <- function(samples, file_lst, column = "diff_count",
-                             verbose = FALSE, reader = "readr") {
+                             verbose = FALSE, reader = "readr", scale = c(0, 1)) {
   ## Read the first file
   first_sample <- samples[1]
   if (isTRUE(verbose)) {
@@ -1086,6 +1089,17 @@ read_snp_columns <- function(samples, file_lst, column = "diff_count",
   }
   ## Create a simplified data table from it.
   input_column <- as.numeric(first_read[[column]])
+
+    ## Add some logic to convert datatypes which are low-number==high-confidence by doing a high-x
+  low_scale_value <- scale[1]
+  high_scale_value <- scale[2]
+  ##message("The low confidence value for this tag is: ", low_scale_value,
+  ##        " and the high confidence value is: ", high_scale_value, ".")
+  if (low_scale_value > high_scale_value) {
+    ##message("Converting the values so that higher numbers are higher confidence.")
+    input_column <- low_scale_value - input_column
+  }
+
   first_column <- data.table::as.data.table(input_column)
   first_column[["rownames"]] <- first_read[[1]]
   colnames(first_column) <- c(first_sample, "rownames")
@@ -1119,6 +1133,10 @@ read_snp_columns <- function(samples, file_lst, column = "diff_count",
     ## I am not sure why, but a recent sample came up as a character vector
     ## instead of numeric...
     input_column <- as.numeric(new_table[[column]])
+    if (low_scale_value > high_scale_value) {
+      ##message("Converting the values so that higher numbers are higher confidence.")
+      input_column <- low_scale_value - input_column
+    }
     new_column <- data.table::as.data.table(input_column)
     new_column[["rownames"]] <- new_table[[1]]
     colnames(new_column) <- c(sample, "rownames")
@@ -1403,7 +1421,7 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 #' @importFrom S4Vectors mcols mcols<-
 snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = "end",
                           snp_name_column = "seqnames", observed_in = NULL,
-                          chr_column = "chromosome", ignore_strand = TRUE) {
+                          more_than = 0, chr_column = "chromosome", ignore_strand = TRUE) {
   features <- rowData(exp)
   if (is.null(features[[start_column]])) {
     stop("Unable to find the ", start_column, " column in the annotation data.")
@@ -1463,13 +1481,12 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   ## Keep in mind that when creating the snp_exp, I removed '_' from
   ## the chromosome names and replaced them with '-'.
   snp_positions[[snp_name_column]] <- gsub(pattern = "-", replacement = "_",
-                                        x = snp_positions[[snp_name_column]])
+                                           x = snp_positions[[snp_name_column]])
   snp_granges <- GenomicRanges::makeGRangesFromDataFrame(
     snp_positions, seqnames.field = snp_name_column,
     start.field = start_column, end.field = end_column)
 
   ## Faking out r cmd check with a couple empty variables which will be used by data.table
-  seqnames <- count <- NULL
   ## This is how one sets the metadata for a GRanges thing.
   ## When doing mergeByOverlaps, countOverlaps, etc, this is useful.
   ## mcols(object)$column_name <- some data column
@@ -1492,8 +1509,8 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   }
   ## This is a place of confusion, some gene annotation databases (TriTrypDB)
   ## have multiple chromosome columns with different ways of writing the chromosomes.
-  first_snp_chr <- as.character(head(levels(seqnames(snp_granges))))
-  first_exp_chr <- as.character(head(levels(seqnames(exp_granges))))
+  first_snp_chr <- as.character(head(levels(GenomeInfoDb::seqnames(snp_granges))))
+  first_exp_chr <- as.character(head(levels(GenomeInfoDb::seqnames(exp_granges))))
   message("The first few snp chromosomes are: ", toString(first_snp_chr))
   message("The first few exp chromosomes are: ", toString(first_exp_chr))
   snps_by_chr <- suppressWarnings(

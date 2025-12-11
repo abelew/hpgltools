@@ -11,7 +11,8 @@ count_snps(
   numerator_column = "PAO",
   denominator_column = "DP",
   reader = "table",
-  verbose = FALSE
+  verbose = FALSE,
+  scale = c(0, 1)
 )
 }
 \arguments{

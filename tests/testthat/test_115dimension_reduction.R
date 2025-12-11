@@ -31,8 +31,9 @@ test_that("plot_pca() provides expected SVD data?", {
   expect_equal(expected, actual, tolerance = 1.0)
 })
 
+ggtype <- "ggplot2::ggplot"
 test_that("plot_pca() provides a plot!?", {
-  expect_equal(class(testing[["plot"]])[1], "gg")
+  expect_equal(class(testing[["plot"]])[1], ggtype)
 })
 
 expected <- c(-0.007178318, 0.070735209, -0.136645507, -0.374502211, 0.072181094, -0.028458656)

@@ -21,6 +21,7 @@
 #' @export
 transform_counts <- function(count_table, design = NULL, method = "raw",
                              base = NULL, model_fstring = "~ 0 + condition + batch",
+                             low_to_zero = TRUE,
                              ...) {
   arglist <- list(...)
   if (!is.null(arglist[["transform"]])) {
@@ -71,6 +72,9 @@ transform_counts <- function(count_table, design = NULL, method = "raw",
   less_zero <- sum(less_zero_counts, na.rm = TRUE)
   if (less_zero > 0) {
     message("transform_counts: Found ", less_zero, " values less than 0.")
+    if (isTRUE(low_to_zero)) {
+      count_table[less_zero_counts] <- 0
+    }
   }
 
   if (method != "expt2") {

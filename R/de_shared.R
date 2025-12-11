@@ -1323,10 +1323,10 @@ compare_significant_contrasts <- function(sig_tables, second_sig_tables = NULL,
   for (i in seq_along(contrasts)) {
     contr <- contrasts[i]
     if (is.numeric(contr)) {
-      contrasts[i] <- contrast_names[i]
+      contrasts[i] <- contrast_names[contr]
     } else if (!is.na(sm(as.numeric(contr)))) {
       ## If one changes one number to character, then they all get recast, ergo this foolishness.
-      contrasts[i] <- contrast_names[i]
+      contrasts[i] <- contrast_names[contr]
     }
   }
   up_lst <- list()

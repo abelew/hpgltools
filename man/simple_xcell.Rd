@@ -5,7 +5,7 @@
 \title{Invoke xCell and pretty-ify the result.}
 \usage{
 simple_xcell(
-  expt,
+  se,
   signatures = NULL,
   genes = NULL,
   spill = NULL,
@@ -20,7 +20,7 @@ simple_xcell(
 )
 }
 \arguments{
-\item{expt}{Expressionset to query.}
+\item{se}{Expressionset to query.}
 
 \item{signatures}{Alternate set of signatures to use.}
 

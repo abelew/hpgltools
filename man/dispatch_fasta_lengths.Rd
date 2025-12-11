@@ -8,6 +8,7 @@ dispatch_fasta_lengths(
   meta,
   input_file_spec,
   verbose = verbose,
+  new_spec = NULL,
   basedir = "preprocessing"
 )
 }

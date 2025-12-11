@@ -674,8 +674,7 @@ test_design_model_rank <- function(design, fstring = "~ condition + batch") {
   num_columns <- ncol(matrix_test)
   matrix_decomp <- qr(matrix_test)
   message("The model of ", fstring, " has ", num_columns,
-          " column
-and rank ", matrix_decomp[["rank"]])
+          " levels and rank ", matrix_decomp[["rank"]])
   if (matrix_decomp[["rank"]] < num_columns) {
     message("This will not work with a linear model,
 a different factor or random effect should be used.")

@@ -110,11 +110,11 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   appended_fstring <- model_fstring
   if ("character" %in% class(model_svs)) {
     model_params <- adjuster_svs(input, model_fstring = model_fstring,
-                                      null_fstring = null_fstring,
-                                      model_svs = model_svs,
-                                      num_surrogates = num_surrogates,
-                                      filter = filter,
-                                      ...)
+                                 null_fstring = null_fstring,
+                                 model_svs = model_svs,
+                                 num_surrogates = num_surrogates,
+                                 filter = filter,
+                                 ...)
     estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
@@ -158,8 +158,9 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
   contrast_vector <- c()
   for (n in seq_along(contrasts[["all_pairwise"]])) {
-       dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n], pattern = "\\,[[:space:]]*$", replacement = "")
-       contrast_vector <- c(contrast_vector, dream_contrast)
+    dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n],
+                           pattern = "\\,[[:space:]]*$", replacement = "")
+    contrast_vector <- c(contrast_vector, dream_contrast)
   }
   varpart_contrasts <- variancePartition::makeContrastsDream(
     formula = as.formula(appended_fstring), data = design, contrasts = contrast_vector)
@@ -174,8 +175,12 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     keep_underscore = keep_underscore))
   identities <- identity_contrasts[["all_pairwise_contrasts"]]
   mesg("Dream/limma step 4.5/6: Running dream for identities.")
-  identity_fits <- variancePartition::dream(
-    exprObj = voom_result, formula = simple_fstring, data = design, L = identities)
+  ## The following throws a warning: contrasts with only a single non-zero term
+  ## are already evaluated by default.  This is true, but I have not yet
+  ## figured out how to access them unless I explicitly ask; thus I am going
+  ## to just do a suppressWarnings() until I get back to this and figure it out.
+  identity_fits <- suppressWarnings(variancePartition::dream(
+    exprObj = voom_result, formula = simple_fstring, data = design, L = identities))
   ##identity_fits <- limma::contrasts.fit(fit = fitted_data, contrasts = identities)
   mesg("Dream/limma step 5/6: Running eBayes.")
   if (isTRUE(one_replicate)) {
@@ -326,7 +331,7 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
       comparison <- coef[c]
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
       mesg("Varpart/limma step 6/6: ", c, "/", end, ": Creating table: ",
-              comp_name, ".  Adjust = ", adjust)
+           comp_name, ".  Adjust = ", adjust)
       data_tables[[comp_name]] <- variancePartition::topTable(
         fit, adjust.method = adjust,
         n = n, coef = comparison, sort.by = "logFC")

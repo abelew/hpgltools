@@ -142,9 +142,9 @@ which are shared among multiple samples.")
   if (genes > ncol(sorted_fit)) {
     genes <- ncol(sorted_fit)
   }
-
-  percent_plot <- variancePartition::plotPercentBars(sorted_fit[1:genes, ])
-  partition_plot <- variancePartition::plotVarPart(sorted_fit)
+  ## This plot is throwing an odd warning and I am not inclined to dig into it.
+  percent_plot <- suppressWarnings(variancePartition::plotPercentBars(sorted_fit[1:genes, ]))
+  partition_plot <- suppressWarnings(variancePartition::plotVarPart(sorted_fit))
 
   fitting <- NULL
   stratify_batch_plot <- NULL

@@ -8,6 +8,7 @@ dispatch_csv_search(
   meta,
   column,
   input_file_spec,
+  new_spec = NULL,
   file_type = "csv",
   chosen_func = NULL,
   species = "*",

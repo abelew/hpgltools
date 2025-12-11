@@ -11,6 +11,7 @@ snps_vs_genes(
   end_column = "end",
   snp_name_column = "seqnames",
   observed_in = NULL,
+  more_than = 0,
   chr_column = "chromosome",
   ignore_strand = TRUE
 )

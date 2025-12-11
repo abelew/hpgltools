@@ -73,20 +73,19 @@ do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
   return(retlist)
 }
 
-#' I think this is already defined in BiocGenerics
+#' I really do not think this should be necessary.
 #'
-#' But for reasons passing all understanding, it is giving me grief.
-#' @param object thing to nromalize
-#' @param ... args passed along.
-#' @export
+#' It seems to me that if I have a judicious importFrom, then
+#' the following setMethod should dispatch correctly.
+#'
+#' @param object Data structure to normalize.
+#' @param ... Other options.
+#' @importFrom BiocGenerics normalize
 normalize <- function(object, ...) {
-  message("This function is intended to normalize an experimental dataset.")
-  message("It was passed an object of type ", class(object),
-          " and does not know what to do.")
-  standardGeneric("normalize")
-  return(NULL)
+  ## I did export this function because I think it
+  ## made of is shenanigans.
+  BiocGenerics::normalize(object, ...)
 }
-setGeneric("normalize")
 
 #' Normalization of se, taking a hint from BiocGenerics::normalize()
 #'

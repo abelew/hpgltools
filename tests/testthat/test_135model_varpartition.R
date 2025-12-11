@@ -21,15 +21,15 @@ test_that("Did we get an expected table of post-fitting percentages?", {
   expect_equal(expected[2], actual[2])
 })
 
-expected <- "gg"
+ggtype <- "ggplot2::ggplot"
 actual <- class(pombe_varpart[["percent_plot"]])[1]
 test_that("Does the percent plot get generated?", {
-  expect_equal(expected, actual)
+  expect_equal(ggtype, actual)
 })
 
 actual <- class(pombe_varpart[["partition_plot"]])[1]
 test_that("Does the partition plot get generated?", {
-  expect_equal(expected, actual)
+  expect_equal(ggtype, actual)
 })
 
 pombese_varpart <- simple_varpart(pombe_se)
@@ -47,15 +47,14 @@ test_that("Did we get an expected table of post-fitting percentages?", {
   expect_equal(expected[2], actual[2])
 })
 
-expected <- "gg"
 actual <- class(pombese_varpart[["percent_plot"]])[1]
 test_that("Does the percent plot get generated?", {
-  expect_equal(expected, actual)
+  expect_equal(ggtype, actual)
 })
 
 actual <- class(pombese_varpart[["partition_plot"]])[1]
 test_that("Does the partition plot get generated?", {
-  expect_equal(expected, actual)
+  expect_equal(ggtype, actual)
 })
 
 end <- as.POSIXlt(Sys.time())

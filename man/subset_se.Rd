@@ -8,8 +8,10 @@ subset_se(
   se,
   subset = NULL,
   ids = NULL,
+  min_replicates = NULL,
   nonzero = NULL,
   coverage = NULL,
+  fact = "condition",
   print_excluded = TRUE
 )
 }

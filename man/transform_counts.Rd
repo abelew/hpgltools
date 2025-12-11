@@ -10,6 +10,7 @@ transform_counts(
   method = "raw",
   base = NULL,
   model_fstring = "~ 0 + condition + batch",
+  low_to_zero = TRUE,
   ...
 )
 }

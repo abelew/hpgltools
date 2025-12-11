@@ -2,15 +2,16 @@
 % Please edit documentation in R/normalize_shared.R
 \name{normalize}
 \alias{normalize}
-\title{I think this is already defined in BiocGenerics}
+\title{I really do not think this should be necessary.}
 \usage{
 normalize(object, ...)
 }
 \arguments{
-\item{object}{thing to nromalize}
+\item{object}{Data structure to normalize.}
 
-\item{...}{args passed along.}
+\item{...}{Other options.}
 }
 \description{
-But for reasons passing all understanding, it is giving me grief.
+It seems to me that if I have a judicious importFrom, then
+the following setMethod should dispatch correctly.
 }

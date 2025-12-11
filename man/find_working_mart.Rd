@@ -5,8 +5,7 @@
 \title{Find a functional biomart instance.}
 \usage{
 find_working_mart(
-  default_hosts = c("useast.ensembl.org", "uswest.ensembl.org", "www.ensembl.org",
-    "asia.ensembl.org"),
+  default_hosts = c("useast.ensembl.org", "www.ensembl.org", "asia.ensembl.org"),
   trymart = "ENSEMBL_MART_ENSEMBL",
   archive = FALSE,
   year = NULL,

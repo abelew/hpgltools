@@ -1,6 +1,6 @@
 ## I think the correct thing to do here is to use cbind()
 combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = TRUE,
-                          batch = "batch", merge_meta = TRUE) {
+                       batch = "batch", merge_meta = TRUE) {
   ##testthat::expect_equal(rownames(exprs(exp1)), rownames(exprs(exp2)))
   design_both <- colData(se1)
   if (isTRUE(merge_meta)) {
@@ -70,7 +70,7 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, include_type = "all", count_source = "htseq",
+                      notes = NULL, include_type = "all", count_source = "featureCounts",
                       countdir = NULL, include_fasta = NULL,  include_gff = NULL,
                       file_column = "file", file_type = NULL, id_column = NULL,
                       handle_na = "drop", researcher = "elsayed", study_name = NULL,
@@ -201,9 +201,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     ## if all_count_tables _did_ exist, then we already had the count tables and so
     ## count_data should have them and all ids as 'kept'.
     count_data <- list(
-        "source" = "dataframe",
-        "raw" = all_count_tables,
-        "kept_ids" = rownames(sample_definitions))
+      "source" = "dataframe",
+      "raw" = all_count_tables,
+      "kept_ids" = rownames(sample_definitions))
     ## Remember that R does not like rownames to start with a number, and if they do
     ## I already changed the count table rownames to begin with 's'.
     count_data[["kept_ids"]] <- gsub(pattern = "^([[:digit:]])",
@@ -278,25 +278,25 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## as.data.table().
   if (!is.null(tximport_data[["raw"]])) {
     rownames(tximport_data[["raw"]][["abundance"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["raw"]][["abundance"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["raw"]][["abundance"]]))
     rownames(tximport_data[["raw"]][["counts"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["raw"]][["counts"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["raw"]][["counts"]]))
     rownames(tximport_data[["raw"]][["length"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["raw"]][["length"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["raw"]][["length"]]))
   }
   if (!is.null(tximport_data[["scaled"]])) {
     rownames(tximport_data[["scaled"]][["abundance"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["scaled"]][["abundance"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["scaled"]][["abundance"]]))
     rownames(tximport_data[["scaled"]][["counts"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["scaled"]][["counts"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["scaled"]][["counts"]]))
     rownames(tximport_data[["scaled"]][["length"]]) <- gsub(
-        pattern = ":", replacement = "\\.",
-        x = rownames(tximport_data[["scaled"]][["length"]]))
+      pattern = ":", replacement = "\\.",
+      x = rownames(tximport_data[["scaled"]][["length"]]))
   }
 
   ## Try a couple different ways of getting gene-level annotations into the se.
@@ -391,7 +391,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## there was time to remove unused samples.
   ## Make sure we have a viable set of colors for plots
   chosen_colors <- generate_se_colors(sample_definitions, sample_colors = sample_colors,
-                                        chosen_palette = palette)
+                                      chosen_palette = palette)
 
   requireNamespace("SummarizedExperiment")
   ## SummarizedExperiments vs. ExpressionSets:
@@ -412,11 +412,11 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   metadata(se)[["gff_file"]] <- include_gff
   ## the 'state' slot in the expt is used to keep track of how the data is modified over time.
   starting_state <- list(
-      "filter" = "raw",
-      "normalization" = "raw",
-      "conversion" = "raw",
-      "batch" = "raw",
-      "transform" = "raw")
+    "filter" = "raw",
+    "normalization" = "raw",
+    "conversion" = "raw",
+    "batch" = "raw",
+    "transform" = "raw")
   metadata(se)[["state"]] <- starting_state
   se_conditions <- sample_definitions[["condition"]]
   names(se_conditions) <- rownames(sample_definitions)
@@ -459,7 +459,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   if (is.null(savefile)) {
     if ("character" %in% class(metadata)) {
       savefile <- paste0(gsub(x = basename(metadata), pattern = "^(.*)\\..*",
-                          replacement = "\\1"), ".rda")
+                              replacement = "\\1"), ".rda")
     } else {
       message("Saving the summarized experiment to 'se.rda'.")
       savefile <- "se.rda"
@@ -501,7 +501,7 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
       host = host, trymart = "fungi_mart",
       trydataset = "spombe_eg_gene",
       gene_requests = c("pombase_transcript", "ensembl_gene_id", "ensembl_transcript_id",
-        "hgnc_symbol", "description", "gene_biotype"),
+                        "hgnc_symbol", "description", "gene_biotype"),
       species = "spombe", overwrite = TRUE))
     if ("try-error" %in% class(pombe_annotations)) {
       warning("There was an error downloading the pombe annotations, this will still return.")
@@ -533,8 +533,8 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
 #' @param coverage A minimum coverage to use instead.
 #' @param print_excluded Print the sampleIDs excluded by this subset.
 #' @export
-subset_se <- function(se, subset = NULL, ids = NULL,
-                      nonzero = NULL, coverage = NULL,
+subset_se <- function(se, subset = NULL, ids = NULL, min_replicates = NULL,
+                      nonzero = NULL, coverage = NULL, fact = "condition",
                       print_excluded = TRUE) {
   starting_se <- se
   starting_metadata <- colData(se)
@@ -543,11 +543,29 @@ subset_se <- function(se, subset = NULL, ids = NULL,
   end_colors <- starting_colors
   current_libsize <- libsize(se)
   subset_libsize <- current_libsize
+  subset_idx <- rep(TRUE, nrow(starting_metadata))
+  if (!is.null(min_replicates)) {
+    message("Removing samples with less than ", min_replicates, " replicates.")
+    fact_summary <- table(colData(se)[[fact]])
+    wanted_conditions <- fact_summary >= min_replicates
+    wanted_cond_names <- names(wanted_conditions)[wanted_conditions]
+    wanted_sample_idx <- colData(se)[[fact]] %in% wanted_cond_names
+    subset_idx <- `&`(subset_idx, wanted_sample_idx)
+    removed_samples <- toString(rownames(colData(se))[!subset_idx])
+    se <- se[, subset_idx]
+    subset_libsize <- subset_libsize[subset_idx]
+    end_colors <- starting_colors[subset_idx]
+    subset_idx <- rep(TRUE, sum(subset_idx))
+    message("Removed: ", removed_samples, ".")
+  }
+
   if (!is.null(ids)) {
-    idx <- starting_samples %in% ids
+    wanted_sample_idx <- starting_samples %in% ids
+    subset_idx <- `&`(subset_idx, wanted_sample_idx)
     se <- se[, idx]
     subset_libsize <- subset_libsize[idx]
     end_colors <- starting_colors[idx]
+    subset_idx <- rep(TRUE, sum(subset_idx))
   }
 
   note_appended <- NULL
@@ -588,10 +606,10 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     subset_libsize <- subset_libsize[subset_idx]
     end_colors <- starting_colors[subset_idx]
     if (isTRUE(print_excluded)) {
-    message("The samples removed (and read coverage) when filtering samples with less than ",
-            coverage, " reads are: ")
-    message(toString(lost_samples))
-    print(colData(se)[["sample_coverage"]])
+      message("The samples removed (and read coverage) when filtering samples with less than ",
+              coverage, " reads are: ")
+      message(toString(lost_samples))
+      print(colData(se)[["sample_coverage"]])
     }
   } else if (is.null(coverage)) {
     ## Remove samples with less than this number of non-zero genes.
@@ -613,7 +631,8 @@ subset_se <- function(se, subset = NULL, ids = NULL,
     if (isTRUE(print_excluded)) {
       message("Samples removed: ", toString(samples_dropped))
     }
-    se <- se[, !remove_idx]
+    keepers <- !remove_idx
+    se <- se[, keepers]
     end_colors <- starting_colors[!remove_idx]
     subset_libsize <- subset_libsize[!remove_idx]
   } else {
@@ -691,7 +710,7 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
   ## Set an incrementing id number to make absolutely paranoidly certain the
   ## order stays constant.
   counts_and_annotations <- counts_and_annotations[
-      order(counts_and_annotations[["temporary_id_number"]]), ]
+    order(counts_and_annotations[["temporary_id_number"]]), ]
   ## Pull out the annotation data and convert to data frame.
   kept_columns <- colnames(counts_and_annotations) %in% colnames(gene_info)
   final_annotations <- counts_and_annotations[, kept_columns, with = FALSE]
@@ -848,7 +867,7 @@ sanitize_se <- function(se, keep_underscore = TRUE, factors = c("condition", "ba
 #' @return  Colors!
 #' @seealso [create_expt()]
 generate_se_colors <- function(sample_definitions, cond_column = "condition",
-                                 by = "sampleid", ...) {
+                               by = "sampleid", ...) {
   arglist <- list(...)
   ## First figure out how many conditions we have
   colnames(sample_definitions) <- tolower(colnames(sample_definitions))
@@ -932,9 +951,9 @@ generate_se_colors <- function(sample_definitions, cond_column = "condition",
 #' @example inst/examples/se.R
 #' @export
 write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
-                       violin = TRUE, sample_heat = NULL, convert = "cpm", transform = "log2",
-                       batch = "svaseq", filter = TRUE, med_or_mean = "mean",
-                       color_na = "#DD0000", merge_order = "counts_first", ...) {
+                     violin = TRUE, sample_heat = NULL, convert = "cpm", transform = "log2",
+                     batch = "svaseq", filter = TRUE, med_or_mean = "mean",
+                     color_na = "#DD0000", merge_order = "counts_first", ...) {
   arglist <- list(...)
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
@@ -1185,7 +1204,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
                                       startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw standard distance correlation.",
-                      startRow = new_row, startCol = new_col)
+                                      startRow = new_row, startCol = new_col)
   new_col <- 1
   new_row <- new_row + 1
   smc_plot <- metrics[["smc"]]
@@ -1225,7 +1244,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
                                       startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "TSNE(log2(cpm())).",
-                      startRow = new_row, startCol = new_col)
+                                      startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw QQ, log scale.",
                                       startRow = new_row, startCol = new_col)
@@ -1252,7 +1271,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     image_files <- c(image_files, try_result[["filename"]])
   }
   tmp_data <- sm(normalize(se, transform = "log2", convert = "cpm", filter = filter,
-                                ...))
+                           ...))
   rpca <- plot_pca(tmp_data,
                    ...)
   rtsne <- plot_tsne(tmp_data,
@@ -1466,10 +1485,10 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   new_row <- new_row + plot_rows + 2
   new_col <- 1
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized data density plot.",
-                      startRow = new_row, startCol = new_col)
+                                      startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized Boxplot.",
-                      startRow = new_row, startCol = new_col)
+                                      startRow = new_row, startCol = new_col)
   new_col <- 1
   ndensity_plot <- norm_metrics[["density"]]
   new_row <- new_row + 1
@@ -1653,7 +1672,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
                            sheet = sheet, start_col = new_col, start_row = new_row)
   new_col <- xls_result[["end_col"]] + 6
   written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Normalized PC table.",
-                      startRow = new_row, startCol = new_col)
+                                      startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   xls_result <- write_xlsx(data = norm_metrics[["pc_table"]], wb = wb, sheet = sheet,
                            rownames = FALSE, start_col = new_col, start_row = new_row)

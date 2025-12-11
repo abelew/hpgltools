@@ -475,8 +475,10 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     "batch" = batch,
     "color" = as.character(colors))
 
+  intercept_string <- glue("{y_intercept}% of genes.")
   if (!is.null(y_intercept)) {
     if (y_intercept < 1.0) {
+      intercept_string <- glue("{y_intercept * 100}% of genes.")
       y_intercept <- nrow(data) * y_intercept
     }
   }
@@ -557,7 +559,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
                              label = .data[["id"]], angle = 45, size = 4, vjust = 2))
   } else if (plot_labels == "oldrepel") {
     non_zero_plot <- non_zero_plot +
-      ggrepel::geom_text_repel(ggplot2::aes(label = .data[["id"]]),
+      ggrepel::geom_text_repel(aes(label = .data[["id"]]),
                                size = 5, box.padding = ggplot2::unit(0.5, "lines"),
                                point.padding = ggplot2::unit(1.6, "lines"),
                                arrow = ggplot2::arrow(length = ggplot2::unit(0.01, "npc")))
@@ -566,16 +568,18 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
       directlabels::geom_dl(aes(label = .data[["id"]]), method = "smart.grid")
   } else if (plot_labels == "repel") {
     non_zero_plot <- non_zero_plot +
-      ggrepel::geom_text_repel(ggplot2::aes(label = .data[["id"]]), max.overlaps = max_overlaps)
+      ggrepel::geom_text_repel(aes(label = .data[["id"]]), max.overlaps = max_overlaps)
   } else {
     non_zero_plot <- non_zero_plot +
-      directlabels::geom_dl(ggplot2::aes(label = .data[["id"]]), method = "first.qp")
+      directlabels::geom_dl(aes(label = .data[["id"]]), method = "first.qp")
   }
 
   if (!is.null(y_intercept)) {
     non_zero_plot <- non_zero_plot +
       ggplot2::geom_hline(yintercept = y_intercept,
-                          color = "blue", size = 0.5)
+                          color = "blue", size = 0.5) +
+      ggplot2::annotate("text", x = 0, y = y_intercept, label = intercept_string,
+                        hjust = 0, vjust = 1)
   }
 
   if (!is.null(plot_title)) {

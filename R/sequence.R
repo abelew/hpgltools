@@ -254,13 +254,13 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   keep_idx <- range_names %in% genome_names
   pluses_all <- pluses_all[keep_idx]
 
-  plus_fivep_seqstrings <- BSgenome::getSeq(bsgenome, pluses_fivep)
+  plus_fivep_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, pluses_fivep))
   names(plus_fivep_seqstrings) <- pluses_fivep$name
-  plus_threep_seqstrings <- BSgenome::getSeq(bsgenome, pluses_threep)
+  plus_threep_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, pluses_threep))
   names(plus_threep_seqstrings) <- pluses_threep$name
-  plus_cds_seqstrings <- BSgenome::getSeq(bsgenome, pluses_cds)
+  plus_cds_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, pluses_cds))
   names(plus_cds_seqstrings) <- pluses_cds$name
-  plus_all_seqstrings <- BSgenome::getSeq(bsgenome, pluses_all)
+  plus_all_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, pluses_all))
   names(plus_all_seqstrings) <- pluses_all$name
 
   minuses_fivep <- GenomicRanges::GRanges(
@@ -311,13 +311,13 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   keep_idx <- range_names %in% genome_names
   minuses_all <- minuses_all[keep_idx]
 
-  minus_fivep_seqstrings <- BSgenome::getSeq(bsgenome, minuses_fivep)
+  minus_fivep_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, minuses_fivep))
   names(minus_fivep_seqstrings) <- minuses_fivep$name
-  minus_threep_seqstrings <- BSgenome::getSeq(bsgenome, minuses_threep)
+  minus_threep_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, minuses_threep))
   names(minus_threep_seqstrings) <- minuses_threep$name
-  minus_cds_seqstrings <- BSgenome::getSeq(bsgenome, minuses_cds)
+  minus_cds_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, minuses_cds))
   names(minus_cds_seqstrings) <- minuses_cds$name
-  minus_all_seqstrings <- BSgenome::getSeq(bsgenome, minuses_all)
+  minus_all_seqstrings <- suppressWarnings(BSgenome::getSeq(bsgenome, minuses_all))
   names(minus_all_seqstrings) <- minuses_all$name
 
   ## These provide data frames of the sequence lexically before/after every gene.

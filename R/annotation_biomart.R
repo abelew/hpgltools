@@ -57,7 +57,7 @@ find_working_dataset <- function(mart, trydataset, species) {
 #' @seealso [biomaRt::useMart()] [biomaRt::listMarts()]
 #' @example inst/examples/annotation_biomart.R
 #' @export
-find_working_mart <- function(default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
+find_working_mart <- function(default_hosts = c("useast.ensembl.org",  ## uswest is gone.
                                                 "www.ensembl.org", "asia.ensembl.org"),
                               trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                               year = NULL, month = NULL) {

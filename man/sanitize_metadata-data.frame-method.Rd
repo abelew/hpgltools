@@ -2,7 +2,7 @@
 % Please edit documentation in R/sanitize.R
 \name{sanitize_metadata,data.frame-method}
 \alias{sanitize_metadata,data.frame-method}
-\title{Given an expressionset, sanitize pData columns of interest.}
+\title{Given a dataframe, sanitize it.}
 \usage{
 \S4method{sanitize_metadata}{data.frame}(
   input,

@@ -19,6 +19,7 @@ gather_preprocessing_metadata(
   r1_input_column = NULL,
   r2_input_column = NULL,
   md5 = FALSE,
+  sanitize = FALSE,
   ...
 )
 }

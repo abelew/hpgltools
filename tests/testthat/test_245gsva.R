@@ -6,26 +6,25 @@ context("245gsva.R")
 
 ## I am not sure what I want to test with this either... hmmm
 hs_envir <- environment()
-hs_file <- system.file("share/hs_expt.rda", package = "hpgldata")
+hs_file <- system.file("share/hs_se.rda", package = "hpgldata")
 load(file = hs_file, envir = hs_envir)
-hs_expt <- hs_envir[["expt"]]
-hs_expt <- subset_expt(hs_expt, subset="condition=='sh'|condition=='chr'")
+hs_se <- hs_envir[["se"]]
+hs_se <- subset_se(hs_se, subset="condition=='sh'|condition=='chr'")
 
-hs_annot <- load_biomart_annotations()[["annotation"]]
-rownames(hs_annot) <- make.names(hs_annot[["ensembl_gene_id"]], unique = TRUE)
-drop <- grepl(pattern = "\\.\\d+$", x = rownames(hs_annot))
-hs_annot <- hs_annot[!drop, ]
+##hs_annot <- load_biomart_annotations()[["annotation"]]
+##rownames(hs_annot) <- make.names(hs_annot[["ensembl_gene_id"]], unique = TRUE)
+##drop <- grepl(pattern = "\\.\\d+$", x = rownames(hs_annot))
+##hs_annot <- hs_annot[!drop, ]
+##rowData(hs_se) <- hs_annot
 
-fData(hs_expt[["expressionset"]]) <- hs_annot
-
-hs_filt <- normalize_expt(hs_expt, filter = "cv")
-annotation(hs_filt[["expressionset"]]) <- "org.Hs.eg.db"
+hs_filt <- normalize(hs_se, filter = "cv")
+annotation(hs_filt) <- "org.Hs.eg.db"
 gsva_result <- simple_gsva(hs_filt, cores = 1)
 
 ## This test passes on my computer, but fails on the github infrastructure...
-actual <- dim(exprs(gsva_result[["gsva"]]))
+actual <- dim(gsva_result[["gsva_result"]])
 test_that("Do we get an expected gsva result?", {
-  expect_equal(actual[1], 2970)
+  expect_equal(actual[1], 3000)
   expect_equal(actual[2], 19)
 })
 
@@ -51,7 +50,7 @@ test_that("We can make gene set collections from DE outputs?", {
 
 ## The following xcell call throws a warning because there is a gene with no variance.
 ## I do not particularly care, so I will suppress it.
-xcell_result <- suppressWarnings(simple_xcell(expt = hs_filt, column = "cds_length", cores = 1))
+xcell_result <- suppressWarnings(simple_xcell(se = hs_filt, column = "cds_length", cores = 1))
 test_that("We get some expected results from xCell?", {
   expect_equal("recordedplot", class(xcell_result[["heatmap"]])[1])
 })

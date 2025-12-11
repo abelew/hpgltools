@@ -13,7 +13,7 @@ create_se(
   title = NULL,
   notes = NULL,
   include_type = "all",
-  count_source = "htseq",
+  count_source = "featureCounts",
   countdir = NULL,
   include_fasta = NULL,
   include_gff = NULL,

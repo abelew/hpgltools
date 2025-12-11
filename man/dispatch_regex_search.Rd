@@ -17,8 +17,10 @@ dispatch_regex_search(
   as = NULL,
   verbose = FALSE,
   type = "genome",
+  subtype = "gene",
   backup_search = NULL,
   backup_replace = NULL,
+  tag = "ID",
   ...
 )
 }

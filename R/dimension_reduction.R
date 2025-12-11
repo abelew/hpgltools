@@ -795,8 +795,6 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     label_list <- abbreviate(label_list, minlength = label_chars)
   }
 
-  ## This line should be redundant
-  mtrx <- as.matrix(mtrx)
   ## How many components should be calculated when that is possible to define?
   if (is.null(num_pc)) {
     num_pc <- nrow(design) - 1
@@ -1129,13 +1127,13 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
   ## my expt containing the normalization state of the data.
   if (isTRUE(plot_title)) {
-    data_title <- what_happened(transform = state[["transform"]], convert = state[["convert"]],
-                                norm = state[["norm"]], filter = state[["filter"]],
+    data_title <- what_happened(transform = state[["transform"]], convert = state[["conversion"]],
+                                norm = state[["normalization"]], filter = state[["filter"]],
                                 batch = state[["batch"]])
     comp_plot <- comp_plot + ggplot2::ggtitle(data_title)
   } else if (!is.null(plot_title)) {
-    data_title <- what_happened(transform = state[["transform"]], convert = state[["convert"]],
-                                norm = state[["norm"]], filter = state[["filter"]],
+    data_title <- what_happened(transform = state[["transform"]], convert = state[["conversion"]],
+                                norm = state[["normalization"]], filter = state[["filter"]],
                                 batch = state[["batch"]])
     plot_title <- glue::glue("{plot_title}
 {data_title}")
@@ -1179,11 +1177,11 @@ setMethod(
     plot_colors <- get_colors(data)
     mtrx <- assay(data)
     retlist <- plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
-             plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
-             plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
-             x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
-             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
-             ...)
+                        plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
+                        plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
+                        x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
+                        expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+                        ...)
     pc_table <- retlist[["table"]]
     pc_columns <- grepl(x = colnames(pc_table), pattern = "^pc_")
     pc_subset <- pc_table[, pc_columns]

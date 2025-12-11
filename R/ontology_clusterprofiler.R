@@ -380,6 +380,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     all_genenames <- universe_genes
   } else {
     all_genenames <- rownames(de_table)
+    shared_genes <- all_genenames %in% universe_genes
   }
   sig_genenames <- rownames(sig_genes)
   orgdb_to <- toupper(orgdb_to)
@@ -424,6 +425,11 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
     ##comparison <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genenames, to = orgdb_to,
     ##                                 possible_keys = mapper_keys, universe = all_genenames)
 
+  } else if (orgdb_from == orgdb_to) {
+    de_table_namedf <- data.frame(from = all_genenames, to = all_genenames)
+    sig_genes_namedf <- data.frame(from = sig_genenames, to = sig_genenames)
+    colnames(de_table_namedf) <- c(orgdb_to, "same")
+    colnames(sig_genes_namedf) <- c(orgdb_to, "same")
   } else { ## If we do have a column for the OrgDB
     de_table_namedf <- sm(try(clusterProfiler::bitr(
       all_genenames, fromType = orgdb_from, toType = orgdb_to, OrgDb = org), silent = TRUE))
@@ -570,9 +576,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
       organism <- org_meta[org_row, "value"]
       ## Only grab the first of potentially multiple outputs.
       kegg_organism <- get_kegg_orgn(species = organism)
-      mesg("Found organism ID: ", kegg_organism, ".")
     }
-    if (length(kegg_organism) > 0) {
+    if (length(kegg_organism) == 1) {
+      mesg("Found organism ID: ", kegg_organism, ".")
+    } else if (length(kegg_organism) > 0) {
       kegg_organism <- kegg_organism[[1]]
       if (is.null(kegg_universe)) {
         kegg_universe <- try(KEGGREST::keggConv(kegg_organism, "ncbi-geneid"))

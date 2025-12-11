@@ -355,7 +355,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
                                           species = "*", type = "genome", subtype = "gene",
                                           tag = "ID", verbose = FALSE, id_column = 1,
                                           r1_input_column = NULL, r2_input_column = NULL,
-                                          md5 = FALSE, ...) {
+                                          md5 = FALSE, sanitize = FALSE, ...) {
   ## I want to create a set of specifications for different tasks:
   ## tnseq/rnaseq/assembly/phage/phylogenetics/etc.
   ## For the moment it assumes phage assembly.
@@ -411,7 +411,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
                              ...)
   }
 
-  if (class(starting_metadata)[1] == "data.frame" && is.null(new_metadata)) {
+  if ("data.frame" %in% class(starting_metadata) && is.null(new_metadata)) {
     new_metadata <- NULL
   } else if (is.null(new_metadata)) {
     new_metadata <- gsub(x = starting_metadata, pattern = "\\.xlsx$",
@@ -458,7 +458,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     empty_entries <- sum(test_entries == "")
     zero_entries <- sum(test_entries == "0")
     uninformative_entries <- na_entries + empty_entries + zero_entries
-    all_empty <- uninformative_entries == length(new_entries)
+    all_empty <- uninformative_entries == sum(lengths(new_entries))
     if (is.null(new_entries) || isTRUE(all_empty)) {
       if (isTRUE(verbose)) {
         message("Not including new entries for: ", new_column, ", it is empty.")
@@ -475,12 +475,20 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     }
   } ## End iterating over every metadatum
 
+  if (!is.null(id_column)) {
+    rownames(meta) <- make.names(meta[[id_column]], unique = TRUE)
+  }
+
   is_numberp <- function(x) all(varhandle::check.numeric(as.character(x)))
   for (colname in colnames(meta)) {
     test_number <- is_numberp(meta[[colname]])
     if (isTRUE(test_number)) {
       meta[[colname]] <- as.numeric(meta[[colname]])
     }
+  }
+
+  if (isTRUE(sanitize)) {
+    message("Not yet implemented because I am unsure how I want to handle punctuation etc.")
   }
 
   written <- NULL
@@ -792,7 +800,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       mesg("Searching for the percent mapped in the hisat log.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
-        type = type, species = species, new_spec = new_spec, ...)
+        type = type, species = species, new_spec = new_spec, subtype = subtype,
+        ...)
     },
     "hisat_genome_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_genome_single_concordant"]][["column"]]
@@ -829,7 +838,6 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_sum_column(
         meta, input_file_spec, verbose = verbose, basedir = basedir, new_spec = new_spec,
         type = type, subtype = subtype, tag = tag, species = species)
-
     },
     "hisat_sum_genes_pct" = {
       numerator_column <- specification[["hisat_sum_genes"]][["column"]]
@@ -1040,56 +1048,57 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     "kraken_bacterial_classified" = {
       search <- "^\\s+\\d+ sequences classified.*$"
       replace <- "^\\s+(\\d+) sequences classified.*$"
-      mesg("Searching for reads classified by the kraken virus database.")
+      mesg("Searching for reads classified by the kraken bacterial database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_bacterial_unclassified" = {
       search <- "^\\s+\\d+ sequences unclassified.*$"
       replace <- "^\\s+(\\d+) sequences unclassified.*$"
-      mesg("Searching for reads not classified by the kraken virus database.")
+      mesg("Searching for reads not classified by the kraken bacterial database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_bacterial_species" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__(.*)\\t\\d+$"
-      mesg("Searching for the most represented species by the kraken viral database.")
+      mesg("Searching for the most represented species by the kraken bacterial database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_bacterial_species_reads" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__.*\\t(\\d+)$"
-      mesg("Searching for the number of reads most represented by the kraken viral database.")
+      mesg("Searching for the number of reads most represented by the kraken bacterial database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_standard_classified" = {
       search <- "^\\s+\\d+ sequences classified.*$"
       replace <- "^\\s+(\\d+) sequences classified.*$"
-      mesg("Searching for reads classified by the kraken virus database.")
+      mesg("Searching for reads classified by the kraken standard database.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        ...)
     },
     "kraken_standard_unclassified" = {
       search <- "^\\s+\\d+ sequences unclassified.*$"
       replace <- "^\\s+(\\d+) sequences unclassified.*$"
-      mesg("Searching for reads not classified by the kraken virus database.")
+      mesg("Searching for reads not classified by the kraken standard database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_standard_species" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__(.*)\\t\\d+$"
-      mesg("Searching for the most represented species by the kraken viral database.")
+      mesg("Searching for the most represented species by the kraken standard database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
     "kraken_first_standard_species_reads" = {
       search <- "^.*s__.*\\t\\d+$"
       replace <- "^.*s__.*\\t(\\d+)$"
-      mesg("Searching for the number of reads most represented by the kraken viral database.")
+      mesg("Searching for the number of reads most represented by the kraken standard database.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
     },
@@ -1098,7 +1107,8 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       replace <- "^\\s+(\\d+) sequences classified.*$"
       mesg("Searching for reads classified by the kraken virus database.")
       entries <- dispatch_regex_search(
-        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, ...)
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        ...)
     },
     "kraken_viral_unclassified" = {
       search <- "^\\s+\\d+ sequences unclassified.*$"
@@ -1609,7 +1619,7 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
                                  species = "*", basedir = "preprocessing",
                                  type = "genome", subtype = "gene", tag = "ID",
                                  new_spec = NULL, inverse = FALSE) {
-
+  output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1620,28 +1630,14 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
     }
     return(output_entries)
   }
-
-  filenames_with_wildcards <- glue(input_file_spec)
-  if (isTRUE(verbose)) {
-    message("Example count filename: ", filenames_with_wildcards[1], ".")
-  }
-  output_entries <- rep(0, length(filenames_with_wildcards))
+  input_filenames <- seek_filenames(meta, input_file_spec, new_spec, species = species,
+                                    basedir = basedir, type = type, subtype = subtype,
+                                    tag = tag)
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    if (length(input_file) == 0) {
-      mesg("There is no file matching: ", filenames_with_wildcards[row],
-           ".")
-      output_entries[row] <- ''
+    input_file <- input_filenames[[row]]
+    if (is.null(input_file)) {
       next
     }
-    if (is.na(input_file)) {
-      mesg("The input file is NA for: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
-      next
-    }
-
     input_handle <- file(input_file, "r", blocking = FALSE)
     input_vector <- readLines(input_handle)
     last_found <- NULL
@@ -1676,8 +1672,8 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
 dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
                                 species = "*", basedir = "preprocessing",
                                 type = "genome", subtype = "gene",
-                                new_spec = NULL, tag = "ID") {
-
+                                new_spec = NULL, tag = "ID", sum_column = "last") {
+  output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1688,49 +1684,48 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
     }
     return(output_entries)
   }
-
-  filenames_with_wildcards <- glue(input_file_spec)
-  if (isTRUE(verbose)) {
-    message("Example count filename: ", filenames_with_wildcards[1], ".")
-  }
-  output_entries <- rep(0, length(filenames_with_wildcards))
+  input_filenames <- seek_filenames(meta, input_file_spec, new_spec, species = species,
+                                    basedir = basedir, type = type, subtype = subtype,
+                                    tag = tag)
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    if (length(input_file) == 0) {
-      mesg("There is no file matching: ", filenames_with_wildcards[row],
-           ".")
-      output_entries[row] <- ''
-      next
-    }
-    if (is.na(input_file)) {
-      mesg("The input file is NA for: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
+    input_file <- input_filenames[[row]]
+    if (is.null(input_file)) {
       next
     }
     input_start <- try(read.table(input_file))
     if (class(input_start)[1] == "try-error") {
       warning("There was a problem reading: <", input_file, ">.")
-      return(NULL)
+      next
     }
 
-    input_df <- as.data.frame(read.table(input_file))
+    input_df <- as.data.frame(input_start)
+    wanted_col <- 2
+    if (sum_column == "last") {
+      wanted_col <- ncol(input_start)
+    }
+
+    input_vec <- suppressWarnings(as.numeric(input_df[[wanted_col]]))
     if (rownames(input_df)[1] == "1") {
-      rownames(input_df) <- input_df[["V1"]]
-      input_df[["V1"]] <- NULL
-    }
-    ## FIXME: This is only useful for count tables.
-    if (class(input_df) == "data.frame") {
-      drop_idx <- grepl(x = rownames(input_df), pattern = "^_")
-      ## I am not sure why, but this is getting coerced to a vector.
-      input_df <- input_df[!drop_idx, ]
-      num_hits <- sum(input_df)
+      names(input_vec) <- input_df[[1]]
     } else {
-      drop_idx <- grepl(x = names(input_df), pattern = "^_")
-      input_df <- input_df[!drop_idx]
-      num_hits <- sum(input_df)
+      names(input_vec) <- rownames(input_df)
     }
+    drop_idx <- grepl(x = names(input_vec), pattern = "^_")
+    if (sum(drop_idx) > 0) {
+      message("Dropping ", sum(drop_idx), " elements starting with _.")
+      input_names <- names(input_vec)[!drop_idx]
+      input_vec <- input_vec[!drop_idx, ]
+    }
+    nan_idx <- is.na(input_vec)
+    ## I made this one because of how the outputs of featureCounts are oddly coerced.
+    if (sum(nan_idx) > 1) {
+      nan_ids <- input_names[nan_idx]
+      warning("The file: ", input_file, " has ", sum(nan_idx), " non-numeric elements.")
+      message("The file: ", input_file, " has the following non-numeric elements:")
+      message(toString(nan_ids))
+      input_vec <- input_vec[!nan_idx]
+    }
+    num_hits <- sum(input_vec)
     output_entries[row] <- num_hits
   } ## End looking at every row of the metadata
   return(output_entries)
@@ -1744,16 +1739,15 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
 #' @param verbose Print diagnostic information while running?
 #' @param basedir Root directory containing the files/logs of metadata.
 dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
-                                   basedir = "preprocessing") {
-  filenames_with_wildcards <- glue(input_file_spec)
-  if (isTRUE(verbose)) {
-    message("Example length filename: ", filenames_with_wildcards[1], ".")
-  }
+                                   new_spec = NULL, basedir = "preprocessing") {
+  input_files <- seek_filnames(meta, input_file_spec, new_spec, basedir = basedir)
   output_entries <- rep(0, length(filenames_with_wildcards))
   for (row in seq_len(nrow(meta))) {
+    input_file <- input_files[[row]]
+    if (is.null(input_file)) {
+      next
+    }
     found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
     if (length(input_file) == 0) {
       warning("There is no file matching: ", filenames_with_wildcards[row],
               ".")
@@ -1789,6 +1783,7 @@ dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
 dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
                                      species = "*", type = "genome", subtype = "gene",
                                      tag = "ID", basedir = "preprocessing", new_spec = NULL) {
+  output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1799,48 +1794,13 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
     }
     return(output_entries)
   }
-
-  filenames_with_wildcards <- glue(input_file_spec)
-  new_filenames <- NULL
-  if (!is.null(new_spec)) {
-    new_filenames <- glue(new_spec)
-    print(new_filenames)
-  }
-  if (isTRUE(verbose)) {
-    message("Example filename: ", filenames_with_wildcards[1], ".")
-  }
-  output_entries <- rep(0, length(filenames_with_wildcards))
+  input_filenames <- seek_filenames(meta, input_file_spec, new_spec, basedir = basedir,
+                                    species = species, type = type, subtype = subtype,
+                                    tag = tag)
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    input_new <- NULL
-    if (!is.null(new_spec)) {
-      input_new <- Sys.glob(new_filenames[row])[1]
-    }
-    if (length(input_file) == 0) {
-      mesg("There is no file matching: ", filenames_with_wildcards[row], ".")
-      if (!is.null(input_new)) {
-        if (length(input_new) > 0) {
-          input_file <- input_new
-        } else {
-          input_file <- ''
-        }
-      } else {
-        input_file <- ''
-      }
-    }
-    if (is.na(input_file)) {
-      mesg("The input file is NA for: ", filenames_with_wildcards[row], ".")
-      if (!is.null(input_new)) {
-        if (!is.na(input_new)) {
-          input_file <- input_new
-        } else {
-          input_file <- ''
-        }
-      } else {
-        input_file <- ''
-      }
+    input_file <- input_filenames[[row]]
+    if (is.null(input_file)) {
+      input_file <- ''
     }
     output_entries[row] <- input_file
   }
@@ -1860,22 +1820,15 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
 #' @param basedir Root directory containing the files/logs of metadata.
 dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
                         new_spec = NULL, basedir = "preprocessing") {
+  output_entries <- rep(0, nrow(meta))
+  input_files <- seek_filenames(meta, input_file_spec, new_spec, basedir = basedir)
   filenames_with_wildcards <- glue(input_file_spec)
   if (isTRUE(verbose)) {
     message("Example gc filename: ", filenames_with_wildcards[1], ".")
   }
-  output_entries <- rep(0, length(filenames_with_wildcards))
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    if (length(input_file) == 0) {
-      warning("There is no file matching: ", filenames_with_wildcards[row],
-              ".")
-      next
-    }
-    if (is.na(input_file)) {
-      warning("The input file is NA for: ", filenames_with_wildcards[row], ".")
+    input_file <- input_files[[row]]
+    if (is.null(input_file)) {
       next
     }
 
@@ -1948,6 +1901,7 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
                                     denominator_column = NULL, digits = 3,
                                     numerator_add = FALSE, verbose = FALSE,
                                     as = "numeric", species = "*") {
+  output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -1978,7 +1932,6 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
     }
     ##test_numerator_regex <- grep(x = colnames(meta), pattern = paste0("^", numerator_column))
   }
-  entries <- NULL
   if (is.null(meta[[numerator_column]]) | is.null(meta[[denominator_column]])) {
     if (isTRUE(verbose)) {
       message("Missing data to calculate the ratio between: ", numerator_column,
@@ -1990,19 +1943,19 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
       message("The denominator column is: ", denominator_column, ".")
     }
     if (isTRUE(numerator_add)) {
-      entries <- (as.numeric(meta[[numerator_column]]) + as.numeric(meta[[numerator_add]])) /
+      output_entries <- (as.numeric(meta[[numerator_column]]) + as.numeric(meta[[numerator_add]])) /
         as.numeric(meta[[denominator_column]])
     } else {
-      entries <- as.numeric(meta[[numerator_column]]) / as.numeric(meta[[denominator_column]])
+      output_entries <- as.numeric(meta[[numerator_column]]) / as.numeric(meta[[denominator_column]])
     }
     if (as == "percent") {
-      entries <- entries * 100
+      output_entries <- output_entries * 100
     }
     if (!is.null(digits)) {
-      entries <- signif(entries, digits)
+      output_entries <- signif(output_entries, digits)
     }
   }
-  return(entries)
+  return(output_entries)
 }
 
 #' Generic dispatcher to hunt down useful information from logs.
@@ -2033,13 +1986,14 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
                                   extraction = "\\1", which = "first", new_spec = NULL,
-                                  as = NULL, verbose = FALSE, type = "genome",
-                                  backup_search = NULL, backup_replace = NULL,
+                                  as = NULL, verbose = FALSE, type = "genome", subtype = "gene",
+                                  backup_search = NULL, backup_replace = NULL, tag = "ID",
                                   ...) {
   arglist <- list(...)
   ## if (length(arglist) > 0) {
   ##
   ## }
+  output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -2053,40 +2007,16 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
     }
     return(output_entries)
   }
-  filenames_with_wildcards <- glue(input_file_spec,
-                                   ...)
-  new_filenames <- NULL
-  if (!is.null(new_spec)) {
-    new_filenames <- glue(new_spec, ...)
+  input_filenames <- seek_filenames(meta, input_file_spec, new_spec, basedir = basedir,
+                                    species = species, type = type)
+  if (is.null(input_filenames)) {
+    return(NULL)
   }
-  if (isTRUE(verbose)) {
-    message("Example regex filename: ", filenames_with_wildcards[1], ".")
-  }
-  output_entries <- rep(0, length(filenames_with_wildcards))
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    if (is.na(input_file)) {
-      new_file <- NA
-      if (!is.null(new_filenames[row])) {
-        new_file <- Sys.glob(new_filenames[row])[1]
-      }
-      if (is.na(new_file)) {
-        output_entries[row] <- ''
-        ## The file did not exist.
-        next
-      } else {
-        message("Setting input file to new_file: ", new_file, ".")
-        input_file <- new_file
-      }
-    }
-    if (length(input_file) == 0) {
-      warning("There is no file matching: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
+    input_file <- input_filenames[[row]]
+    if (is.null(input_file)) {
       next
     }
-
     input_handle <- file(input_file, "r") ## , blocking = FALSE)
     input_vector <- readLines(input_handle)
     if (length(input_vector) == 0) {
@@ -2097,6 +2027,7 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
     last_found <- NULL
     this_found <- NULL
     all_found <- c()
+    found <- 0
     for (i in seq_along(input_vector)) {
       if (which == "first" && found == 1) {
         output_entries[row] <- last_found
@@ -2173,13 +2104,14 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
 #' @param which Take the first entry, or some subset.
 #' @param verbose Print diagnostic information while running?
 #' @param ... Other arguments for glue.
-dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv",
-                                chosen_func = NULL, species = "*", type = "genome",
+dispatch_csv_search <- function(meta, column, input_file_spec, new_spec = NULL,
+                                file_type = "csv", chosen_func = NULL,
+                                species = "*", type = "genome",
                                 subtype = "gene", tag = "ID",
                                 basedir = "preprocessing", which = "first",
                                 verbose = FALSE, ...) {
   arglist <- list(...)
-
+  output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
     for (s in seq_len(length(species))) {
@@ -2192,23 +2124,11 @@ dispatch_csv_search <- function(meta, column, input_file_spec, file_type = "csv"
     }
     return(output_entries)
   }
-
-  filenames_with_wildcards <- glue(input_file_spec, ...)
-  mesg("Example csv filename: ", filenames_with_wildcards[1], ".")
-
-  output_entries <- rep(0, length(filenames_with_wildcards))
+  input_filenames <- seek_filenames(meta, input_file_spec, new_spec, species = species,
+                                    type = type, subtype = subtype, tag = tag, basedir = basedir)
   for (row in seq_len(nrow(meta))) {
-    found <- 0
-    ## Just in case there are multiple matches
-    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
-    if (is.na(input_file)) {
-      ## The file did not exist.
-      output_entries[row] <- ''
-      next
-    }
-    if (length(input_file) == 0) {
-      warning("There is no file matching: ", filenames_with_wildcards[row], ".")
-      output_entries[row] <- ''
+    input_file <- input_filenames[[row]]
+    if (is.null(input_file)) {
       next
     }
 
@@ -2695,6 +2615,53 @@ read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "
     colnames(definitions) <- make.names(colnames(definitions), unique = TRUE)
   }
   return(definitions)
+}
+
+seek_filenames <- function(meta, input_file_spec, new_spec, basedir = "preprocessing",
+                           species = "*", tag = "ID", type = "genome", subtype = "gene",
+                           ...) {
+  filenames_with_wildcards <- glue(input_file_spec,
+                                   ...)
+  input_filenames <- vector("list", nrow(meta))
+  names(input_filenames) <- rownames(meta)
+  if (length(filenames_with_wildcards) != length(input_filenames)) {
+    warning("The filenames are ", length(filenames_with_wildcards),
+            "entries, but the metadata has ", length(input_filenames), " entries.")
+  }
+  new_filenames_with_wildcards <- NULL
+  if (!is.null(new_spec)) {
+    new_filenames_with_wildcards <- glue(new_spec, ...)
+  }
+  if (isTRUE(verbose)) {
+    message("Example regex filename: ", filenames_with_wildcards[1], ".")
+  }
+  for (row in seq_len(nrow(meta))) {
+    found <- 0
+    ## Just in case there are multiple matches
+    input_file <- Sys.glob(filenames_with_wildcards[row])[1]
+    new_file <- NA
+    if (!is.null(new_filenames_with_wildcards)) {
+      new_file <- Sys.glob(new_filenames_with_wildcards[row])[1]
+    }
+    if (is.na(input_file) && is.na(new_file)) {
+      next
+    }
+    if (length(input_file) == 0 && length(new_file) == 0) {
+      next
+    }
+    if (is.null(input_file)) {
+      input_file <- NA
+    }
+    if (is.null(new_file)) {
+      new_file <- NA
+    }
+    if (is.na(input_file)) {
+      input_filenames[[row]] <- new_file
+    } else {
+      input_filenames[[row]] <- input_file
+    }
+  }
+  return(input_filenames)
 }
 
 #' Make an archive using a column from the metadata.

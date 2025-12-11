@@ -87,7 +87,7 @@ sanitize_metadata <- function(input, ...) {
 }
 setGeneric("sanitize_metadata")
 
-#' Given an expressionset, sanitize pData columns of interest.
+#' Given a dataframe, sanitize it.
 #'
 #' I wrote this function after spending a couple of hours confused
 #' because one cell in my metadata said 'cure ' instead of 'cure' and
@@ -191,6 +191,29 @@ setMethod(
     return(meta)
   })
 
+#' Sanitize a character vector (e.g. a single column/row)
+#'
+#' I should probably revisit this, for the moment it just takes the
+#' vector, coerces it to a single-column dataframe, and invokes
+#' sanitize on it.
+#'
+#' @inheritParams sanitize_metadata
+#' @export
+setMethod(
+  "sanitize_metadata", signature = signature(input = "character"),
+  definition = function(input, columns = NULL, na_value = "notapplicable",
+                        lower = TRUE, punct = TRUE, factorize = "heuristic",
+                        max_levels = NULL, spaces = FALSE, numbers = NULL,
+                        numeric = FALSE) {
+    tmp <- as.data.frame(input)
+    colnames(tmp) <- "tmp"
+    new <- sanitize_metadata(tmp, columns = columns, na_value = na_value,
+                             lower = lower, punct = punct,
+                             factorize = factorize, max_levels = max_levels,
+                             spaces = spaces, numbers = numbers)
+    return(new[["tmp"]])
+  })
+
 #' Given an expressionset, sanitize pData columns of interest.
 #'
 #' I wrote this function after spending a couple of hours confused
@@ -218,12 +241,12 @@ setMethod(
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "expt"),
-  definition = function(input, columns = NULL, na_string = "notapplicable",
+  definition = function(input, columns = NULL, na_value = "notapplicable",
                         lower = TRUE, punct = TRUE, factorize = "heuristic",
                         max_levels = NULL, spaces = FALSE, numbers = NULL) {
     expt <- input
     old_meta <- pData(expt)
-    new_meta <- sanitize_metadata(old_meta, columns = columns, na_string = na_string,
+    new_meta <- sanitize_metadata(old_meta, columns = columns, na_value = na_value,
                                   lower = lower, punct = punct,
                                   factorize = factorize, max_levels = max_levels,
                                   spaces = spaces, numbers = numbers)
@@ -295,12 +318,12 @@ setMethod(
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "ExpressionSet"),
-  definition = function(input, columns = NULL, na_string = "notapplicable",
+  definition = function(input, columns = NULL, na_value = "notapplicable",
                         lower = TRUE, punct = TRUE, spaces = FALSE,
                         numbers = NULL) {
     exp <- input
     old_meta <- pData(input)
-    new_meta <- sanitize_metadata(old_meta, columns = columns, na_string = na_string,
+    new_meta <- sanitize_metadata(old_meta, columns = columns, na_value = na_value,
                                   lower = lower, punct = punct, spaces = spaces,
                                   numbers = numbers)
     pData(exp) <- new_meta
