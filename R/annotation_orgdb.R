@@ -87,6 +87,11 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
   if (length(fields) == 0) {
     chosen_fields <- c(name_column, type_column, chromosome_column, strand_column,
                        start_column, end_column)
+  } else if (length(fields) == 1 && grepl(x = fields, pattern = "\\^")) {
+    field_idx <- grepl(x = all_fields, pattern = toupper(fields))
+    fields <- all_fields[field_idx]
+    chosen_fields <- c(name_column, type_column, chromosome_column, strand_column,
+                       start_column, end_column, fields)
   } else {
     chosen_fields <- c(name_column, type_column, chromosome_column, strand_column,
                        start_column, end_column, fields)
@@ -304,6 +309,38 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
     go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
   }
   return(go_terms)
+}
+
+load_txdb_annotations <- function(txdb = NULL, gene_ids = NULL, types = c("tx", "exon", "cds")) {
+  if (is.null(txdb)) {
+    message("Assuming Homo.sapiens.")
+    tx_loaded <- do.call("library", args = list("package" = "TxDb.Hsapiens.UCSC.hg19.knownGene", "character.only" = TRUE))
+    txdb <- get0("TxDb.Hsapiens.UCSC.hg19.knownGene")
+  } else if (class(txdb) == "character") {
+    tx_loaded <- do.call("library", list("package" = txdb, "character.only" = TRUE))
+    txdb <- get0(txdb)
+  }
+  possible_keytypes <- keytypes(txdb)
+  possible_columns <- columns(txdb)
+  retlist <- list()
+  gene_ids <- try(AnnotationDbi::keys(txdb, keytype = "GENEID"))
+  retlist[["genes"]] <- gene_ids
+  for (type in types) {
+    type <- toupper(type)
+    retlist[[type]] <- data.frame()
+    keytype <- paste0(type, "ID")
+    type_ids <- AnnotationDbi::keys(txdb, keytype = keytype)
+    wanted_idx <- grepl(pattern = glue("^{type}"), x = possible_columns)
+    wanted_columns <- possible_columns[wanted_idx]
+    type_info <- try(AnnotationDbi::select(
+      x = txdb,
+      keys = gene_ids,
+      keytype = "GENEID",
+      columns = wanted_columns))
+    retlist[[type]] <- type_info
+  }
+  class(retlist) <- "hpgltools::load_txdb_annotations"
+  return(retlist)
 }
 
 #' Given 2 species names from the eupathdb, make orthology tables betwixt them.

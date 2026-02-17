@@ -18,11 +18,11 @@
 #'  estimate_vs_snps <- plot_svfactor(start, surrogate_estimate, "snpcategory")
 #' }
 #' @export
-plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_type = "factor") {
-  meta <- pData(expt)
+plot_svfactor <- function(exp, svest, sv = 1, chosen_factor = "batch", factor_type = "factor") {
+  meta <- colData(exp)
   chosen <- meta[[chosen_factor]]
-  names <- sampleNames(expt)
-  my_colors <- get_colors(expt)
+  names <- sampleNames(exp)
+  my_colors <- get_colors(exp)
   sv_df <- data.frame(
     "adjust" = svest[, sv],  ## Take a single estimate from compare_estimates()
     "factors" = chosen,
@@ -52,7 +52,7 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
 #' Maybe it should be folded into plot_svfactor?  Hmm, I think first I will
 #' write this and see if it is better.
 #'
-#' @param expt Experiment from which to acquire the design, counts, etc.
+#' @param exp Experiment from which to acquire the design, counts, etc.
 #' @param svs Set of surrogate variable estimations from sva/svg
 #'  or batch estimates.
 #' @param sv Which surrogate variable to show?
@@ -68,25 +68,25 @@ plot_svfactor <- function(expt, svest, sv = 1, chosen_factor = "batch", factor_t
 #'  estimate_vs_snps <- plot_batchsv(start, surrogate_estimate, "snpcategory")
 #' }
 #' @export
-plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch",
+plot_batchsv <- function(exp, svs, sv = 1, batch_column = "batch",
                          condition_column = "condition", factor_type = "factor",
                          id_column = "sampleid") {
-  meta <- pData(expt)
+  meta <- colData(exp)
   chosen <- meta[[batch_column]]
-  names(chosen) <- sampleNames(expt)
+  names(chosen) <- sampleNames(exp)
   num_batches <- length(unique(chosen))
   samples <- meta[[id_column]]
   if (is.null(samples)) {
     samples <- rownames(meta)
   }
-  expt_colors <- get_colors(expt)
+  exp_colors <- get_colors(exp)
 
   factor_df <- data.frame(
     "sample" = samples,
-    "factor" = as.integer(as.factor(pData(expt)[[batch_column]])),
-    "fill" = expt_colors,
-    "condition" = pData(expt)[[condition_column]],
-    "batch" = pData(expt)[[batch_column]],
+    "factor" = as.integer(as.factor(colData(exp)[[batch_column]])),
+    "fill" = exp_colors,
+    "condition" = colData(exp)[[condition_column]],
+    "batch" = colData(exp)[[batch_column]],
     "color" = "black",
     "svs" = svs[, sv])
   if (num_batches <= 5) {
@@ -203,7 +203,7 @@ plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch",
 #' This should make a quick df of the factors and PCs and plot them.
 #'
 #' @param pc_df Df of principle components.
-#' @param expt Expt containing counts, metadata, etc.
+#' @param exp Data containing counts, metadata, etc.
 #' @param exp_factor Experimental factor to compare against.
 #' @param component Which principal component to compare against?
 #' @return Plot of principle component vs factors in the data
@@ -213,10 +213,10 @@ plot_batchsv <- function(expt, svs, sv = 1, batch_column = "batch",
 #'  estimate_vs_pcs <- plot_pcfactor(pcs, times)
 #' }
 #' @export
-plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC1") {
-  meta <- pData(expt)
-  samplenames <- sampleNames(expt)
-  my_colors <- get_colors(expt)
+plot_pcfactor <- function(pc_df, exp, exp_factor = "condition", component = "PC1") {
+  meta <- colData(exp)
+  samplenames <- sampleNames(exp)
+  my_colors <- get_colors(exp)
   minval <- min(pc_df[[component]])
   maxval <- max(pc_df[[component]])
   my_binwidth <- (maxval - minval) / 40
@@ -244,9 +244,9 @@ plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC
 #' samples, then take the medians, and plot them.  This version of the plot is
 #' no longer actually a dotplot, but a point plot, but who is counting?
 #'
-#' @param data Expt, expressionset, or data frame.
+#' @param data SE, expressionset, or data frame.
 #' @param design Specify metadata if desired.
-#' @param colors Color scheme if data is not an expt.
+#' @param colors Color scheme if data is not a SE.
 #' @param method Correlation or distance method to use.
 #' @param plot_legend Include a legend on the side?
 #' @param sample_names Use pretty names for the samples?
@@ -264,7 +264,7 @@ plot_pcfactor <- function(pc_df, expt, exp_factor = "condition", component = "PC
 #' @seealso [matrixStats] [ggplot2]
 #' @examples
 #' \dontrun{
-#'  smc_plot = hpgl_smc(expt = expt)
+#'  smc_plot = hpgl_smc(se = se)
 #' }
 #' @export
 plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot_legend = FALSE,
@@ -451,42 +451,11 @@ from {min_comp} to {max_comp} with quartiles at {first_quart} and {third_quart}.
   return(invisible(x))
 }
 
-#' Plot the standard median pairwise values of an expt.
-#'
-#' @param data Expt, expressionset, or data frame.
-#' @param design Specify metadata if desired.
-#' @param colors Color scheme if data is not an expt.
-#' @param method Correlation or distance method to use.
-#' @param plot_legend Include a legend on the side?
-#' @param sample_names Use pretty names for the samples?
-#' @param label_chars Maximum number of characters before abbreviating sample names.
-#' @param plot_title Title for the graph.
-#' @param dot_size How large should the glyphs be?
-#' @param ... More parameters to make you happy!
-
-#' @export
-setMethod(
-  "plot_sm", signature = signature(data = "expt"),
-  definition = function(data, colors = NULL, method = "pearson",
-                        plot_legend = FALSE, sample_names = NULL,
-                        label_chars = 10, plot_title = NULL, dot_size = 5,
-                        ...) {
-            design <- pData(data)
-            colors <- get_colors(data)
-            conditions <- design[["condition"]]
-            mtrx <- exprs(data)
-            plot_sm(mtrx, design = design, colors = colors, method = method,
-                    plot_legend = plot_legend, sample_names = sample_names,
-                    label_chars = label_chars, plot_title = plot_title,
-                    dot_size = dot_size,
-                    ...)
-          })
-
 #' Plot the standard median pairwise values of a SummarizedExperiment.
 #'
-#' @param data Expt, expressionset, or data frame.
+#' @param data SE, expressionset, or data frame.
 #' @param design Specify metadata if desired.
-#' @param colors Color scheme if data is not an expt.
+#' @param colors Color scheme if data is not an se.
 #' @param method Correlation or distance method to use.
 #' @param plot_legend Include a legend on the side?
 #' @param sample_names Use pretty names for the samples?
@@ -512,9 +481,9 @@ setMethod(
 
 #' Plot the standard median pairwise values of an ExpressionSet.
 #'
-#' @param data Expt, expressionset, or data frame.
+#' @param data SE, expressionset, or data frame.
 #' @param design Specify metadata if desired.
-#' @param colors Color scheme if data is not an expt.
+#' @param colors Color scheme if data is not an se.
 #' @param method Correlation or distance method to use.
 #' @param plot_legend Include a legend on the side?
 #' @param sample_names Use pretty names for the samples?
@@ -539,9 +508,9 @@ setMethod(
 
 #' Plot the standard median pairwise values of a dataframe.
 #'
-#' @param data Expt, expressionset, or data frame.
+#' @param data SE, expressionset, or data frame.
 #' @param design Specify metadata if desired.
-#' @param colors Color scheme if data is not an expt.
+#' @param colors Color scheme if data is not an se.
 #' @param method Correlation or distance method to use.
 #' @param plot_legend Include a legend on the side?
 #' @param sample_names Use pretty names for the samples?

@@ -691,17 +691,6 @@ a different factor or random effect should be used.")
 }
 setGeneric("test_design_model_rank")
 
-#' Pass an expt to test_design_model_rank.
-#' @param design In this instance, an expressionset.
-#' @param fstring Formula string to query.
-#' @export
-setMethod(
-  "test_design_model_rank", signature = signature(design = "expt"),
-  definition = function(design, fstring = "~ condition + batch") {
-    design <- pData(design)
-    test_design_model_rank(design, fstring)
-  })
-
 #' Given the result from one of the regression testers, plot it!
 #'
 #' @param plot_df The primary dataframe from one of the sister

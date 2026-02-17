@@ -6,7 +6,7 @@ pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
   subset = "minute == 0 | minute == 15 | minute == 30") %>%
-  set_expt_batches(fact = "replicate")
+  set_batches(fact = "replicate")
 
 testing <- limma_pairwise(pombe_subset)
 actual <- length(testing[["contrasts_performed"]])

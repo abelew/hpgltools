@@ -1,4 +1,4 @@
-## normalize_convert.r: Simplify the invocation of cpm/rpkm/etc.
+# normalize_convert.r: Simplify the invocation of cpm/rpkm/etc.
 
 #' Perform a cpm/rpkm/whatever transformation of a count table.
 #'
@@ -25,28 +25,12 @@
 #' }
 #' @export
 convert_counts <- function(count_table, method = "raw", annotations = NULL,
-                           length_column = "width", ...) {
+                           length_column = "width", na_to_zero = TRUE, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["convert"]])) {
     method <- arglist[["convert"]]
   }
-  data_class <- class(count_table)[1]
-  if (data_class == "list") {
-    test <- count_table[["count_table"]]
-    count_table <- test
-    data_class <- class(count_table)[1]
-  }
-  if (data_class == "expt" | data_class == "ExpressionSet") {
-    if (is.null(annotations)) {
-      annotations <- fData(count_table)
-    }
-    count_table <- exprs(count_table)
-  } else if (data_class == "matrix" | data_class == "data.frame") {
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-    count_table <- as.data.frame(count_table)
-  } else {
-    stop("This function currently only types: expt, ExpressionSet, data.frame, and matrix.")
-  }
+  count_table <- as.data.frame(count_table)
 
   switchret <- switch(
       method,
@@ -95,6 +79,10 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
         message("Not sure what to do with the method: ", method, ".")
       }
   ) ## End of the switch
+  if (isTRUE(na_to_zero)) {
+    na_idx <- is.na(count_table)
+    count_table[na_idx] <- 0
+  }
 
   libsize <- colSums(count_table, na.rm = TRUE)
   counts <- list(
@@ -102,6 +90,19 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
       "libsize" = libsize)
   return(counts)
 }
+setGeneric("convert_counts")
+
+#' Convert a summarized experiment.
+setMethod(
+  "convert_counts", signature(count_table = "SummarizedExperiment"),
+  definition = function(count_table, method = "raw", annotations = NULL,
+                        length_column = "width", ...) {
+    annotations <- rowData(count_table)
+    df <- assay(count_table)
+    convert_counts(df, method = method, annotations = annotations,
+                   length_column = length_column, ...)
+  })
+
 
 #' Express a data frame of counts as reads per pattern per million.
 #'
@@ -364,19 +365,25 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   ## Sometimes I am stupid and call it length...
   lenvec <- NULL
   if (is.null(length_column) &
-      is.null(merged_annot[["length"]]) &&
-      is.null(merged_annot[["width"]])) {
-    message("There appears to be no gene length annotation data, here are the possible columns:")
-    message(toString(colnames(annotations)))
-    message("If one is appropriate, redo the function call with: column='good column'")
-    stop("There appears to be no annotation data providing gene length.")
+        is.null(merged_annot[["length"]]) &
+        is.null(merged_annot[["width"]])) {
+    if (!is.null(merged_annot[["start_column"]]) &&
+          !is.null(merged_annot[["end_column"]])) {
+      length_column <- "length"
+      merged_annot[[length_column]] <- abs(merged_annot[[start_column]] - merged_annot[[end_column]])
+    } else {
+      message("There appears to be no gene length annotation data, here are the possible columns:")
+      message(toString(colnames(annotations)))
+      message("If one is appropriate, redo the function call with: column='good column'")
+      stop("There appears to be no annotation data providing gene length.")
+    }
   }
 
   if (is.null(length_column)) {
     length_column <- "width"
   }
 
-  if (length_column == "width" && is.null(merged_annot[[chosen_column]])) {
+  if (length_column == "width" && is.null(merged_annot[[length_column]])) {
     length_column <- "length"
     if (is.null(merged_annot[[length_column]])) {
       stop("Found neither width nor length as an annotation column.")

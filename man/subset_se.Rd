@@ -29,5 +29,7 @@ subset_se(
 \item{print_excluded}{Print the sampleIDs excluded by this subset.}
 }
 \description{
-I like just passing an expression string to get subsets.
+I like just passing an expression string to get subsets.  Note, as written this
+only subsets samples, not genes.  subset_se_genes handles that, I should spend a
+minute and clean that up.
 }

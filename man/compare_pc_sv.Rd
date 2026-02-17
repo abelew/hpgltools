@@ -5,7 +5,7 @@
 \title{Incomplete function to compare PCs and SVs.}
 \usage{
 compare_pc_sv(
-  expt,
+  exp,
   norm = NULL,
   transform = "log2",
   convert = "cpm",
@@ -14,7 +14,7 @@ compare_pc_sv(
 )
 }
 \arguments{
-\item{expt}{Input expressionset.}
+\item{exp}{Input expressionset.}
 
 \item{norm}{Normalization performed.}
 

@@ -692,9 +692,13 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   reactome_all <- NULL
   reacome_all_df <- reactome_sig_df <- data.frame()
-  if (orgdb == "org.Hs.eg.db") {
+  orgdb_name <- orgdb
+  if ("OrgDb" %in% class(orgdb)) {
+    orgdb_name <- orgdb@.xData[["packageName"]]
+  }
+  if (orgdb_name == "org.Hs.eg.db") {
     reactome_organism <- "human"
-  } else if (orgdb == "org.Mm.eg.db") {
+  } else if (orgdb_name == "org.Mm.eg.db") {
     reactome_organism <- "mouse"
   } else {
     todo[["enrich_reactome"]] <- FALSE
@@ -759,6 +763,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   } else {
     todo[["enrich_dose"]] <- FALSE
     todo[["gse_dose"]] <- FALSE
+    todo[["enrich_msigdb"]] <- FALSE
+    todo[["gse_msigdb"]] <- FALSE
   }
   dose_all <- NULL
   dose_all_df <- dose_sig_df <- data.frame()

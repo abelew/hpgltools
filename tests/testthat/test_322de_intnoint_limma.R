@@ -9,7 +9,7 @@ context("322de_limma_intnoint")
 
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla <- pasilla[["expt"]]
+pasilla <- pasilla[["se"]]
 
 counts <- exprs(pasilla)
 design <- pData(pasilla)

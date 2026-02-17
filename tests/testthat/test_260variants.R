@@ -17,11 +17,11 @@ gff_annotations <- load_gff_annotations(gff_file, type = "gene")
 rownames(gff_annotations) <- gff_annotations[["ID"]]
 meta <- system.file("share/clbr/clbr_samples_combined.xlsx", package = "hpgldata")
 untarred <- utils::untar(tarfile = system.file("share/clbr/clbr_counts.tar.xz", package = "hpgldata"))
-all_expt <- create_expt(metadata = meta, file_column = "clbrenerfile", gene_info = gff_annotations)
+all_se <- create_se(metadata = meta, file_column = "clbrener_file", gene_info = gff_annotations)
 
 expected <- 25100
 test_that("We have a functional expressionset?", {
-  expect_equal(expected, nrow(exprs(all_expt)))
+  expect_equal(expected, nrow(assay(all_se)))
 })
 
 ## Given that expressionset, note that there is a metadata column 'bcffile'
@@ -31,33 +31,33 @@ untarred <- utils::untar(tarfile = system.file("share/clbr/vcfutils_output.tar.x
                                                package = "hpgldata"))
 ## Type in this context may be either percent or counts, this just defines the
 ## column to extract from the bcf file.
-snp_expt <- count_expt_snps(all_expt, annot_column = "bcffile", reader = "readr",
-                            snp_column = "diff_count")
+snp_se <- count_snps(all_se, annot_column = "bcffile", reader = "readr",
+                     snp_column = "diff_count")
 expected <- 8295
 test_that("Do we have a decent number of variants?", {
-  expect_equal(expected, nrow(exprs(snp_expt)))
+  expect_equal(expected, nrow(assay(snp_se)))
 })
 
 ## get_snp_sets uses Vennerable to cross reference variants against some column
-## in the pData.  In this case, we are looking for the group of sets of
+## in the colData.  In this case, we are looking for the group of sets of
 ## unions/intersections with respect to condition.
-snp_conditions <- pData(all_expt)[["condition"]]
-expt_conditions <- pData(snp_expt)[["condition"]]
+snp_conditions <- colData(all_se)[["condition"]]
+se_conditions <- colData(snp_se)[["condition"]]
 actual <- levels(snp_conditions)
 expected <- c("CLBr.A96", "CLBr.A60", "CLBr.Tryp", "CLBr.Epi")
 ## Thus, get_snp_sets on condition will look for variants unique to the A96
 ## timepoint, A60 timepoint..., A96+A60, A96+Tryp..., the threes, and common to
 ## all; just like a Venn diagram!
-test_that("Do we have sensible pData?", {
-  expect_equal(snp_conditions, expt_conditions)
+test_that("Do we have sensible colData?", {
+  expect_equal(snp_conditions, se_conditions)
 })
 
 ## For complex experimental designs, this can take quite a long time.
-snp_sets <- get_snp_sets(snp_expt, factor = "condition")
+snp_sets <- get_snp_sets(snp_se, factor = "condition")
 ## 202311 It looks like vennerable has changed the order it returns
 ## I checked the snp sets and they look correct, just in different order.
-## So, lets use the pData levels to make sure it is determinate.
-name_entries <- levels(pData(snp_expt)[["condition"]])
+## So, lets use the colData levels to make sure it is determinate.
+name_entries <- levels(colData(snp_se)[["condition"]])
 expected <- as.character(glue("{name_entries[3]}, {name_entries[4]}"))
 actual <- snp_sets[["set_names"]][["0011"]]
 test_that("Do we get sensible set names from get_snp_sets?", {
@@ -73,8 +73,8 @@ test_that("Do we get the expected number of variants on chromosome 10 shared amo
   expect_equal(actual, expected)
 })
 
-snp_gene_summary <- suppressWarnings(snps_vs_genes(all_expt, snp_sets,
-                                                   expt_name_col = "seqnames"))
+snp_gene_summary <- suppressWarnings(snps_vs_genes(all_se, snp_sets,
+                                                   chr_column = "seqnames"))
 expected <- 18
 actual <- snp_gene_summary[["count_by_gene"]][["TcCLB.507505.10"]]
 test_that("Do we observe the expected variants in a specific gene?", {
@@ -83,7 +83,7 @@ test_that("Do we observe the expected variants in a specific gene?", {
 
 ## Here we can ask for variants specific to samples with given condition(s)
 ## specific to a gene
-snp_genes <- snps_intersections(all_expt, snp_sets,
+snp_genes <- snps_intersections(all_se, snp_sets,
                                 chr_column = "seqnames")
 actual <- 6
 ## Thus, we expect 11 variant positions found only in the 3 Tryp samples
@@ -94,7 +94,7 @@ test_that("Do we observe the expected variants?", {
 })
 
 ## The Epis are the pink samples, Tryps are purple, A60 are orange, A96 are green
-##snp_norm <- normalize_expt(snp_expt, filter = TRUE, transform = "log2")
+##snp_norm <- normalize_se(snp_se, filter = TRUE, transform = "log2")
 ##test <- plot_corheat(snp_norm)
 ##test2 <- plot_sample_heatmap(snp_norm, Rowv = FALSE)
 

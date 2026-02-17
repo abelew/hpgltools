@@ -27,7 +27,7 @@
 )
 }
 \arguments{
-\item{data}{an expt set of samples.}
+\item{data}{Input data type.}
 
 \item{design}{a design matrix and.}
 

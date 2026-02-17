@@ -17,7 +17,7 @@
 )
 }
 \arguments{
-\item{data}{Expt or data frame set of samples.}
+\item{data}{Exp or data frame set of samples.}
 
 \item{colors}{Color scheme, if not provided will make its own.}
 

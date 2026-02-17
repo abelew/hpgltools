@@ -18,11 +18,11 @@ plot_sm(
 )
 }
 \arguments{
-\item{data}{Expt, expressionset, or data frame.}
+\item{data}{SE, expressionset, or data frame.}
 
 \item{design}{Specify metadata if desired.}
 
-\item{colors}{Color scheme if data is not an expt.}
+\item{colors}{Color scheme if data is not a SE.}
 
 \item{method}{Correlation or distance method to use.}
 
@@ -57,7 +57,7 @@ no longer actually a dotplot, but a point plot, but who is counting?
 }
 \examples{
 \dontrun{
- smc_plot = hpgl_smc(expt = expt)
+ smc_plot = hpgl_smc(se = se)
 }
 }
 \seealso{

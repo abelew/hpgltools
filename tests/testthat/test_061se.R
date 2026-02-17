@@ -11,21 +11,21 @@ chosen_genes <- c("SPAC212.11", "SPAC212.09c", "SPNCRNA.70",
 testing <- rowData(pombe_se)
 actual <- dim(testing)
 expected <- c(7039, 10)
-test_that("Do we get annotation data from our expt?", {
+test_that("Do we get annotation data from our se?", {
   expect_equal(actual[1], expected[1])
   expect_equal(actual[2], expected[2])
 })
 actual <- testing[chosen_genes, "start_position"]
 expected <- c("1", "7619", "11027", "15855", "21381",
               "23589", "27353", "28738", "33835")
-test_that("Do we get annotation data from our expt?", {
+test_that("Do we get annotation data from our se?", {
   expect_equal(actual, expected)
 })
 
 testing <- colData(pombe_se)
 actual <- dim(testing)
 expected <- c(36, 7)
-test_that("Do we get experimental metadata from our expt?", {
+test_that("Do we get experimental metadata from our se?", {
   expect_equal(actual[1], expected[1])
   expect_equal(actual[2], expected[2])
 })
@@ -33,14 +33,14 @@ test_that("Do we get experimental metadata from our expt?", {
 testing <- assay(pombe_se)
 actual <- dim(testing)
 expected <- c(7039, 36)
-test_that("Do we get expression from our expt?", {
+test_that("Do we get expression from our se?", {
   expect_equal(actual[1], expected[1])
   expect_equal(actual[2], expected[2])
 })
 ## Check that the number distribution is what we expect
 actual <- as.numeric(summary(testing[, 1]))
 expected <- c(0.000, 46.000, 306.000, 2225.509, 869.000, 4542884.000)
-test_that("Do we get expression from our expt?", {
+test_that("Do we get expression from our se?", {
   expect_equal(actual[1], expected[1], tolerance = 0.001)
   expect_equal(actual[2], expected[2], tolerance = 0.001)
   expect_equal(actual[3], expected[3], tolerance = 0.001)
@@ -62,7 +62,7 @@ no_rrna <- subset_genes(pombe_se,
                         patterns = c("ncRNA", "pseudogene"))
 expected <- 5479
 actual <- nrow(assay(no_rrna))
-test_that("Does exclude_genes_expt remove stuff?", {
+test_that("Does exclude_genes_se remove stuff?", {
   expect_equal(actual, expected)
 })
 
@@ -111,7 +111,7 @@ test_that("Did we get some new conditions?", {
   expect_equal(actual, expected)
 })
 
-## set_expt_samplenames()
+## set_se_samplenames()
 newnames <- paste0(sampleNames(pombe_se), "test")
 testing <- pombe_se
 sampleNames(testing) <- newnames
@@ -132,18 +132,18 @@ testing <- normalize(pombe_se, transform = "log2", norm = "tmm",
                      convert = "cpm", filter = TRUE, batch = "sva")
 actual <- what_happened(testing)
 expected <- glue::glue("log2(sva(cpm(tmm(cbcb(data)))))")
-test_that("Will an expt tell us what happened to it?", {
+test_that("Will an se tell us what happened to it?", {
   expect_equal(expected, actual)
 })
 
-## write_expt()
+## write_se()
 ## I run this on an interactive session and get no warnings...
-##testing <- sm(write_expt(pombe_se, excel = "testing_write_expt.xlsx"))
-##test_that("Did write_expt() work?", {
-##  expect_true(file.exists("testing_write_expt.xlsx"))
+##testing <- sm(write_se(pombe_se, excel = "testing_write_se.xlsx"))
+##test_that("Did write_se() work?", {
+##  expect_true(file.exists("testing_write_se.xlsx"))
 ##})
-##tt <- file.remove("testing_write_expt.xlsx")
+##tt <- file.remove("testing_write_se.xlsx")
 
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = as.numeric(end - start))
-message("\nFinished 060expt.R in ", elapsed,  " seconds.")
+message("\nFinished 060se.R in ", elapsed,  " seconds.")

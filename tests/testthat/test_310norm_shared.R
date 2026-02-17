@@ -7,23 +7,23 @@ context("310norm_shared.R")
 ## the gene names to the tests.
 
 load("pasilla_df.rda")
-## create_expt generates a .Rdata file which may be reread, do so.
+## create_se generates a .Rdata file which may be reread, do so.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 test_genes <- c("FBgn0000014","FBgn0000008","FBgn0000017","FBgn0000018", "FBgn0000024")
 
-## First make sure the pasilla_expt still has the stuff we expect
-expected <- "This is an expt class."
-actual <- pasilla_expt[["title"]]
+## First make sure the pasilla_se still has the stuff we expect
+expected <- "This is a summarized experiment."
+actual <- metadata(pasilla_se)[["title"]]
 test_that("Pasilla title?", {
     expect_equal(expected, actual)
 })
 
 ## Ensure that the beginning count table library sizes are identical.
 expected <- colSums(counts)
-actual <- pasilla_expt[["libsize"]]
+actual <- libsize(pasilla_se)
 names(expected) <- c("untreated1", "untreated2", "untreated3", "untreated4",
                      "treated1", "treated2", "treated3")
 test_that("Pasilla libsize?", {
@@ -32,7 +32,7 @@ test_that("Pasilla libsize?", {
 
 ## Check a few arbitrary counts to make sure they are maintained.
 expected <- counts[test_genes, "untreated1"]
-testing_counts <- exprs(pasilla_expt)
+testing_counts <- assay(pasilla_se)
 actual <- as.numeric(testing_counts[test_genes, "untreated1"])
 test_that("Pasilla count tables? (untreated1)", {
     expect_equal(expected, actual)
@@ -41,40 +41,32 @@ test_that("Pasilla count tables? (untreated1)", {
 ## Check that all samples agree for 1 gene.
 test_gene <- "FBgn0062565"
 expected <- as.numeric(counts[test_gene, ])
-actual <- as.numeric(exprs(pasilla_expt)[test_gene, ])
+actual <- as.numeric(assay(pasilla_se)[test_gene, ])
 expected <- c(4, 7, 3, 3, 9, 10, 9)
 test_that("Pasilla count tables? (gene FBgn0063565)", {
     expect_equal(expected, actual)
 })
 
-## Ensure that normalize_expt does not mess up the data when called without arguments (this wasn't true once)
-unmolested <- sm(normalize_expt(pasilla_expt))
-expected <- as.matrix(exprs(pasilla_expt))  ## I accidently changed this to potentially return a data.frame
-actual <- exprs(unmolested)
+## Ensure that normalize does not mess up the data when called without arguments (this wasn't true once)
+unmolested <- sm(normalize(pasilla_se))
+expected <- as.matrix(assay(pasilla_se))  ## I accidently changed this to potentially return a data.frame
+actual <- assay(unmolested)
 test_that("Pasilla (un)normalized counts?", {
     expect_equal(expected, actual)
 })
 
-## Make sure that the pData information is maintained through normalization
-expected <- pData(pasilla_expt)
-actual <- pData(unmolested)
+## Make sure that the colData information is maintained through normalization
+expected <- colData(pasilla_se)
+actual <- colData(unmolested)
 test_that("Pasilla (un)normalized pdata?", {
     expect_equal(expected, actual)
 })
 
 ## Also ensure that the library sizes (which are very important for limma) are not messed up.
-expected <- pasilla_expt[["libsize"]]
+expected <- pasilla_se[["libsize"]]
 actual <- unmolested[["libsize"]]
 test_that("Pasilla (un)normalized libsize?", {
     expect_equal(expected, actual)
-})
-
-## Try out my new normalize function
-norm <- list("filter" = TRUE, "convert"="cpm")
-new <- normalize(pasilla_expt, todo = norm)
-old <- normalize_expt(pasilla_expt, filter = TRUE, convert = "cpm")
-test_that("Does the new normalize() function work like the old normalize_expt()?", {
-  expect_equal(new[["count_table"]], exprs(old))
 })
 
 end <- as.POSIXlt(Sys.time())

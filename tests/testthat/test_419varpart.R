@@ -8,10 +8,10 @@ context("419varpart.R: Does variancePartition work as expected?")
 ## The result is a more flexible batch method, but sadly one which has/had at least one error.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
-pasilla_norm <- normalize_expt(pasilla_expt, filter = TRUE, transform = "log2",
-                               convert = "cpm", norm = "quant")
+pasilla_norm <- normalize(pasilla_se, filter = TRUE, transform = "log2",
+                          convert = "cpm", norm = "quant")
 
 pasilla_varpart <- sm(simple_varpart(pasilla_norm, predictor = NULL,
                                      factors = c("condition", "batch")))

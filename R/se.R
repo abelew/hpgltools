@@ -1,4 +1,14 @@
 ## I think the correct thing to do here is to use cbind()
+#' Bring together two Summarized Experiments into a larger one.
+#'
+#' @param se1 The first SE
+#' @param se2 The second SE
+#' @param condition Metadata factor used as the primary condition of interest.
+#' @param all_x The all.x parameter for merge()
+#' @param all_y The all.y parameter for merge()
+#' @param batch Factor used as the batch for the new SE.
+#' @param merge_meta Merge the metadata?
+#' @export
 combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = TRUE,
                        batch = "batch", merge_meta = TRUE) {
   ##testthat::expect_equal(rownames(exprs(exp1)), rownames(exprs(exp2)))
@@ -474,12 +484,150 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   return(se)
 }
 
+#' Do features_greater_than() inverted!
+#'
+#' @param  ... Arguments passed to features_greather_than()
+#' @return The set of features less than whatever you would have done with
+#'   features_greater_than().
+#' @seealso [features_greater_than()]
+#' @export
+features_less_than <- function(...) {
+  features_greater_than(..., inverse = TRUE)
+}
+
+#' Count the number of features(genes) greater than x in a data set.
+#'
+#' Sometimes I am asked how many genes have >= x counts.  Well, here you go.
+#'
+#' Untested as of 2016-12-01 but used with Lucia.  I think it would be interesting to iterate
+#' this function from small to large cutoffs and plot how the number of kept genes decreases.
+#'
+#' @param data Dataframe/exprs/matrix/whatever of counts.
+#' @param cutoff Minimum number of counts.
+#' @param hard Greater-than is hard, greater-than-equals is not.
+#' @param inverse when inverted, this provides features less than the cutoff.
+#' @return A list of two elements, the first comprised of the number of genes
+#'   greater than the cutoff, the second with the identities of said genes.
+#' @seealso [Biobase]
+#' @export
+features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE) {
+  data <- as.data.frame(data)
+  number_table <- numeric(length = ncol(data))
+  names(number_table) <- colnames(data)
+  feature_tables <- list()
+  for (col in seq_along(colnames(data))) {
+    column_name <- colnames(data)[col]
+    column_data <- data[[column_name]]
+    num_features <- NULL
+    if (isTRUE(hard)) {
+      if (isTRUE(inverse)) {
+        feature_idx <- column_data < cutoff
+      } else {
+        feature_idx <- column_data > cutoff
+      }
+    } else {
+      if (isTRUE(inverse)) {
+        feature_idx <- column_data <= cutoff
+      } else {
+        feature_idx <- column_data >= cutoff
+      }
+    }
+    num_features <- sum(feature_idx)
+    number_table[[column_name]] <- num_features
+    passed_filter <- rownames(data)[feature_idx]
+    feature_tables[[column_name]] <- passed_filter
+  }
+  result <- list(
+    "number" = number_table,
+    "features" = feature_tables)
+  return(result)
+}
+
+#' @export
+setMethod(
+  "features_greater_than", signature(data = "SummarizedExperiment"),
+  definition = function(data, cutoff = 1, hard = TRUE, inverse = FALSE) {
+    df <- assay(data)
+    features_greater_than(df, cutoff = cutoff, hard = hard, inverse = inverse)
+  })
+
+#' I want an easy way to answer the question: what features are in only condition x?
+#'
+#' The answer to this lies in a combination of subset_se() and
+#' features_greater_than().
+#'
+#' @param se An experiment to query.
+#' @param cutoff What is the minimum number of counts required to define
+#'  'included.'
+#' @param factor What metadata factor to query?
+#' @param chosen Either choose a subset or all conditions to query.
+#' @return A set of features.
+#' @seealso [subset_se()]
+#' @export
+features_in_single_condition <- function(se, cutoff = 2, factor = "condition", chosen = NULL) {
+  condition_set <- levels(as.factor(colData(se)[[factor]]))
+  solo_this_list <- list()
+  solo_other_list <- list()
+  shared_list <- list()
+  neither_list <- list()
+  for (cond in condition_set) {
+    if (!is.null(chosen)) {
+      if (! cond %in% chosen) {
+        next
+      }
+    }
+    extract_string <- glue("{factor} == '{cond}'")
+    single_se <- sm(subset_se(se = se, subset = extract_string))
+    extract_string <- glue("{factor} != '{cond}'")
+    others_se <- sm(subset_se(se = se, subset = extract_string))
+    single_data <- assay(single_se)
+    others_data <- assay(others_se)
+
+    single_positive_idx <- rowSums(single_data) >= cutoff
+    single_negative_idx <- rowSums(single_data) < cutoff
+    single_positive <- single_data[single_positive_idx, ]
+    single_negative <- single_data[single_negative_idx, ]
+
+    others_positive_idx <- rowSums(others_data) >= cutoff
+    others_negative_idx <- rowSums(others_data) < cutoff
+    others_positive <- others_data[others_positive_idx, ]
+    others_negative <- others_data[others_negative_idx, ]
+
+    in_both_sets_idx <- rownames(single_positive) %in% rownames(others_positive)
+    in_both_sets <- rownames(single_positive)[in_both_sets_idx]
+
+    only_this_set_idx <- rownames(single_positive) %in% rownames(others_negative)
+    only_this_set <- rownames(single_positive)[only_this_set_idx]
+
+    only_other_set_idx <- rownames(others_positive) %in% rownames(single_negative)
+    only_other_set <- rownames(others_positive)[only_other_set_idx]
+
+    neither_set_this_idx <- rownames(single_negative) %in% rownames(others_negative)
+    neither_set_this <- rownames(single_negative)[neither_set_this_idx]
+    neither_set_that_idx <- rownames(others_negative) %in% rownames(single_negative)
+    neither_set_that <- rownames(others_negative)[neither_set_that_idx]
+
+    shared_list[[cond]] <- in_both_sets
+    solo_this_list[[cond]] <- only_this_set
+    solo_other_list[[cond]] <- only_other_set
+    neither_list[[cond]] <- neither_set_this
+  }
+  retlist <- list(
+    "shared" = shared_list,
+    "solo_this" = solo_this_list,
+    "solo_other" = solo_other_list,
+    "neither" = neither_list
+  )
+  return(retlist)
+}
+
 #' Create a default summarized experiment using the publicly available fission dataset.
 #'
 #' @param annotation Include annotations?
 #' @param host ensembl host to query
 #' @export
-make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org") {
+make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
+                          backup_annotation = "org.Spombe.972h.v46.eg.db") {
   fission <- new.env()
   tt <- sm(requireNamespace("fission"))
   tt <- sm(try(attachNamespace("fission"), silent = TRUE))
@@ -504,27 +652,171 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org")
                         "hgnc_symbol", "description", "gene_biotype"),
       species = "spombe", overwrite = TRUE))
     if ("try-error" %in% class(pombe_annotations)) {
-      warning("There was an error downloading the pombe annotations, this will still return.")
+      warning("There was an error downloading the pombe annotations, attempting to load from ",
+              backup_annotation, ".")
+      pombe_annotations <- try(load_orgdb_annotations(backup_annotation, keytype = "GID",
+                                                      strand_column = "annot_strand",
+                                                      start_column = "annot_coding_start",
+                                                      end_column = "annot_coding_end",
+                                                      name_column = "annot_sequence_id",
+                                                      chromosome_column = "annot_chromosome",
+                                                      type_column = "annot_gene_type",
+                                                      fields = "^annot"))
+      annotations <- pombe_annotations[["genes"]]
     } else {
       pombe_mart <- pombe_annotations[["mart"]]
       annotations <- pombe_annotations[["annotation"]]
-      ## As per create_pombe_expt:
+      ## As per create_pombe_se:
       ## I think ensembl changed the IDs to match and the following line is no longer needed.
       ## rownames(annotations) <- make.names(gsub(pattern = "\\.\\d+$",
       ##                                         replacement = "",
       ##                                         x = rownames(annotations)), unique = TRUE)
     }
   }
-  pombe_se <- sm(create_se(metadata = meta,
-                           count_dataframe = fission_data,
-                           gene_info = annotations))
+  pombe_se <- create_se(metadata = meta,
+                        count_dataframe = fission_data,
+                        gene_info = annotations)
   detach("package:fission")
   return(pombe_se)
 }
 
+#' Runs median_by_factor with fun set to 'mean'.
+#'
+#' @param data Input expt
+#' @param fact Metadata factor over which to perform mean().
+#' @export
+mean_by_factor <- function(data, design, fact = "condition") {
+  median_by_factor(data, design, fact = fact, fun = "mean")
+}
+
+#' Create a data frame of the medians of rows by a given factor in the data.
+#'
+#' This assumes of course that (like expressionsets) there are separate columns
+#' for each replicate of the conditions.  This will just iterate through the
+#' levels of a factor describing the columns, extract them, calculate the
+#' median, and add that as a new column in a separate data frame.
+#'
+#' @param data Data frame, presumably of counts.
+#' @param fact Factor describing the columns in the data.
+#' @param fun Optionally choose mean or another function.
+#' @return Data frame of the medians.
+#' @seealso [Biobase] [matrixStats]
+#' @export
+median_by_factor <- function(data, design, fact = "condition", fun = "median") {
+  if (length(fact) == 1) {
+    fact <- design[[fact]]
+    na_idx <- is.na(fact)
+    if (sum(na_idx) > 0) {
+      fact[na_idx] <- "unknown"
+    }
+    names(fact) <- rownames(design)
+  }
+
+  medians <- data.frame("ID" = rownames(data), stringsAsFactors = FALSE)
+  cvs <- data.frame("ID" = rownames(data), stringsAsFactors = FALSE)
+  mins <- data.frame("ID" = rownames(data), stringsAsFactors = FALSE)
+  maxs <- data.frame("ID" = rownames(data), stringsAsFactors = FALSE)
+  sums <- data.frame("ID" = rownames(data), stringsAsFactors = FALSE)
+  data <- as.matrix(data)
+  rownames(medians) <- rownames(data)
+  rownames(cvs) <- rownames(data)
+  rownames(mins) <- rownames(data)
+  rownames(maxs) <- rownames(data)
+  rownames(sums) <- rownames(data)
+  fact <- as.factor(fact)
+  used_columns <- c()
+  group_indexes <- list()
+  samples_per_condition <- c()
+  condition_names <- c()
+  for (type in levels(fact)) {
+    ## columns <- grep(pattern = type, x = fact)
+    columns <- as.character(fact) == type
+    group_indexes[[type]] <- columns
+    samples_per_condition <- c(sum(columns), samples_per_condition)
+    condition_names <- c(type, condition_names)
+    med <- NULL
+    if (sum(columns) < 1) {
+      warning("The level ", type, " of the factor has no columns.")
+      next
+    }
+    used_columns <- c(used_columns, type)
+    if (sum(columns) == 1) {
+      message("The factor ", type, " has only 1 row.")
+      med <- as.data.frame(data[, columns], stringsAsFactors = FALSE)
+      cv <- as.data.frame(data[, columns], stringsAsFactors = FALSE)
+      min <- as.data.frame(data[, columns], stringsAsFactors = FALSE)
+      max <- as.data.frame(data[, columns], stringsAsFactors = FALSE)
+      sum <- as.data.frame(data[, columns], stringsAsFactors = FALSE)
+    } else {
+      min <- MatrixGenerics::rowMins(data[, columns], na.rm = TRUE)
+      max <- MatrixGenerics::rowMaxs(data[, columns], na.rm = TRUE)
+      sum <- rowSums(data[, columns], na.rm = TRUE)
+      if (fun == "median") {
+        message("The factor ", type, " has ", sum(columns), " rows.")
+        med <- matrixStats::rowMedians(data[, columns], na.rm = TRUE)
+        cv <- matrixStats::rowMads(data[, columns], na.rm = TRUE)
+        cv <- cv / med
+        ## I am not really sure if this is appropriate.
+        nan_idx <- is.nan(cv)
+        cv[nan_idx] <- 0
+      } else if (fun == "mean") {
+        message("The factor ", type, " has ", sum(columns), " rows.")
+        ## Strangely, recently R says BiocGenerics does not export rowMeans.
+        ## I stil see its S4 dispatch; but I will assume that R will figure this out.
+        ## med <- BiocGenerics::rowMeans(data[, columns], na.rm = TRUE)
+        med <- rowMeans(data[, columns], na.rm = TRUE)
+        cv <- matrixStats::rowSds(data[, columns], na.rm = TRUE)
+        cv <- cv / med
+        nan_idx <- is.nan(cv)
+        cv[nan_idx] <- 0
+      } else {
+        stop("I do not understand that function.")
+      }
+    }
+    medians <- cbind(medians, med)
+    cvs <- cbind(cvs, cv)
+    mins <- cbind(mins, min)
+    maxs <- cbind(maxs, max)
+    sums <- cbind(sums, sum)
+  }
+  names(samples_per_condition) <- condition_names
+  medians <- medians[, -1, drop = FALSE]
+  cvs <- cvs[, -1, drop = FALSE]
+  mins <- mins[, -1, drop = FALSE]
+  maxs <- maxs[, -1, drop = FALSE]
+  sums <- sums[, -1, drop = FALSE]
+  ## Sometimes not all levels of the original experimental design are used.
+  ## Thus lets make sure to use only those which appeared.
+  colnames(medians) <- used_columns
+  colnames(cvs) <- used_columns
+  colnames(mins) <- used_columns
+  colnames(maxs) <- used_columns
+  colnames(sums) <- used_columns
+  retlist <- list(
+    "samples_per_condition" = samples_per_condition,
+    "method" = fun,
+    "medians" = medians,
+    "cvs" = cvs,
+    "mins" = mins,
+    "maxs" = maxs,
+    "sums" = sums,
+    "indexes" = group_indexes)
+  return(retlist)
+}
+
+#' @export
+setMethod(
+  "median_by_factor", signature(data = "SummarizedExperiment"),
+  definition = function(data, design, fact = "condition", fun = "median") {
+    median_by_factor(assay(data), colData(data), fact = fact, fun = fun)
+  })
+
+
 #' Use an expression to subset a summarized experiment.
 #'
-#' I like just passing an expression string to get subsets.
+#' I like just passing an expression string to get subsets.  Note, as written this
+#' only subsets samples, not genes.  subset_se_genes handles that, I should spend a
+#' minute and clean that up.
 #'
 #' @param se Input se.
 #' @param subset expression to use to subset on the metadata.
@@ -865,7 +1157,7 @@ sanitize_se <- function(se, keep_underscore = TRUE, factors = c("condition", "ba
 #' @param by Name the factor of colors according to this column.
 #' @param ... Other arguments like a color palette, etc.
 #' @return  Colors!
-#' @seealso [create_expt()]
+#' @seealso [create_se()]
 generate_se_colors <- function(sample_definitions, cond_column = "condition",
                                by = "sampleid", ...) {
   arglist <- list(...)
@@ -915,6 +1207,50 @@ generate_se_colors <- function(sample_definitions, cond_column = "condition",
   ## Set the color names
   names(chosen_colors) <- sample_definitions[[by]]
   return(chosen_colors)
+}
+
+#' Add some gene annotations based on the mean/variance in the data.
+#'
+#' Why?  Maria Adelaida is interested in pulling the least-variant
+#' genes in our data, this seems like it might be generally
+#' applicable.  Note, I made this slightly redundant by doing a cpm on
+#' the data; as a result the proportion and mean values are
+#' effectively identical.
+#'
+#' @param expt Expressionset to which to add this information.
+#' @param convert Use this conversion,
+#' @param transform and transformation,
+#' @param norm and normalization.
+#' @return Slightly modified gene annotations including the mean/variance.
+#' @export
+variance_se <- function(se, convert = "cpm", transform = "raw", norm = "raw") {
+  start <- normalize(se, convert = convert,
+                     transform = transform, norm = norm)
+  df <- assay(start)
+  na_idx <- is.na(df)
+  if (sum(na_idx) > 0) {
+    warning("There are ", sum(na_idx), " NAs in this data, removing them.")
+    message("There are ", sum(na_idx), " NAs in this data, removing them.")
+    df[na_idx] <- 0
+  }
+  raw_sum <- rowSums(assay(se))
+  raw_total <- sum(raw_sum)
+  sums <- rowSums(df)
+  total <- sum(sums)
+  vars <- matrixStats::rowVars(df)
+  sds <- matrixStats::rowSds(df)
+  meds <- matrixStats::rowMedians(df)
+  iqrs <- matrixStats::rowIQRs(df)
+  mean <- rowMeans(df)
+  rowData(se)[["exprs_gene_prop"]] <- sums / total
+  rowData(se)[["exprs_gene_rawprop"]] <- raw_sum / raw_total
+  rowData(se)[["exprs_gene_variance"]] <- vars
+  rowData(se)[["exprs_gene_stdev"]] <- sds
+  rowData(se)[["exprs_gene_mean"]] <- mean
+  rowData(se)[["exprs_gene_median"]] <- meds
+  rowData(se)[["exprs_gene_iqrs"]] <- iqrs
+  rowData(se)[["exprs_cv"]] <- sds / mean
+  return(se)
 }
 
 #' Make pretty xlsx files of count data.

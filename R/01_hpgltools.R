@@ -118,7 +118,6 @@ NULL
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
 #' @importFrom ggplot2 aes ggplot theme labs scale_fill_manual element_text
-#' @importFrom glue glue glue_data
 #' @importFrom graphics
 #'  abline axis barplot hist layout lines mtext par plot.new
 #'  rect strheight strwidth text title
@@ -134,6 +133,7 @@ NULL
 #' @importFrom utils
 #'  capture.output data download.file head installed.packages read.csv read.delim
 #'  read.table setTxtProgressBar tail write.csv write.table
+#' @import glue
 #' @import grDevices
 #' @import methods
 "_PACKAGE"

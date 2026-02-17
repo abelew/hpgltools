@@ -4,12 +4,12 @@
 \alias{annotation<-}
 \title{Add a annotation mcolumn to a se.}
 \usage{
-annotation(se) <- value
+annotation(object, ...) <- value
 }
 \arguments{
-\item{se}{Summarized Experiment to modify.}
-
 \item{value}{vector of batches.}
+
+\item{se}{Summarized Experiment to modify.}
 }
 \description{
 Add a annotation mcolumn to a se.

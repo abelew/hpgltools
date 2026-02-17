@@ -3,7 +3,7 @@ context("329de_shared.R: Do the combined differential expression searches work?"
 
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 deseq <- new.env()
 load("324_de_deseq.rda", envir = deseq)
 edger <- new.env()
@@ -14,12 +14,12 @@ basic <- new.env()
 load("327_de_basic.rda", envir = basic)
 
 ## The following lines should not be needed any longer.
-normalized_expt <- normalize_expt(pasilla_expt, transform = "log2", norm = "quant",
+normalized_se <- normalize(pasilla_se, transform = "log2", norm = "quant",
                                   convert = "cbcbcpm", filter = "cbcb", thresh = 1)
 
 ## Interestingly, doParallel does not work when run from packrat.
 test_keepers <- list("treatment" = c("treated", "untreated"))
-hpgl_all <- all_pairwise(pasilla_expt, filter = TRUE, verbose = TRUE, keepers = test_keepers)
+hpgl_all <- all_pairwise(pasilla_se, filter = TRUE, verbose = TRUE, keepers = test_keepers)
 hpgl_tables <- combine_de_tables(hpgl_all, keepers = test_keepers,
                                  excel = "excel_test.xlsx")
 
@@ -96,14 +96,14 @@ test_that("Does combine_de_tables create an excel file?", {
 })
 removed <- file.remove("excel_test.xlsx")
 
-hpgl_two <- all_pairwise(pasilla_expt, filter = TRUE, keepers = test_keepers)
+hpgl_two <- all_pairwise(pasilla_se, filter = TRUE, keepers = test_keepers)
 hpgl_two_tables <- combine_de_tables(hpgl_two, keepers = test_keepers)
 test_that("Can we provide limited keepers to all_pairwise()?", {
   expect_equal(names(hpgl_all[["deseq"]][["all_tables"]]),
                names(hpgl_two[["deseq"]][["all_tables"]]))
 })
 
-hpgl_sva_result <- all_pairwise(pasilla_expt, model_batch = "sva", which_voom = "limma",
+hpgl_sva_result <- all_pairwise(pasilla_se, model_batch = "sva", which_voom = "limma",
                                 limma_method = "robust", edger_method = "long",
                                 edger_test = "qlr", filter = TRUE)
 deseq_result <- deseq[["hpgl_deseq"]]
@@ -187,7 +187,7 @@ expected_annotations <- c(
   "basic_adjp_ihw", "noiseq_adjp_ihw", "lfc_meta", "lfc_var", "lfc_varbymed", "p_meta",
   "p_var")
 
-filtered <- normalize_expt(pasilla_expt, filter = TRUE)
+filtered <- normalize(pasilla_se, filter = TRUE)
 expected <- nrow(exprs(filtered))
 actual <- nrow(combined_table[["data"]][[1]])
 test_that("Has the untreated/treated combined table been filled in?", {

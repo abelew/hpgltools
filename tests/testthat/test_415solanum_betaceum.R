@@ -20,10 +20,10 @@ untarred <- utils::untar(tarfile = system.file("share/sb/preprocessing.tar.xz",
 ## Given that as input, we think we can hunt down some meaningful genes.
 ## Let us see if that is true.
 
-sb_expt <- create_expt(metadata = "preprocessing/kept_samples.xlsx", gene_info = sb_annot)
-actual <- dim(exprs(sb_expt))
+sb_se <- create_se(metadata = "preprocessing/kept_samples.xlsx", gene_info = sb_annot)
+actual <- dim(exprs(sb_se))
 expected <- c(234330, 8)
-test_that("Do we get an expected matrix from create_expt()?", {
+test_that("Do we get an expected matrix from create_se()?", {
   expect_equal(expected, actual)
 })
 

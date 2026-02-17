@@ -12,37 +12,37 @@ pa_gff[["rownames"]] <- pa_gff[["Parent"]]
 ##pa_annotations <- as.data.frame(merge(x = pa_annotations, y = pa_gff, by.x = "sysName", by.y = "locus"))
 ##rownames(pa_annotations) <- pa_annotations[["Parent"]]
 
-pa_expt <- create_expt(
+pa_se <- create_se(
   metadata = system.file("share/pa_samples.xlsx", package = "hpgldata"),
   countdir = system.file("share/counts", package = "hpgldata"),
   gene_info = pa_gff,
   title = "Pseudomonas aeruginosa RNAseq data of two strains and two time points.")
 
 expected <- c(5979, 12)
-actual <- dim(exprs(pa_expt))
+actual <- dim(exprs(pa_se))
 ## 01
-test_that("Created pseudomonas expt of the correct count table size?", {
+test_that("Created pseudomonas se of the correct count table size?", {
   expect_equal(expected, actual)
 })
 
 expected <- c(5979, 16)
-actual <- dim(fData(pa_expt))
+actual <- dim(fData(pa_se))
 ## 02
-test_that("Created pseudomonas expt of the correct annotation table size?", {
+test_that("Created pseudomonas se of the correct annotation table size?", {
   expect_equal(expected, actual)
 })
 
 expected <- c(12, 27)
-actual <- dim(pData(pa_expt))
+actual <- dim(pData(pa_se))
 ## 03
-test_that("Created pseudomonas expt of the correct metadata size?", {
+test_that("Created pseudomonas se of the correct metadata size?", {
   expect_equal(expected, actual)
 })
 
 expected <- "Pseudomonas aeruginosa RNAseq data of two strains and two time points."
-actual <- pa_expt[["title"]]
+actual <- pa_se[["title"]]
 ## 04
-test_that("The expt has a title.", {
+test_that("The se has a title.", {
   expect_equal(expected, actual)
 })
 

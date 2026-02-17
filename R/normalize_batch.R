@@ -42,7 +42,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
   ## Gather all the likely pieces we can use
   my_design <- pData(input)
   my_data <- exprs(input)
-  expt_state <- state(input)
+  input_state <- state(input)
 
   ## Once again this is a place where my new stance vis a vis NAs is relevant.
   if (isTRUE(na_to_zero)) {
@@ -57,15 +57,15 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
   ## I also want to record this along with the type of output returned by each method.
   input_scale <- NULL
   output_scale <- "linear"
-  if (expt_state[["transform"]] == "linear" || expt_state[["transform"]] == "raw") {
+  if (input_state[["transform"]] == "linear" || input_state[["transform"]] == "raw") {
     linear_mtrx <- as.matrix(my_data)
     log2_mtrx <- as.matrix(log2(linear_mtrx + 1.0))
     input_scale <- "linear"
-  } else if (expt_state[["transform"]] == "log2") {
+  } else if (input_state[["transform"]] == "log2") {
     log2_mtrx <- as.matrix(my_data)
     linear_mtrx <- as.matrix((2 ^ my_data) - 1.0)
     input_scale <- "log2"
-  } else if (expt_state[["transform"]] == "log") {
+  } else if (input_state[["transform"]] == "log") {
     warning("Unexpected call for base e data.")
     log2_mtrx <- as.matrix(my_data / log(2))
     linear_mtrx <- as.matrix(exp(my_data) - 1.0)
@@ -164,7 +164,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
       }
       message(strwrap(prefix = " ", initial = "", "If you receive a warning: 'NANs produced', one
  potential reason is that the data was quantile normalized."))
-      if (expt_state[["transform"]] == "raw") {
+      if (input_state[["transform"]] == "raw") {
         new_counts <- (2 ^ new_counts) - 1
       }
     },
@@ -181,7 +181,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
       new_counts <- residuals(batch_fit, batch_voom[["E"]])
       ## This is still fubar!
       ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
-      if (expt_state[["transform"]] == "raw") {
+      if (input_state[["transform"]] == "raw") {
         new_counts <- (2 ^ new_counts) - 1
       }
     },
@@ -244,14 +244,14 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
 #' @return Adjusted data
 #' @export
 adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
-                              null_fstring = NULL,
-                              model_svs = "sva", batch1 = "batch",
-                              batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = NULL,
-                              na_to_zero = TRUE, confounders = NULL,
-                              filter = "raw", thresh = 1,
-                              adjust_method = "ruv",
-                              noscale = FALSE, prior_plots = FALSE,
-                              control_type = "norm") {
+                         null_fstring = NULL,
+                         model_svs = "sva", batch1 = "batch",
+                         batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = NULL,
+                         na_to_zero = TRUE, confounders = NULL,
+                         filter = "raw", thresh = 1,
+                         adjust_method = "ruv",
+                         noscale = FALSE, prior_plots = FALSE,
+                         control_type = "norm") {
   ## Gather all the likely pieces we can use
   ## Without the following requireNamespace(ruv)
   ## we get an error 'unable to find an inherited method for function RUVr'
@@ -261,10 +261,10 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
   ## In one test, this seems to have been enough, but in another, perhaps not.
 
   ## Gather all the likely pieces we can use
-  my_design <- pData(input)
+  my_design <- colData(input)
   sample_names <- rownames(my_design)
-  my_data <- exprs(input)
-  expt_state <- state(input)
+  my_data <- assay(input)
+  input_state <- state(input)
   ## Once again this is a place where my new stance vis a vis NAs is relevant.
   if (isTRUE(na_to_zero)) {
     na_idx <- is.na(my_data)
@@ -278,15 +278,15 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
   ## I also want to record this along with the type of output returned by each method.
   input_scale <- NULL
   output_scale <- "linear"
-  if (expt_state[["transform"]] == "linear" || expt_state[["transform"]] == "raw") {
+  if (input_state[["transform"]] == "linear" || input_state[["transform"]] == "raw") {
     linear_mtrx <- as.matrix(my_data)
     log2_mtrx <- as.matrix(log2(linear_mtrx + 1.0))
     input_scale <- "linear"
-  } else if (expt_state[["transform"]] == "log2") {
+  } else if (input_state[["transform"]] == "log2") {
     log2_mtrx <- as.matrix(my_data)
     linear_mtrx <- as.matrix((2 ^ my_data) - 1.0)
     input_scale <- "log2"
-  } else if (expt_state[["transform"]] == "log") {
+  } else if (input_state[["transform"]] == "log") {
     warning("Unexpected call for base e data.")
     log2_mtrx <- as.matrix(my_data / log(2))
     linear_mtrx <- as.matrix(exp(my_data) - 1.0)
@@ -511,7 +511,7 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
       ## Adapted from: http://jtleek.com/svaseq/simulateData.html -- but not quite correct yet
       ruv_input <- edgeR::DGEList(counts = linear_mtrx, group = conditions)
       ruv_input_norm <- ruv_input
-      if (expt_state[["normalization"]] == "raw") {
+      if (input_state[["normalization"]] == "raw") {
         ruv_input_norm <- edgeR::calcNormFactors(ruv_input, method = "upperquartile")
       }
       ruv_input_glm <- edgeR::estimateGLMCommonDisp(ruv_input_norm, conditional_model)
@@ -636,7 +636,7 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
     for (s in seq_along(sv_names)) {
       sv <- sv_names[s]
       appended_fstring <- glue("{appended_fstring} + {sv}")
-      pData(input)[[sv]] <- as.numeric(model_adjust[, s])
+      colData(input)[[sv]] <- as.numeric(model_adjust[, s])
     }
     surrogate_plots <- plot_batchsv(input, model_adjust)
   }
@@ -721,7 +721,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' @param low_to_zero Move elements which are <0 to 0?
 #' @param cpus Use parallel and split intensive operations?
 #' @param na_to_zero Set any NA entries to 0?
-#' @param expt_state If this is not an expt, provide the state of the data here.
+#' @param input_state If this is not an expt, provide the state of the data here.
 #' @param confounders List of confounded factors for smartSVA/iSVA.
 #' @param chosen_surrogates Somewhat redundant with surrogates above,
 #'  but provides a second place to enter because of the way I use
@@ -739,7 +739,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' @export
 all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = "batch",
                           batch2 = NULL, num_surrogates = "be", low_to_zero = FALSE, cpus = 4,
-                          na_to_zero = TRUE, expt_state = NULL, confounders = NULL,
+                          na_to_zero = TRUE, input_state = NULL, confounders = NULL,
                           chosen_surrogates = NULL, adjust_method = "ruv",
                           filter = "raw", thresh = 1, noscale = FALSE, prior_plots = FALSE) {
   my_design <- NULL
@@ -757,17 +757,17 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
     ## Gather all the likely pieces we can use
     my_design <- pData(input)
     my_data <- exprs(input)
-    expt_state <- state(input)
+    input_state <- state(input)
   } else {
     my_design <- design
     my_data <- input
-    if (is.null(expt_state)) {
+    if (is.null(input_state)) {
       message("Not able to discern the state of the data.")
       message("Going to use a simplistic metric to guess if it is log scale.")
       if (max(input) > 100) {
-        expt_state[["transform"]] <- "raw"
+        input_state[["transform"]] <- "raw"
       } else {
-        expt_state[["transform"]] <- "log2"
+        input_state[["transform"]] <- "log2"
       }
     }
   } ## Ending the tests of the input and its state.
@@ -777,9 +777,9 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
     na_idx <- is.na(my_data)
     my_data[na_idx] <- 0
   }
-  if (length(expt_state[["transform"]]) == 0) {
-    warning("The transformation state has length 0: ", expt_state[["transform"]])
-    expt_state[["transform"]] <- "raw"
+  if (length(input_state[["transform"]]) == 0) {
+    warning("The transformation state has length 0: ", input_state[["transform"]])
+    input_state[["transform"]] <- "raw"
     warning("Setting transformation state to raw.")
   }
 
@@ -790,15 +790,15 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   ## I also want to record this along with the type of output returned by each method.
   input_scale <- NULL
   output_scale <- "linear"
-  if (expt_state[["transform"]] == "linear" || expt_state[["transform"]] == "raw") {
+  if (input_state[["transform"]] == "linear" || input_state[["transform"]] == "raw") {
     linear_mtrx <- as.matrix(my_data)
     log2_mtrx <- as.matrix(log2(linear_mtrx + 1.0))
     input_scale <- "linear"
-  } else if (expt_state[["transform"]] == "log2") {
+  } else if (input_state[["transform"]] == "log2") {
     log2_mtrx <- as.matrix(my_data)
     linear_mtrx <- as.matrix((2 ^ my_data) - 1.0)
     input_scale <- "log2"
-  } else if (expt_state[["transform"]] == "log") {
+  } else if (input_state[["transform"]] == "log") {
     warning("Unexpected call for base e data.")
     log2_mtrx <- as.matrix(my_data / log(2))
     linear_mtrx <- as.matrix(exp(my_data) - 1.0)
@@ -1056,7 +1056,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
       }
       message(strwrap(prefix = " ", initial = "", "If you receive a warning: 'NANs produced', one
  potential reason is that the data was quantile normalized."))
-      if (expt_state[["transform"]] == "raw") {
+      if (input_state[["transform"]] == "raw") {
         new_counts <- (2 ^ new_counts) - 1
       }
     },
@@ -1073,7 +1073,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
    new_counts <- residuals(batch_fit, batch_voom[["E"]])
    ## This is still fubar!
    ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
-   if (expt_state[["transform"]] == "raw") {
+   if (input_state[["transform"]] == "raw") {
      new_counts <- (2 ^ new_counts) - 1
    }
  },
@@ -1090,7 +1090,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
    ## Adapted from: http://jtleek.com/svaseq/simulateData.html -- but not quite correct yet
    ruv_input <- edgeR::DGEList(counts = linear_mtrx, group = conditions)
    ruv_input_norm <- ruv_input
-   if (expt_state[["normalization"]] == "raw") {
+   if (input_state[["normalization"]] == "raw") {
      ruv_input_norm <- edgeR::calcNormFactors(ruv_input, method = "upperquartile")
    }
    ruv_input_glm <- edgeR::estimateGLMCommonDisp(ruv_input_norm, conditional_model)
@@ -1283,11 +1283,9 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' @param design Model matrix defining the experimental conditions/batches/etc.
 #' @param batch1 String describing the method to try to remove the batch effect
 #'  (or FALSE to leave it alone, TRUE uses limma).
-#' @param current_state Current state of the expt in an attempt to avoid
-#'  double-normalization.
 #' @param current_design Redundant with expt_design above, but
 #'  provides another place for normalize() to send data.
-#' @param expt_state Current state of the data
+#' @param input_state Current state of the data
 #' @param surrogate_method Also redundant for normalize()
 #' @param num_surrogates Number of surrogates or method to estimate them.
 #' @param low_to_zero Send <0 entries to 0 to avoid shenanigans.
@@ -1310,7 +1308,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' }
 #' @export
 batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "batch",
-                         current_state = NULL, current_design = NULL, expt_state = NULL,
+                         current_state = NULL, current_design = NULL, input_state = NULL,
                          surrogate_method = NULL, num_surrogates = NULL, low_to_zero = FALSE,
                          cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv") {
                        ##, ...) {
@@ -1340,9 +1338,9 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
     prior.plots <- arglist[["prior.plots"]]
   }
 
-  ## Lets use expt_state to make sure we know if the data is already log2/cpm/whatever.
+  ## Lets use input_state to make sure we know if the data is already log2/cpm/whatever.
   ## We want to use this to back-convert or reconvert data to the appropriate
-  ## scale on return.  Note that there are two possible variables, expt_state and current_state,
+  ## scale on return.  Note that there are two possible variables, input_state and current_state,
   ## I am using current_state to keep track of changes made on scale/etc during each step
   ## of the normalization process.
   used_state <- list(
@@ -1351,13 +1349,13 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
     "conversion" = "raw",
     "batch" = "raw",
     "transform" = "raw")
-  if (is.null(expt_state) && is.null(current_state)) {
+  if (is.null(input_state) && is.null(current_state)) {
     mesg("Assuming a completely raw expressionset.")
   } else if (!is.null(current_state)) {
     used_state <- current_state
     mesg("Using the current state of normalization.")
   } else {
-    used_state <- expt_state
+    used_state <- input_state
     mesg("Using the initial state of the expressionset.")
   }
 
@@ -1387,7 +1385,7 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
   mesg("Passing the data to all_adjusters() using the ", method, " ", method_class)
   new_material <- all_adjusters(count_table, design = design, estimate_type = method,
                                 cpus = cpus, batch1 = batch1, batch2 = batch2,
-                                expt_state = used_state, noscale = noscale,
+                                input_state = used_state, noscale = noscale,
                                 chosen_surrogates = chosen_surrogates,
                                 num_surrogates = num_surrogates,
                                 low_to_zero = low_to_zero)
@@ -1970,176 +1968,6 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
   return(new_counts)
 }
 
-#' A modified version of comBatMod.
-#'
-#' This is a hack of Kwame Okrah's combatMod to make it not fail on corner-cases.
-#' This was mostly copy/pasted from
-#' https://github.com/kokrah/cbcbSEQ/blob/master/R/transform.R
-#'
-#' @param dat Df to modify.
-#' @param batch Factor of batches.
-#' @param mod Factor of conditions.
-#' @param noscale The normal 'scale' option squishes the data too much, so this
-#'   defaults to TRUE.
-#' @param prior.plots Print out prior plots?
-#' @param ... Extra options are passed to arglist
-#' @return Df of batch corrected data
-#' @seealso [sva] [sva::ComBat()]
-#' @examples
-#' \dontrun{
-#'  df_new = cbcb_combat(df, batches, model)
-#' }
-#' @export
-cbcb_combat <- function(dat, batch, mod, noscale = TRUE, prior.plots = FALSE, ...) {
-  arglist <- list(...)
-  par.prior <- TRUE
-  numCovs <- NULL
-  mod <- cbind(mod, batch)
-  check <- apply(mod, 2, function(x) all(x == 1))
-  mod <- as.matrix(mod[, !check])
-  colnames(mod)[ncol(mod)] <- "Batch"
-  if (sum(check) > 0 && !is.null(numCovs)) {
-    numCovs <- numCovs - 1
-  }
-  design <- survJamda::design.mat(mod)
-  batches <- survJamda::list.batch(mod)
-  n.batch <- length(batches)
-  n.batches <- sapply(batches, length)
-  n.array <- sum(n.batches)
-  NAs <- any(is.na(dat))
-  B.hat <- NULL
-  ## This is taken from sva's github repository in helper.R
-  Beta.NA <- function(y, X) {
-    des <- X[!is.na(y), ]
-    y1 <- y[!is.na(y)]
-    B <- solve(t(des)%*%des)%*%t(des)%*%y1
-    B
-  }
-  var.pooled <- NULL
-  mesg("Standardizing data across genes\n")
-  if (NAs) {
-    warning(glue("Found {sum(is.na(dat))} missing data values."))
-    warning("The original combatMod uses an undefined variable Beta.NA here,
-I set it to 1 not knowing what its purpose is.")
-    B.hat <- apply(dat, 1, Beta.NA)
-  } else {
-    ## There are no NAs in the data, this is a good thing(Tm)!
-    B.hat <- solve(t(design) %*% design) %*% t(design) %*% t(as.matrix(dat))
-  }
-  grand.mean <- t(n.batches/n.array) %*% B.hat[1:n.batch, ]
-
-  if (NAs) {
-    var.pooled <- apply(dat - t(design %*% B.hat), 1, var, na.rm = TRUE)
-  } else {
-    transposed <- t(design %*% B.hat)
-    subtracted <- dat - transposed
-    second_half <- rep(1 / n.array, n.array)
-    var.pooled <- as.matrix(subtracted ^ 2) %*% as.matrix(second_half)
-  }
-  stand.mean <- t(grand.mean) %*% t(rep(1, n.array))
-  if (!is.null(design)) {
-    tmp <- design
-    tmp[, c(1:n.batch)] <- 0
-    stand.mean <- stand.mean + t(tmp %*% B.hat)
-  }
-  s.data <- (dat - stand.mean) / (sqrt(var.pooled) %*% t(rep(1, n.array)))
-  if (isTRUE(noscale)) {
-    m.data <- dat - stand.mean
-    second_half <- as.matrix(rep(1 / (n.array - ncol(design)), n.array))
-    mse <- as.matrix((dat - t(design %*% B.hat)) ^ 2) %*% second_half
-    hld <- NULL
-    bayesdata <- dat
-    for (k in seq_len(n.batch)) {
-      mesg("Fitting 'shrunk' batch ", k, " effects.")
-      sel <- batches[[k]]
-      gammaMLE <- rowMeans(m.data[, sel])
-      mprior <- mean(gammaMLE, na.rm = TRUE)
-      vprior <- var(gammaMLE, na.rm = TRUE)
-      prop <- vprior / (mse / (length(sel)) + vprior)
-      gammaPost <- prop * gammaMLE + (1 - prop) * mprior
-      for (i in sel) {
-        bayesdata[, i] <- bayesdata[, i] - gammaPost
-      }
-      stats <- data.frame(gammaPost = gammaPost, gammaMLE = gammaMLE, prop = prop)
-      hld[[paste("Batch", k, sep = ".")]] <- list(
-        "stats" = stats,
-        "indices" = sel,
-        "mprior" = mprior,
-        "vprior" = vprior)
-    }
-    mesg("Adjusting data for batch effects.")
-    return(bayesdata)
-  } else {
-    mesg("Fitting L/S model and finding priors.")
-    batch.design <- design[, 1:n.batch]
-    if (NAs) {
-      gamma.hat <- apply(s.data, 1, Beta.NA, batch.design)
-    } else {
-      gamma.hat <- solve(t(batch.design) %*% batch.design) %*%
-        t(batch.design) %*% t(as.matrix(s.data))
-    }
-    delta.hat <- NULL
-    for (i in batches) {
-      delta.hat <- rbind(delta.hat, apply(s.data[, i], 1, var, na.rm = TRUE))
-    }
-    gamma.bar <- apply(gamma.hat, 1, mean)
-    t2 <- apply(gamma.hat, 1, var)
-    a.prior <- apply(delta.hat, 1, aprior)
-    b.prior <- apply(delta.hat, 1, bprior)
-    if (prior.plots && par.prior) {
-      oldpar <- par(mfrow = c(2, 2))
-      tmp <- density(gamma.hat[1, ], na.rm = TRUE)
-      plot(tmp, type = "l", main = "Density Plot")
-      xx <- seq(min(tmp$x), max(tmp$x), length = 100)
-      lines(xx, dnorm(xx, gamma.bar[1], sqrt(t2[1])), col = 2)
-      stats::qqnorm(gamma.hat[1, ])
-      stats::qqline(gamma.hat[1, ], col = 2)
-      tmp <- stats::density(delta.hat[1, ], na.rm = TRUE)
-      invgam <- 1 / stats::rgamma(ncol(delta.hat), a.prior[1], b.prior[1])
-      tmp1 <- try(stats::density(invgam, na.rm = TRUE))
-      plot(tmp, typ = "l", main = "Density Plot", ylim = c(0, max(tmp$y, tmp1$y)))
-      if (class(tmp1)[1] != "try-error") {
-        lines(tmp1, col = 2)
-      }
-      try(stats::qqplot(delta.hat[1, ], invgam,
-                        xlab = "Sample Quantiles",
-                        ylab = "Theoretical Quantiles"))
-      lines(c(0, max(invgam)), c(0, max(invgam)), col = 2)
-      title("Q-Q Plot")
-      newpar <- par(oldpar)
-    }
-    gamma.star <- delta.star <- NULL
-    if (par.prior) {
-      mesg("Finding parametric adjustments.")
-      for (i in 1:n.batch) {
-        temp <- it.sol(s.data[, batches[[i]]], gamma.hat[i, ],
-                       delta.hat[i, ], gamma.bar[i],
-                       t2[i], a.prior[i], b.prior[i])
-        gamma.star <- rbind(gamma.star, temp[1, ])
-        delta.star <- rbind(delta.star, temp[2, ])
-      }
-    } else {
-      mesg("Finding nonparametric adjustments.")
-      for (i in seq_len(n.batch)) {
-        temp <- int.eprior(as.matrix(s.data[, batches[[i]]]),
-                           gamma.hat[i, ], delta.hat[i, ])
-        gamma.star <- rbind(gamma.star, temp[1, ])
-        delta.star <- rbind(delta.star, temp[2, ])
-      }
-    }
-    mesg("Adjusting the Data.")
-    bayesdata <- s.data
-    j <- 1
-    for (i in batches) {
-      bayesdata[, i] <- (bayesdata[, i] - t(batch.design[i, ] %*% gamma.star)) /
-        (sqrt(delta.star[j, ]) %*% t(rep(1, n.batches[j])))
-      j <- j + 1
-    }
-    bayesdata <- (bayesdata * (sqrt(var.pooled) %*% t(rep(1, n.array)))) + stand.mean
-    return(bayesdata)
-  }
-}
-
 #' There are some funky scoping problems in isva::DoISVA().
 #'
 #' Thus I copy/pasted the function and attempted to address them here.
@@ -2343,6 +2171,7 @@ sv_fstatistics <- function(exp, num_surrogates = NULL,
 #' @param ... Args passed to everything else.
 #' @export
 svpc_fstats <- function(exp, ...) {
+  the_state <- state(exp)
   if (exp[["state"]][["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
     pre_norm <- normalize(exp, transform = "log2", convert = "cpm",

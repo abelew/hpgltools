@@ -7,7 +7,7 @@
 plot_qq_all(data, design = NULL, colors = NULL, labels = "short", ...)
 }
 \arguments{
-\item{data}{Expressionset, expt, or dataframe of samples.}
+\item{data}{Expressionset, exp, or dataframe of samples.}
 
 \item{design}{Experimental design}
 

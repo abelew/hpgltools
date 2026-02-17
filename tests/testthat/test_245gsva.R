@@ -28,17 +28,17 @@ test_that("Do we get an expected gsva result?", {
   expect_equal(actual[2], 19)
 })
 
-gsva_sig <- get_sig_gsva_categories(gsva_result, excel = NULL, model_batch = FALSE)
+gsva_sig <- get_sig_gsva_categories(gsva_result, excel = NULL)
 test_that("Can we acquire significant gsva scores?", {
-  expect_equal("gg", class(gsva_sig[["score_pca"]])[1])
+  expect_equal("ggplot2::ggplot", class(gsva_sig[["score_pca"]])[1])
   expect_equal("recordedplot", class(gsva_sig[["score_plot"]])[1])
 })
 
 ## Test making geneset Collections.
 cb_sig <- environment()
 load(file = "test_065_significant.rda", envir = cb_sig)
-ups <- cb_sig[["deseq"]][["ups"]][["somesig"]]
-downs <- cb_sig[["deseq"]][["downs"]][["somesig"]]
+ups <- cb_sig[["deseq"]][["ups"]][["wt30_vs_wt0"]]
+downs <- cb_sig[["deseq"]][["downs"]][["wt30_vs_wt0"]]
 sig_gsc <- make_gsc_from_ids(first_ids = rownames(ups), second_ids = rownames(downs),
                              researcher_name = "Idunno",
                              current_id = NULL, required_id = NULL,
@@ -50,7 +50,7 @@ test_that("We can make gene set collections from DE outputs?", {
 
 ## The following xcell call throws a warning because there is a gene with no variance.
 ## I do not particularly care, so I will suppress it.
-xcell_result <- suppressWarnings(simple_xcell(se = hs_filt, column = "cds_length", cores = 1))
+xcell_result <- suppressWarnings(simple_xcell(se = hs_filt, length_column = "cds_length", cores = 1))
 test_that("We get some expected results from xCell?", {
   expect_equal("recordedplot", class(xcell_result[["heatmap"]])[1])
 })

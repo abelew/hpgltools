@@ -4,7 +4,7 @@
 \alias{annotation,SummarizedExperiment-method}
 \title{Get the batch column from a se.}
 \usage{
-\S4method{annotation}{SummarizedExperiment}(exp)
+\S4method{annotation}{SummarizedExperiment}(object)
 }
 \arguments{
 \item{exp}{Input summarized experiment.}

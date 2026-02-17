@@ -133,7 +133,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
                                     model_svs = NULL, model_fstring = "~ 0 + condition", factor = NULL,
                                     label_size = NULL, col_margin = 6, row_margin = 12,
                                     type = "mean") {
-  gsva_scores <- gsva_result[["gsva_result"]]
+  gsva_se <- gsva_result[["gsva_result"]]
 
   ## FIXME: If one uses factor_column in this current function, that will likely lead to
   ## incorrect results because limma is using the 'condition' metadata factor; but
@@ -144,20 +144,23 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   factor_info <- get_formula_factors(model_fstring)
   factor_column <- factor_info[["factors"]][1]
   if (factor_column != "condition") {
-    gsva_scores <- set_conditions(gsva_scores, fact = factor_column)
+    gsva_se <- set_conditions(gsva_se, fact = factor_column)
   }
 
   ## Use limma on the gsva result
-  gsva_limma <- limma_pairwise(input = gsva_scores, model_fstring = model_fstring,
+  gsva_limma <- limma_pairwise(input = gsva_se, model_fstring = model_fstring,
                                which_voom = "none", model_svs = model_svs)
 
   ## Combine gsva max(scores) with limma results
   ### get gsva within group means
-  groups <- levels(droplevels(as.factor(colData(gsva_scores)[[factor_column]])))
-  gsva_score_means <- median_by_factor(data = gsva_scores, fact = factor_column, fun = type)
+  groups <- levels(droplevels(as.factor(colData(gsva_se)[[factor_column]])))
+  gsva_score_means <- median_by_factor(data = gsva_se, fact = factor_column, fun = type)
   ## gsva_score_means <- get_group_gsva_means(gsva_scores, groups)
   num_den_string <- strsplit(x = names(gsva_limma[["all_tables"]]), split = "_vs_")
-
+  score_data <- assay(gsva_se)
+  ## FIXME: This is not likely needed anymore.
+  annot <- rowData(gsva_se)
+  meta <- colData(gsva_se)
   for (t in seq_along(gsva_limma[["all_tables"]])) {
     table_name <- names(gsva_limma[["all_table"]])[t]
     table <- gsva_limma[["all_tables"]][[t]]
@@ -177,7 +180,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     }
     ## get maximum value of group means in each contrast
     ## maxs <- apply(assay(gsva_scores)[, first | second], 1, max)
-    max_values <- apply(assay(gsva_scores)[, numerator_samples | denominator_samples], 1, max)
+    max_values <- apply(score_data[, numerator_samples | denominator_samples], 1, max)
     table[["gsva_score_max"]] <- max_values
     varname1 <- paste0("Mean_", numerator)
     varname2 <- paste0("Mean_", denominator)
@@ -188,13 +191,6 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     gsva_limma[["all_tables"]][[t]] <- table
   }
 
-  ## FIXME: This is not likely needed anymore.
-  gsva_eset <- gsva_scores[["expressionset"]]
-  ## Go from highest to lowest score, using the first sample as a guide.
-  values <- as.data.frame(assay(gsva_eset))
-  annot <- rowData(gsva_eset)
-  meta <- colData(gsva_eset)
-
   ## Choose the reference factor
   clevels <- levels(as.factor(meta[[factor_column]]))
   fact <- factor
@@ -203,23 +199,22 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   }
 
   ## Copy the gsva expressionset and use that to pull the 'significant' entries.
-  subset_eset <- gsva_eset
-  gl <- score_gsva_likelihoods(gsva_result, factor = fact, label_size = label_size)
+  gl <- score_gsva_likelihoods(gsva_se, factor = fact, label_size = label_size)
   likelihoods <- gl[["likelihoods"]]
   keep_idx <- likelihoods[[fact]] >= cutoff
   scored_ht <- subset_table <- scored_ht_plot <- NULL
   if (sum(keep_idx) > 1) {
-    subset_eset <- subset_eset[keep_idx, ]
+    subset_eset <- score_data[keep_idx, ]
     jet_colors <- grDevices::colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
                                                 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
     tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
     if (is.null(label_size)) {
-      scored_ht <- heatmap.3(assay(subset_eset), trace = "none", col = jet_colors,
+      scored_ht <- heatmap.3(subset_eset, trace = "none", col = jet_colors,
                              margins = c(col_margin, row_margin))
     } else {
-      scored_ht <- heatmap.3(assay(subset_eset), trace = "none", col = jet_colors,
+      scored_ht <- heatmap.3(subset_eset, trace = "none", col = jet_colors,
                              margins = c(col_margin, row_margin),
                              cexRow = label_size)
     }
@@ -228,7 +223,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     removed <- suppressWarnings(file.remove(tmp_file))
     removed <- unlink(dirname(tmp_file))
     subset_order <- rev(scored_ht[["rowInd"]])
-    subset_rownames <- rownames(assay(subset_eset))[subset_order]
+    subset_rownames <- rownames(subset_eset)[subset_order]
 
     ## Here is a bizarre little fact: the rownames of rowData(subset_mtrx)
     ## are not the same as the rownames of assay(subset_mtrx)
@@ -236,7 +231,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     ## At least when I create an expressionset, the rowData and assay have the
     ## same rownames from beginning to end.
     ## I guess this does not really matter, since we can use the full annotation table.
-    subset_tbl <- as.data.frame(assay(subset_eset))
+    subset_tbl <- as.data.frame(subset_eset)
     order_column <- colnames(subset_tbl)[1]
     subset_table <- merge(annot, subset_tbl, by = "row.names")
     rownames(subset_table) <- subset_table[["Row.names"]]
@@ -247,8 +242,8 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     mesg("There are not many entries which pass the cutoff for significance.")
   }
 
-  order_column <- colnames(values)[1]
-  gsva_table <- merge(annot, values, by = "row.names")
+  order_column <- colnames(score_data)[1]
+  gsva_table <- merge(annot, score_data, by = "row.names")
   rownames(gsva_table) <- gsva_table[["Row.names"]]
   gsva_table[["Row.names"]] <- NULL
   reordered_gsva_idx <- order(gsva_table[[order_column]], decreasing = TRUE)
@@ -279,7 +274,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
       "subset_plot" = scored_ht_plot,
       "scores" = gl,
       "score_pca" = gl[["pca"]][["plot"]],
-      "subset_expt" = subset_eset,
+      "subset_se" = subset_eset,
       "gsva_limma" = gsva_limma)
 
   if (!is.null(excel)) {
@@ -323,7 +318,7 @@ intersect_signatures <- function(gsva_result, lst, freq_cutoff = 2,
   Vennerable::plot(sig_venn, doWeights = sig_weights)
   sig_plot <- grDevices::recordPlot()
   sig_int <- sig_venn@IntersectionSets
-  annot <- rowData(gsva_result[["expt"]])
+  annot <- rowData(gsva_result)
   sig_genes <- list()
   gene_venn_lst <- list()
   venn_names <- list()
@@ -415,13 +410,13 @@ intersect_signatures <- function(gsva_result, lst, freq_cutoff = 2,
 #'  score(s).
 #' @seealso [simple_gsva()]
 #' @export
-score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
+score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
                                    factor = NULL, sample = NULL, factor_column = "condition",
                                    method = "mean", label_size = NULL,
                                    col_margin = 6, row_margin = 12, cutoff = 0.95) {
-  values <- assay(gsva_result[["expt"]])
-  design <- colData(gsva_result[["expt"]])
-  gsva_pca <- plot_pca(gsva_result[["expt"]])
+  values <- assay(gsva_se)
+  design <- colData(gsva_se)
+  gsva_pca <- plot_pca(gsva_se)
 
   ## Start off with a plot of the gsva return values.
   color_range <- c("#00007F", "blue", "#007FFF", "cyan",
@@ -584,7 +579,7 @@ score_gsva_likelihoods <- function(gsva_result, score = NULL, category = NULL,
 #'  result from gsva, and third a data frame of the annotation data for the
 #'  gene sets in the expressionset.  This seems a bit redundant, perhaps I
 #'  should revisit it?
-#' @seealso [GSEABase] [load_gmt_signatures()] [create_expt()] [GSVA]
+#' @seealso [GSEABase] [load_gmt_signatures()] [create_se()] [GSVA]
 #' @export
 simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                         signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
@@ -701,7 +696,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   gene_sets_df <- data.frame(row.names = names(signature_data))
   gene_sets <- c()
   for (cat in seq_len(length(signature_data))) {
-    genes <- toString(geneIds(signature_data[[cat]]))
+    genes <- toString(GSEABase::geneIds(signature_data[[cat]]))
     gene_sets <- c(gene_sets, genes)
   }
   gene_sets_df[["gene_ids"]] <- gene_sets
@@ -843,19 +838,25 @@ to: {prettyNum(max(assay(x[['se']])))}.")
 #' @export
 simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
                          expected_types = NULL, label_size = NULL, col_margin = 6,
+                         length_column = "cds_length",
                          row_margin = 12, sig_cutoff = 0.2, verbose = TRUE, cores = 4, ...) {
   arglist <- list(...)
   xcell_annot <- load_biomart_annotations()
   xref <- xcell_annot[["annotation"]][, c("ensembl_gene_id", "hgnc_symbol")]
-  se_state <- se[["state"]][["conversion"]]
+  se_state <- state(se)
+
   xcell_se <- NULL
-  if (se_state != "rpkm") {
+  if (se_state[["conversion"]] != "rpkm") {
     message("xCell strongly perfers rpkm values, re-normalizing now.")
-    xcell_se <- normalize(se, convert = "rpkm",
-                                 ...)
+    if (length_column %in% colnames(rowData(se))) {
+      xcell_se <- normalize(se, convert = "rpkm", length_column = length_column)
+    } else {
+      message("The column ", length_column, " is not in the se rowdata, just doing cpm.")
+      xcell_se <- normalize(se, transform = "log2", convert = "cpm")
+    }
   } else {
     xcell_se <- normalize(se, norm = arglist[["norm"]], convert = arglist[["convert"]],
-                                 filter = arglist[["filter"]], batch = arglist[["batch"]])
+                          filter = arglist[["filter"]], batch = arglist[["batch"]])
   }
   xcell_mtrx <- assay(xcell_se)
   xcell_na <- is.na(xcell_mtrx)

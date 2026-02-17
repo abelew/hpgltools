@@ -7,20 +7,20 @@
 #' This function is the beginning of a method to get a sense of what
 #' happens to data when performing things like SVA.
 #'
-#' @param expt Input expressionset.
+#' @param exp Input expressionset.
 #' @param norm Normalization performed.
 #' @param transform Assuming using PCA and so log2 the data.
 #' @param convert Scale the data, presumably with cpm().
 #' @param filter Low-count filter the data?
 #' @param batch Method which provides SVs to apply.
 #' @return Currently just a plot of the SVs.
-compare_pc_sv <- function(expt, norm = NULL, transform = "log2", convert = "cpm",
+compare_pc_sv <- function(exp, norm = NULL, transform = "log2", convert = "cpm",
                           filter = TRUE, batch = "svaseq") {
-  start <- normalize(expt, norm = norm, transform = transform,
-                          convert = convert, filter = filter)
+  start <- normalize(exp, norm = norm, transform = transform,
+                     convert = convert, filter = filter)
   start_pc <- plot_pca(start)
-  new <- normalize(expt, norm = norm, transform = transform, convert = convert,
-                        filter = filter, batch = batch)
+  new <- normalize(exp, norm = norm, transform = transform, convert = convert,
+                   filter = filter, batch = batch)
   sv_df <- new[["sv_df"]]
   num_svs <- ncol(sv_df)
   new_pc <- plot_pca(new)
@@ -35,8 +35,8 @@ compare_pc_sv <- function(expt, norm = NULL, transform = "log2", convert = "cpm"
     combined_df <- cbind(combined_df, two_columns)
   }
 
-  combined_df[["condition"]] <- pData(expt)[["condition"]]
-  combined_df[["batch"]] <- pData(expt)[["batch"]]
+  combined_df[["condition"]] <- conditions(exp)
+  combined_df[["batch"]] <- batches(exp)
   queried <- 1
   x_query <- paste0("pc", queried)
   y_query <- paste0("sv", queried)
@@ -163,25 +163,25 @@ setMethod(
 #' Hector was her professor before she joined us, and Hector suggested
 #' the PC idea to me).
 #'
-#' @param expt Input expressionset, redo everything to use SE, stupid.
+#' @param expt Input SE.
 #' @param pc_df dataframe of PCs
 #' @param num_pcs How many PCs to query?
 #' @param queries List of metadata factors to query.
 #' @param ... Parameters to plot_pca.
 #' @export
-pc_fstatistics <- function(expt, pc_df = NULL, num_pcs = 10,
+pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
                            queries = c("typeofcells", "visitnumber", "donor"),
                            ...) {
   if (is.null(pc_df)) {
     mesg("No pc_df provided, running plot_pca.")
-    input <- plot_pca(expt,
+    input <- plot_pca(exp,
                       ...)
     pc_df <- input[["table"]]
   }
   if (ncol(pc_df) < num_pcs) {
     num_pcs <- ncol(pc_df)
   }
-  meta <- pData(expt)
+  meta <- colData(exp)
   if (is.null(queries)) {
     queries <- guess_factors(meta, ratio = 3)
   }
@@ -676,7 +676,7 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
 
 #' Make a PCA plot describing the samples' clustering.
 #'
-#' @param data an expt set of samples.
+#' @param data Input data type.
 #' @param design a design matrix and.
 #' @param state State of the data.
 #' @param plot_colors a color scheme.
@@ -1190,30 +1190,6 @@ setMethod(
     return(retlist)
   })
 
-#' Using plot_pca with an expt should not need any extra arguments.
-#'
-#' @inheritParams plot_pca
-#' @export
-setMethod(
-  "plot_pca", signature = signature(data = "expt"),
-  definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
-                        plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
-                        pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
-                        num_pc = NULL, expt_names = NULL, label_chars = 10,
-                        cond_column = "condition", batch_column = "batch",
-                        ...) {
-    state <- state(data)
-    design <- pData(data)
-    plot_colors <- get_colors(data)
-    mtrx <- exprs(data)
-    plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
-             plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
-             plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
-             x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
-             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
-             batch_column = batch_column, ...)
-  })
-
 #' Using plot_pca with an expressionset may require some
 #' color-specific arguments.
 #'
@@ -1289,7 +1265,7 @@ Shapes are defined by ", batch_levels, ".")
 #' @seealso [plot_pcs()]
 #' @examples
 #' \dontrun{
-#'  pca_plot <- plot_pca(expt = expt)
+#'  pca_plot <- plot_pca(exp = exp)
 #'  pca_plot
 #' }
 #' @export
@@ -1699,9 +1675,9 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   }
 
   if (isTRUE(plot_title)) {
-    plot_title <- what_happened(expt = data)
+    plot_title <- what_happened(data)
   } else if (!is.null(plot_title)) {
-    data_title <- what_happened(expt = data)
+    data_title <- what_happened(data)
     plot_title <- glue::glue("{plot_title}; {data_title}")
   } else {
     ## Leave the title blank.
@@ -1731,10 +1707,10 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
   ## my expt containing the normalization state of the data.
   if (isTRUE(plot_title)) {
-    data_title <- what_happened(expt = data)
+    data_title <- what_happened(data)
     comp_plot <- comp_plot + ggplot2::ggtitle(data_title)
   } else if (!is.null(plot_title)) {
-    data_title <- what_happened(expt = data)
+    data_title <- what_happened(data)
     plot_title <- glue::glue("{plot_title}; {data_title}")
     comp_plot <- comp_plot + ggplot2::ggtitle(plot_title)
   } else {
@@ -1786,7 +1762,7 @@ plot_pcload <- function(input, genes = 40, desired_pc = 1, which_scores = "high"
   samples <- plot_sample_heatmap(comp_genes_subset, row_label = NULL)
 
   retlist <- list(
-    "comp_genes_expt" = comp_genes_subset,
+    "comp_genes" = comp_genes_subset,
     "plot" = samples)
   return(retlist)
 }

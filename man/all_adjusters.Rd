@@ -14,7 +14,7 @@ all_adjusters(
   low_to_zero = FALSE,
   cpus = 4,
   na_to_zero = TRUE,
-  expt_state = NULL,
+  input_state = NULL,
   confounders = NULL,
   chosen_surrogates = NULL,
   adjust_method = "ruv",
@@ -44,7 +44,7 @@ search for them.}
 
 \item{na_to_zero}{Set any NA entries to 0?}
 
-\item{expt_state}{If this is not an expt, provide the state of the data here.}
+\item{input_state}{If this is not an expt, provide the state of the data here.}
 
 \item{confounders}{List of confounded factors for smartSVA/iSVA.}
 

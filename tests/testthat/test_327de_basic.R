@@ -3,14 +3,14 @@ context("327de_basic: Does the basic differential expression analysis work?")
 
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
-norm_expt <- normalize_expt(pasilla_expt, transform = "log2",
-                            norm = "quant", filter = TRUE,
-                            convert = "cbcbcpm")
+norm_se <- normalize(pasilla_se, transform = "log2",
+                     norm = "quant", filter = TRUE,
+                     convert = "cbcbcpm")
 
-hpgl_pasilla_basic <- basic_pairwise(pasilla_expt)
-hpgl_norm_basic <- basic_pairwise(norm_expt)
+hpgl_pasilla_basic <- basic_pairwise(pasilla_se)
+hpgl_norm_basic <- basic_pairwise(norm_se)
 
 expected <- hpgl_pasilla_basic[["all_tables"]][[1]][["logFC"]]
 actual <- hpgl_norm_basic[["all_tables"]][[1]][["logFC"]]
@@ -46,7 +46,7 @@ test_that("Is it possible to write the results of a basic analysis?", {
     expect_true(file.exists("basic_test.xlsx"))
 })
 
-hpgl_basic <- sm(basic_pairwise(pasilla_expt))
+hpgl_basic <- sm(basic_pairwise(pasilla_se))
 save(list = ls(), file = "327_de_basic.rda")
 
 end <- as.POSIXlt(Sys.time())

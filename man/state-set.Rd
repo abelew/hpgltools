@@ -2,7 +2,7 @@
 % Please edit documentation in R/attributes.R
 \name{state<-}
 \alias{state<-}
-\title{Set the state of the data in an expt.}
+\title{Set the state of the data in a se.}
 \usage{
 state(input) <- value
 }
@@ -12,5 +12,5 @@ state(input) <- value
 \item{value}{New state!}
 }
 \description{
-Set the state of the data in an expt.
+Set the state of the data in a se.
 }

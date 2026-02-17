@@ -11,7 +11,7 @@ batch_counts(
   batch1 = "batch",
   current_state = NULL,
   current_design = NULL,
-  expt_state = NULL,
+  input_state = NULL,
   surrogate_method = NULL,
   num_surrogates = NULL,
   low_to_zero = FALSE,
@@ -31,13 +31,10 @@ batch_counts(
 \item{batch1}{String describing the method to try to remove the batch effect
 (or FALSE to leave it alone, TRUE uses limma).}
 
-\item{current_state}{Current state of the expt in an attempt to avoid
-double-normalization.}
-
 \item{current_design}{Redundant with expt_design above, but
 provides another place for normalize() to send data.}
 
-\item{expt_state}{Current state of the data}
+\item{input_state}{Current state of the data}
 
 \item{surrogate_method}{Also redundant for normalize()}
 

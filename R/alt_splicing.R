@@ -565,11 +565,11 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   plotting_data <- all_data %>%
     group_by(id) %>%
     dplyr::mutate(
-      num_ijc_mean = mean(as.numeric(strsplit(ijc_numerator, ",")[[1]]), na.rm = TRUE),
-      den_ijc_mean = mean(as.numeric(strsplit(ijc_denominator, ",")[[1]]), na.rm = TRUE),
+      num_ijc_mean = suppressWarnings(mean(as.numeric(strsplit(ijc_numerator, ",")[[1]]), na.rm = TRUE)),
+      den_ijc_mean = suppressWarnings(mean(as.numeric(strsplit(ijc_denominator, ",")[[1]]), na.rm = TRUE)),
       all_ijc_mean = mean(c(num_ijc_mean, den_ijc_mean), na.rm = TRUE),
-      num_mean = mean(as.numeric(strsplit(numerator_inclusion, ",")[[1]]), na.rm = TRUE),
-      den_mean = mean(as.numeric(strsplit(denominator_inclusion, ",")[[1]]), na.rm = TRUE),
+      num_mean = suppressWarnings(mean(as.numeric(strsplit(numerator_inclusion, ",")[[1]]), na.rm = TRUE)),
+      den_mean = suppressWarnings(mean(as.numeric(strsplit(denominator_inclusion, ",")[[1]]), na.rm = TRUE)),
       all_mean = mean(c(num_mean, den_mean), na.rm = TRUE))
   mesg("Adding comparison columns and log p-values.")
   plotting_data[["subtraction"]] <- plotting_data[["num_mean"]] - plotting_data[["den_mean"]]

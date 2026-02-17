@@ -85,7 +85,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   assumed_batch <- fctrs[["assumed_batch"]]
   factors <- fctrs[["factors"]]
   model_type <- fctrs[["type"]]
-  meta <- pData(input)
+  meta <- colData(input)
 
   for (f in factors) {
     if (is.null(meta[[f]])) {
@@ -622,29 +622,29 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
   data <- NULL
   warn_user <- FALSE
   libsize <- NULL
-  conditions <- pData(input)[["condition"]]
-  batches <- pData(input)[["batch"]]
-  data <- as.data.frame(exprs(input))
-  state <- state(input)
+  cond <- conditions(input)
+  batch <- batches(input)
+  data <- as.data.frame(assay(input))
+  the_state <- state(input)
   ## As I understand it, EdgeR fits a binomial distribution
   ## and expects data as integer counts, not floating point nor a log2
   ## transformation. Thus, having the 'normalization' state set to something
   ## other than 'raw' is a likely violation of its stated preferred/demanded
   ## input.  There are of course ways around this but one should not take them
   ## lightly, or ever.
-  tran_state <- state[["transform"]]
+  tran_state <- the_state[["transform"]]
   if (is.null(tran_state)) {
     tran_state <- "raw"
   }
-  conv_state <- state[["conversion"]]
+  conv_state <- the_state[["conversion"]]
   if (is.null(conv_state)) {
     conv_state <- "raw"
   }
-  norm_state <- state[["normalization"]]
+  norm_state <- the_state[["normalization"]]
   if (is.null(norm_state)) {
     norm_state <- "raw"
   }
-  filt_state <- state[["filter"]]
+  filt_state <- the_state[["filter"]]
   if (is.null(filt_state)) {
     filt_state <- "raw"
   }
@@ -675,11 +675,7 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
     ## static. filter->normalization->convert->batch->transform. Thus, if the
     ## normalized state is not raw, we can look back either to the filtered or
     ## original data. The same is true for the transformation state.
-    mesg("EdgeR/DESeq expect raw data as input, reverting to count filtered data.")
-    data <- input[["normalized"]][["intermediate_counts"]][["filter"]][["count_table"]]
-    if (is.null(data)) {
-      data <- input[["normalized"]][["intermediate_counts"]][["original"]]
-    }
+    stop("This requires the raw data.")
   } else {
     mesg("The data should be suitable for EdgeR/DESeq/EBSeq.\n",
          "If they freak out, check the state of the count table\n",
@@ -689,8 +685,8 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
 
   retlist <- list(
     "libsize" = libsize,
-    "conditions" = conditions,
-    "batches" = batches,
+    "conditions" = cond,
+    "batches" = batch,
     "data" = data)
   if (isTRUE(warn_user)) {
     warning("This data was inappropriately forced into integers.")
@@ -770,38 +766,38 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...
   ## this, I will add a parameter which allows one to to turn on/off
   ## normalization at the voom() step.
 
-  conditions <- pData(input)[["condition"]]
-  batches <- pData(input)[["batch"]]
-  libsize <- input[["libsize"]]
-  data <- as.data.frame(exprs(input))
-  state <- state(input)
-  tran_state <- state[["transform"]]
+  cond <- conditions(input)
+  batch <- batches(input)
+  sizes <- libsize(input)
+  data <- as.data.frame(assay(input))
+  the_state <- state(input)
+  tran_state <- the_state[["transform"]]
   ## Note that voom will take care of this for us.
   if (is.null(tran_state)) {
     tran_state <- "raw"
   }
-  conv_state <- state[["conversion"]]
+  conv_state <- the_state[["conversion"]]
   ## Note that voom takes care of this for us.
   if (is.null(conv_state)) {
     conv_state <- "raw"
   }
-  norm_state <- state[["normalization"]]
+  norm_state <- the_state[["normalization"]]
   if (is.null(norm_state)) {
     norm_state <- "raw"
   }
-  filt_state <- state[["filter"]]
+  filt_state <- the_state[["filter"]]
   if (is.null(filt_state)) {
     filt_state <- "raw"
   }
 
   ## ready <- input
-  data <- exprs(input)
+  data <- as.data.frame(assay(input))
   if (isTRUE(force)) {
     mesg("Leaving the data alone, regardless of normalization state.")
     retlist <- list(
       "libsize" = libsize,
-      "conditions" = conditions,
-      "batches" = batches,
+      "conditions" = cond,
+      "batches" = batch,
       "data" = data)
     return(retlist)
   }

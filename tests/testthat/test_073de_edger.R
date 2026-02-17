@@ -1,12 +1,11 @@
 start <- as.POSIXlt(Sys.time())
 context("073de_edger.R")
 
-## All of these functions will depend on an expt to play with:
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
   subset = "minute == 0 | minute == 15 | minute == 30") %>%
-  set_expt_batches(fact = "replicate")
+  set_batches(fact = "replicate")
 
 ## edger_pairwise()
 testing <- edger_pairwise(pombe_subset)

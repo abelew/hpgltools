@@ -32,5 +32,5 @@ terrible, I rely entirely upon RColorBrewer, but also allow one to choose
 his/her own colors.
 }
 \seealso{
-[create_expt()]
+[create_se()]
 }

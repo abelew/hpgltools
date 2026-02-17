@@ -12,6 +12,7 @@ simple_xcell(
   expected_types = NULL,
   label_size = NULL,
   col_margin = 6,
+  length_column = "cds_length",
   row_margin = 12,
   sig_cutoff = 0.2,
   verbose = TRUE,

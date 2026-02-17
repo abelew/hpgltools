@@ -6,7 +6,7 @@
 \usage{
 tar_meta_column(
   meta,
-  column = "hisatcounttable",
+  column = "hisat_count_table",
   output = NULL,
   compression = "xz"
 )

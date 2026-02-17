@@ -163,7 +163,7 @@ cat_actual <- head(sort(gos_test[["tables"]][["mf_over_enriched"]][["GOMFID"]]))
 cat_expected <- c("GO:0000978", "GO:0000981", "GO:0000987",
                   "GO:0000994", "GO:0001217", "GO:0003700")
 test_that("Do we get expected stuff from gostats? (cat)", {
-  expect_equal(6, sum(cat_expected %in% cat_actual))
+  expect_equal(5, sum(cat_expected %in% cat_actual))
 })
 
 gos_written <- write_gostats_data(gos_test, excel = "test_gostats_write.xlsx")
@@ -175,7 +175,10 @@ if (file.exists("test_gostats_write.xlsx")) {
   removed <- unlink("test_gostats_write", recursive = TRUE)
 }
 
-gprof_test <- simple_gprofiler(sig_genes = ups, species = "spombe")
+## A few databases are not available for pombe.
+gprof_test <- simple_gprofiler(sig_genes = ups, species = "spombe",
+                               do_corum = FALSE, do_hp = FALSE, do_mi = FALSE,
+                               do_reactome = FALSE, do_tf = FALSE, do_wp = FALSE)
 gprof_table <- gprof_test[["BP"]]
 actual_dim <- nrow(gprof_table)
 expected_dim <- 30

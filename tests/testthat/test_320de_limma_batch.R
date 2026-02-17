@@ -5,7 +5,7 @@ context("320de_limma_batch.R: Does hpgltools work with limma?")
 load("pasilla_df.rda")
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 ## Testing that hpgltools gets a similar result to cbcbSEQ using limma.
 ## Until preprocessCore gets fixed, disable this.
@@ -37,21 +37,21 @@ cbcb_table <- topTable(cbcb_eb, coef = 2, n = nrow(cbcb_v[["E"]]))
 
 cbcb_data <- as.matrix(counts)
 cbcb_data <- cbcb_data[table_order, ]
-hpgl_data <- exprs(pasilla_expt)
+hpgl_data <- exprs(pasilla_se)
 hpgl_data <- hpgl_data[table_order, ]
-test_that("Does data from an expt equal a raw dataframe?", {
+test_that("Does data from an se equal a raw dataframe?", {
   expect_equal(cbcb_data, hpgl_data)
 })
 
 ## Perform log2/cpm/quantile/combatMod normalization
-hpgl_norm <- sm(normalize_expt(pasilla_expt, transform = "log2", norm = "quant",
+hpgl_norm <- sm(normalize_se(pasilla_se, transform = "log2", norm = "quant",
                                convert = "cbcbcpm", filter = "cbcb", thresh = 1))
 
 ## Ensure that we have the same count tables for limma_pairwise
 ## and the invocations of voom->topTable() by cbcbSEQ.
 ##expected <- nrow(cbcb_counts)
 ##actual <- nrow(exprs(hpgl_norm))
-##test_that("Do we get the same number of genes using cbcb's filter as normalize_expt?", {
+##test_that("Do we get the same number of genes using cbcb's filter as normalize_se?", {
 ##  expect_equal(expected, actual)
 ##})
 
@@ -199,7 +199,7 @@ test_that("Do the intercept and no-intercept fits give equal P-Values?", {
 })
 
 limma_written <- sm(write_limma(noint_limma, excel = "limma_test.xlsx"))
-hpgl_limma <- sm(limma_pairwise(pasilla_expt))
+hpgl_limma <- sm(limma_pairwise(pasilla_se))
 
 ## For the following tests
 limma_file <- "320_de_limma.rda"

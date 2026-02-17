@@ -4,10 +4,12 @@
 \alias{annotation}
 \title{Generic get_annotations function with a reminder if I pass it something new.}
 \usage{
-annotation(exp)
+annotation(object, ...)
 }
 \arguments{
-\item{exp}{Input data structure.}
+\item{object}{Input data structure.}
+
+\item{...}{Other options}
 }
 \description{
 Generic get_annotations function with a reminder if I pass it something new.

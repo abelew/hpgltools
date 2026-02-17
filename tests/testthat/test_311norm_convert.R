@@ -2,30 +2,30 @@ start <- as.POSIXlt(Sys.time())
 context("311norm_convert.R")
 
 load("pasilla_df.rda")
-## create_expt generates a .Rdata file which may be reread, do so.
+## create_se generates a .Rdata file which may be reread, do so.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 ## Uses these genes for quick tests
 test_genes <- c("FBgn0000014", "FBgn0000008", "FBgn0000017", "FBgn0000018", "FBgn0000024")
 
 ## Make sure that my invocation of cpm() is the same as edgeR's.
-pasilla_convert <- sm(normalize_expt(pasilla_expt, convert = "cpm"))
-expected <- edgeR::cpm(pasilla_expt[["expressionset"]])
-actual <- exprs(pasilla_convert)
+pasilla_convert <- sm(normalize(pasilla_se, convert = "cpm"))
+expected <- edgeR::cpm(assay(pasilla_se))
+actual <- assay(pasilla_convert)
 test_that("cpm conversions are equivalent?", {
     expect_equal(expected, actual)
 })
 
 ## Check that the different ways of calling rpkm() are identical
-pasilla_convert <- convert_counts(pasilla_expt, convert = "rpkm", column = "cds_length",
+pasilla_convert <- convert_counts(pasilla_se, convert = "rpkm", length_column = "cds_length",
                                   start_column = "start_position", end_column = "end_position")
-pasilla_norm <- normalize_expt(pasilla_expt, convert = "rpkm", column = "cds_length",
-                               start_column = "start_position", end_column = "end_position")
+pasilla_norm <- normalize(pasilla_se, convert = "rpkm", length_column = "cds_length",
+                          start_column = "start_position", end_column = "end_position")
 expected <- pasilla_convert[["count_table"]]
-actual <- exprs(pasilla_norm)
-test_that("calling convert_counts and normalize_expt are equivalent?", {
+actual <- assay(pasilla_norm)
+test_that("calling convert_counts and normalize are equivalent?", {
     expect_equal(expected, actual)
 })
 
@@ -33,17 +33,19 @@ test_that("calling convert_counts and normalize_expt are equivalent?", {
 ## Make sure that we remove undefined numbers from fdata(length)
 ## This subtraction logic is no longer needed, the pasilla annotations have
 ## cds lengths already recorded; and they take into account the UTRs.
-#fData(pasilla_expt)[["start_position"]] <- as.numeric(fData(pasilla_expt)[["start_position"]])
-#fData(pasilla_expt)[["end_position"]] <- as.numeric(fData(pasilla_expt)[["end_position"]])
-#fData(pasilla_expt)[["cds_length"]] <- abs(fData(pasilla_expt)[["start_position"]] -
-#                                             fData(pasilla_expt)[["end_position"]])
-undef <- fData(pasilla_expt)[["cds_length"]] == "undefined"
-lengths <- fData(pasilla_expt)[["cds_length"]]
+#fData(pasilla_se)[["start_position"]] <- as.numeric(fData(pasilla_se)[["start_position"]])
+#fData(pasilla_se)[["end_position"]] <- as.numeric(fData(pasilla_se)[["end_position"]])
+#fData(pasilla_se)[["cds_length"]] <- abs(fData(pasilla_se)[["start_position"]] -
+#                                             fData(pasilla_se)[["end_position"]])
+undef <- rowData(pasilla_se)[["cds_length"]] == "undefined"
+lengths <- rowData(pasilla_se)[["cds_length"]]
 lengths[undef] <- NA
 fdata_lengths <- as.vector(as.numeric(lengths))
-names(fdata_lengths) <- rownames(fData(pasilla_expt))
-expected <- edgeR::rpkm(exprs(pasilla_expt), gene.length = fdata_lengths)
-actual <- exprs(pasilla_norm)
+names(fdata_lengths) <- rownames(fData(pasilla_se))
+expected <- edgeR::rpkm(assay(pasilla_se), gene.length = fdata_lengths)
+na_idx <- is.na(expected)
+expected[na_idx] <- 0
+actual <- assay(pasilla_norm)
 test_that("rpkm conversions are equivalent?", {
     expect_equal(expected, actual)
 })
@@ -54,8 +56,8 @@ test_that("rpkm conversions are equivalent?", {
 tt <- BiocManager::install("BSgenome.Dmelanogaster.UCSC.dm6")
 tt <- sm(library("BSgenome.Dmelanogaster.UCSC.dm6"))
 
-pasilla_convert <- sm(normalize_expt(
-  pasilla_expt, convert = "cp_seq_m", start_column = "start_position",
+pasilla_convert <- suppressWarnings(normalize(
+  pasilla_se, convert = "cp_seq_m", start_column = "start_position",
   chromosome_column = "chromosome_name", end_column = "end_position",
   genome = BSgenome.Dmelanogaster.UCSC.dm6))
 
@@ -63,23 +65,23 @@ pasilla_convert <- sm(normalize_expt(
 expected <- c(0.03493820, 0.47396682, 22.70873214, 55.11152210, 0.03965286)
 ## And switched back...
 ##expected <- c(0.03443909, 0.46719586, 22.38432168, 54.32421464, 0.03908639)
-actual <- as.numeric(exprs(pasilla_convert)[test_genes, 1])
+actual <- as.numeric(assay(pasilla_convert)[test_genes, 1])
 test_that("cp_seq_m works for TA?", {
     expect_equal(expected, actual, tolerance = 1)
 })
 
 ## Repeat cp_seq_m() for ATG
-pasilla_convert <- sm(normalize_expt(
-  pasilla_expt, convert = "cp_seq_m", start_column = "start_position",
+pasilla_convert <- sm(normalize(
+  pasilla_se, convert = "cp_seq_m", start_column = "start_position",
   chromosome_column = "chromosome_name", end_column = "end_position",
   genome = BSgenome.Dmelanogaster.UCSC.dm6, pattern = "ATG"))
 ## That is interesting (202008) these values changed
 ## In 202212 they appear to have changed back.
-##expected <- c(0.04536343, 0.51893853, 27.76677691, 46.94320722, 0.05237078)
+expected <- c(0.04536343, 0.51893853, 27.76677691, 46.94320722, 0.05237078)
 ##expected <- c(0.04637150, 0.53047049, 28.38381640, 47.98638960, 0.05353458)
 ## They changed back-back in 202401!
-expected <- c(0.04637150, 0.53047049, 28.38381640, 47.98638960, 0.05353458)
-actual <- as.numeric(exprs(pasilla_convert)[test_genes, c("untreated1")])
+##expected <- c(0.04637150, 0.53047049, 28.38381640, 47.98638960, 0.05353458)
+actual <- as.numeric(assay(pasilla_convert)[test_genes, c("untreated1")])
 test_that("cp_seq_m works for ATG?", {
     expect_equal(expected, actual)
 })

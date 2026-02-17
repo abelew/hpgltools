@@ -13,11 +13,12 @@
   scale = NULL,
   sample_names = NULL,
   label_chars = 10,
+  iqr_multiplier = 1.5,
   ...
 )
 }
 \arguments{
-\item{data}{Expt or data frame set of samples.}
+\item{data}{Exp or data frame set of samples.}
 
 \item{colors}{Color scheme, if not provided will make its own.}
 

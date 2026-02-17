@@ -2413,31 +2413,6 @@ and traversing metadata factors:
   return(invisible(x))
 }
 
-#' Feed an expt to a sankey plot.
-#' @param design Metadata from which to extract the categories/numbers.
-#' @param factors Factors/columns in the metadata to count and plot.
-#' @param fill Use either the current or next node for coloring the transitions.
-#' @param font_size Chosen font size, perhaps no longer needed?
-#' @param node_width Make nodes more or less rectangular with this.
-#' @param color_choices Either a named vector of states and colors, or NULL
-#'  (in which case it will use viridis.)
-#' @param drill_down When true, this will end in the product of the
-#'  factor levels number of final states. (e.g. if there are 2 sexes,
-#'  3 visits, and 4 genotypes, there will be 2, 6, 24 states going
-#' from right to left).  If FALSE, there will be 2,3,4 states going
-#' from right to left.
-#' @export
-setMethod(
-  "plot_meta_sankey", signature = signature(design = "expt"),
-  definition = function(design, factors = c("condition", "batch"),
-                        fill = "node", font_size = 18, node_width = 30,
-                        color_choices = NULL, drill_down = TRUE) {
-    design <- pData(design)
-    plot_meta_sankey(design, factors = factors, fill = fill,
-                     font_size = font_size, node_width = node_width,
-                     color_choices = color_choices, drill_down = drill_down)
-  })
-
 #' Using plot_meta_sankey on a SE is basically the same as an expt.
 #'
 #' @inheritParams plot_meta_sankey
@@ -2674,7 +2649,7 @@ seek_filenames <- function(meta, input_file_spec, new_spec, basedir = "preproces
 #' @param output Output prefix for the tarball's name.
 #' @param compression Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?
 #' @export
-tar_meta_column <- function(meta, column = "hisatcounttable", output = NULL, compression = "xz") {
+tar_meta_column <- function(meta, column = "hisat_count_table", output = NULL, compression = "xz") {
   start_list <- meta[[column]]
   file_list <- Sys.glob(start_list)
   include_list <- c()
@@ -2727,6 +2702,16 @@ setMethod(
     meta <- read_metadata(meta)
     ## Someone snuck some spaces into my most recent sample sheet file column!
     meta <- sanitize_metadata(meta, columns = column, punct = FALSE, lower = FALSE, spaces = TRUE)
+    result <- tar_meta_column(meta, column = column,
+                              output = output, compression = compression)
+    return(result)
+  })
+
+setMethod(
+  "tar_meta_column", signature = signature(meta = "summarizedExperiment"),
+  definition = function(meta, column = "hisatcounttable",
+                        output = NULL, compression = "xz") {
+    meta <- colData(meta)
     result <- tar_meta_column(meta, column = column,
                               output = output, compression = compression)
     return(result)

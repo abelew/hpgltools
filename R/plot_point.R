@@ -574,11 +574,16 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
       directlabels::geom_dl(aes(label = .data[["id"]]), method = "first.qp")
   }
 
+  ## Taken from https://stackoverflow.com/questions/7705345/how-can-i-extract-plot-axes-ranges-for-a-ggplot2-object
+  ## In order to get the percent genes label to not mess up the range of the plot.
+  ## plot_range <- ggplot2::ggplot_build(non_zero_plot)$layout$panel_scales_x[[1]]$range$range
+  plot_range <- ggplot2::ggplot_build(non_zero_plot)[["layout"]][["panel_scales_x"]][[1]][["range"]][["range"]]
+  start_range <- plot_range[1]
   if (!is.null(y_intercept)) {
     non_zero_plot <- non_zero_plot +
       ggplot2::geom_hline(yintercept = y_intercept,
                           color = "blue", size = 0.5) +
-      ggplot2::annotate("text", x = 0, y = y_intercept, label = intercept_string,
+      ggplot2::annotate("text", x = start_range, y = y_intercept, label = intercept_string,
                         hjust = 0, vjust = 1)
   }
 
@@ -635,28 +640,6 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
 #' @param y_intercept Add a y-intercept to define 'good' coverage.
 #' @param ... rawr!
-
-#' @export
-setMethod(
-  "plot_nonzero", signature = signature(data = "expt"),
-  definition = function(data, design = NULL, colors = NULL,
-                        plot_labels = "repel", exp_names = NULL,
-                        max_overlaps = 5, label_chars = 10,
-                        plot_legend = FALSE, plot_title = NULL,
-                        cutoff = 0.65, y_intercept = 0.8, ...) {
-    mtrx <- as.matrix(assay(data))
-    pd <- colData(data)
-    condition <- pd[["condition"]]
-    names <- pd[["samplenames"]]
-    chosen_colors <- get_colors(data)
-    plot_nonzero(data = mtrx, design = pd, colors = chosen_colors,
-                 plot_labels = plot_labels, exp_names = names,
-                 max_overlaps = max_overlaps,
-                 label_chars = label_chars, plot_legend = plot_legend,
-                 plot_title = plot_title, cutoff = 0.65,
-                 y_intercept = y_intercept,
-                 ...)
-  })
 
 #' Make a nonzero plot given an ExpressionSet
 #'
@@ -806,28 +789,6 @@ setMethod(
       }
     }
     return(plot_list)
-  })
-
-#' Plot all pairwise MA plots in an experiment.
-#'
-#' Use affy's ma.plot() on every pair of columns in a data set to help diagnose
-#' problematic samples.
-#'
-#'
-#' @param data Exp expressionset or data frame.
-#' @param colors Input colors
-#' @param design Experimental design
-#' @param log Is the data in log format?
-#' @param ... Options are good and passed to arglist().
-#' @return List of affy::maplots
-setMethod(
-  "plot_pairwise_ma", signature = signature(data = "expt"),
-  definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
-    mtrx <- exprs(data)
-    design <- pData(data)
-    colors = get_colors(data)
-    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
-                     log = log, ...)
   })
 
 #' Plot all pairwise MA plots in an experiment.

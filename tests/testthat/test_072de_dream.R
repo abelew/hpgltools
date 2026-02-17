@@ -1,12 +1,12 @@
 start <- as.POSIXlt(Sys.time())
 context("072de_dream.R")
 
-## All of these functions will depend on an expt to play with:
+## All of these functions will depend on an se to play with:
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
   subset = "minute == 0 | minute == 15 | minute == 30") %>%
-  set_expt_batches(fact = "replicate")
+  set_batches(fact = "replicate")
 
 testing <- dream_pairwise(pombe_subset)
 actual <- length(testing[["contrasts_performed"]])

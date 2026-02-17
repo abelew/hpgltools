@@ -2,7 +2,7 @@
 % Please edit documentation in R/attributes.R
 \name{libsize<-}
 \alias{libsize<-}
-\title{Setter for library sizes in an expt.}
+\title{Setter for library sizes.}
 \usage{
 libsize(x, ...) <- value
 }
@@ -14,5 +14,5 @@ libsize(x, ...) <- value
 \item{value}{New library sizes}
 }
 \description{
-Setter for library sizes in an expt.
+Setter for library sizes.
 }

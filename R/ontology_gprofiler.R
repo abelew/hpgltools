@@ -187,7 +187,6 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   if (species != "hsapiens") {
     do_hpa <- FALSE
   }
-
   retlst <- list()
   sources <- c()
   type_names <- c()

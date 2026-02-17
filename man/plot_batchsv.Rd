@@ -5,7 +5,7 @@
 \title{Make a dotplot of known batches vs. SVs.}
 \usage{
 plot_batchsv(
-  expt,
+  exp,
   svs,
   sv = 1,
   batch_column = "batch",
@@ -15,7 +15,7 @@ plot_batchsv(
 )
 }
 \arguments{
-\item{expt}{Experiment from which to acquire the design, counts, etc.}
+\item{exp}{Experiment from which to acquire the design, counts, etc.}
 
 \item{svs}{Set of surrogate variable estimations from sva/svg
 or batch estimates.}

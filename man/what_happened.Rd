@@ -5,7 +5,7 @@
 \title{Print a string describing what happened to this data.}
 \usage{
 what_happened(
-  expt = NULL,
+  exp = NULL,
   transform = "raw",
   convert = "raw",
   norm = "raw",
@@ -15,7 +15,7 @@ what_happened(
 )
 }
 \arguments{
-\item{expt}{The expressionset.}
+\item{exp}{The input data.}
 
 \item{transform}{How was it transformed?}
 

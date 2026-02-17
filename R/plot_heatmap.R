@@ -247,49 +247,6 @@ plot_heatmap <- function(input_data, column_colors = NULL, design = NULL,
 }
 setGeneric("plot_heatmap")
 
-#' Run plot_heatmap with an expt as input.
-#'
-#' @param input_data Dataframe, expt, or expressionset to work with.
-#' @param column_colors Color scheme for the samples.
-#' @param design Design matrix describing the experiment vis a vis
-#'  conditions and batches.
-#' @param method Distance or correlation metric to use.
-#' @param sample_names Alternate names to use for the samples.
-#' @param type Defines the use of correlation, distance, or sample heatmap.
-#' @param batch_row Name of the design row used for 'batch' column colors.
-#' @param plot_title Title for the plot.
-#' @param label_chars Limit on the number of label characters.
-#' @param ... I like elipses!
-#' @export
-setMethod(
-  "plot_heatmap", signature = signature(input_data = "expt"),
-  definition = function(input_data, column_colors = NULL,
-                        design = NULL, method = "pearson",
-                        sample_names = NULL, type = "correlation",
-                        batch_row = "batch", plot_title = NULL, label_chars = 10,
-                        ...) {
-    design <- pData(input_data)
-    column_colors <- get_colors(input_data)
-    sample_names <- input_data[["sample_names"]]
-    input <- exprs(input_data)
-    ## If plot_title is NULL, print nothing, if it is TRUE
-    ## Then give some information about what happened to the data to make the plot.
-    ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
-    ## my expt containing the normalization state of the data.
-    if (isTRUE(plot_title)) {
-      plot_title <- what_happened(input_data)
-    } else if (!is.null(plot_title)) {
-      data_title <- what_happened(input_data)
-      plot_title <- glue("{plot_title}; {data_title}")
-    } else {
-      ## Leave the title blank.
-    }
-    plot_heatmap(input, column_colors = column_colors, design = design,
-      method = method, sample_names = sample_names, type = type,
-      batch_row = batch_row, plot_title = plot_title,
-      label_chars = label_chars, ...)
-  })
-
 #' Run plot_heatmap with a SummarizedExperiment as input.
 #'
 #' @param input_data Dataframe, expt, or expressionset to work with.
@@ -550,39 +507,6 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   return(sample_heatmap_plot)
 }
 setGeneric("plot_sample_heatmap")
-
-
-#' Plot the sample heatmap of an input.
-#'
-#' @param data Input/expressionset/dataframe set of samples.
-#' @param colors Color scheme of the samples (not needed if input is an input).
-#' @param design Design matrix describing the experiment (gotten for free if an input).
-#' @param heatmap_colors Specify a colormap.
-#' @param input_names Alternate samples names.
-#' @param dendrogram Where to put dendrograms?
-#' @param row_label Passed through to heatmap.2.
-#' @param plot_title Title of the plot!
-#' @param Rowv Reorder the rows by expression?
-#' @param Colv Reorder the columns by expression?
-#' @param label_chars Maximum number of characters before abbreviating sample names.
-#' @param filter Filter the data before performing this plot?
-#' @param ... More parameters for a good time!
-#' @export
-setMethod(
-  "plot_sample_heatmap", signature = (data = "expt"),
-  definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
-                        input_names = NULL, dendrogram = "column",
-                        row_label = NA, plot_title = NULL, Rowv = TRUE,
-                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    input_design <- pData(data)
-    input_names <- colnames(input_design)
-    input_data <- exprs(data)
-    input_colors <- get_colors(data)
-    plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
-      input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
-      row_label = row_label, plot_title = plot_title, Rowv = Rowv,
-      Colv = Colv, label_chars = label_chars, filter = filter, ...)
-  })
 
 #' Plot a sample heatmap of an ExpressionSet.
 #'

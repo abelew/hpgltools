@@ -10,8 +10,8 @@ if (file.exists(pasilla_file) & file.exists(pasilladf_file)) {
 } else {
   stop("The pasilla data file does not exist.")
 }
-pasilla_expt <- pasilla[["expt"]]
-## create_expt generates a .Rdata file which may be reread, do so.
+pasilla_se <- pasilla[["se"]]
+## create_se generates a .Rdata file which may be reread, do so.
 
 limma <- new.env()
 limma_file <- "320_de_limma.rda"
@@ -40,7 +40,7 @@ deseq_result <- as.data.frame(DESeq2::results(deseq_run,
                                               format = "DataFrame"))
 
 ## Performing DESeq2 analysis using hpgltools.
-hpgl_deseq <- deseq2_pairwise(input = pasilla_expt,
+hpgl_deseq <- deseq2_pairwise(input = pasilla_se,
                               model_batch = TRUE,
                               deseq_excel = "deseq_test.xlsx")
 test_that("Can I write a deseq2 table?", {

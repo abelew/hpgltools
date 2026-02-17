@@ -46,10 +46,10 @@ test_that("We merged the annotation data?", {
 a909_counts <- utils::untar(tarfile = system.file(
   "share/gbs_tnseq/gbs_essentiality_counts.tar.xz", package = "hpgldata"))
 metadata <- system.file("share/gbs_tnseq/sagalactiae_samples.xlsx", package = "hpgldata")
-a909_expt <- create_expt(metadata = metadata, batch = FALSE, gene_info = a909_annot,
-                         file_column = "a909_filename")
+a909_se <- create_se(metadata = metadata, batch = FALSE, gene_info = a909_annot,
+                     file_column = "a909_filename")
 expected <- 2000
-actual <- nrow(exprs(a909_expt))
+actual <- nrow(assay(a909_se))
 test_that("We created an expressionset?", {
   expect_gt(actual, expected)
 })
@@ -60,11 +60,12 @@ a909_wig <- utils::untar(tarfile = system.file(
 a909_csv <- utils::untar(tarfile = system.file(
   "share/gbs_tnseq/gbs_essentiality.tar.xz", package = "hpgldata"))
 
+plot_type <- "ggplot2::ggplot"
 saturation <- tnseq_saturation(
   "preprocessing/01/outputs/essentiality_sagalactiae_a909/trimmed_ca-v0M1.wig",
   adjust = 2)
 test_that("tnseq_saturation returns expected outputs?", {
-  expect_equal("gg", class(saturation[["plot"]])[1])
+  expect_equal(class(saturation[["plot"]])[1], plot_type)
 })
 expected <- 21000
 test_that("We expect more than 21000 TAs with more than 16 hits:", {
@@ -78,26 +79,26 @@ test_that("We expect an average of 67ish hits per TA:", {
 ess_plts <- plot_essentiality(
   "preprocessing/01/outputs/essentiality_sagalactiae_a909/mh_ess-trimmed_ca-v0M1_gene_tas_m1.csv")
 test_that("plot_essentiality returns expected outputs?", {
-  expect_equal("gg", class(ess_plts[["zbar"]])[1])
-  expect_equal("gg", class(ess_plts[["span_plot"]])[1])
+  expect_equal(class(ess_plts[["zbar"]])[1], plot_type)
+  expect_equal(class(ess_plts[["span_plot"]])[1], plot_type)
 })
 
-plt <- tnseq_multi_saturation(meta = pData(a909_expt), meta_column = "a909esswig")
+plt <- tnseq_multi_saturation(meta = colData(a909_se), meta_column = "a909_ess_wig")
 test_that("tnseq_multi_saturation returns some fun?", {
-  expect_equal("gg", class(plt[["plot"]])[1])
+  expect_equal(class(plt[["plot"]])[1], plot_type)
 })
 
 ## Perform my 'fitness' analysis; which is just a normal differential expression analysis
-a909_norm <- normalize_expt(a909_expt, convert = "cpm", transform = "log2")
-a909_de <- all_pairwise(a909_expt, model_batch = FALSE)
+a909_norm <- normalize(a909_se, convert = "cpm", transform = "log2")
+a909_de <- all_pairwise(a909_se, model_fstring = "~ 0 + condition")
 test_that("all_pairwise returned?", {
   expect_equal("all_pairwise", class(a909_de)[1])
 })
 
 ## Make a couple tables out of that:
 a909_contrasts <- list(
-  "low_vs_control" = c("callow", "control"),
-  "high_vs_control" = c("calhigh", "control"))
+  "low_vs_control" = c("cal_low", "control"),
+  "high_vs_control" = c("cal_high", "control"))
 a909_tables <- combine_de_tables(
   a909_de, keepers = a909_contrasts,
   excel = "a909_tables.xlsx")

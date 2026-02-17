@@ -5,7 +5,7 @@
 \title{A sister function to sv_fstatistics()}
 \usage{
 pc_fstatistics(
-  expt,
+  exp,
   pc_df = NULL,
   num_pcs = 10,
   queries = c("typeofcells", "visitnumber", "donor"),
@@ -13,8 +13,6 @@ pc_fstatistics(
 )
 }
 \arguments{
-\item{expt}{Input expressionset, redo everything to use SE, stupid.}
-
 \item{pc_df}{dataframe of PCs}
 
 \item{num_pcs}{How many PCs to query?}
@@ -22,6 +20,8 @@ pc_fstatistics(
 \item{queries}{List of metadata factors to query.}
 
 \item{...}{Parameters to plot_pca.}
+
+\item{expt}{Input SE.}
 }
 \description{
 TODO: Use this to yank a bunch of code out of pca_information and simplify.

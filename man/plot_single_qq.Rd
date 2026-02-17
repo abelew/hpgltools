@@ -7,7 +7,7 @@
 plot_single_qq(data, x = 1, y = 2, labels = TRUE)
 }
 \arguments{
-\item{data}{Data frame/expt/expressionset.}
+\item{data}{Data frame/exp/expressionset.}
 
 \item{x}{First column to compare.}
 

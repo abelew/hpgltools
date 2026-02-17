@@ -7,17 +7,17 @@ context("14norm_filter.R: Are normalizations consistent over time (Filtering)?")
 ## the gene names to the tests.
 ## Uses these genes for quick tests
 test_genes <- c("FBgn0000014", "FBgn0000008", "FBgn0000017", "FBgn0000018", "FBgn0000024")
-## create_expt generates a .Rdata file which may be reread, do so.
+## create_se generates a .Rdata file which may be reread, do so.
 
 load("pasilla_df.rda")
-## create_expt generates a .Rdata file which may be reread, do so.
+## create_se generates a .Rdata file which may be reread, do so.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 ## Test filter
 expected <- c(7531, 7)
-pasilla_filter <- sm(normalize_expt(pasilla_expt, filter = "cbcb"))
+pasilla_filter <- sm(normalize(pasilla_se, filter = "cbcb"))
 actual <- dim(exprs(pasilla_filter))
 test_that("cbcb filtering leaves behind the expected number of genes?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -25,7 +25,7 @@ test_that("cbcb filtering leaves behind the expected number of genes?", {
 
 ## TODO These may need adjustment
 expected <- c(10153, 7)
-pasilla_filter <- sm(normalize_expt(pasilla_expt, filter = "pofa"))
+pasilla_filter <- sm(normalize(pasilla_se, filter = "pofa"))
 actual <- dim(exprs(pasilla_filter))
 test_that("pofa filtering leaves behind the expected number of genes?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -33,7 +33,7 @@ test_that("pofa filtering leaves behind the expected number of genes?", {
 
 ## TODO These may need adjustment
 expected <- c(10153, 7)
-pasilla_filter <- sm(normalize_expt(pasilla_expt, filter = "kofa"))
+pasilla_filter <- sm(normalize(pasilla_se, filter = "kofa"))
 actual <- dim(exprs(pasilla_filter))
 test_that("kofa filtering leaves behind the expected number of genes?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -41,14 +41,14 @@ test_that("kofa filtering leaves behind the expected number of genes?", {
 
 ## TODO These may need adjustment
 expected <- c(10153, 7)
-pasilla_filter <- sm(normalize_expt(pasilla_expt, filter = "cv"))
+pasilla_filter <- sm(normalize(pasilla_se, filter = "cv"))
 actual <- dim(exprs(pasilla_filter))
 test_that("cv filtering leaves behind the expected number of genes?", {
     expect_equal(expected, actual, tolerance = 0.0001)
 })
 
 expected <- c(10153, 7)
-pasilla_filter <- sm(normalize_expt(pasilla_expt, filter = "simple"))
+pasilla_filter <- sm(normalize(pasilla_se, filter = "simple"))
 actual <- dim(exprs(pasilla_filter))
 test_that("simple filtering leaves behind the expected number of genes?", {
     expect_equal(expected, actual, tolerance = 0.0001)

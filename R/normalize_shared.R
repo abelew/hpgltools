@@ -447,10 +447,10 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
     original_libsize <- colSums(count_table)
   }
   if (is.null(annotations)) {
-    annotations <- rowData(se)
+    annotations <- as.data.frame(rowData(se))
   }
 
-  design <- colData(se)
+  design <- as.data.frame(colData(se))
   original_counts <- count_table
 
   type <- ""
@@ -617,7 +617,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   } else {
     mesg("Step 3: converting the data with ", convert, ".")
     converted_counts <- convert_counts(count_table, method = convert, annotations = annotations,
-                                       length_column = length_column,
+                                       length_column = length_column, na_to_zero = na_to_zero,
                                        ...)
     ## converted_counts <- convert_counts(count_table, method = convert, annotations = annotations)
     current_libsize <- converted_counts[["libsize"]]

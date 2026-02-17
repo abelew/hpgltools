@@ -10,7 +10,7 @@ if (file.exists(pasilla_file)) {
 } else {
   stop("The pasilla data file does not exist.")
 }
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 limma <- new.env()
 limma_file <- "320_de_limma.rda"
@@ -43,17 +43,17 @@ contr <- limma::makeContrasts(contrasts = pair, levels = model)
 glm_result <- edgeR::glmQLFTest(glmfit, contrast = contr)
 glm_table <- as.data.frame(edgeR::topTags(glm_result, n = nrow(raw), sort.by = "logFC"))
 
-## Create the expt object
+## Create the se object
 expected <- as.matrix(counts)
 expected <- expected[sort(rownames(expected)), ]
-actual <- exprs(pasilla_expt)
+actual <- exprs(pasilla_se)
 actual <- actual[sort(rownames(actual)), ]
-test_that("Does data from an expt equal a raw dataframe?", {
+test_that("Does data from an se equal a raw dataframe?", {
     expect_equal(expected, actual)
 })
 
 ## Perform the edgeR analysis in hpgltools
-hpgl_edger <- sm(edger_pairwise(pasilla_expt, edger_method = "long", edger_test = "qlf"))
+hpgl_edger <- sm(edger_pairwise(pasilla_se, edger_method = "long", edger_test = "qlf"))
 
 hpgl_result <- hpgl_edger[["all_tables"]][["untreated_vs_treated"]]
 hpgl_result[["logFC"]] <- hpgl_result[["logFC"]] * -1
@@ -101,7 +101,7 @@ test_that("Can we write the results of an edger pairwise analysis?", {
     expect_true(file.exists("edger_test.xlsx"))
 })
 
-hpgl_edger <- sm(edger_pairwise(pasilla_expt))
+hpgl_edger <- sm(edger_pairwise(pasilla_se))
 save(list = ls(), file = "326_de_edger.rda")
 
 end <- as.POSIXlt(Sys.time())

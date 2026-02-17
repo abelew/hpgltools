@@ -36,7 +36,7 @@ rmats_plots <- plot_rmats(
   se = both_se, a5ss = both_a5ss, a3ss = both_a3ss,
   mxe = both_mxe, ri = both_ri)
 
-expected <- "gg"
+expected <- "ggplot2::ggplot"
 actual <- class(rmats_plots[["ma"]])[1]
 test_that("We get a plot of some rMATS data?", {
   expect_equal(expected, actual)

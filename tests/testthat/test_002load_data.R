@@ -1,20 +1,40 @@
 start <- as.POSIXlt(Sys.time())
-##library(testthat)
-##library(hpgltools)
 context("002load_data.R: Does pasilla load into hpgltools?")
 
 library(pasilla)
 ## data(pasillaGenes)
 ## Try loading some annotation information for this species.
 
-## The jan 2020 stopped responding.
-gene_info <- load_biomart_annotations(species = "dmelanogaster",
-                                      year = "2021", month = "feb",
-                                      overwrite = TRUE)
-gene_info <- gene_info[["annotation"]]
-info_idx <- gene_info[["gene_biotype"]] == "protein_coding"
-gene_info <- gene_info[info_idx, ]
-rownames(gene_info) <- make.names(gene_info[["ensembl_gene_id"]], unique = TRUE)
+## The jan 2020 stopped responding, as did the feb 2021 and a bunch of others
+## I am considering adding a fallback orgdb load to this function as a result.
+gene_info <- try(load_biomart_annotations(species = "dmelanogaster",
+                                          year = "2021", month = "feb",
+                                          overwrite = TRUE))
+sad <- FALSE
+if ("try-error" %in% class(gene_info)) {
+  fields <- c("ACCNUM", "ALIAS", "ENSEMBL", "ENTREZID",
+              "FLYBASE", "FLYBASECG", "GENENAME", "GENETYPE", "SYMBOL")
+  gene_info <- load_orgdb_annotations("org.Dm.eg.db", fields = fields)
+  gene_info <- gene_info[["genes"]]
+  ## Sadly, the orgdb for melanogaster does not include start/stop information
+  ## I am guessing that is all kept in the TxDb
+  tx_info <- load_txdb_annotations("TxDb.Dmelanogaster.UCSC.dm6.ensGene")
+  gene_info <- merge(gene_info, tx_info[["TX"]], by.x = "row.names", by.y = "GENEID")
+  rownames(gene_info) <- make.names(gene_info[["Row.names"]], unique = TRUE)
+  gene_info[["Row.names"]] <- NULL
+  gene_info[["start_position"]] <- gene_info[["TXSTART"]]
+  gene_info[["TXSTART"]] <- NULL
+  gene_info[["end_position"]] <- gene_info[["TXEND"]]
+  gene_info[["TXEND"]] <- NULL
+  gene_info[["chromosome_name"]] <- gene_info[["TXCHROM"]]
+  gene_info[["TXCHROM"]] <- NULL
+  sad <- TRUE
+} else {
+  gene_info <- gene_info[["annotation"]]
+  info_idx <- gene_info[["gene_biotype"]] == "protein_coding"
+  gene_info <- gene_info[info_idx, ]
+  rownames(gene_info) <- make.names(gene_info[["ensembl_gene_id"]], unique = TRUE)
+}
 
 ## This section is copy/pasted to all of these tests, that is dumb.
 datafile <- system.file("extdata/pasilla_gene_counts.tsv", package = "pasilla")
@@ -32,7 +52,7 @@ metadata <- design
 colnames(metadata) <- c("condition", "batch")
 save(list = ls(), file = "pasilla_df.rda")
 
-## Make sure it is still possible to create an expt
+## Make sure it is still possible to create a se
 pasilla_se <- create_se(count_dataframe = counts, metadata = metadata,
                         savefile = "pasilla.rda", gene_info = gene_info) %>%
   sanitize_annotations(columns = c("start_position", "end_position"),
@@ -44,7 +64,7 @@ actual <- assay(pasilla_se)
 actual <- actual[ order(row.names(actual)), ]
 expected <- as.matrix(counts)
 expected <- expected[ order(row.names(expected)), ]
-test_that("Does data from an expt equal a raw dataframe?", {
+test_that("Does data from a se equal a raw dataframe?", {
     expect_equal(expected, actual)
 })
 
@@ -64,7 +84,9 @@ test_that("Was the annotation information imported into the expressionset? (stat
 ## 202107: It switched again!
 expected <- c(3987, 990, 4860, 1617, 1947, 1314)
 ## This is a weird thing to change!
-expected <- c(857, 1672, 1188, 269, 393, 163)
+if (isTRUE(sad)) {
+  expected <- c(857, 1672, 1188, 269, 393, 163)
+}
 ## Sometimes the cds lengths don't get added to the annotations...
 annotations[["subtracted_cds_length"]] <- abs(as.numeric(annotations[["start_position"]]) -
                                                 as.numeric(annotations[["end_position"]]))
@@ -72,6 +94,10 @@ annotations[["subtracted_cds_length"]] <- abs(as.numeric(annotations[["start_pos
 ## By the same token, the start positions of genes should remain consistent.
 ##expected <- c(18822604, 30212156, 7782797, 19116483, 19116483, 19116483)
 expected <- c(22136968, 16807214, 16615866, 10973443, 13222951, 29991144)
+## The values are a little different if ensembl is not working:
+if (isTRUE(sad)) {
+  expected <- c(22136968, 16807627, 16622370, 10973443, 13222951, 29991144)
+}
 actual <- as.numeric(annotations[chosen_genes, "start_position"])
 test_that("Was the annotation information imported into the expressionset? (static starts?)", {
     expect_equal(expected, actual)
@@ -80,12 +106,15 @@ test_that("Was the annotation information imported into the expressionset? (stat
 ## As should the chromosome arms of these genes.
 ##expected <- c("3L", "3R", "2R", "2L", "2L", "2L")
 expected <- c("2R", "3R", "3L", "2L", "3R", "3R")
+if (isTRUE(sad)) {
+  expected <- c("chr2R", "chr3R", "chr3L", "chr2L", "chr3R", "chr3R")
+}
 actual <- as.character(annotations[chosen_genes, "chromosome_name"])
 test_that("Was the annotation information imported into the expressionset? (static chromosomes?)", {
     expect_equal(expected, actual)
 })
 
-## Test that the expt has a design which makes sense.
+## Test that the se has a design which makes sense.
 expected <- c("untreated1", "untreated2", "untreated3",
               "untreated4", "treated1", "treated2", "treated3")
 actual <- as.character(colData(pasilla_se)[["sampleid"]])

@@ -1,12 +1,12 @@
 start <- as.POSIXlt(Sys.time())
 context("070de_basic.R")
 
-## All of these functions will depend on an expt to play with:
+## All of these functions will depend on an se to play with:
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
   subset = "minute == 0 | minute == 15 | minute == 30") %>%
-  set_expt_batches(fact = "replicate")
+  set_batches(fact = "replicate")
 
 ## Well, in the previous test, we created pombe_se, so let us use it.
 testing <- basic_pairwise(pombe_subset)

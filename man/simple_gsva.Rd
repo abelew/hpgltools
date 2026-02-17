@@ -78,5 +78,5 @@ function will hopefully provide some of the requisite defaults and do some
 sanity checking to make it more likely that a gsva analysis will succeed.
 }
 \seealso{
-[GSEABase] [load_gmt_signatures()] [create_expt()] [GSVA]
+[GSEABase] [load_gmt_signatures()] [create_se()] [GSVA]
 }

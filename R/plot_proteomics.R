@@ -494,7 +494,8 @@ plot_pyprophet_distribution <- function(pyprophet_data, column = "delta_rt", kee
   count <- NULL
   density <- ggplot(
     data = plot_df, aes(x = .data[[column]], colour = .data[["sample"]])) +
-    ggplot2::geom_density(aes(x = .data[[column]], y = ggplot2::after_stat(count), fill = .data[["sample"]]),
+    ggplot2::geom_density(aes(x = .data[[column]],
+                              y = ggplot2::after_stat(count), fill = .data[["sample"]]),
                           position = "identity", na.rm = TRUE) +
     ggplot2::scale_colour_manual(values = as.character(colors)) +
     ggplot2::scale_fill_manual(values = ggplot2::alpha(as.character(colors), 0.1)) +

@@ -538,3 +538,26 @@ If this is not correctly performed, very few genes will be observed")
        " rows and ", ncol(count_table), " columns.")
   return(retlist)
 }
+
+#' I want an easy way to sum counts in eupathdb-derived data sets.
+#' These have a few things which should make this relatively easy.
+#' Notably: The gene IDs look like: "exon_ID-1 exon_ID-2 exon_ID-3"
+#' Therefore we should be able to quickly merge these.
+#'
+#' @param counts Matrix/df/dt of count data.
+#' @return The same data type but with the exons summed.
+sum_eupath_exon_counts <- function(counts) {
+  rownames(counts) <- gsub(pattern = "^exon_", replacement = "", x = rownames(counts))
+  rownames(counts) <- gsub(pattern = "\\-1$", replacement = "", x = rownames(counts))
+  multi_exon_idx <- grep(pattern = "\\-\\d+$", x = rownames(counts))
+  for (idx in multi_exon_idx) {
+    gene <- gsub(pattern = "\\-\\d+$", replacement = "", x = rownames(counts)[idx])
+    exon_counts <- counts[idx, ]
+    gene_counts <- counts[gene, ]
+    total_counts <- gene_counts + exon_counts
+    counts[gene, ] <- total_counts
+  }
+  counts <- counts[-multi_exon_idx, ]
+  counts <- as.matrix(counts)
+  return(counts)
+}

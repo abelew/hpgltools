@@ -218,11 +218,14 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
   result_list <- list()
   ## For the moment this will hard-assume edger, but should be trivially changed for the others.
   all_samples <- rownames(model_used)
+  simulation_result <- NULL
   for (con_num in seq_along(contrasts)) {
     ## cheesing out with a paste0 for now.
     num <- numerators[con_num]
     den <- denominators[con_num]
+    num_contrasts = length(contrasts)
     vs_string <- glue("{num}_vs_{den}")
+    message("Working on contrast ", con_num, "/", num_contrasts, ": ", vs_string, ".")
     ## The variable 'used' is a string describing the contrast
     ## for the grant text.
     used_string <- glue("{num}/{den}")
@@ -252,7 +255,6 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
         x_intercept <- adder + ((all_coverage - cutoffs[adder]) / cutoff)
       }
     }
-    message("Working on contrast ", con_num, "/", clen, ": ", vs_string, ".")
     simulation_options <- list(
       "ngenes" = num_genes,
       "p.DE" = p,
@@ -292,7 +294,8 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
                                    filter.by = filter,
                                    target.by = target,
                                    delta = delta)
-    plots <- proper_plots(powers, add_coverage = add_coverage, x_intercept = x_intercept)
+    plots <- proper_plots(powers, simulation_result,
+                          add_coverage = add_coverage, x_intercept = x_intercept)
     ## Stealing from plotPower to get the relevant cutoffs
     nsims = dim(powers[["power"]])[3]
     observed_power = apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
@@ -462,7 +465,7 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
 #' @param powers The result from comparePowers()
 #' @param add_coverage Add a line of the actual coverage in an experiment.
 #' @param x_intercept Add a line showing the significance deemed interesting.
-proper_plots <- function(powers, add_coverage = TRUE, x_intercept = 1) {
+proper_plots <- function(powers, result, add_coverage = TRUE, x_intercept = 1) {
     tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
@@ -515,7 +518,7 @@ proper_plots <- function(powers, add_coverage = TRUE, x_intercept = 1) {
     tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")
-    suppressWarnings(PROPER::plotPowerHist(powerOutput = powers, simResult = simulation_result))
+    suppressWarnings(PROPER::plotPowerHist(powerOutput = powers, simResult = result))
     if (isTRUE(add_coverage)) {
       abline(v = x_intercept)
     }

@@ -18,11 +18,11 @@
 )
 }
 \arguments{
-\item{data}{Expt, expressionset, or data frame.}
+\item{data}{SE, expressionset, or data frame.}
 
 \item{design}{Specify metadata if desired.}
 
-\item{colors}{Color scheme if data is not an expt.}
+\item{colors}{Color scheme if data is not an se.}
 
 \item{method}{Correlation or distance method to use.}
 

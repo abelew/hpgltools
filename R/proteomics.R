@@ -1,4 +1,4 @@
-#' Replace 0 with NA if not all entries for a given condition are 0.
+q#' Replace 0 with NA if not all entries for a given condition are 0.
 #'
 #' This will hopefully handle a troubling corner case in Volker's data:
 #' He primarily wants to find proteins which are found in one condition, but

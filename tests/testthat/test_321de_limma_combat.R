@@ -1,10 +1,10 @@
 start <- as.POSIXlt(Sys.time())
 context("321de_limma_combat.R: Does hpgltools work with limma and combat?")
 
-## create_expt generates a .Rdata file which may be reread, do so.
+## create_se generates a .Rdata file which may be reread, do so.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 limma <- new.env()
 load("320_de_limma.rda", envir = limma)
 counts <- limma[["counts"]]
@@ -74,19 +74,19 @@ cbcb_fit <- lmFit(cbcb_v)
 cbcb_eb <- eBayes(cbcb_fit)
 cbcb_table <- topTable(cbcb_eb, coef = 2, n = nrow(cbcb_v[["E"]]))
 
-## Now create a hpgltools expt and try the same thing
-## Setting up an expt class to contain the pasilla data and metadata.
+## Now create a hpgltools se and try the same thing
+## Setting up an se class to contain the pasilla data and metadata.
 expected <- as.matrix(counts)
 expected <- expected[sort(rownames(expected)), ]
-actual <- exprs(pasilla_expt)
+actual <- exprs(pasilla_se)
 actual <- actual[sort(rownames(actual)), ]
-test_that("Does data from an expt equal a raw dataframe?", {
+test_that("Does data from an se equal a raw dataframe?", {
   expect_equal(expected, actual)
 })
 
 ## Perform log2/cpm/quantile/combatMod normalization
-hpgl_norm <- sm(normalize_expt(pasilla_expt, transform = "log2",
-                               norm = "quant", convert = "cbcbcpm"))
+hpgl_norm <- sm(normalize(pasilla_se, transform = "log2",
+                          norm = "quant", convert = "cbcbcpm"))
 hpgl_qcpmcounts <- exprs(hpgl_norm)
 expected <- cbcb_qcpmcounts
 expected <- expected[sort(rownames(expected)), ]
@@ -103,9 +103,9 @@ cbcb_filtered <- suppressWarnings(cbcbSEQ::filterCounts(cbcb_hpgl_combat))
 not_na <- !is.na(rownames(cbcb_filtered))
 cbcb_filtered <- cbcb_filtered[not_na, ]
 
-intermediate <- normalize_expt(pasilla_expt, filter = "cbcb", thresh = 2)
-end <- normalize_expt(intermediate, norm = "quant", convert = "cbcbcpm", batch = "combatmod")
-end <- normalize_expt(end, transform = "log2")
+intermediate <- normalize(pasilla_se, filter = "cbcb", thresh = 2)
+end <- normalize(intermediate, norm = "quant", convert = "cbcbcpm", batch = "combatmod")
+end <- normalize(end, transform = "log2")
 
 expected <- head(cbcb_filtered)[, 1]
 actual <- head(exprs(end))[, 1]
@@ -114,7 +114,7 @@ test_that("Do cbcbSEQ and hpgltools agree on combatMod(log2(quantile(cpm(counts)
 })
 
 ## If we made it this far, then the inputs to limma should agree.
-hpgl_limma_combat_result <- sm(limma_pairwise(pasilla_expt, limma_method = "ls", filter = TRUE,
+hpgl_limma_combat_result <- sm(limma_pairwise(pasilla_se, limma_method = "ls", filter = TRUE,
                                               model_batch = FALSE,
                                               model_intercept = TRUE,
                                               which_voom = "hpgl"))

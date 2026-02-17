@@ -4,12 +4,12 @@
 \alias{plot_pcfactor}
 \title{make a dotplot of some categorised factors and a set of principle components.}
 \usage{
-plot_pcfactor(pc_df, expt, exp_factor = "condition", component = "PC1")
+plot_pcfactor(pc_df, exp, exp_factor = "condition", component = "PC1")
 }
 \arguments{
 \item{pc_df}{Df of principle components.}
 
-\item{expt}{Expt containing counts, metadata, etc.}
+\item{exp}{Data containing counts, metadata, etc.}
 
 \item{exp_factor}{Experimental factor to compare against.}
 

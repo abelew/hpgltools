@@ -1,23 +1,23 @@
 start <- as.POSIXlt(Sys.time())
-context("470expt_spyogenes.R: Does a small bacterial RNAseq experiment load?")
+context("470se_spyogenes.R: Does a small bacterial RNAseq experiment load?")
 
 mgas_data <- new.env()
-cdm_data <- system.file("share/cdm_expt.rda", package = "hpgldata")
+cdm_data <- system.file("share/cdm_se.rda", package = "hpgldata")
 load(cdm_data, envir = mgas_data)
 rm(cdm_data)
 
-mgas_expt <- sm(create_expt(count_dataframe = mgas_data[["cdm_counts"]],
-                            metadata = mgas_data[["cdm_metadata"]],
-                            gene_info = mgas_data[["gene_info"]]))
+mgas_se <- sm(create_se(count_dataframe = mgas_data[["cdm_counts"]],
+                        metadata = mgas_data[["cdm_metadata"]],
+                        gene_info = mgas_data[["gene_info"]]))
 
 expected <- c("dnaA", "dnaN", "M5005_Spy_0003", "ychF", "pth", "trcF")
-actual <- head(fData(mgas_expt)[["Name"]])
+actual <- head(fData(mgas_se)[["Name"]])
 test_that("Did the gene information load?", {
   expect_equal(expected, actual)
 })
 
-mgas_norm <- normalize_expt(mgas_expt, transform = "log2",
-                            convert = "cbcbcpm", filter = TRUE)
+mgas_norm <- normalize(mgas_se, transform = "log2",
+                          convert = "cbcbcpm", filter = TRUE)
 test_that("Is the filter state maintained?", {
   expect_equal("cbcb", mgas_norm[["state"]][["filter"]])
 })
@@ -31,12 +31,12 @@ test_that("Is the transformation state maintained?", {
   expect_equal("log2", mgas_norm[["state"]][["transform"]])
 })
 
-mgas_norm <- normalize_expt(mgas_norm, batch = "combat_scale")
+mgas_norm <- normalize(mgas_norm, batch = "combat_scale")
 test_that("Is the batch state maintained?", {
   expect_equal("combat_scale", mgas_norm[["state"]][["batch"]])
 })
 
-mgas_pairwise <- all_pairwise(mgas_expt)
+mgas_pairwise <- all_pairwise(mgas_se)
 expected <- 0.39
 actual <- min(mgas_pairwise[["comparison"]][["comp"]])
 test_that("Do we get reasonably high similarities among the various DE tools?", {
@@ -130,4 +130,4 @@ test_that("Did circos run?", {
 
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = (as.numeric(end - start)))
-message("\nFinished 70expt_spyogenes.R in ", elapsed,  " seconds.")
+message("\nFinished 70se_spyogenes.R in ", elapsed,  " seconds.")

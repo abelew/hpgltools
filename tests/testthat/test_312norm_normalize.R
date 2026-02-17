@@ -7,17 +7,16 @@ context("12norm_normalize.R: Are normalizations consistent over time? (Normaliza
 ## the gene names to the tests.
 
 load("pasilla_df.rda")
-## create_expt generates a .Rdata file which may be reread, do so.
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
-pasilla_expt <- pasilla[["expt"]]
+pasilla_se <- pasilla[["se"]]
 
 ## Uses these genes for quick tests
 test_genes <- c("FBgn0000014", "FBgn0000008", "FBgn0000017", "FBgn0000018", "FBgn0000024")
 
 expected <- as.numeric(c(5.857143, 91.500000, 4400.000000, 543.785714, 10.714286))
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "quant"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "quant"))
+actual_df <- assay(pasilla_norm)
 actual <- as.numeric(actual_df[test_genes, c("untreated1")])
 test_that("quant normalization gives expected values?", {
     expect_equal(expected, actual, tolerance = 20)
@@ -26,8 +25,8 @@ test_that("quant normalization gives expected values?", {
 ## Similar test for size-factor normalization
 expected <- c(4.392658, 80.824908, 4097.471407, 512.183926, 8.785316)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "sf"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "sf"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("size-factor normalization gives expected values?", {
     expect_equal(expected, actual)
@@ -36,8 +35,8 @@ test_that("size-factor normalization gives expected values?", {
 ## Check another size-factor normalization
 expected <- c(4.392658, 80.824908, 4097.471407, 512.183926, 8.785316)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "sf2"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "sf2"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("size-factor2 normalization gives expected values?", {
     expect_equal(expected, actual)
@@ -47,8 +46,8 @@ test_that("size-factor2 normalization gives expected values?", {
 ##expected <- c(5.488150, 7.082043, 12.021996, 9.160395, 5.707992)
 expected <- c(6.390378, 7.554126, 12.045030, 9.310557, 6.544189)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "vsd"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "vsd"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("vsd normalization gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -56,8 +55,8 @@ test_that("vsd normalization gives expected values?", {
 
 expected <- c(4.927997, 91.830657, 4765.366532, 613.466245, 9.342734)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "tmm"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "tmm"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("tmm normalization gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -65,8 +64,8 @@ test_that("tmm normalization gives expected values?", {
 
 expected <- c(4.902692, 90.336774, 4803.090308, 608.726226, 9.488822)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "upperquartile"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "upperquartile"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("upperquartile normalization gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)
@@ -74,8 +73,8 @@ test_that("upperquartile normalization gives expected values?", {
 
 expected <- c(4.927854, 91.079703, 4840.296148, 615.582521, 9.205998)
 names(expected) <- test_genes
-pasilla_norm <- sm(normalize_expt(pasilla_expt, norm = "rle"))
-actual_df <- exprs(pasilla_norm)
+pasilla_norm <- sm(normalize(pasilla_se, norm = "rle"))
+actual_df <- assay(pasilla_norm)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("RLE normalization gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)

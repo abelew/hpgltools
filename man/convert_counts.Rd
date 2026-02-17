@@ -9,6 +9,7 @@ convert_counts(
   method = "raw",
   annotations = NULL,
   length_column = "width",
+  na_to_zero = TRUE,
   ...
 )
 }

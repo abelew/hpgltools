@@ -2,7 +2,7 @@
 % Please edit documentation in R/attributes.R
 \name{state}
 \alias{state}
-\title{Get the state of the data in an expt.}
+\title{Get the state of the data in a se.}
 \usage{
 state(input)
 }
@@ -10,5 +10,5 @@ state(input)
 \item{input}{Experiment containing the state.}
 }
 \description{
-Get the state of the data in an expt.
+Get the state of the data in a se.
 }

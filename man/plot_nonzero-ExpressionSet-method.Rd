@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_point.R
 \name{plot_nonzero,ExpressionSet-method}
 \alias{plot_nonzero,ExpressionSet-method}
-\title{Make a nonzero plot given an ExpressionSet}
+\title{Make a nonzero plot given an exp.}
 \usage{
 \S4method{plot_nonzero}{ExpressionSet}(
   data,
@@ -48,5 +48,5 @@ graphed point.}
 \item{...}{rawr!}
 }
 \description{
-Make a nonzero plot given an ExpressionSet
+Make a nonzero plot given an exp.
 }

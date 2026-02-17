@@ -20,7 +20,7 @@
 )
 }
 \arguments{
-\item{data}{Expt, expressionset, or data frame.}
+\item{data}{Exp, expressionset, or data frame.}
 
 \item{colors}{Color scheme to use.}
 

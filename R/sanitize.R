@@ -42,37 +42,6 @@ setMethod(
     return(se)
   })
 
-
-#' Given an expressionset, sanitize the gene information data.
-#'
-#' @param input Input expressionset.
-#' @param columns Set of columns to sanitize, otherwise all of them.
-#' @param na_value Fill in NA with this.
-#' @param lower sanitize capitalization.
-#' @param punct Remove punctuation?
-#' @param factorize Convert columns to factors?  When set to 'heuristic'
-#'  this tries out as.factor and sees if the number of levels is silly.
-#' @param max_levels The definition of 'silly' above.
-#' @param spaces Allow spaces in the data?
-#' @param numbers Sanitize number formats (e.g. 1.000.000,0 vs. 1,000,000.0)
-#' @param numeric Set columns to numeric when possible?
-#' @export
-setMethod(
-  "sanitize_annotations", signature = signature(input = "expt"),
-  definition =  function(input, columns = NULL, na_value = "notapplicable",
-                         lower = TRUE, punct = TRUE, factorize = "heuristic",
-                         max_levels = NULL, spaces = FALSE, numbers = NULL,
-                         numeric = FALSE) {
-    expt <- input
-    meta <- fData(expt)
-    sanitized <- sanitize_metadata(meta, columns = columns, na_value = na_value,
-                                   lower = lower, punct = punct, factorize = factorize,
-                                   max_levels = max_levels, spaces = spaces,
-                                   numbers = numbers, numeric = numeric)
-    fData(expt) <- sanitized
-    return(expt)
-  })
-
 #' Metadata sanitizers
 #'
 #' @param input Input datastructure
@@ -212,46 +181,6 @@ setMethod(
                              factorize = factorize, max_levels = max_levels,
                              spaces = spaces, numbers = numbers)
     return(new[["tmp"]])
-  })
-
-#' Given an expressionset, sanitize pData columns of interest.
-#'
-#' I wrote this function after spending a couple of hours confused
-#' because one cell in my metadata said 'cure ' instead of 'cure' and
-#' I could not figure out why chaos reigned in my analyses.  There is
-#' a sister to this somewhere else which checks that the expected
-#' levels of a metadata factor are consistent; this is because in
-#' another analysis we essentially had a cell which said 'cyre' and a
-#' similar data explosion occurred.
-#'
-#' @param input Input metadata
-#' @param columns Set of columns to check, if left NULL, all columns
-#'  will be molested.
-#' @param na_string Fill NA values with a string.
-#' @param lower Set everything to lowercase?
-#' @param punct Remove punctuation?
-#' @param factorize Set some columns to factors?  If set to a vector
-#'  of length >=1, then set all of the provided columns to factors.
-#'  When set to 'heuristic', set any columns with <= max_levels
-#'  different elements to factors.
-#' @param max_levels When heuristically setting factors, use this as
-#'  the heuristic, when NULL it is the number of samples / 6
-#' @param spaces Remove any spaces in this column?
-#' @param numbers Sanitize numbers by adding a prefix character to them?
-#' @export
-setMethod(
-  "sanitize_metadata", signature = signature(input = "expt"),
-  definition = function(input, columns = NULL, na_value = "notapplicable",
-                        lower = TRUE, punct = TRUE, factorize = "heuristic",
-                        max_levels = NULL, spaces = FALSE, numbers = NULL) {
-    expt <- input
-    old_meta <- pData(expt)
-    new_meta <- sanitize_metadata(old_meta, columns = columns, na_value = na_value,
-                                  lower = lower, punct = punct,
-                                  factorize = factorize, max_levels = max_levels,
-                                  spaces = spaces, numbers = numbers)
-    pData(expt) <- new_meta
-    return(expt)
   })
 
 #' Given an expressionset, sanitize pData columns of interest.

@@ -4,7 +4,7 @@
 \alias{proper_plots}
 \title{Given the result of simple_proper, plot the various results.}
 \usage{
-proper_plots(powers, add_coverage = TRUE, x_intercept = 1)
+proper_plots(powers, result, add_coverage = TRUE, x_intercept = 1)
 }
 \arguments{
 \item{powers}{The result from comparePowers()}
