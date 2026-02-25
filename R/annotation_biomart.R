@@ -500,10 +500,9 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
     "year" = year,
     "month" = month,
     "species" = species)
-  class(retlist) <- "annotations_biomart"
+  class(retlist) <- "hpgltools::load_annotations_biomart"
   return(retlist)
 }
-##setOldClass("annotations_biomart")
 
 ## Something in the following will sometimes, but not always
 ## result in the error:
@@ -527,12 +526,12 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 #' @param x List containing the relevant information gathered from ensembl's biomart.
 #' @param ... Other args to match the generic.
 #' @export
-print.annotations_biomart <- function(x, ...) {
+`print.hpgltools::load_annotations_biomart` <- function(x, ...) {
   num_genes <- nrow(x[["annotation"]])
   num_annot <- ncol(x[["annotation"]])
-  summary_string <- glue("{num_annot} annotation types for {prettyNum(num_genes, big.mark = ',')} \\
+  print_string <- glue("{num_annot} annotation types for {prettyNum(num_genes, big.mark = ',')} \\
 genes/transcripts downloaded from {x[['host']]}.")
-  message(summary_string)
+  message(print_string)
   return(invisible(x))
 }
 

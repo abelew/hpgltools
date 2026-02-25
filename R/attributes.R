@@ -565,7 +565,7 @@ setGeneric("set_conditions")
 setMethod(
   "set_conditions", signature(exp = "SummarizedExperiment"),
   definition = function(exp, fact = NULL, ids = NULL, prefix = NULL, handle_na = "unknown",
-                        null_cell = "null", colors = TRUE, ...) {
+                        drop = TRUE, null_cell = "null", colors = TRUE, ...) {
     arglist <- list(...)
     if (!is.null(arglist[["factor"]])) {
       warning("I probably should change this argument to factor, but it is 'fact'.")
@@ -589,7 +589,7 @@ setMethod(
       new_cond <- old_cond
       new_cond[ids] <- fact
       new_pdata <- old_pdata
-      new_pdata[["condition"]] <- as.factor(new_cond)
+      new_pdata[["condition"]] <- new_cond
       colData(new_se) <- new_pdata
     } else if (length(fact) == 1) {
       fact_name <- fact
@@ -632,6 +632,11 @@ setMethod(
     }
 
     message("The numbers of samples by condition are: ")
+    if (isTRUE(drop)) {
+      colData(new_se)[["condition"]] <- droplevels(as.factor(colData(new_se)[["condition"]]))
+    } else {
+      colData(new_se)[["condition"]] <- as.factor(colData(new_se)[["condition"]])
+    }
     print(table(colData(new_se)[["condition"]]))
     condition_states <- levels(as.factor(colData(new_se)[["condition"]]))
     if (class(colors)[1] == "list") {

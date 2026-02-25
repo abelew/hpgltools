@@ -10,6 +10,7 @@
   ids = NULL,
   prefix = NULL,
   handle_na = "unknown",
+  drop = TRUE,
   null_cell = "null",
   colors = TRUE,
   ...

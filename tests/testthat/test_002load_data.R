@@ -7,11 +7,25 @@ library(pasilla)
 
 ## The jan 2020 stopped responding, as did the feb 2021 and a bunch of others
 ## I am considering adding a fallback orgdb load to this function as a result.
+
+## Perhaps I will try randomizing the set of archives to load
+archives <- list(c("sep", "2025"), c("may", "2025"), c("oct", "2024"),
+                 c("may", "2024"), c("jan", "2024"), c("jul", "2023"),
+                 c("feb", "2023"), c("oct", "2022"), c("jul", "2022"),
+                 c("apr", "2022"), c("apr", "2022"), c("dec", "2021"),
+                 c("may", "2021"), c("feb", "2021"), c("nov", "2020"),
+                 c("aug", "2020"), c("apr", "2020"), c("may", "2015"),
+                 c("oct", "2014"), c("feb", "2014"), c("may", "2009"))
+##attempt <- sample(length(archives), 1)
+attempt <- archives[[6]]
+month <- attempt[1]
+year <- attempt[2]
 gene_info <- try(load_biomart_annotations(species = "dmelanogaster",
-                                          year = "2021", month = "feb",
+                                          year = year, month = month,
                                           overwrite = TRUE))
 sad <- FALSE
 if ("try-error" %in% class(gene_info)) {
+  message("load_biomart_annotations() using the feb 2021 archive failed, loading from the dbi.")
   fields <- c("ACCNUM", "ALIAS", "ENSEMBL", "ENTREZID",
               "FLYBASE", "FLYBASECG", "GENENAME", "GENETYPE", "SYMBOL")
   gene_info <- load_orgdb_annotations("org.Dm.eg.db", fields = fields)
@@ -45,9 +59,9 @@ counts <- counts[rowSums(counts) > ncol(counts), ]
 design <- data.frame(
   row.names = colnames(counts),
   condition = c("untreated", "untreated", "untreated",
-              "untreated", "treated", "treated", "treated"),
+                "untreated", "treated", "treated", "treated"),
   libType = c("single_end", "single_end", "paired_end",
-            "paired_end", "single_end", "paired_end", "paired_end"))
+              "paired_end", "single_end", "paired_end", "paired_end"))
 metadata <- design
 colnames(metadata) <- c("condition", "batch")
 save(list = ls(), file = "pasilla_df.rda")
@@ -65,7 +79,7 @@ actual <- actual[ order(row.names(actual)), ]
 expected <- as.matrix(counts)
 expected <- expected[ order(row.names(expected)), ]
 test_that("Does data from a se equal a raw dataframe?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## The set of annotations should be in a consistent order.
@@ -76,7 +90,7 @@ chosen_genes <- c("FBgn0000008", "FBgn0000014", "FBgn0000017",
 expected <- 10100
 actual <- nrow(assay(pasilla_se))
 test_that("Was the annotation information imported into the expressionset? (static rownames?)", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 ## Then lengths of features should therefore remain consistent.
@@ -100,7 +114,7 @@ if (isTRUE(sad)) {
 }
 actual <- as.numeric(annotations[chosen_genes, "start_position"])
 test_that("Was the annotation information imported into the expressionset? (static starts?)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## As should the chromosome arms of these genes.
@@ -111,7 +125,7 @@ if (isTRUE(sad)) {
 }
 actual <- as.character(annotations[chosen_genes, "chromosome_name"])
 test_that("Was the annotation information imported into the expressionset? (static chromosomes?)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## Test that the se has a design which makes sense.
@@ -119,7 +133,7 @@ expected <- c("untreated1", "untreated2", "untreated3",
               "untreated4", "treated1", "treated2", "treated3")
 actual <- as.character(colData(pasilla_se)[["sampleid"]])
 test_that("Is the experimental design maintained for samples?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## The conditions specified by the pasilla data set are treated and untreated and should not change.
@@ -127,7 +141,7 @@ expected <- c("untreated", "untreated", "untreated",
               "untreated", "treated", "treated", "treated")
 actual <- as.character(colData(pasilla_se)[["condition"]])
 test_that("Is the experimental design maintained for conditions?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## Some sequencing runs of pasilla are paired, and some are single ended; this should not change.
@@ -135,7 +149,7 @@ expected <- c("single_end", "single_end", "paired_end",
               "paired_end", "single_end", "paired_end", "paired_end")
 actual <-  as.character(colData(pasilla_se)[["batch"]])
 test_that("Is the experimental design maintained for batches?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## We know a priori the library sizes, make sure that this information is intact.
@@ -144,7 +158,7 @@ names(expected) <- c("untreated1", "untreated2", "untreated3", "untreated4",
                      "treated1", "treated2", "treated3")
 actual <- libsize(pasilla_se)
 test_that("Are the library sizes intact?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 end <- as.POSIXlt(Sys.time())

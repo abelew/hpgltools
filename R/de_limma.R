@@ -578,7 +578,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
     "voom_result" = voom_result)
-  class(retlist) <- c("limma_pairwise", "list")
+  class(retlist) <- c("hpgltools::limma_pairwise")
   if (!is.null(arglist[["limma_excel"]])) {
     retlist[["limma_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])
   }
@@ -586,7 +586,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 }
 
 #' @export
-print.limma_pairwise <- function(x, ...) {
+`print.hpgltools::limma_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the limma pairwise analysis.")
   message(summary_string)
   return(invisible(x))

@@ -186,12 +186,12 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## after writing the xlsx file.
   image_files <- c()
   possible_methods <- c("limma", "deseq", "edger", "ebseq", "basic", "noiseq", "dream")
-  model_strings <- list()
+  model_fstrings <- list()
   for (m in seq_along(possible_methods)) {
     method <- possible_methods[m]
     if (isTRUE(includes[[method]])) {
-      if (!is.null(apr[[method]][["model_string"]])) {
-        model_strings[[method]] <- apr[[method]][["model_string"]]
+      if (!is.null(apr[[method]][["model_fstring"]])) {
+        model_fstrings[[method]] <- apr[[method]][["model_fstring"]]
       }
     } else {
       apr[[method]] <- list()
@@ -202,10 +202,10 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## I want to be able to print the model
   ## When summarizing the result, I think in most cases
   ## checking for a deseq or limma model should suffice.
-  if (!is.null(apr[["deseq"]][["model_string"]])) {
-    model_used <- apr[["deseq"]][["model_string"]]
-  } else if (!is.null(apr[["limma"]][["model_string"]])) {
-    model_used <- apr[["limma"]][["model_string"]]
+  if (!is.null(apr[["deseq"]][["model_fstring"]])) {
+    model_used <- apr[["deseq"]][["model_fstring"]]
+  } else if (!is.null(apr[["limma"]][["model_fstring"]])) {
+    model_used <- apr[["limma"]][["model_fstring"]]
   }
   ## A common request is to have the annotation data added to the table.  Do that here.
   annot_df <- rowData(apr[["input"]])
@@ -365,6 +365,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     ## Kept is currently broken.
     "kept" = extracted[["kept"]],
     "model_used" = model_used,
+    "model_fstrings" = model_fstrings,
     "de_summary" = extracted[["summaries"]])
   class(ret) <- c("combined_de", "list")
 

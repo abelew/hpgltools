@@ -1253,6 +1253,90 @@ variance_se <- function(se, convert = "cpm", transform = "raw", norm = "raw") {
   return(se)
 }
 
+write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "raw",
+                                convert = "cpm", transform = "log2", batch = "raw",
+                                filter = "cbcb", color_na = "#DD0000",
+                                merge_order = "counts_first", ...) {
+  arglist <- list(...)
+  xlsx <- init_xlsx(excel)
+  wb <- xlsx[["wb"]]
+  excel_basename <- xlsx[["basename"]]
+  new_row <- 1
+  new_col <- 1
+
+  ## I think the plot dimensions should increase as the number of samples increase
+  plot_dim <- 6
+  num_samples <- ncol(assay(se))
+
+  ## Write an introduction to this foolishness.
+  message("Writing the first sheet, containing a legend and some summary data.")
+  sheet <- "legend"
+  norm_state <- glue("{transform}({convert}({norm}({batch}({filter}(counts)))))")
+  legend <- data.frame(
+    "sheet" = c("1.", "2.", "3.", "4.", "5.", "6."),
+    "sheet_definition" = c(
+      "This sheet, including the experimental design.",
+      "The raw counts and annotation data on worksheet 'raw_data'.",
+      "Some graphs describing the distribution of raw data in worksheet 'raw_plots'.",
+      glue("The counts normalized with: {norm_state}"),
+      "Some graphs describing the distribution of the normalized data on 'norm_plots'.",
+      "The median normalized counts by condition factor on 'median_data'."),
+    stringsAsFactors = FALSE)
+  colnames(legend) <- c("Worksheets", "Contents")
+  xls_result <- write_xlsx(data = legend, wb = wb, sheet = sheet, rownames = FALSE,
+                           title = "Columns used in the following tables.")
+  rows_down <- nrow(legend)
+  new_row <- new_row + rows_down + 3
+  annot <- as.data.frame(colData(se), stringsAsFactors = FALSE)
+  xls_result <- write_xlsx(data = annot, wb = wb, start_row = new_row, rownames = FALSE,
+                           sheet = sheet, start_col = 1, title = "Experimental Design.")
+  mesg("Writing the normalized reads.")
+  sheet <- "norm_data"
+  new_col <- 1
+  new_row <- 1
+  ## Perform a quick query to see if sva will explode on this data.
+  test_norm <- normalize(se, transform = transform,
+                         convert = convert, filter = filter)
+  test_zeros <- sum(rowSums(assay(test_norm)) == 0)
+  if (test_zeros > 0) {
+    actual_filter <- "simple"
+    warning("It seems the filter chosen results in all-zero rows, setting filter to 'simple'.")
+  } else {
+    actual_filter <- filter
+  }
+  norm_data <- sm(normalize(se, transform = transform,
+                            convert = convert, batch = batch,
+                            filter = actual_filter,
+                            ...))
+  norm_reads <- assay(norm_data)
+  info <- rowData(norm_data)
+  read_info <- merge(info, norm_reads,by = "row.names")
+  rownames(read_info) <- read_info[["Row.names"]]
+  read_info[["Row.names"]] <- NULL
+  title <- what_happened(norm_data)
+  xls_result <- write_xlsx(wb = wb, data = read_info, rownames = FALSE,
+                           start_row = new_row, start_col = new_col,
+                           sheet = sheet, title = title)
+
+  ## Potentially useful for proteomics data and subtracted data.
+  if (!is.null(color_na)) {
+    na_style <- openxlsx::createStyle(fontColour = color_na)
+    nas <- se[["na_values"]]
+    for (col in colnames(nas)) {
+      row_definition <- which(nas[[col]]) + 2
+      col_idx <- colnames(read_info) == col
+      col_definition <- which(col_idx)
+      colored <- openxlsx::addStyle(wb, sheet = sheet, na_style,
+                                    rows = row_definition, cols = col_definition)
+    }
+  }
+  save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  retlist <- list(
+    "raw" = assay(se),
+    "norm" = norm_data)
+  return(retlist)
+}
+
 #' Make pretty xlsx files of count data.
 #'
 #' Some folks love excel for looking at this data.  ok.
@@ -1328,7 +1412,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
                            title = "Columns used in the following tables.")
   rows_down <- nrow(legend)
   new_row <- new_row + rows_down + 3
-  annot <- as.data.frame(pData(se), strinsAsFactors = FALSE)
+  annot <- as.data.frame(colData(se), strinsAsFactors = FALSE)
   xls_result <- write_xlsx(data = annot, wb = wb, start_row = new_row, rownames = FALSE,
                            sheet = sheet, start_col = 1, title = "Experimental Design.")
 

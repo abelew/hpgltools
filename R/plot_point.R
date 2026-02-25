@@ -454,6 +454,12 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
                          cutoff = 0.65, y_intercept = 0.8,
                          ...) {
   arglist <- list(...)
+  if (y_intercept > 1) {
+    y_intercept <- 1
+  }
+  if (y_intercept < 0) {
+    y_intercept <- 0
+  }
 
   condition <- design[["condition"]]
   batch <- design[["batch"]]
@@ -471,8 +477,8 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     "id" = colnames(data),
     "nonzero_genes" = colSums(data > 0, na.rm = TRUE),
     "cpm" = colSums(data, na.rm = TRUE) * 1e-6,
-    "condition" = condition,
-    "batch" = batch,
+    "condition" = as.factor(condition),
+    "batch" = as.factor(batch),
     "color" = as.character(colors))
 
   intercept_string <- glue("{y_intercept}% of genes.")
@@ -512,26 +518,26 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     non_zero_plot <- non_zero_plot +
       ggplot2::geom_point(size = 3,
                           aes(shape = .data[["batch"]],
-                              colour = as.factor(.data[["condition"]]),
-                              fill = as.factor(.data[["condition"]]))) +
+                              colour = .data[["condition"]],
+                              fill = .data[["condition"]]))  +
       ggplot2::geom_point(size = 3, colour = "black", show.legend = FALSE,
                           aes(shape = .data[["batch"]],
-                              fill = as.factor(.data[["condition"]]))) +
+                              fill = .data[["condition"]])) +
       ggplot2::scale_color_manual(name = "Condition",
                                   values = color_list) +
       ggplot2::scale_fill_manual(name = "Condition",
                                  values = color_list) +
       ggplot2::scale_shape_manual(
         name = "Batch",
-        labels = levels(as.factor(nz_df[["batch"]])),
+        labels = levels(nz_df[["batch"]]),
         values = 21:25)
   } else {
     non_zero_plot <- non_zero_plot +
       ggplot2::geom_point(size = 3, shape = 21,
-                          aes(colour = as.factor(.data[["condition"]]),
-                              fill = as.factor(.data[["condition"]]))) +
+                          aes(colour = .data[["condition"]],
+                              fill = .data[["condition"]])) +
       ggplot2::geom_point(size = 3, shape = 21, colour = "black", show.legend = FALSE,
-                          aes(fill = as.factor(.data[["condition"]])))
+                          aes(fill = .data[["condition"]]))
   }
 
   non_zero_plot <- non_zero_plot +
@@ -602,7 +608,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
   retlist <- list(
     "plot" = non_zero_plot,
     "table" = nz_df)
-  class(retlist) <- "nonzero_plot"
+  class(retlist) <- "hpgltools::plot_nonzero"
   return(retlist)
 }
 setGeneric("plot_nonzero")
@@ -612,7 +618,7 @@ setGeneric("plot_nonzero")
 #' @param x List containing the plot and table describing the data.
 #' @param ... Other args to match the generic.
 #' @export
-print.nonzero_plot <- function(x, ...) {
+`print.hpgltools::plot_nonzero` <- function(x, ...) {
   summary_string <- glue("A non-zero genes plot of {nrow(x[['table']])} samples.
 These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM coverage and \\
 {as.integer(mean(x[['table']][['nonzero_genes']]))} genes observed, ranging from \\

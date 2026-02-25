@@ -210,7 +210,7 @@ which are shared among multiple samples.")
 #' @export
 print.varpart <- function(x, ...) {
   summary_string <- glue("The result of using variancePartition with the model:
-{x[['model_string']]}")
+{x[['model_fstring']]}")
   message(summary_string)
   plot(x[["partition_plot"]])
   return(invisible(x))
@@ -230,12 +230,12 @@ print.varpart <- function(x, ...) {
 varpart_summaries <- function(exp, factors = c("condition", "batch"), cpus = 6) {
   cl <- parallel::makeCluster(cpus)
   doParallel::registerDoParallel(cl)
-  model_string <- "~ "
+  model_fstring <- "~ "
   for (fact in factors) {
-    model_string <- glue("{model_string} (1|{fact}) + ")
+    model_fstring <- glue("{model_fstring} (1|{fact}) + ")
   }
-  model_string <- gsub(pattern = "\\+ $", replacement = "", x = model_string)
-  my_model <- as.formula(model_string)
+  model_fstring <- gsub(pattern = "\\+ $", replacement = "", x = model_fstring)
+  my_model <- as.formula(model_fstring)
   norm <- sm(normalize(exp, filter = TRUE))
   data <- assay(norm)
   design <- colData(exp)

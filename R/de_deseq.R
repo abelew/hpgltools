@@ -543,7 +543,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       "input_data" = input,
       "method" = "deseq",
       "model" = model_mtrx,
-      "model_string" = model_fstring,
+      "model_fstring" = model_fstring,
       "normalized_counts" = normalized_counts,
       "num_contrasts" = total_contrasts,
       "numerators" = numerators,
@@ -621,10 +621,10 @@ surrogates explicitly stated with the option surrogates = number.")
 #'
 #' @param data Counts from htseq/mtrx/tximport/etc
 #' @param column_data I think this is the sample names, I forget.
-#' @param model_string Model describing the data by sample names.
+#' @param model_fstring Model describing the data by sample names.
 #' @param tximport Where is this data coming from?
 #' @seealso [DESeq2::DESeqDataSetFromMatrix]
-import_deseq <- function(data, column_data, model_string,
+import_deseq <- function(data, column_data, model_fstring,
                          tximport = NULL) {
   summarized <- NULL
   ## column_data_na_idx <- is.na(column_data)
@@ -646,12 +646,12 @@ import_deseq <- function(data, column_data, model_string,
   if (is.null(tximport)) {
     summarized <- DESeq2::DESeqDataSetFromMatrix(countData = data,
                                                  colData = column_data,
-                                                 design = as.formula(model_string))
+                                                 design = as.formula(model_fstring))
   } else if (tximport[1] == "htseq") {
     ## We are not likely to use this.
     summarized <- DESeq2::DESeqDataSetFromHTSeqCount(countData = data,
                                                      colData = column_data,
-                                                     design = as.formula(model_string))
+                                                     design = as.formula(model_fstring))
   } else {
     ## This may be insufficient, it may require the full tximport result, while
     ## this may just be that result$counts, so be aware!!
@@ -679,7 +679,7 @@ import_deseq <- function(data, column_data, model_string,
     tximport[["length"]] <- as.matrix(lengths)
     summarized <- DESeq2::DESeqDataSetFromTximport(txi = tximport,
                                                    colData = column_data,
-                                                   design = as.formula(model_string))
+                                                   design = as.formula(model_fstring))
   }
   return(summarized)
 }

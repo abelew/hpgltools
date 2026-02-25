@@ -78,7 +78,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
@@ -119,7 +119,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
-    design <- pData(model_params[["modified_input"]])
+    design <- colData(model_params[["modified_input"]])
   }
   model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
   fctrs <- get_formula_factors(model_fstring)
@@ -236,7 +236,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     "input_data" = input,
     "method" = "varpart",
     "model" = model_mtrx,
-    "model_string" = model_fstring,
+    "model_fstring" = model_fstring,
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
     "voom_result" = voom_result)

@@ -44,9 +44,12 @@ test_that("Do we receive expected output from load_biomart_go()?", {
 
 ## It appears the feb 2021 archives are not responding right now.
 ## I think I should spend some time and make a mirror
-testing <- load_biomart_orthologs(gene_ids = gene_ids, first_species = "hsapiens",
-                                  second_species = "mmusculus", year = 2021,
-                                  month = "feb")
+testing <- try(load_biomart_orthologs(gene_ids = gene_ids, first_species = "hsapiens",
+                                      second_species = "mmusculus", year = 2021,
+                                      month = "feb"))
+if ("try-error" %in% class(testing)) {
+  testthat::skip_if(TRUE)
+}
 data <- testing[["all_linked_genes"]]
 actual <- nrow(data)
 expected <- 23000

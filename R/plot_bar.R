@@ -152,7 +152,7 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
     "plot" = libsize_plot,
     "table" = libsize_df,
     "summary" = summary_df)
-  class(retlist) <- "libsize_plot"
+  class(retlist) <- "hpgltools::plot_libsize"
   return(retlist)
 }
 setGeneric("plot_libsize")
@@ -275,7 +275,7 @@ setMethod(
 #'  and table.
 #' @param ... Other args to match the generic.
 #' @export
-print.libsize_plot <- function(x, ...) {
+`print.hpgltools::plot_libsize` <- function(x, ...) {
   min_value <- min(x[["table"]][["sum"]])
   max_value <- max(x[["table"]][["sum"]])
   message("Library sizes of ", nrow(x[["table"]]), " samples, \
