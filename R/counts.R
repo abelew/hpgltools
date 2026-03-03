@@ -10,14 +10,14 @@
 #' @param se Experiment class containing the requisite metadata and count tables.
 #' @param column Column of the design matrix used to specify which samples are replicates.
 #' @return Se with the concatenated counts, new design matrix, batches, conditions, etc.
-#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_se()]
+#' @seealso [Biobase] [assay()] [rowData()] [colData()] [create_se()]
 #' @examples
 #' \dontrun{
 #'  compressed <- concatenate_runs(se)
 #' }
 #' @export
 concatenate_runs <- function(se, column = "replicate") {
-  design <- pData(se)
+  design <- colData(se)
   message("The original expressionset has ", nrow(design), " samples.")
   replicates <- levels(as.factor(design[[column]]))
   final_se <- se
@@ -32,28 +32,28 @@ concatenate_runs <- function(se, column = "replicate") {
     ## expression <- paste0(column, "=='", rep, "'")
     expression <- glue("{column} == '{rep}'")
     tmp_se <- subset_se(se, expression)
-    tmp_data <- rowSums(exprs(tmp_se))
-    tmp_design <- pData(tmp_se)[1, ]
+    tmp_data <- rowSums(assay(tmp_se))
+    tmp_design <- colData(tmp_se)[1, ]
     final_data <- cbind(final_data, tmp_data)
     final_design <- rbind(final_design, tmp_design)
     column_names[[rep]] <- as.character(tmp_design[, "sampleid"])
     colors[[rep]] <- as.character(tmp_se[["colors"]][1])
-    batches[[rep]] <- as.character(pData(tmp_se)[["batch"]][1])
-    conditions[[rep]] <- as.character(pData(tmp_se)[["condition"]][1])
+    batches[[rep]] <- as.character(colData(tmp_se)[["batch"]][1])
+    conditions[[rep]] <- as.character(colData(tmp_se)[["condition"]][1])
     samplenames[[rep]] <- paste(conditions[[rep]], batches[[rep]], sep = "-")
     colnames(final_data) <- column_names
   }
   metadata <- new("AnnotatedDataFrame", final_design)
   sampleNames(metadata) <- colnames(final_data)
-  feature_data <- new("AnnotatedDataFrame", fData(se))
+  feature_data <- new("AnnotatedDataFrame", rowData(se))
   featureNames(feature_data) <- rownames(final_data)
-  experiment <- new("ExpressionSet", exprs = final_data,
+  experiment <- new("ExpressionSet", assay = final_data,
                     phenoData = metadata, featureData = feature_data)
   final_se[["expressionset"]] <- experiment
   final_se[["samples"]] <- final_design
   final_se[["colors"]] <- as.character(colors)
   final_se[["samplenames"]] <- as.character(samplenames)
-  message("The final expressionset has ", nrow(pData(final_se)), " samples.")
+  message("The final expressionset has ", nrow(colData(final_se)), " samples.")
   return(final_se)
 }
 setGeneric("concatenate_runs")
@@ -70,7 +70,7 @@ setGeneric("concatenate_runs")
 #' @param se Experiment class containing the requisite metadata and count tables.
 #' @param column Column of the design matrix used to specify which samples are replicates.
 #' @return Se with the concatenated counts, new design matrix, batches, conditions, etc.
-#' @seealso [Biobase] [exprs()] [fData()] [pData()] [create_se()]
+#' @seealso [Biobase] [assay()] [rowData()] [colData()] [create_se()]
 #' @examples
 #' \dontrun{
 #'  compressed <- concatenate_runs(se)
@@ -196,7 +196,7 @@ read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE
   ## Likely important options:
   ## txOut: When true, do not back-convert to gene-level.
   ## Otherwise, tximport requires a tx2gene data frame with 2 columns, TXNAME and GENEID.
-  ## These columns should be definition be available in my fData annotation.
+  ## These columns should be definition be available in my rowData annotation.
   ## Therefore, I will set the flags tx2gene and txOut accordingly.
   mesg("Reading count tables.")
   txout <- TRUE

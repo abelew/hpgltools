@@ -91,6 +91,7 @@ cordist <- function(data, cor_method = "pearson", dist_method = "euclidean",
   dist_weight <- 1 - cor_weight
   result <- (cor_weight * abs(cor_matrix)) + (dist_weight * dist_matrix)
   result <- sign(cor_matrix) * result
+  class(result) <- "hpgltools::cordist"
   return(result)
 }
 
@@ -541,91 +542,106 @@ rex <- function(display = ":0") {
 }
 
 #' I want a reference of the sam tags and their meanings.
-sam_header_flags <- list(
-  "HD" = list(  ## "File metadata, optional and must be first line of file."
-    "SO" = "Sort order of alignments: unknown, unsorted, queryname, coordinate.",
-    "GO" = "Grouping of alignments: none, query, reference.",
-    "SS" = "Subsorting order of alignments: coordinate, query, unsorted, or other implementation dependant strings."),
-  "SQ" = list(  ## "Sequence dictionary, used to define alignment sorting order.",
-    "SN" = "Reference sequence name; must be distinct with SN and AN names and must be in the SQ.",
-    "LN" = "Reference sequence length.",
-    "AH" = "Indicates that this is an alternate locus. (e.g. not in the primary assembly -- all the weirdo chromosomes in hg38 for example.",
-    "AN" = "Alternative reference sequence names: aliases for the reference sequences.",
-    "AS" = "Assembly identifier",
-    "DS" = "Arbitrary description",
-    "M5" = "MD5 checksum of the the sequence.",
-    "SP" = "Species name",
-    "TP" = "Molecule topology, e.g. linear or circular",
-    "UR" = "URI of the sequence, so where was it downloaded from."),
-  "RG" = list(  ## "Read group, order not required.",
-    "ID" = "Identifier of read group.",
-    "BC" = "Barcode sequence identifying the sequence/library.",
-    "CN" = "Center name e.g. where was it sequenced.",
-    "DS" = "Description of the read group.",
-    "DT" = "Date the run was produced",
-    "FO" = "Flow order IUPAC specification of nucleotide order used in each flow of the read.",
-    "KS" = "Array of nucleotides corresponding to the key of each read.",
-    "LB" = "Library ID",
-    "PG" = "Program used to process the read group.",
-    "PI" = "Predicted median insert size rounded to integer.",
-    "PL" = "Platform used for sequencing.",
-    "PM" = "Platform model used.",
-    "PU" = "Platform unit -- unique identifier of lane, flowcell, etc",
-    "SM" = "Sample ID"),
-  "PG" = list( ## Program
-    "ID" = "Program record identifier",
-    "PN" = "Program name",
-    "CL" = "Commandline invoked",
-    "PP" = "Previous PG-ID, make it possible to chain multiple command line descriptions.",
-    "DS" = "Description",
-    "VN" = "Program version."),
-  "CO" = "Arbitrary comment.")
-
-sam_alignment_tags <- list(
-  "NM" = "edit distance",
-  "MD" = "mismatching positions/bases",
-  "AS" = "alignment score",
-  "BC" = "barcode sequence",
-  "X0" = "number of bets hits",
-  "X1" = "number of suboptimal hits",
-  "XN" = "number of ambiguous bases in reference",
-  "XM" = "number of mismatches",
-  "XO" = "number of gap openings",
-  "XG" = "number of gap extensions",
-  "XT" = "type: unique vs repeat vs n vs mate-sw",
-  "XA" = "alternative hits in format chr,pos,CIGAR,tags",
-  "XS" = "suboptimal alignment score",
-  "XF" = "support from forward/reverse alignment",
-  "XE" = "number of supporting seeds during alignment")
-
-cigar_strings <- list(
-  "M" = c(0, "alignment match", "consumes query and ref"),
-  "I" = c(1, "insertion to reference", "consumes query"),
-  "D" = c(2, "deletion from reference", "consumes ref"),
-  "N" = c(3, "skipped region from reference", "consumes ref"),  ## in mrna, this means intron
-  "S" = c(4, "soft clipped", "consumes query"),
-  "H" = c(5, "hard clipped", "no consume"),  ## either first or last operation
-  "P" = c(6, "padding", "no consume"),
-  "=" = c(7, "sequence match", "consumes query and ref"),
-  "X" = c(8, "sequence mismatch", "consumes query and ref"))
+get_sam_tags <- function() {
+  sam_header_tags <- list(
+    "HD" = list(  ## "File metadata, optional and must be first line of file."
+      "SO" = "Sort order of alignments: unknown, unsorted, queryname, coordinate.",
+      "GO" = "Grouping of alignments: none, query, reference.",
+      "SS" = "Subsorting order of alignments: coordinate, query, unsorted, or other implementation dependant strings."),
+    "SQ" = list(  ## "Sequence dictionary, used to define alignment sorting order.",
+      "SN" = "Reference sequence name; must be distinct with SN and AN names and must be in the SQ.",
+      "LN" = "Reference sequence length.",
+      "AH" = "Indicates that this is an alternate locus. (e.g. not in the primary assembly -- all the weirdo chromosomes in hg38 for example.",
+      "AN" = "Alternative reference sequence names: aliases for the reference sequences.",
+      "AS" = "Assembly identifier",
+      "DS" = "Arbitrary description",
+      "M5" = "MD5 checksum of the the sequence.",
+      "SP" = "Species name",
+      "TP" = "Molecule topology, e.g. linear or circular",
+      "UR" = "URI of the sequence, so where was it downloaded from."),
+    "RG" = list(  ## "Read group, order not required.",
+      "ID" = "Identifier of read group.",
+      "BC" = "Barcode sequence identifying the sequence/library.",
+      "CN" = "Center name e.g. where was it sequenced.",
+      "DS" = "Description of the read group.",
+      "DT" = "Date the run was produced",
+      "FO" = "Flow order IUPAC specification of nucleotide order used in each flow of the read.",
+      "KS" = "Array of nucleotides corresponding to the key of each read.",
+      "LB" = "Library ID",
+      "PG" = "Program used to process the read group.",
+      "PI" = "Predicted median insert size rounded to integer.",
+      "PL" = "Platform used for sequencing.",
+      "PM" = "Platform model used.",
+      "PU" = "Platform unit -- unique identifier of lane, flowcell, etc",
+      "SM" = "Sample ID"),
+    "PG" = list( ## Program
+      "ID" = "Program record identifier",
+      "PN" = "Program name",
+      "CL" = "Commandline invoked",
+      "PP" = "Previous PG-ID, make it possible to chain multiple command line descriptions.",
+      "DS" = "Description",
+      "VN" = "Program version."),
+    "CO" = "Arbitrary comment.")
+  sam_alignment_tags <- list(
+    "NM" = "edit distance",
+    "MD" = "mismatching positions/bases",
+    "AS" = "alignment score",
+    "BC" = "barcode sequence",
+    "X0" = "number of bets hits",
+    "X1" = "number of suboptimal hits",
+    "XN" = "number of ambiguous bases in reference",
+    "XM" = "number of mismatches",
+    "XO" = "number of gap openings",
+    "XG" = "number of gap extensions",
+    "XT" = "type: unique vs repeat vs n vs mate-sw",
+    "XA" = "alternative hits in format chr,pos,CIGAR,tags",
+    "XS" = "suboptimal alignment score",
+    "XF" = "support from forward/reverse alignment",
+    "XE" = "number of supporting seeds during alignment")
+  cigar_strings <- list(
+    "M" = c(0, "alignment match", "consumes query and ref"),
+    "I" = c(1, "insertion to reference", "consumes query"),
+    "D" = c(2, "deletion from reference", "consumes ref"),
+    "N" = c(3, "skipped region from reference", "consumes ref"),  ## in mrna, this means intron
+    "S" = c(4, "soft clipped", "consumes query"),
+    "H" = c(5, "hard clipped", "no consume"),  ## either first or last operation
+    "P" = c(6, "padding", "no consume"),
+    "=" = c(7, "sequence match", "consumes query and ref"),
+    "X" = c(8, "sequence mismatch", "consumes query and ref"))
   ## M+I+S+=+X == length of sequence
-
-sam_bitwise_flags <- list(
-  "1" = c(0x1, "Template with multiple seqments."),
-  "2" = c(0x2, "Each seqment properly aligned according to the aligner."),
-  "4" = c(0x4, "Segment unmapped."),
-  "8" = c(0x8, "Next segment in the template unmapped."),
-  "16" = c(0x10, "SEQ is reverse complement."),
-  "32" = c(0x20, "SEQ of next segment is reverse complement."),
-  "64" = c(0x40, "First segment of the template."),
-  "128" = c(0x80, "Last segment of the template."),
-  "256" = c(0x100, "Secondary alignment."),
-  "512" = c(0x200, "Not passing filters."),
-  "1024" = c(0x400, "PCR or optical duplicate."),
-  "2048" = c(0x800, "Supplementary alignment"))
+  sam_bitwise_tags <- list(
+    "1" = c(0x1, "Template with multiple seqments."),
+    "2" = c(0x2, "Each seqment properly aligned according to the aligner."),
+    "4" = c(0x4, "Segment unmapped."),
+    "8" = c(0x8, "Next segment in the template unmapped."),
+    "16" = c(0x10, "SEQ is reverse complement."),
+    "32" = c(0x20, "SEQ of next segment is reverse complement."),
+    "64" = c(0x40, "First segment of the template."),
+    "128" = c(0x80, "Last segment of the template."),
+    "256" = c(0x100, "Secondary alignment."),
+    "512" = c(0x200, "Not passing filters."),
+    "1024" = c(0x400, "PCR or optical duplicate."),
+    "2048" = c(0x800, "Supplementary alignment"))
+  retlist <- list(
+    "sam_header_flags" = sam_header_tags,
+    "sam_alignment_tags" = sam_alignment_tags,
+    "cigar_strings" = cigar_strings,
+    "sam_bitwise_tags" = sam_bitwise_tags)
+  class(retlist) <- "hpgltools::get_sam_tags"
+  return(retlist)
+}
 
 ## picard has a web-form which does this, but I want to remember these a little better
 ## so I figured writing them down and writing out the logic in a simple fashion would help.
+#' Given a bam file, print out the score meanings
+#'
+#' I suspect there other implementations of this elsewhere, but I
+#' wanted to write one for myself in the hope that I would remember
+#' more of the score meanings.
+#'
+#' @param score Observed score in a bam alignment.
+#' @returns vector of the meanings associated with the bitwise score.
+#' @export
 score_to_meaning <- function(score) {
   meanings <- c()
   if (score == 0) {
@@ -679,9 +695,9 @@ score_to_meaning <- function(score) {
     meanings <- c("Read paired.", meanings)
     score <- score - 1
   }
+  class(meanings) <- "hpgltools::score_to_meaning"
   return(meanings)
 }
-
 
 #' Make a backup rdata file for future reference
 #'

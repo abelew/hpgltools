@@ -65,7 +65,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
                          pval_column = "deseq_adjp", overwrite = FALSE, densities = TRUE,
                          pval_plots = TRUE, parallel = TRUE, excel = NULL, ...) {
   ## Some neat ideas from the topGO documentation:
-  ## geneList <- getPvalues(exprs(eset), classlabel = y, alternative = "greater")
+  ## geneList <- getPvalues(assay(eset), classlabel = y, alternative = "greater")
   ## A variant of these operations make it possible to give topGO scores so that
   ## a larger array of tests may be performed
   ## x <- topDiffGenes(geneList)

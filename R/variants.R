@@ -239,7 +239,7 @@ print.classified_mutations <- function(x, ...) {
 #'  ## This assumes that the metadata has a column named 'bcftable'
 #'  ## with one file per cell.  These files in turn should have a
 #'  ## column named 'diff_count' which will be the source of the
-#'  ## numbers found when doing exprs(snp_exp).
+#'  ## numbers found when doing assay(snp_exp).
 #' }
 #' @export
 count_snps <- function(exp, annot_column = "bcftable",
@@ -306,9 +306,9 @@ they probably came from an older version of this method.")
                                x = snp_dt[["rownames"]])
   ## Get rid of underscores if they are in the chromosome name.
 
-  snp_exprs <- as.data.frame(snp_dt)
-  rownames(snp_exprs) <- snp_exprs[["rownames"]]
-  snp_exprs[["rownames"]] <- NULL
+  snp_assay <- as.data.frame(snp_dt)
+  rownames(snp_assay) <- snp_assay[["rownames"]]
+  snp_assay[["rownames"]] <- NULL
 
   snp_features <- data.table::as.data.table(snp_dt)
   snp_features[, c("chr", "chromosome",
@@ -320,7 +320,7 @@ they probably came from an older version of this method.")
   snp_features <- as.data.frame(snp_features)
   rownames(snp_features) <- snp_dt[["rownames"]]
 
-  snp_se <- SummarizedExperiment(assays = snp_exprs,
+  snp_se <- SummarizedExperiment(assays = snp_assay,
                                  rowData = snp_features,
                                  colData = meta)
  return(snp_se)

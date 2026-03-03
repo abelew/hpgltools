@@ -19,7 +19,7 @@ ebseq_pairwise_subset(
 )
 }
 \arguments{
-\item{input}{Expressionset/expt to perform de upon.}
+\item{input}{Expressionset/exp to perform de upon.}
 
 \item{model_fstring}{Formula string describing the model of interest.}
 

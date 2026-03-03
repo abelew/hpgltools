@@ -7,9 +7,9 @@
 #' tf.  This function is an attempt to smooth it out and prod it for
 #' usability.
 #'
-#' @param expt Expressionset
-#' @param gene_column Column in fData containing the gene IDs.
-#' @param hgnc_column fData column containing the HGNC symbols as used
+#' @param exp Expressionset
+#' @param gene_column Column in rowData containing the gene IDs.
+#' @param hgnc_column rowData column containing the HGNC symbols as used
 #'  by dorothea/viper
 #' @param transform Explicitly set the scale to log2 (TODO: improve
 #'  this)
@@ -20,7 +20,7 @@
 #' @param species Either human or mouse.
 #' @return list containing some information from dorothea and limma.
 #' @export
-simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
+simple_dorothea <- function(exp, gene_column = "ensembl_gene_id",
                             hgnc_column = "hgnc_symbol", transform = "log2",
                             conf = c("A", "B", "C"), dorothea_options = NULL,
                             lfc = 1, p = 0.05, species = "hsapiens") {
@@ -36,11 +36,11 @@ simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
   }
 
   ## Their example data is all on the log scale, so let us ensure that here.
-  mtrx <- exprs(normalize(expt, transform = transform))
+  mtrx <- exprs(normalize(exp, transform = transform))
 
   ## Now recast the rownames as hgnc IDs.  Those IDs are weird and
   ## redundant, so keep that in mind.
-  hgnc <- fData(expt)[, c(gene_column, hgnc_column)]
+  hgnc <- rowData(exp)[, c(gene_column, hgnc_column)]
   tmp_mtrx <- merge(mtrx, hgnc, by.x="row.names", by.y = gene_column)
   rownames(tmp_mtrx) <- make.names(tmp_mtrx[[hgnc_column]],
                                    unique = TRUE)
@@ -83,7 +83,7 @@ simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
   ## is to reformat the entire_database so that there is one row for each
   ## transcription factor ID.
   tmp_fdata <- data.frame(row.names = rownames(dorothea_exprs))
-  tmp_fdata <- merge(tmp_fdata, fData(expt), by.x = "row.names",
+  tmp_fdata <- merge(tmp_fdata, rowData(exp), by.x = "row.names",
                      by.y = hgnc_column)
   fd_duplicated <- duplicated(tmp_fdata[["Row.names"]])
   tmp_fdata <- tmp_fdata[!fd_duplicated, ]
@@ -93,12 +93,12 @@ simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
   ## This is very much the same thing as performed by viper, they have
   ## a series of S4 dispatchers which recreate expressionsets/matrices
   ## depending on the input data.
-  new_expt <- create_expt(gene_info = tmp_fdata,
-                          count_dataframe = dorothea_exprs,
-                          metadata = pData(expt))
+  new_exp <- create_se(gene_info = tmp_fdata,
+                        count_dataframe = dorothea_exprs,
+                        metadata = colData(exp))
 
   ## Since this looks just like gsva to me, I will treat it as such.
-  delta_tf <- limma_pairwise(new_expt, which_voom = "none")
+  delta_tf <- limma_pairwise(new_exp, which_voom = "none")
   sig_tf_lst <- list()
   for (tbl in seq_len(delta_tf[["all_tables"]])) {
     tbl_name <- names(delta_tf[["all_tables"]])[tbl]
@@ -109,6 +109,6 @@ simple_dorothea <- function(expt, gene_column = "ensembl_gene_id",
   retlist <- list(
       "limma_result" = delta_tf,
       "dorothea_sig" = sig_tf_lst,
-      "dorothea_result" = new_expt)
+      "dorothea_result" = new_exp)
   return(retlist)
 }

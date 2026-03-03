@@ -7,11 +7,11 @@
 \S4method{plot_qq_all}{ExpressionSet}(data, design = NULL, colors = NULL, labels = "short", ...)
 }
 \arguments{
-\item{data}{Input exprs}
+\item{data}{Input assay}
 
-\item{design}{provided by the exprs}
+\item{design}{provided by the assay}
 
-\item{colors}{also from the exprs}
+\item{colors}{also from the assay}
 
 \item{labels}{shorten the sample IDs?}
 

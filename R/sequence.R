@@ -142,6 +142,7 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
     warning("Dropping ", sum(na_idx), " rows.")
     annot_df <- annot_df[!na_idx, ]
   }
+  ## Make sure everything is using +/-, then count them up.
   plusone_idx <- annot_df[[strand_column]] == 1
   if (sum(plusone_idx) > 0) {
     annot_df[plusone_idx, strand_column] <- "+"
@@ -150,13 +151,16 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   if (sum(minusone_idx) > 0) {
     annot_df[minusone_idx, strand_column] <- "-"
   }
+
+  plusone_idx <- annot_df[[strand_column]] == "+"
+  minusone_idx <- annot_df[[strand_column]] == "-"
   annot_df[[start_column]] <- as.numeric(annot_df[[start_column]])
   annot_df[[end_column]] <- as.numeric(annot_df[[end_column]])
 
   if (length(padding) == 2) {
     fivep_padding <- padding[1]
     threep_padding <- padding[2]
-    padding <- max(fivep_padding, threep_padding)
+    ## padding <- max(fivep_padding, threep_padding)
     ### (low is start - fivep) 5'--->3'
     annot_df[plusone_idx, "low_boundary"] <- annot_df[plusone_idx, start_column] - fivep_padding
     ## 3'<---5' (high is end + fivep)
@@ -166,7 +170,7 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
     ## (low is start - threep) 3'<---5'
     annot_df[minusone_idx, "low_boundary"] <- annot_df[minusone_idx, start_column] - threep_padding
   } else if (length(padding) == 1) {
-    fivep_paddig <- padding
+    fivep_padding <- padding
     threep_padding <- padding
     ## Here is the thing I absolutely cannot remember:
     ## start is _always_ a lower number than end.
@@ -356,7 +360,7 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   colnames(minus_cds_tbl) <- c("sequence", "ID")
   minus_cds_tbl <- minus_cds_tbl[, c("ID", "sequence")]
   retlist[["cds_minus_table"]] <- minus_cds_tbl
-
+  class(retlist) <- "hpgltools::gather_utrs_padding"
   return(retlist)
 }
 
@@ -564,7 +568,6 @@ print.pattern_counted <- function(x, ...) {
 #'  head(pa_attribs)
 #' @export
 sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
-  rawseq <- Rsamtools::FaFile(fasta)
   if (is.null(key)) {
     key <- c("ID", "locus_tag")
   }
@@ -578,6 +581,7 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
     ## Set some hopefully sensible names.
     names(type_entries) <- rownames(type_entries)
     ## Get the sequence from the genome for them.
+
     entry_sequences <- Biostrings::getSeq(rawseq, type_entries)
     tmp_entries <- as.data.frame(type_entries)
     ## Give them some sensible names
@@ -598,7 +602,40 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
   return(attribs)
 }
 
-make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_name, provider, build_dir = "build", genome_prefix = NULL, author = "Ashton Trey Belew <abelew@gmail.com>", URL = "https://github.com/abelew/hpgltools", installp = TRUE) {
+#' Invoke sequence_attributes() when provided a fasta filename or name of BSgenome.
+#'
+#' @param fasta String describing a bsgenome or fasta file.
+#' @export
+setMethod(
+  "sequence_attributes", signature(fasta = "character"),
+  definition = function(fasta, gff = NULL, type = "gene", key = NULL) {
+    if (grepl(x = fasta, pattern = "^BSgenome")) {
+      loaded <- sm(try(requireNamespace(package = fasta, quietly = TRUE)))
+      rawseq <- get0(fasta)
+    } else {
+      rawseq <- Rsamtools::FaFile(fasta)
+    }
+    sequence_attributes(rawseq, gff = gff, type = type, key = key)
+  })
+
+#' Create a BSgenome from a fasta file.
+#'
+#' @param fasta Input fasta file.
+#' @param pkgname Name for the new BSgenome.
+#' @param title Its title.
+#' @param organism The organism name for this package.
+#' @param common_name The corresponding common name
+#' @param provider Where it was sequenced.
+#' @param build_dir Location to put intermediate files.
+#' @param genome_prefix Prefix to put on the intermediary files.
+#' @param author hmm
+#' @param url Location for the publicly available package.
+#' @param installp Install the created package?
+#' @export
+make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_name, provider,
+                                     build_dir = "build", genome_prefix = NULL,
+                                     author = "Ashton Trey Belew <abelew@gmail.com>",
+                                     URL = "https://github.com/abelew/hpgltools", installp = TRUE) {
   if (!file.exists(build_dir)) {
     created <- dir.create(build_dir, recursive = TRUE)
   }
@@ -674,7 +711,7 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
   ## way around that due to limitations of Biostrings, lets see.
   uniqueLetters <- Biostrings::uniqueLetters
   tt <- try(do.call("library", as.list("Biostrings")), silent = TRUE)
-  pkg_builder <- BSgenome::forgeBSgenomeDataPkg(description_file)
+  pkg_builder <- BSgenome::forgeBSgenomeDataPkg(description_file, replace = TRUE)
   if ("try-error" %in% class(pkg_builder)) {
     message("forgeBSgenomeDataPkg failed with error: ")
     message("A likely reason is too many open files, which may be changed in /etc/sysctl.conf")
@@ -690,14 +727,14 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
     workedp <- ! "try-error" %in% class(built)
   }
   if (isTRUE(installp) && isTRUE(workedp)) {
-    installed <- try(devtools::install_local(built))
+    installp <- try(devtools::install_local(built))
   }
   retlist <- list(
     "name" = pkgname,
     "archive" = built,
-    "installed" = installed,
+    "installed" = installp,
     "contigs" = length(input))
-  class(retlist) <- "built_bsgenome"
+  class(retlist) <- "hpgltools::make_bsgenome_from_fasta"
   return(retlist)
 }
 

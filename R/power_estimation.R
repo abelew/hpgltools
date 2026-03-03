@@ -193,17 +193,17 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
   de_results <- de_tables[["input"]]
   if (is.null(de_results)) {
     de_results <- apr
-    exprs_mtrx <- mtrx
-    if ("SummarizedExperiment" %in% class(exprs_mtrx)) {
-      exprs_mtrx <- assay(exprs_mtrx)
+    assay_mtrx <- mtrx
+    if ("SummarizedExperiment" %in% class(assay_mtrx)) {
+      assay_mtrx <- assay(assay_mtrx)
     }
   } else {
-    exprs_mtrx <- assay(de_results[["input"]])
+    assay_mtrx <- assay(de_results[["input"]])
   }
   method_result <- de_results[[de_method]]
   tables <- method_result[["all_tables"]]
   model_used <- method_result[["model"]]
-  num_genes <- nrow(exprs_mtrx)
+  num_genes <- nrow(assay_mtrx)
   contrasts <- names(method_result[["all_tables"]])
 
   numerators <- c()
@@ -234,7 +234,7 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
     used_den_sample_idx <- model_used[, den] != 0
     used_sample_idx <- used_num_sample_idx | used_den_sample_idx
     used_samples <- all_samples[used_sample_idx]
-    used_mtrx <- exprs_mtrx[, used_samples]
+    used_mtrx <- assay_mtrx[, used_samples]
     sample_coverages <- NULL
     all_coverage <- NULL
     if (mean_or_median == "mean") {

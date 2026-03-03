@@ -22,7 +22,7 @@ deseq2_pairwise(
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing data,
+\item{input}{Dataframe/vector or exp class containing data,
 normalization state, etc.}
 
 \item{model_fstring}{Formula string describing the statistical

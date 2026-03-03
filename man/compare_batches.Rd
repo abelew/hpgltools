@@ -4,10 +4,10 @@
 \alias{compare_batches}
 \title{Attempt to compare the results from the various batch/sv methods.}
 \usage{
-compare_batches(expt = NULL, methods = NULL)
+compare_batches(exp = NULL, methods = NULL)
 }
 \arguments{
-\item{expt}{Input expressionset}
+\item{exp}{Input expressionset}
 
 \item{methods}{Set of methods to try out.}
 }

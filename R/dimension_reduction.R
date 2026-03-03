@@ -163,7 +163,7 @@ setMethod(
 #' Hector was her professor before she joined us, and Hector suggested
 #' the PC idea to me).
 #'
-#' @param expt Input SE.
+#' @param exp Input SE.
 #' @param pc_df dataframe of PCs
 #' @param num_pcs How many PCs to query?
 #' @param queries List of metadata factors to query.
@@ -231,7 +231,7 @@ pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
 #' @section Warning:
 #'  This function has gotten too damn big and needs to be split up.
 #'
-#' @param input Data to analyze (usually exprs(somedataset)).
+#' @param input Data to analyze (usually assay(somedataset)).
 #' @param input_design Dataframe describing the experimental design, containing
 #'  columns with useful information like the conditions, batches, number of
 #'  cells, whatever...
@@ -258,10 +258,10 @@ pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
 #' @seealso [corpcor] [plot_pca()] [plot_pcs()] [stats::lm()]
 #' @examples
 #' \dontrun{
-#'  pca_info = pca_information(exprs(some_expt), some_design, "all")
+#'  pca_info = pca_information(assay(some_exp), some_design, "all")
 #'  pca_info
 #' }
-#' @include expt.R
+#' @include se.R
 #' @export
 pca_information <- function(exp, factors = c("condition", "batch"), colors_chosen = NULL,
                             input_design = NULL, num_components = NULL, input_state = NULL,
@@ -525,7 +525,7 @@ setMethod(
                         plot_pcas = FALSE, ...) {
     colors_chosen <- get_colors(exp)
     input_state <- state(exp)
-    input <- exprs(exp)
+    input <- assay(exp)
     pca_information(input, input_design = input_design, input_state = input_state,
                     factors = factors, colors_chosen = colors_chosen,
                     num_components = num_components,
@@ -579,7 +579,7 @@ pca_highscores <- function(input, n = 20, cor = TRUE, vs = "means", logged = TRU
       input <- sm(normalize(input, transform = "log2", filter = TRUE))
     }
   }
-  data <- as.data.frame(exprs(input))
+  data <- as.data.frame(assay(input))
   na_idx <- is.na(data)
   data[na_idx] <- 0
   if (!is.null(vs)) {
@@ -691,7 +691,7 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
 #' @param max_overlaps Passed to ggrepel.
 #' @param num_pc How many components to calculate, default to the number of
 #'   rows in the metadata.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param cond_column Column containing the color information.
 #' @param batch_column Column containing the shape information.
@@ -707,14 +707,14 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
 #' @seealso [corpcor] [Rtsne] [uwot] [fastICA] [pcaMethods] [plot_pcs()]
 #' @examples
 #' \dontrun{
-#'  pca_plot <- plot_pca(expt = expt)
+#'  pca_plot <- plot_pca(exp = exp)
 #'  pca_plot
 #' }
 #' @export
 plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
                      plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
                      pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
-                     num_pc = NULL, expt_names = NULL, label_chars = 10,
+                     num_pc = NULL, exp_names = NULL, label_chars = 10,
                      cond_column = "condition", batch_column = "batch",
                      ...) {
   arglist <- list(...)
@@ -732,7 +732,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
 
   ## The following if() series is used to check the type of data provided and
   ## extract the available metadata from it.  Since I commonly use my
-  ## ExpressionSet wrapper (expt), most of the material is specific to that.
+  ## ExpressionSet wrapper (exp), most of the material is specific to that.
   ## However, the functions in this package should be smart enough to deal when
   ## that is not true. The primary things this particular function is seeking to
   ## acquire are: design, colors, counts. The only thing it absolutely requires
@@ -780,10 +780,10 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   ## Different folks like different labels.  I prefer hpglxxxx, but others have asked for
   ## condition_batch; this handles that as eloquently as I am able.
   label_list <- NULL
-  if (is.null(arglist[["label_list"]]) && is.null(expt_names)) {
+  if (is.null(arglist[["label_list"]]) && is.null(exp_names)) {
     label_list <- design[["sampleid"]]
-  } else if (class(expt_names) == "character" && length(expt_names) == 1) {
-    label_list <- design[[expt_names]]
+  } else if (class(exp_names) == "character" && length(exp_names) == 1) {
+    label_list <- design[[exp_names]]
   } else if (is.null(arglist[["label_list"]])) {
     label_list <- given_samples
   } else if (arglist[["label_list"]] == "concat") {
@@ -880,7 +880,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
 
       ## There is an interesting standardization idea in scater
       ## But I think I would prefer to have flexibility here
-      ## exprs_to_plot <- t(scale(t(exprs_to_plot), scale = scale_features))
+      ## assay_to_plot <- t(scale(t(assay_to_plot), scale = scale_features))
 
       ## Spend a moment filling in the default values as specified in Rtsne.
       if (!is.null(arglist[["seed"]])) {
@@ -1125,7 +1125,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   ## If plot_title is NULL, print nothing, if it is TRUE
   ## Then give some information about what happened to the data to make the plot.
   ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
-  ## my expt containing the normalization state of the data.
+  ## my exp containing the normalization state of the data.
   if (isTRUE(plot_title)) {
     data_title <- what_happened(transform = state[["transform"]], convert = state[["conversion"]],
                                 norm = state[["normalization"]], filter = state[["filter"]],
@@ -1169,7 +1169,7 @@ setMethod(
   definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
                         plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
                         pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
-                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        num_pc = NULL, exp_names = NULL, label_chars = 10,
                         cond_column = "condition", batch_column = "batch",
                         ...) {
     state <- state(data)
@@ -1180,7 +1180,7 @@ setMethod(
                         plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
                         plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
                         x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
-                        expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+                        exp_names = exp_names, label_chars = label_chars, cond_column = cond_column,
                         ...)
     pc_table <- retlist[["table"]]
     pc_columns <- grepl(x = colnames(pc_table), pattern = "^pc_")
@@ -1200,18 +1200,18 @@ setMethod(
   definition = function(data, design = NULL, state = NULL, plot_colors = NULL, plot_title = TRUE,
                         plot_size = 5, plot_alpha = NULL, plot_labels = FALSE, size_column = NULL,
                         pc_method = "fast_svd", x_pc = 1, y_pc = 2, max_overlaps = 20,
-                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        num_pc = NULL, exp_names = NULL, label_chars = 10,
                         cond_column = "condition", batch_column = "batch",
                         ...) {
     state <- state(data)
-    design <- pData(data)
+    design <- colData(data)
     plot_colors <- get_colors(data)
-    mtrx <- exprs(data)
+    mtrx <- assay(data)
     plot_pca(data = mtrx, design = design, state = state, plot_colors = plot_colors,
              plot_title = plot_title, plot_size = plot_size, plot_alpha = plot_alpha,
              plot_labels = plot_labels, size_column = size_column, pc_method = pc_method,
              x_pc = x_pc, y_pc = y_pc, max_overlaps = max_overlaps, num_pc = num_pc,
-             expt_names = expt_names, label_chars = label_chars, cond_column = cond_column,
+             exp_names = exp_names, label_chars = label_chars, cond_column = cond_column,
              batch_column = batch_column, ...)
   })
 
@@ -1237,7 +1237,7 @@ Shapes are defined by ", batch_levels, ".")
 
 #' Make a PC plot describing the gene' clustering.
 #'
-#' @param data an expt set of samples.
+#' @param data an exp set of samples.
 #' @param design a design matrix and.
 #' @param plot_colors a color scheme.
 #' @param plot_title a title for the plot.
@@ -1251,7 +1251,7 @@ Shapes are defined by ", batch_levels, ".")
 #' @param label_column Which metadata column to use for labels.
 #' @param num_pc How many components to calculate, default to the number of
 #'   rows in the metadata.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param ...  Arguments passed through to the pca implementations and plotter.
 #' @return a list containing the following (this is currently wrong)
@@ -1272,7 +1272,7 @@ Shapes are defined by ", batch_levels, ".")
 plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title = NULL,
                            plot_size = 2, plot_alpha = 0.4, plot_labels = FALSE, size_column = NULL,
                            pc_method = "fast_svd", x_pc = 1, y_pc = 2, label_column = "description",
-                           num_pc = 2, expt_names = NULL, label_chars = 10,
+                           num_pc = 2, exp_names = NULL, label_chars = 10,
                            ...) {
   arglist <- list(...)
   ## Set default columns in the experimental design for condition and batch
@@ -1303,24 +1303,24 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 
   ## The following if() series is used to check the type of data provided and
   ## extract the available metadata from it.  Since I commonly use my
-  ## ExpressionSet wrapper (expt), most of the material is specific to that.
+  ## ExpressionSet wrapper (exp), most of the material is specific to that.
   ## However, the functions in this package should be smart enough to deal when
   ## that is not true. The primary things this particular function is seeking to
   ## acquire are: design, colors, counts. The only thing it absolutely requires
   ## to function is counts, it will make up the rest if it cannot find them.
   data_class <- class(data)[1]
   mtrx <- NULL
-  if (data_class == "expt" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
+  if (data_class == "exp" || data_class == "SummarizedExperiment") {
+    design <- colData(data)
     if (cond_column == "condition") {
       plot_colors <- data[["colors"]]
     } else {
       plot_colors <- NULL
     }
-    mtrx <- exprs(data)
+    mtrx <- assay(data)
   } else if (data_class == "ExpressionSet") {
-    mtrx <- exprs(data)
-    design <- pData(data)
+    mtrx <- assay(data)
+    design <- colData(data)
   } else if (data_class == "list") {
     mtrx <- data[["count_table"]]
     if (is.null(data)) {
@@ -1330,7 +1330,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
     ## some functions prefer matrix, so I am keeping this explicit for the moment
     mtrx <- as.data.frame(data)
   } else {
-    stop("This understands classes of type: expt, ExpressionSet, data.frame, and matrix.")
+    stop("This understands classes of type: exp, ExpressionSet, data.frame, and matrix.")
   }
 
   ## Small modification for reusing some of my very oldest experimental designs.
@@ -1370,10 +1370,10 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   ## Different folks like different labels.  I prefer hpglxxxx, but others have asked for
   ## condition_batch; this handles that as eloquently as I am able.
   label_list <- NULL
-  if (is.null(arglist[["label_list"]]) && is.null(expt_names)) {
+  if (is.null(arglist[["label_list"]]) && is.null(exp_names)) {
     label_list <- design[["sampleid"]]
-  } else if (class(expt_names) == "character" && length(expt_names) == 1) {
-    label_list <- design[[expt_names]]
+  } else if (class(exp_names) == "character" && length(exp_names) == 1) {
+    label_list <- design[[exp_names]]
   } else if (is.null(arglist[["label_list"]])) {
     label_list <- given_samples
   } else if (arglist[["label_list"]] == "concat") {
@@ -1409,7 +1409,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
     pc_method,
     "fast_svd" = {
       svd_result <- corpcor::fast.svd(mtrx - rowMeans(mtrx))
-      fdata_data <- fData(data)
+      fdata_data <- rowData(data)
       fdata_rows <- rownames(fdata_data)
       pc_rows <- rownames(pc_table)
       kept_rows <- fdata_rows %in% pc_rows
@@ -1464,7 +1464,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 
       ## There is an interesting standardization idea in scater
       ## But I think I would prefer to have flexibility here
-      ## exprs_to_plot <- t(scale(t(exprs_to_plot), scale = scale_features))
+      ## assay_to_plot <- t(scale(t(assay_to_plot), scale = scale_features))
 
       ## Spend a moment filling in the default values as specified in Rtsne.
       if (!is.null(arglist[["seed"]])) {
@@ -1503,7 +1503,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
       included_batches <- as.factor(as.character(design[[batch_column]]))
       included_conditions <- as.factor(as.character(design[[cond_column]]))
 
-      residual_df <- get_res(svd_result, fData(data), res_slot = "Y", var_slot = "itercosts")
+      residual_df <- get_res(svd_result, rowData(data), res_slot = "Y", var_slot = "itercosts")
       prop_lst <- residual_df[["prop_var"]]
       if (x_pc > components || y_pc > components) {
         stop("The components plotted must be smaller than the number of components calculated.")
@@ -1518,7 +1518,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
     "uwot" = {
       plotting_data <- t(mtrx)
       pc_table <- as.data.frame(uwot::umap(X = plotting_data, n_components = num_pc, ...))
-      rownames(pc_table) <- rownames(fData(data))
+      rownames(pc_table) <- rownames(rowData(data))
       colnames(pc_table) <- glue::glue("PC{1:ncol(pc_table)}")
       x_name <- glue::glue("Factor{x_pc}")
       y_name <- glue::glue("Factor{y_pc}")
@@ -1643,7 +1643,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
     })  ## End of the switch()
 
   ## An important caveat, some dimension reduction methods remove rows from the data.
-  fdata_data <- fData(data)
+  fdata_data <- rowData(data)
   fdata_rows <- rownames(fdata_data)
   pc_rows <- rownames(pc_table)
   kept_rows <- fdata_rows %in% pc_rows
@@ -1705,7 +1705,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   ## If plot_title is NULL, print nothing, if it is TRUE
   ## Then give some information about what happened to the data to make the plot.
   ## I tried foolishly to put this in plot_pcs(), but there is no way that receives
-  ## my expt containing the normalization state of the data.
+  ## my exp containing the normalization state of the data.
   if (isTRUE(plot_title)) {
     data_title <- what_happened(data)
     comp_plot <- comp_plot + ggplot2::ggtitle(data_title)
@@ -1800,7 +1800,7 @@ plot_pcload <- function(input, genes = 40, desired_pc = 1, which_scores = "high"
 #' @seealso [directlabels] [ggplot2] [plot_pca] [pca_information]
 #' @examples
 #' \dontrun{
-#'  pca_plot = plot_pcs(pca_data, first = "PC2", second = "PC4", design = expt$design)
+#'  pca_plot = plot_pcs(pca_data, first = "PC2", second = "PC4", design = exp$design)
 #' }
 #' @export
 plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
@@ -2067,7 +2067,7 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
 
 #' Plot a PC plot with options suitable for ggplotly.
 #'
-#' @param data an expt set of samples.
+#' @param data an exp set of samples.
 #' @param design a design matrix and.
 #' @param plot_colors a color scheme.
 #' @param plot_title a title for the plot.
@@ -2081,7 +2081,7 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
 #' @param outlines Include black outlines around glyphs?
 #' @param num_pc How many components to calculate, default to the number of
 #'  rows in the metadata.
-#' @param expt_names Column or character list of preferred sample names.
+#' @param exp_names Column or character list of preferred sample names.
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param tooltip Which columns to include in the tooltip.
 #' @param ... Arguments passed through to the pca implementations and plotter.
@@ -2092,7 +2092,7 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
 plotly_pca <-  function(data, design = NULL, plot_colors = NULL, plot_title = NULL,
                         plot_size = 5, plot_alpha = NULL, plot_labels = NULL, size_column = NULL,
                         pc_method = "fast_svd", x_pc = 1, y_pc = 2, outlines = FALSE,
-                        num_pc = NULL, expt_names = NULL, label_chars = 10,
+                        num_pc = NULL, exp_names = NULL, label_chars = 10,
                         tooltip = c("shape", "fill", "sampleid"),
                         ...) {
   pca_result <- plot_pca(data, design = design, plot_colors = plot_colors,
@@ -2100,7 +2100,7 @@ plotly_pca <-  function(data, design = NULL, plot_colors = NULL, plot_title = NU
                          plot_alpha = plot_alpha, plot_labels = plot_labels,
                          size_column = size_column, pc_method = pc_method,
                          x_pc = x_pc, y_pc = y_pc, outlines = outlines, num_pc = num_pc,
-                         expt_names = expt_names, label_chars = label_chars, ...)
+                         exp_names = exp_names, label_chars = label_chars, ...)
   plotly_result <- plotly::ggplotly(pca_result[["plot"]], tooltip = tooltip)
   retlist <- pca_result
   retlist[["plotly"]] <- plotly_result

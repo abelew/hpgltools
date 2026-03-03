@@ -7,10 +7,10 @@ https://bioinformaticsworkbook.org/tutorials/wgcna.html#gsc.tab=0
 so that I have someplace to remember the general path wgcna takes and
 as a starting point to explore further.}
 \usage{
-wgcna_network(expt)
+wgcna_network(exp)
 }
 \arguments{
-\item{expt}{Input expressionset.}
+\item{exp}{Input expressionset.}
 }
 \description{
 Just putting down an example from Alejandro's work and

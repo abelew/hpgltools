@@ -33,15 +33,15 @@ test_that("calling convert_counts and normalize are equivalent?", {
 ## Make sure that we remove undefined numbers from fdata(length)
 ## This subtraction logic is no longer needed, the pasilla annotations have
 ## cds lengths already recorded; and they take into account the UTRs.
-#fData(pasilla_se)[["start_position"]] <- as.numeric(fData(pasilla_se)[["start_position"]])
-#fData(pasilla_se)[["end_position"]] <- as.numeric(fData(pasilla_se)[["end_position"]])
-#fData(pasilla_se)[["cds_length"]] <- abs(fData(pasilla_se)[["start_position"]] -
-#                                             fData(pasilla_se)[["end_position"]])
+#rowData(pasilla_se)[["start_position"]] <- as.numeric(rowData(pasilla_se)[["start_position"]])
+#rowData(pasilla_se)[["end_position"]] <- as.numeric(rowData(pasilla_se)[["end_position"]])
+#rowData(pasilla_se)[["cds_length"]] <- abs(rowData(pasilla_se)[["start_position"]] -
+#                                             rowData(pasilla_se)[["end_position"]])
 undef <- rowData(pasilla_se)[["cds_length"]] == "undefined"
 lengths <- rowData(pasilla_se)[["cds_length"]]
 lengths[undef] <- NA
 fdata_lengths <- as.vector(as.numeric(lengths))
-names(fdata_lengths) <- rownames(fData(pasilla_se))
+names(fdata_lengths) <- rownames(rowData(pasilla_se))
 expected <- edgeR::rpkm(assay(pasilla_se), gene.length = fdata_lengths)
 na_idx <- is.na(expected)
 expected[na_idx] <- 0

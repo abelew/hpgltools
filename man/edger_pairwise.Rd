@@ -22,7 +22,7 @@ edger_pairwise(
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing data, normalization
+\item{input}{Dataframe/vector or exp class containing data, normalization
 state, etc.}
 
 \item{model_fstring}{Formula string describing the model of interest.}
@@ -84,8 +84,8 @@ the force argument will round the data and shoe-horn it into EdgeR.
 }
 \examples{
 \dontrun{
- expt <- create_expt(metadata = "metadata.xlsx", gene_info = annotations)
- pretend <- edger_pairwise(expt, model_batch = "sva")
+ exp <- create_exp(metadata = "metadata.xlsx", gene_info = annotations)
+ pretend <- edger_pairwise(exp, model_batch = "sva")
 }
 }
 \seealso{

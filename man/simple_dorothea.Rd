@@ -5,7 +5,7 @@
 \title{Invoke dorothea in an attempt to hunt down cool TFs.}
 \usage{
 simple_dorothea(
-  expt,
+  exp,
   gene_column = "ensembl_gene_id",
   hgnc_column = "hgnc_symbol",
   transform = "log2",
@@ -17,11 +17,11 @@ simple_dorothea(
 )
 }
 \arguments{
-\item{expt}{Expressionset}
+\item{exp}{Expressionset}
 
-\item{gene_column}{Column in fData containing the gene IDs.}
+\item{gene_column}{Column in rowData containing the gene IDs.}
 
-\item{hgnc_column}{fData column containing the HGNC symbols as used
+\item{hgnc_column}{rowData column containing the HGNC symbols as used
 by dorothea/viper}
 
 \item{transform}{Explicitly set the scale to log2 (TODO: improve

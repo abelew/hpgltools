@@ -119,8 +119,8 @@ limma/DESeq2/EdgeR on a table-by-table basis.
 }
 \examples{
 \dontrun{
- expt <- create_expt(metadata="some_metadata.xlsx", gene_info=funkytown)
- big_result <- all_pairwise(expt, model_batch=FALSE)
+ exp <- create_exp(metadata="some_metadata.xlsx", gene_info=funkytown)
+ big_result <- all_pairwise(exp, model_batch=FALSE)
  pretty <- combine_de_tables(big_result, table='t12_vs_t0')
  pretty <- combine_de_tables(big_result, table='t12_vs_t0',
                              keepers=list("avsb"=c("a","b")))

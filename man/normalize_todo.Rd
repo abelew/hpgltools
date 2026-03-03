@@ -4,10 +4,10 @@
 \alias{normalize_todo}
 \title{Simplified and ideally improved normalization function}
 \usage{
-normalize_todo(expt, todo = list())
+normalize_todo(exp, todo = list())
 }
 \arguments{
-\item{expt}{Input data}
+\item{exp}{Input data}
 
 \item{todo}{List of tasks to perform.}
 }

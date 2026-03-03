@@ -8,7 +8,7 @@ a negative binomial distribution of input.}
 choose_binom_dataset(input, force = FALSE, ...)
 }
 \arguments{
-\item{input}{Expressionset containing expt object.}
+\item{input}{Expressionset containing exp object.}
 
 \item{force}{Ignore every warning and just use this data.}
 
@@ -18,7 +18,7 @@ choose_binom_dataset(input, force = FALSE, ...)
 dataset suitable for limma analysis
 }
 \description{
-Take an expt and poke at it to ensure that it will not result in troubled
+Take an exp and poke at it to ensure that it will not result in troubled
 results.
 }
 \details{

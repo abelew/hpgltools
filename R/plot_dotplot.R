@@ -4,7 +4,7 @@
 #'
 #' This should make a quick df of the factors and surrogates and plot them.
 #'
-#' @param expt Experiment from which to acquire the design, counts, etc.
+#' @param exp Experiment from which to acquire the design, counts, etc.
 #' @param svest Set of surrogate variable estimations from sva/svg
 #'  or batch estimates.
 #' @param sv Which surrogate to plot?
@@ -470,9 +470,9 @@ setMethod(
                         plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
-    design <- pData(data)
+    design <- colData(data)
     colors <- get_colors(data)
-    mtrx <- exprs(data)
+    mtrx <- assay(data)
     plot_sm(mtrx, design = design, colors = colors, method = method,
             plot_legend = plot_legend, sample_names = sample_names,
             label_chars = label_chars, plot_title = plot_title,
@@ -498,8 +498,8 @@ setMethod(
                         plot_legend = FALSE, sample_names = NULL,
                         label_chars = 10, plot_title = NULL, dot_size = 5,
                         ...) {
-    design <- pData(data)
-    mtrx <- exprs(data)
+    design <- colData(data)
+    mtrx <- assay(data)
     plot_sm(mtrx, design = design, colors = colors, method = method,
             plot_legend = plot_legend, sample_names = sample_names,
             label_chars = label_chars, plot_title = plot_title,

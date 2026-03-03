@@ -263,7 +263,7 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
   ## arglist <- list(...)
   conditions <- conditions(input)
   batches <- batches(input)
-  data <- as.data.frame(exprs(input))
+  data <- as.data.frame(assay(input))
   state <- state(input)
   tran_state <- state[["transform"]]
   libsize <- NULL

@@ -18,7 +18,7 @@
 )
 }
 \arguments{
-\item{input_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, exp, or expressionset to work with.}
 
 \item{column_colors}{Color scheme for the samples.}
 

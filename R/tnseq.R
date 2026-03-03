@@ -213,14 +213,13 @@ Non-Essential genes: {num_insig}")) +
 #'
 #' I dunno, I might delete this function, I am not sure if it will ever get use.
 #'
-#' @param expt Input expressionset with a metadata column with the ess output files.
+#' @param exp Input expressionset with a metadata column with the ess output files.
 #' @param ess_column Metadata column containing the mh_ess output files.
 #' @return List containing the scores along with the genes which have changed using it.
-score_mhess <- function(expt, ess_column = "essm1") {
-  expr <- expt[["expressionset"]]
-  design <- pData(expt)
+score_mhess <- function(exp, ess_column = "essm1") {
+  design <- colData(exp)
   file_lst <- design[[ess_column]]
-  counts <- exprs(expt)
+  counts <- assay(exp)
   scores <- data.frame(stringsAsFactors = FALSE)
   for (f in seq_along(file_lst)) {
     sample <- colnames(counts)[f]
@@ -258,8 +257,8 @@ score_mhess <- function(expt, ess_column = "essm1") {
   for (c in colnames(scores)) {
     scores[[c]] <- as.numeric(scores[[c]])
   }
-  exprs(expt[["expressionset"]]) <- as.matrix(scores)
-  cond_scores <- median_by_factor(expt, fun = "mean")[["medians"]]
+  assay(exp) <- as.matrix(scores)
+  cond_scores <- median_by_factor(exp, fun = "mean")[["medians"]]
 
   mscores <- rowMeans(cond_scores)
   changed_idx <- mscores != cond_scores[[1]]

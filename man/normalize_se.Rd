@@ -50,7 +50,7 @@ normalize_se(
 
 \item{filter}{Filter out low/undesired features? (cbcb, pofa, kofa, others?)}
 
-\item{annotations}{Used for rpkm -- probably not needed as this is in fData now.}
+\item{annotations}{Used for rpkm -- probably not needed as this is in rowData now.}
 
 \item{fasta}{Fasta file for cp_seq_m counting of oligos.}
 

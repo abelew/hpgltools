@@ -86,7 +86,7 @@ species in ways which the various tools expect.
 }
 \examples{
 \dontrun{
- many_comparisons = limma_pairwise(expt = an_expt)
+ many_comparisons = limma_pairwise(exp = an_exp)
  tables = many_comparisons$limma
  this_takes_forever = limma_ontology(tables, gene_lengths = lengthdb,
                                      goids = goids_df, z = 1.5, gff_file='length_db.gff')

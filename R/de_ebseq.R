@@ -10,7 +10,7 @@
 #'
 #' Invoking EBSeq is confusing, this should help.
 #'
-#' @param input Dataframe/vector or expt class containing data, normalization
+#' @param input Dataframe/vector or exp class containing data, normalization
 #'  state, etc.
 #' @param patterns Set of expression patterns to query.
 #' @param model_fstring Formula string describing the model of interest.
@@ -35,8 +35,8 @@
 #' @seealso [limma_pairwise()] [deseq_pairwise()] [edger_pairwise()] [basic_pairwise()]
 #' @examples
 #'  \dontrun{
-#'   expt <- create_expt(metadata = "sample_sheet.xlsx", gene_info = annotations)
-#'   ebseq_de <- ebseq_pairwise(input = expt)
+#'   exp <- create_exp(metadata = "sample_sheet.xlsx", gene_info = annotations)
+#'   ebseq_de <- ebseq_pairwise(input = exp)
 #' }
 #' @export
 ebseq_pairwise <- function(input = NULL, patterns = NULL,
@@ -60,7 +60,7 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
   condition_column <- factors[1]
   input <- sanitize_se(input, keep_underscore = keep_underscore, factors = factors)
   input_data <- choose_binom_dataset(input, force = force)
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
   data <- as.matrix(input_data[["data"]])
   condition_table <- table(conditions)
@@ -125,7 +125,7 @@ print.ebseq_pairwise <- function(x, ...) {
 #' expressionset.  It therefore avoids the strange logic inherent in the ebseq
 #' multitest function.
 #'
-#' @param input Expressionset/expt to perform de upon.
+#' @param input Expressionset/exp to perform de upon.
 #' @param model_fstring Formula string describing the model of interest.
 #' @param ng_vector Passed on to ebseq, I forget what this does.
 #' @param rounds Passed on to ebseq, I think it defines how many iterations to
@@ -147,14 +147,14 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
                                   force = FALSE, keep_underscore = TRUE,
                                   ...) {
   mesg("Starting EBSeq pairwise subset.")
-  ## Now that I understand pData a bit more, I should probably remove the
-  ## conditions/batches slots from my expt classes.
-  design <- pData(input)
+  ## Now that I understand colData a bit more, I should probably remove the
+  ## conditions/batches slots from my exp classes.
+  design <- colData(input)
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
-  data <- exprs(input)
+  data <- assay(input)
   condition_table <- table(conditions)
   condition_levels <- levels(conditions)
 
@@ -178,7 +178,7 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
     }
     idx <- conditions == b_name | conditions == a_name
     pair <- input[, idx]
-    pair_data <- exprs(pair)
+    pair_data <- assay(pair)
     pair_conditions <- droplevels(conditions[idx])
     a_result <- ebseq_two(pair_data, pair_conditions, numerator = b_name, denominator = a_name,
                           ng_vector = ng_vector, rounds = rounds, target_fdr = target_fdr,
@@ -198,7 +198,7 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
 #' EBSeq provides three normaliation methods.  Median, Quantile, and Rank.
 #' Choose among them here.
 #'
-#' @param data_mtrx This is exprs(expressionset)
+#' @param data_mtrx This is assay(expressionset)
 #' @param norm The method to pass along.
 #' @return a new matrix using the ebseq specific method of choice.
 #' @seealso [EBSeq]

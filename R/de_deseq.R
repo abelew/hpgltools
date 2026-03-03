@@ -7,7 +7,7 @@
 #'
 #' This function hopes to wrap up some of the ideas/methods for LRT.
 #'
-#' @param expt Input expressionset
+#' @param exp Input
 #' @param interactor_column Potentially interacting metadata
 #' @param interest_column Essentially the condition in other analyses.
 #' @param transform DESeq2 transformation applied (vst or rlog).
@@ -17,7 +17,7 @@
 #' @param interaction Use an interaction model?
 #' @seealso DOI:10.1186/s13059-014-0550-8
 #' @export
-deseq_lrt <- function(expt, interactor_column = "visitnumber",
+deseq_lrt <- function(exp, interactor_column = "visitnumber",
                       interest_column = "clinicaloutcome", transform = "rlog",
                       factors = NULL, cutoff = 0.05, minc = 3, interaction = TRUE) {
   reduced_string <- glue("~ {interest_column}")
@@ -29,7 +29,7 @@ deseq_lrt <- function(expt, interactor_column = "visitnumber",
   }
   full_model <- as.formula(full_string)
   reduced_model <- as.formula(reduced_string)
-  col_data <- pData(expt)
+  col_data <- colData(exp)
   if (!is.null(factors)) {
     for (f in factors) {
       col_data[[f]] <- as.factor(col_data[[f]])
@@ -53,9 +53,9 @@ deseq_lrt <- function(expt, interactor_column = "visitnumber",
   mesg("The truncated model is: ", as.character(reduced_model), ".")
 
   ## Lets check the rank of this design before making the DESeq data structure.
-  deseq_test <- pData(expt)
-  data_full_model <- stats::model.matrix.default(full_model, data = pData(expt))
-  data_reduced_model <-  stats::model.matrix.default(reduced_model, data = pData(expt))
+  deseq_test <- colData(exp)
+  data_full_model <- stats::model.matrix.default(full_model, data = colData(exp))
+  data_reduced_model <-  stats::model.matrix.default(reduced_model, data = colData(exp))
   full_model_columns <- ncol(data_full_model)
   reduced_model_columns <- ncol(data_reduced_model)
   full_model_rank <- qr(data_full_model)[["rank"]]
@@ -65,7 +65,7 @@ deseq_lrt <- function(expt, interactor_column = "visitnumber",
     message("Consider trying without the interaction.")
   }
 
-  deseq_input <- DESeq2::DESeqDataSetFromMatrix(countData = exprs(expt),
+  deseq_input <- DESeq2::DESeqDataSetFromMatrix(countData = assay(exp),
                                                 colData = col_data,
                                                 design = full_model)
   deseq_lrt <- DESeq2::DESeq(deseq_input, test = "LRT", reduced = reduced_model)
@@ -173,7 +173,7 @@ print.deseq_lrt <- function(x, ...) {
 #' code paths as outlined in the manual.  If you want to play with non-standard
 #' data, the force argument will round the data and shoe-horn it into DESeq2.
 #'
-#' @param input Dataframe/vector or expt class containing data,
+#' @param input Dataframe/vector or exp class containing data,
 #'  normalization state, etc.
 #' @param model_fstring Formula string describing the statistical
 #'  model of interest.
@@ -227,7 +227,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
-  design <- pData(input)
+  design <- colData(input)
 
   model_intercept <- FALSE
   if (!is.null(fctrs[["cellmeans_intercept"]])) {
@@ -260,7 +260,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
-    design <- pData(model_params[["modified_input"]])
+    design <- colData(model_params[["modified_input"]])
   } else if ("matrix" %in% class(model_svs)) {
     message("This received a matrix of SVs.")
   }
@@ -268,9 +268,9 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   summarized <- NULL
   deseq_sf <- NULL
   mesg("DESeq2 step 1/5: Creating DESeqDataset.")
-  ## summarized <- DESeqDataSetFromMatrix(countData = data, colData = pData(input),
+  ## summarized <- DESeqDataSetFromMatrix(countData = data, colData = colData(input),
   ##                                     design=~ 0 + condition + batch)
-  ## conditions and batch in this context is information taken from pData()
+  ## conditions and batch in this context is information taken from colData()
   ##summarized <- import_deseq(data, design, model_fstring, tximport = input[["tximport"]][["raw"]])
   summarized <- import_deseq(count_mtrx, design, model_fstring)
   dataset <- DESeq2::DESeqDataSet(se = summarized,
@@ -354,7 +354,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   end <- length(condition_levels) - 1
   number_comparisons <- sum(seq_len(end))
   ## Something peculiar has happened, since making the condition levels
-  ## ordered in the expts, deseq no longer necessarily orders it contrasts
+  ## ordered in the exps, deseq no longer necessarily orders it contrasts
   ## the same as limma/edger.
   ## This change in ordering is quite annoying.
   ## Therefore, I will invoke make_pairwise_contrasts() here

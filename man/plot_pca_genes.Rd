@@ -18,13 +18,13 @@ plot_pca_genes(
   y_pc = 2,
   label_column = "description",
   num_pc = 2,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   ...
 )
 }
 \arguments{
-\item{data}{an expt set of samples.}
+\item{data}{an exp set of samples.}
 
 \item{design}{a design matrix and.}
 
@@ -51,7 +51,7 @@ plot_pca_genes(
 \item{num_pc}{How many components to calculate, default to the number of
 rows in the metadata.}
 
-\item{expt_names}{Column or character list of preferred sample names.}
+\item{exp_names}{Column or character list of preferred sample names.}
 
 \item{label_chars}{Maximum number of characters before abbreviating sample names.}
 

@@ -13,6 +13,8 @@ plot_svfactor(
 )
 }
 \arguments{
+\item{exp}{Experiment from which to acquire the design, counts, etc.}
+
 \item{svest}{Set of surrogate variable estimations from sva/svg
 or batch estimates.}
 
@@ -22,8 +24,6 @@ or batch estimates.}
 
 \item{factor_type}{This may be a factor or range, it is intended to plot
 a scatterplot if it is a range, a dotplot if a factor.}
-
-\item{expt}{Experiment from which to acquire the design, counts, etc.}
 }
 \value{
 surrogate variable plot as per Leek's work

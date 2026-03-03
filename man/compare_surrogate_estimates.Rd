@@ -15,6 +15,8 @@ compare_surrogate_estimates(
 )
 }
 \arguments{
+\item{exp}{Experiment containing a design and other information.}
+
 \item{extra_factors}{Character list of extra factors which may be included in
 the final plot of the data.}
 
@@ -30,8 +32,6 @@ so probably no.}
 number.}
 
 \item{...}{Extra arguments when filtering.}
-
-\item{expt}{Experiment containing a design and other information.}
 }
 \value{
 List of the results.

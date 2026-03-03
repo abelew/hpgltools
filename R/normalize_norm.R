@@ -35,11 +35,11 @@ normalize_counts <- function(data, design = NULL, method = "raw",
   ## but perhaps instead I should be using these libsizes?
   data_class <- class(data)[1]
   norm_performed <- "raw"
-  if (data_class == "expt") {
-    design <- pData(data)
-    count_table <- exprs(data)
+  if (data_class == "exp") {
+    design <- colData(data)
+    count_table <- assay(data)
   } else if (data_class == "ExpressionSet") {
-    count_table <- exprs(data)
+    count_table <- assay(data)
   } else if (data_class == "list") {
     count_table <- data[["count_table"]]
     if (is.null(data)) {
@@ -50,7 +50,7 @@ normalize_counts <- function(data, design = NULL, method = "raw",
     count_table <- as.data.frame(data)
   } else {
     stop(glue("You provided a class of type: {data_class}.
-This works with: expt, ExpressionSet, data.frame, and matrices.
+This works with: exp, ExpressionSet, data.frame, and matrices.
 "))
   }
   conditions <- design[[condition_column]]
@@ -58,12 +58,12 @@ This works with: expt, ExpressionSet, data.frame, and matrices.
   switchret <- switch(
       method,
       "qshrink" = {
-        count_table <- hpgl_qshrink(exprs = count_table, groups = conditions,
+        count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
                                     plot = TRUE)
         norm_performed <- "qshrink"
       },
       "qshrink_median" = {
-        count_table <- hpgl_qshrink(exprs = count_table, groups = conditions,
+        count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
                                     plot = TRUE, refType = "median",
                                     groupLoc = "median", window = 50)
         norm_performed <- "qshrink_median"
@@ -221,12 +221,12 @@ hpgl_qshrink <- function(data = NULL, groups = NULL, refType = "mean",
     message("normalization. This is probably not what you actually want!")
     count_rownames <- rownames(data)
     count_colnames <- colnames(data)
-    normExprs <- preprocessCore::normalize.quantiles(as.matrix(data), copy = TRUE)
-    rownames(normExprs) <- count_rownames
-    colnames(normExprs) <- count_colnames
-    return(normExprs)
+    normAssay <- preprocessCore::normalize.quantiles(as.matrix(data), copy = TRUE)
+    rownames(normAssay) <- count_rownames
+    colnames(normAssay) <- count_colnames
+    return(normAssay)
   }
-  res <- hpgl_qstats(exprs(data), groups, refType = refType,
+  res <- hpgl_qstats(assay(data), groups, refType = refType,
                      groupLoc = groupLoc, window = window)
   QBETAS <- res[["QBETAS"]]
   Qref <- res[["Qref"]]
@@ -236,11 +236,11 @@ hpgl_qshrink <- function(data = NULL, groups = NULL, refType = "mean",
   wQBETAS <- X %*% t(wQBETAS)
   wQref <- Qref * w
   wQref <- matrix(rep(1, nrow(X)), ncol = 1) %*% t(wQref)
-  normExprs <- t(wQBETAS + wQref)
+  normAssay <- t(wQBETAS + wQref)
   RANKS <- t(matrixStats::colRanks(data, ties.method = "average"))
-  for (k in seq_len(ncol(normExprs))) {
-    x <- normExprs[, k]
-    normExprs[, k] <- x[RANKS[, k]]
+  for (k in seq_len(ncol(normAssay))) {
+    x <- normAssay[, k]
+    normAssay[, k] <- x[RANKS[, k]]
   }
 
   aveTies <- function (ranks, y) {
@@ -255,10 +255,10 @@ hpgl_qshrink <- function(data = NULL, groups = NULL, refType = "mean",
     }
     y
   }
-  normExprs <- aveTies(RANKS, normExprs)
+  normAssay <- aveTies(RANKS, normAssay)
 
-  rownames(normExprs) <- rownames(data)
-  colnames(normExprs) <- colnames(data)
+  rownames(normAssay) <- rownames(data)
+  colnames(normAssay) <- colnames(data)
   if (plot) {
     oldpar <- par(mar = c(4, 4, 1.5, 0.5))
     lq <- length(Qref)
@@ -274,7 +274,7 @@ hpgl_qshrink <- function(data = NULL, groups = NULL, refType = "mean",
     abline(h = 0.5, v = 0.5, col = "red", lty = 2)
     newpar <- par(oldpar)
   }
-  return(normExprs)
+  return(normAssay)
 }
 
 #' A hacked copy of Kwame's qsmooth/qstats code.

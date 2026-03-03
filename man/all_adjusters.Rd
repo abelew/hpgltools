@@ -25,9 +25,9 @@ all_adjusters(
 )
 }
 \arguments{
-\item{input}{Dataframe or expt or whatever as the data to analyze/modify.}
+\item{input}{Dataframe or exp or whatever as the data to analyze/modify.}
 
-\item{design}{If the data is not an expt, then put the design here.}
+\item{design}{If the data is not an exp, then put the design here.}
 
 \item{estimate_type}{Name of the estimator.}
 
@@ -44,7 +44,7 @@ search for them.}
 
 \item{na_to_zero}{Set any NA entries to 0?}
 
-\item{input_state}{If this is not an expt, provide the state of the data here.}
+\item{input_state}{If this is not an exp, provide the state of the data here.}
 
 \item{confounders}{List of confounded factors for smartSVA/iSVA.}
 

@@ -12,7 +12,7 @@ do_batch(
   batch1 = "batch",
   current_state = NULL,
   current_design = NULL,
-  expt_state = NULL,
+  exp_state = NULL,
   surrogate_method = "be",
   num_surrogates = NULL,
   low_to_zero = FALSE,
@@ -37,7 +37,7 @@ do_batch(
 
 \item{current_design}{Redundant with design above...}
 
-\item{expt_state}{Redundant with current_state above.}
+\item{exp_state}{Redundant with current_state above.}
 
 \item{surrogate_method}{Method to estimate the number of SVs.}
 

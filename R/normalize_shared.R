@@ -23,7 +23,7 @@ NULL
 #' @param batch1 Column containing the primary batch factor
 #' @param current_state State of the data before messing with it.
 #' @param current_design Redundant with design above...
-#' @param expt_state Redundant with current_state above.
+#' @param exp_state Redundant with current_state above.
 #' @param surrogate_method Method to estimate the number of SVs.
 #' @param num_surrogates Explicit number of surrogates.
 #' @param low_to_zero Push values less than zero to zero.
@@ -34,7 +34,7 @@ NULL
 #'  finding the surrogates.
 #' @param batch_step Choose when to perform this in the set of normalization tasks.
 do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
-                     current_state = NULL, current_design = NULL, expt_state = NULL,
+                     current_state = NULL, current_design = NULL, exp_state = NULL,
                      surrogate_method = "be", num_surrogates = NULL, low_to_zero = FALSE,
                      cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv",
                      batch_step = 4) {
@@ -99,24 +99,24 @@ setMethod(
   })
 
 ## It is just about time to delete the following function.
-#' Normalize the data of an expt object.  Save the original data, and note what
+#' Normalize the data of an exp object.  Save the original data, and note what
 #' was done.
 #'
 #' It is the responsibility of normalize() to perform any arbitrary
 #' normalizations desired as well as to ensure that the data integrity is
 #' maintained.  In order to do this, it writes the actions performed in
-#' expt$state and saves the intermediate steps of the normalization in
-#' expt$intermediate_counts.  Furthermore, it should tell you every step of the
+#' exp$state and saves the intermediate steps of the normalization in
+#' exp$intermediate_counts.  Furthermore, it should tell you every step of the
 #' normalization process, from count filtering, to normalization, conversion,
 #' transformation, and batch correction.
 #'
-#' @param expt Original expt.
+#' @param exp Original exp.
 #' @param transform Transformation desired, usually log2.
 #' @param norm How to normalize the data? (raw, quant, sf, upperquartile, tmm, rle)
 #' @param convert Conversion to perform? (raw, cpm, rpkm, cp_seq_m)
 #' @param batch Batch effect removal tool to use? (limma sva fsva ruv etc)
 #' @param filter Filter out low/undesired features? (cbcb, pofa, kofa, others?)
-#' @param annotations Used for rpkm -- probably not needed as this is in fData now.
+#' @param annotations Used for rpkm -- probably not needed as this is in rowData now.
 #' @param fasta Fasta file for cp_seq_m counting of oligos.
 #' @param entry_type For getting genelengths by feature type (rpkm or cp_seq_m).
 #' @param batch1 Experimental factor to extract first.
@@ -138,7 +138,7 @@ setMethod(
 #'  of surrogates.
 #' @param length_column annotation column containing gene lengths for rpkm.
 #' @param ... more options
-#' @return Expt object with normalized data and the original data saved as
+#' @return Exp object with normalized data and the original data saved as
 #'  'original_expressionset'
 #' @seealso [convert_counts()] [normalize_counts()] [batch_counts()]
 #'  [filter_counts()] [transform_counts()]
@@ -150,7 +150,7 @@ setMethod(
 #'                                 batch='sva', filter='pofa')
 #' }
 #' @export
-normalize_expt <- function(expt, ## The expt class passed to the normalizer
+normalize_exp <- function(exp, ## The exp class passed to the normalizer
                            ## choose the normalization strategy
                            transform = "raw", norm = "raw", convert = "raw",
                            batch = "raw", filter = FALSE,
@@ -166,10 +166,10 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
                            num_surrogates = "be", length_column = NULL,
                            ...) {
   arglist <- list(...)
-  expt_state <- state(expt)
-  new_expt <- expt
+  exp_state <- state(exp)
+  new_exp <- exp
   type <- ""
-  current_exprs <- expt[["expressionset"]]
+  current_assay <- exp[["expressionset"]]
   if (is.null(filter) || isFALSE(filter)) {
     filter <- "raw"
   } else if (isTRUE(filter)) {
@@ -201,12 +201,12 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
                               norm = norm, filter = filter)
   mesg(operations)
   mesg("It will save copies of each step along the way
- in expt$normalized with the corresponding libsizes. Keep libsizes in mind
+ in exp$normalized with the corresponding libsizes. Keep libsizes in mind
  when invoking limma.  The appropriate libsize is non-log(cpm(normalized)).
  This is most likely kept at:
- 'new_expt$normalized$intermediate_counts$normalization$libsizes'
+ 'new_exp$normalized$intermediate_counts$normalization$libsizes'
  A copy of this may also be found at:
- new_expt$best_libsize
+ new_exp$best_libsize
 ")
 
   if (filter == "raw") {
@@ -248,16 +248,16 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
     warning("Quantile normalization and sva do not always play well together.")
   }
 
-  data <- exprs(current_exprs)
-  design <- pData(expt)
+  data <- assay(current_assay)
+  design <- colData(exp)
   if (is.null(annotations)) {
-    annotations <- fData(current_exprs)
+    annotations <- rowData(current_assay)
   }
   ## A bunch of these options should be moved into ...
   ## Having them as options to maintain is foolish
   if (isTRUE(verbose)) {
     normalized <- hpgl_norm(
-      data, expt_state = expt_state, design = design, transform = transform, norm = norm,
+      data, exp_state = exp_state, design = design, transform = transform, norm = norm,
       convert = convert, batch = batch, batch1 = batch1, batch2 = batch2, low_to_zero = low_to_zero,
       filter = filter, annotations = annotations, fasta = fasta, thresh = thresh,
       batch_step = batch_step, min_samples = min_samples, p = p, A = A, k = k, cv_min = cv_min,
@@ -266,7 +266,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
       ...)
   } else {
     normalized <- sm(hpgl_norm(
-      data, expt_state = expt_state, design = design, transform = transform, norm = norm,
+      data, exp_state = exp_state, design = design, transform = transform, norm = norm,
       convert = convert, batch = batch, batch1 = batch1, batch2=batch2, low_to_zero = low_to_zero,
       filter = filter, annotations = annotations, fasta = fasta, thresh = thresh,
       batch_step = batch_step, min_samples = min_samples, p = p, A = A, k = k, cv_min = cv_min,
@@ -289,19 +289,19 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   ## but these rows need to go.
   row_na_idx <- !is.na(rownames(final_data))
   final_data <- final_data[row_na_idx, ]
-  unfiltered_genes <- rownames(exprs(current_exprs)) %in% rownames(final_data)
-  current_exprs <- current_exprs[unfiltered_genes, ]
+  unfiltered_genes <- rownames(assay(current_assay)) %in% rownames(final_data)
+  current_assay <- current_assay[unfiltered_genes, ]
   ## This next line was added in response to an annoying occurance when
   ## combining technical replicates of a data set for which the samples started
   ## with numbers ('2018_0315' for example).  In that instance, my
   ## concatenate_runs() does not properly check to ensure that the column names
   ## do not change. I should therefore change that, but for the moment I will
   ## add a check here.
-  colnames(final_data) <- sampleNames(current_exprs)
-  exprs(current_exprs) <- final_data
+  colnames(final_data) <- sampleNames(current_assay)
+  assay(current_assay) <- final_data
 
   ## This state slot should match the information available in
-  ## new_expt$normalized$actions
+  ## new_exp$normalized$actions
   ## I am hoping this will prove a more direct place to access it and provide a
   ## chance to double-check that things match
   new_state <- list(
@@ -313,20 +313,20 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
 
   ## Keep in mind that low_to_zero should be ignored if transform_state is not raw.
   if (new_state[["transform"]] == "raw" & isTRUE(low_to_zero)) {
-    low_idx <- exprs(current_exprs) < 0
+    low_idx <- assay(current_assay) < 0
     ## Do not forget that na does not count when looking for numbers < x.
-    na_idx <- is.na(exprs(current_exprs))
+    na_idx <- is.na(assay(current_assay))
     low_idx[na_idx] <- FALSE
     low_num <- sum(low_idx)
     if (low_num > 0) {
       message("Setting ", low_num, " entries to zero.")
-      exprs(current_exprs)[low_idx] <- 0
+      assay(current_assay)[low_idx] <- 0
     }
   }
 
   if (isTRUE(na_to_zero)) {
-    na_idx <- is.na(exprs(current_exprs))
-    exprs(current_exprs)[na_idx] <- 0
+    na_idx <- is.na(assay(current_assay))
+    assay(current_assay)[na_idx] <- 0
   }
 
   ## The original data structure contains the following slots:
@@ -344,11 +344,11 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   ## intermediate_counts -- counts after each step in the hpgl_norm() process
   ## count_table -- a dataframe count table from hpgl_norm()
   ## libsize -- a final libsize from hpgl_norm()
-  new_expt[["normalized"]] <- normalized
-  new_expt[["state"]] <- new_state
-  new_expt[["SVs"]] <- NULL
+  new_exp[["normalized"]] <- normalized
+  new_exp[["state"]] <- new_state
+  new_exp[["SVs"]] <- NULL
   if (!is.null(normalized[["sv_df"]])) {
-    new_expt[["sv_df"]] <- normalized[["sv_df"]]
+    new_exp[["sv_df"]] <- normalized[["sv_df"]]
   }
 
   ## My concept of the 'best library size' comes from Kwame's work where the
@@ -356,21 +356,21 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
   ## a log2(cpm()) The problem with this is that, if one does a normalize() then
   ## another normalize() then the assumptions used  may get violated.
   if (!is.null(normalized[["intermediate_counts"]][["normalization"]][["libsize"]])) {
-    new_expt[["best_libsize"]] <-
+    new_exp[["best_libsize"]] <-
       normalized[["intermediate_counts"]][["normalization"]][["libsize"]]
   } else if (!is.null(normalized[["intermediate_counts"]][["filter"]][["libsize"]])) {
-    new_expt[["best_libsize"]] <-
+    new_exp[["best_libsize"]] <-
       normalized[["intermediate_counts"]][["filter"]][["libsize"]]
   } else {
-    new_expt[["best_libsize"]] <- NULL
+    new_exp[["best_libsize"]] <- NULL
   }
   ## limma should probably use this
-  new_expt[["norm_result"]] <- normalized
-  new_expt[["expressionset"]] <- current_exprs
-  current_notes <- glue("{new_expt[['notes']]} Normalized with {type} at {date()}.
+  new_exp[["norm_result"]] <- normalized
+  new_exp[["expressionset"]] <- current_assay
+  current_notes <- glue("{new_exp[['notes']]} Normalized with {type} at {date()}.
 ")
-  new_expt[["notes"]] <- toString(current_notes)
-  return(new_expt)
+  new_exp[["notes"]] <- toString(current_notes)
+  return(new_exp)
 }
 
 #' Normalize a SummarizedExperiment and think about how I want to reimplement some of this.
@@ -381,7 +381,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
 #' @param convert Conversion to perform? (raw, cpm, rpkm, cp_seq_m)
 #' @param batch Batch effect removal tool to use? (limma sva fsva ruv etc)
 #' @param filter Filter out low/undesired features? (cbcb, pofa, kofa, others?)
-#' @param annotations Used for rpkm -- probably not needed as this is in fData now.
+#' @param annotations Used for rpkm -- probably not needed as this is in rowData now.
 #' @param fasta Fasta file for cp_seq_m counting of oligos.
 #' @param entry_type For getting genelengths by feature type (rpkm or cp_seq_m).
 #' @param batch1 Experimental factor to extract first.
@@ -408,7 +408,7 @@ normalize_expt <- function(expt, ## The expt class passed to the normalizer
 #' @param length_column annotation column containing gene lengths for rpkm.
 #' @param ... Arbitrary arguments.
 #' @export
-normalize_se <- function(se, ## The expt class passed to the normalizer
+normalize_se <- function(se, ## The exp class passed to the normalizer
                          ## choose the normalization strategy
                          transform = "raw", norm = "raw", convert = "raw",
                          batch = "raw", filter = FALSE,
@@ -537,7 +537,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   if (batch_step == 1) {
     batch_data <- do_batch(
       count_lst, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = se_state,
+      current_state = current_state, exp_state = se_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -569,7 +569,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   if (batch_step == 2) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = se_state,
+      current_state = current_state, exp_state = se_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -600,7 +600,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   if (batch_step == 3) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = se_state,
+      current_state = current_state, exp_state = se_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -631,7 +631,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   if (batch_step == 4) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = se_state,
+      current_state = current_state, exp_state = se_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -669,7 +669,7 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   if (batch_step == 5) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = se_state,
+      current_state = current_state, exp_state = se_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -739,15 +739,15 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
   return(se)
 }
 
-#' Normalize a dataframe/expt, express it, and/or transform it
+#' Normalize a dataframe/exp, express it, and/or transform it
 #'
 #' There are many possible options to this function.  Refer to normalize()
 #' for a more complete list.
 #'
 #' FIXME: This function is defunct and should be deleted in favor of normalize()
 #'
-#' @param data Some data as a df/expt/whatever.
-#' @param expt_state State of the input data.
+#' @param data Some data as a df/exp/whatever.
+#' @param exp_state State of the input data.
 #' @param design experimental design.
 #' @param transform Desired transformation.
 #' @param norm Desired normalization.
@@ -781,13 +781,13 @@ normalize_se <- function(se, ## The expt class passed to the normalizer
 #' @export
 #' @examples
 #' \dontrun{
-#'  df_raw = hpgl_norm(expt = expt)  ## Only performs low-count filtering
+#'  df_raw = hpgl_norm(exp = exp)  ## Only performs low-count filtering
 #'  df_raw = hpgl_norm(df = a_df, design = a_design) ## Same, but using a df
-#'  df_ql2rpkm = hpgl_norm(expt = expt, norm='quant', transform='log2',
+#'  df_ql2rpkm = hpgl_norm(exp = exp, norm='quant', transform='log2',
 #'                         convert='rpkm')  ## Quantile, log2, rpkm
 #'  count_table = df_ql2rpkm$counts
 #' }
-hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
+hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
                       norm = "raw", convert = "raw", batch = "raw", batch1 = "batch",
                       batch2 = NULL, low_to_zero = TRUE, filter = "raw", annotations = NULL,
                       fasta = NULL, thresh = 2, batch_step = 4, min_samples = 2, p = 0.05,
@@ -801,7 +801,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   transform_performed <- "raw"
   batch_performed <- "raw"
   adjust_performed <- "none"
-  expt_state <- list(
+  exp_state <- list(
     "low_filter" = filter_performed,
     "normalization" = norm_performed,
     "conversion" = convert_performed,
@@ -816,17 +816,17 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   surrogate_method <- num_surrogates
   ## I never quite realized just how nice data.tables are.  To what extent can I refactor
   ## all of my data frame usage to them?
-  if (data_class == "expt") {
+  if (data_class == "exp") {
     original_counts <- data[["original_counts"]]
     original_libsizes <- data[["original_libsize"]]
-    design <- pData(data)
-    annot <- fData(data)
-    counts <- exprs(data)
-    expt_state <- state(expt)
+    design <- colData(data)
+    annot <- rowData(data)
+    counts <- assay(data)
+    exp_state <- state(exp)
   } else if (data_class == "ExpressionSet") {
-    counts <- exprs(data)
-    design <- pData(data)
-    annot <- fData(data)
+    counts <- assay(data)
+    design <- colData(data)
+    annot <- rowData(data)
   } else if (data_class == "list") {
     counts <- data[["count_table"]]
     if (is.null(data)) {
@@ -844,7 +844,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
       counts <- counts[-1]
     }
   } else {
-    stop("This only understands types: expt, ExpressionSet, data.frame, and matrix.")
+    stop("This only understands types: exp, ExpressionSet, data.frame, and matrix.")
   }
 
   count_table <- as.matrix(counts)
@@ -859,7 +859,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   }
 
   ## Make changes to this as we go.
-  current_state <- expt_state
+  current_state <- exp_state
   batched_counts <- NULL
   if (!is.numeric(batch_step)) {
     batch_step <- 4
@@ -871,7 +871,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   if (batch_step == 1) {
     batch_data <- do_batch(count_table, method = batch, design = design,
                            batch1 = batch1, current_state = current_state,
-                           expt_state = expt_state, surrogate_method = surrogate_method,
+                           exp_state = exp_state, surrogate_method = surrogate_method,
                            num_surrogates = num_surrogates, low_to_zero = low_to_zero,
                            cpus = cpus, batch2 = batch2, noscale = noscale,
                            adjust_method = adjust_method)
@@ -902,7 +902,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   if (batch_step == 2) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = expt_state,
+      current_state = current_state, exp_state = exp_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -936,7 +936,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   if (batch_step == 3) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = expt_state,
+      current_state = current_state, exp_state = exp_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -965,7 +965,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   if (batch_step == 4) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = expt_state,
+      current_state = current_state, exp_state = exp_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -998,7 +998,7 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
   if (batch_step == 5) {
     batch_data <- do_batch(
       count_table, method = batch, design = design, batch1 = batch1,
-      current_state = current_state, expt_state = expt_state,
+      current_state = current_state, exp_state = exp_state,
       surrogate_method = surrogate_method, num_surrogates = num_surrogates,
       low_to_zero = low_to_zero, cpus = cpus, batch2 = batch2, noscale = noscale,
       adjust_method = adjust_method)
@@ -1051,9 +1051,9 @@ hpgl_norm <- function(data, expt_state = NULL, design = NULL, transform = "raw",
 #' summarizedExperiments and this simpler method provides an
 #' opportunity.
 #'
-#' @param expt Input data
+#' @param exp Input data
 #' @param todo List of tasks to perform.
-normalize_todo <- function(expt, todo = list()) {
+normalize_todo <- function(exp, todo = list()) {
   ## This expects a list like:
   ## list("norm" = "quant", "filter" = c(pofa, "A" = 1))
   possible_methods <- list(
@@ -1063,11 +1063,11 @@ normalize_todo <- function(expt, todo = list()) {
     "filter" = "filter_counts",
     "batch" = "batch_counts",
     "impute" = "impute_counts")
-  annot <- fData(expt)
-  counts <- exprs(expt)
-  design <- pData(expt)
+  annot <- rowData(exp)
+  counts <- assay(exp)
+  design <- colData(exp)
   count_table <- list("count_table" = counts,
-                      "libsize" = expt[["libsize"]])
+                      "libsize" = exp[["libsize"]])
   for (i in seq_along(todo)) {
     type <- names(todo)[i]
     operation <- todo[[i]]

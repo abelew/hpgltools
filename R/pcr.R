@@ -765,7 +765,7 @@ print.cds_variant_primers <- function(x, ...) {
 #' might prove useful when designing PCR primers for a specific
 #' condition in a dataset of variants.
 #'
-#' @param snp_count Result from count_expt_snps()
+#' @param snp_count Result from count_exp_snps()
 #' @param pdata_column Metadata column containing the condition of
 #'  interest.
 #' @param condition Chosen condition to search for variants.
@@ -815,10 +815,10 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     genome <- get0(bsgenome)
   }
 
-  samples_by_condition <- pData(snp_count)[[pdata_column]]
+  samples_by_condition <- colData(snp_count)[[pdata_column]]
   ## Keep only those samples of the condition of interest for now,
   ## maybe make it a loop to iterate over conditions later.
-  snp_table <- exprs(snp_count)
+  snp_table <- assay(snp_count)
   kept_samples <- 0
   if (!is.null(condition)) {
     interest_idx <- samples_by_condition == condition

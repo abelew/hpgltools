@@ -29,5 +29,5 @@ runs got repeated.
 }
 }
 \seealso{
-[Biobase] [exprs()] [fData()] [pData()] [create_se()]
+[Biobase] [assay()] [rowData()] [colData()] [create_se()]
 }

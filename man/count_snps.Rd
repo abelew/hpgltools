@@ -57,7 +57,7 @@ cyoa.
  ## This assumes that the metadata has a column named 'bcftable'
  ## with one file per cell.  These files in turn should have a
  ## column named 'diff_count' which will be the source of the
- ## numbers found when doing exprs(snp_exp).
+ ## numbers found when doing assay(snp_exp).
 }
 }
 \seealso{

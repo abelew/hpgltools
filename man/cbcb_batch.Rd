@@ -51,7 +51,7 @@ get a new data set.
 }
 \examples{
 \dontrun{
- newdata <- cbcb_batch_effect(counts, expt_model)
+ newdata <- cbcb_batch_effect(counts, exp_model)
 }
 }
 \seealso{

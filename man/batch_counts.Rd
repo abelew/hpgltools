@@ -31,7 +31,7 @@ batch_counts(
 \item{batch1}{String describing the method to try to remove the batch effect
 (or FALSE to leave it alone, TRUE uses limma).}
 
-\item{current_design}{Redundant with expt_design above, but
+\item{current_design}{Redundant with exp_design above, but
 provides another place for normalize() to send data.}
 
 \item{input_state}{Current state of the data}

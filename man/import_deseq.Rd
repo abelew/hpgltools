@@ -5,14 +5,14 @@
 \title{Try to add data to DESeq in a flexible fashion.  This currently only handles
 matrices, htseq data, and tximport data.}
 \usage{
-import_deseq(data, column_data, model_string, tximport = NULL)
+import_deseq(data, column_data, model_fstring, tximport = NULL)
 }
 \arguments{
 \item{data}{Counts from htseq/mtrx/tximport/etc}
 
 \item{column_data}{I think this is the sample names, I forget.}
 
-\item{model_string}{Model describing the data by sample names.}
+\item{model_fstring}{Model describing the data by sample names.}
 
 \item{tximport}{Where is this data coming from?}
 }

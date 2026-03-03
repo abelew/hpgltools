@@ -305,7 +305,7 @@ graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean"
   }
   tmp_input <- sm(normalize(input, filter = TRUE))
   pcload <- list()
-  if (nrow(exprs(tmp_input)) > ncol(exprs(tmp_input))) {
+  if (nrow(assay(tmp_input)) > ncol(assay(tmp_input))) {
     mesg("Plotting the expression of the top-n PC loaded genes.")
     pcload <- try(plot_pcload(tmp_input, plot_title = pc_loading_title))
     if ("try-error" %in% class(pcload)) {

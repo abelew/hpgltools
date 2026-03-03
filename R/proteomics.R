@@ -1,4 +1,4 @@
-q#' Replace 0 with NA if not all entries for a given condition are 0.
+#' Replace 0 with NA if not all entries for a given condition are 0.
 #'
 #' This will hopefully handle a troubling corner case in Volker's data:
 #' He primarily wants to find proteins which are found in one condition, but
@@ -80,9 +80,9 @@ add_conditional_nas <- function(se, fact = "condition", method = "NA") {
   annotations <- merge(annotations, observations_df, by = "row.names")
   rownames(annotations) <- annotations[["Row.names"]]
   annotations[["Row.names"]] <- NULL
-  exprs(exprs_set) <- mtrx
-  rowData(exprs_set) <- annotations
-  assay(se) <- exprs_set
+  assay(assay_set) <- mtrx
+  rowData(assay_set) <- annotations
+  assay(se) <- assay_set
   return(se)
 }
 
@@ -887,18 +887,18 @@ impute_se <- function(se, filter = TRUE, p = 0.5,
   num_zeros <- apply(assay(se) == 0, 1, any)
   rowData(se)[["imputed"]] <- num_zeros
   zero_idx <- assay(se) == 0
-  rowData(exprs_set)[["num_nas"]] <- rowSums(zero_idx)
-  assay(exprs_set)[zero_idx] <- NA
+  rowData(assay_set)[["num_nas"]] <- rowSums(zero_idx)
+  assay(assay_set)[zero_idx] <- NA
 
   requireNamespace("MSnbase")
-  msn_data <- as(exprs_set, "MSnSet")
-  starting_counts <- assay(exprs_set)
+  msn_data <- as(assay_set, "MSnSet")
+  starting_counts <- assay(assay_set)
   message("Invoking impute from MSnbase with the ", fun, " method.")
 
   imputed_data <- MSnbase::impute(msn_data, method = fun,
                                   ...)
-  imputed_exprs <- as(imputed_data, "SummarizedExperiment")
-  imputed_counts <- assay(imputed_exprs)
+  imputed_assay <- as(imputed_data, "SummarizedExperiment")
+  imputed_counts <- assay(imputed_assay)
 
   same <- all.equal(starting_counts, imputed_counts)
   if (isTRUE(same)) {
@@ -1122,7 +1122,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
   ## Now make sure the columns which should be numeric, are numeric.
   numeric_cols <- c(
       "protein_fdr_mascot", "protein_fdr_sequest", "exp_qvalue_mascot",
-      "expt_qvalue_sequest", "coverage_pct", "unique_peptides", "aas", "mw_kda",
+      "exp_qvalue_sequest", "coverage_pct", "unique_peptides", "aas", "mw_kda",
       "calc_pi", "score_mascot", "score_sequest", "peptides_mascot",
       "peptides_sequest")
   for (col in numeric_cols) {

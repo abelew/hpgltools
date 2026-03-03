@@ -5,7 +5,7 @@
 #' Perform limma, DESeq2, EdgeR, basic, noiseq, dream, and ebseq
 #' pairwise analyses.
 #'
-#' This takes an expt object, collects the set of all possible pairwise
+#' This takes an exp object, collects the set of all possible pairwise
 #' comparisons, sets up experimental models appropriate for the differential
 #' expression analyses, and performs them.
 #'
@@ -52,7 +52,7 @@
 #'  [basic_pairwise()]
 #' @examples
 #' \dontrun{
-#'  lotsodata <- all_pairwise(input = expt)
+#'  lotsodata <- all_pairwise(input = exp)
 #'  summary(lotsodata)
 #'  ## limma, edger, deseq, basic results; plots; and summaries.
 #' }
@@ -177,13 +177,8 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
       }
       post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
     } else if (!is.null(assumed_batch)) {
-      if (batches(input) != assumed_batch) {
-        message("Assuming an intended batch factor of: ", assumed_batch, ".")
-        input <- set_expt_batches(input, assumed_batch)
-        post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
-      } else {
-        post_batch <- NULL
-      }
+      input <- set_batches(input, assumed_batch)
+      post_batch <- sm(normalize(input, filter = TRUE, batch = TRUE, transform = "log2"))
     } else {
       model_type <- "none"
       mesg("Assuming no batch in model for testing pca.")
@@ -508,13 +503,13 @@ sva_modify_pvalues <- function(results) {
     samples_first_idx <- results[["limma"]][["conditions"]] == first
     num_first <- sum(samples_first_idx)
     ## Subset the expressionset and make a new matrix of only the 'mutant' samples
-    samples_first <- exprs(input)[, samples_first_idx]
+    samples_first <- assay(input)[, samples_first_idx]
     ## Repeat for the 'wildtype' samples, when finished the m columns for
     ## samples_first 'mutant' and the n samples of samples_second will be
     ## 'wildtype'
     samples_second_idx <- results[["limma"]][["conditions"]] == second
     num_second <- sum(samples_second_idx)
-    samples_second <- exprs(results[["input"]])[, samples_second_idx]
+    samples_second <- assay(results[["input"]])[, samples_second_idx]
     ## Concatenate the 'mutant' and 'wildtype' samples by column
     included_samples <- cbind(samples_first, samples_second)
     ## Arbitrarily call them 'first' and 'second'
@@ -605,12 +600,12 @@ sva_modify_pvalues <- function(results) {
 #' A sanity check that a given set of data is suitable for methods which assume
 #' a negative binomial distribution of input.
 #'
-#' Take an expt and poke at it to ensure that it will not result in troubled
+#' Take an exp and poke at it to ensure that it will not result in troubled
 #' results.
 #'
 #' Invoked by deseq_pairwise() and edger_pairwise().
 #'
-#' @param input Expressionset containing expt object.
+#' @param input Expressionset containing exp object.
 #' @param force Ignore every warning and just use this data.
 #' @param ... Extra arguments passed to arglist.
 #' @return dataset suitable for limma analysis
@@ -701,7 +696,7 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
 #'
 #' Invoked by _pairwise().
 #'
-#' @param input Expt input.
+#' @param input Exp input.
 #' @param choose_for One of limma, deseq, edger, or basic.  Defines the
 #'  requested data state.
 #' @param force Force non-standard data?
@@ -710,7 +705,7 @@ choose_binom_dataset <- function(input, force = FALSE, ...) {
 #' @seealso [choose_binom_dataset()] [choose_limma_dataset()] [choose_basic_dataset()]
 #' @examples
 #' \dontrun{
-#'  starting_data <- create_expt(metadata)
+#'  starting_data <- create_exp(metadata)
 #'  modified_data <- normalize(starting_data, transform = "log2", norm = "quant")
 #'  a_dataset <- choose_dataset(modified_data, choose_for = "deseq")
 #'  ## choose_dataset should see that log2 data is inappropriate for DESeq2 and
@@ -736,10 +731,10 @@ choose_dataset <- function(input, choose_for = "limma", force = FALSE, ...) {
 
 #' A sanity check that a given set of data is suitable for analysis by limma.
 #'
-#' Take an expt and poke at it to ensure that it will not result in troubled
+#' Take an exp and poke at it to ensure that it will not result in troubled
 #' limma results.
 #'
-#' @param input Expressionset containing expt object.
+#' @param input Expressionset containing exp object.
 #' @param force Ingore warnings and use the provided data asis.
 #' @param which_voom Choose between limma'svoom, voomWithQualityWeights, or the
 #'  hpgl equivalents.
@@ -836,8 +831,8 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...
 #' @seealso [all_pairwise()]
 #' @examples
 #' \dontrun{
-#'  first <- all_pairwise(expt, model_svs = FALSE, excel = "first.xlsx")
-#'  second <- all_pairwise(expt, model_svs = "svaseq", excel = "second.xlsx")
+#'  first <- all_pairwise(exp, model_svs = FALSE, excel = "first.xlsx")
+#'  second <- all_pairwise(exp, model_svs = "svaseq", excel = "second.xlsx")
 #'  comparison <- compare_de_results(first$combined, second$combined)
 #' }
 #' @export
@@ -1062,9 +1057,9 @@ of two DE tables.")
 #' @seealso [limma_pairwise()] [edger_pairwise()] [deseq_pairwise()]
 #' @examples
 #' \dontrun{
-#'  l = limma_pairwise(expt)
-#'  d = deseq_pairwise(expt)
-#'  e = edger_pairwise(expt)
+#'  l = limma_pairwise(exp)
+#'  d = deseq_pairwise(exp)
+#'  e = edger_pairwise(exp)
 #'  fun = compare_led_tables(limma = l, deseq = d, edger = e)
 #' }
 #' @export
@@ -1773,8 +1768,8 @@ ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
 #' @param z Number of z-scores >/< the median to take.
 #' @param lfc Fold-change cutoff.
 #' @param p P-value cutoff.
-#' @param min_mean_exprs Exclude genes with less than this mean expression.
-#' @param exprs_column Use this column for filtering by expression.
+#' @param min_mean_assay Exclude genes with less than this mean expression.
+#' @param assay_column Use this column for filtering by expression.
 #' @param column Table's column used to distinguish top vs. bottom.
 #' @param fold Identifier reminding how to get the bottom portion of a
 #'  fold-change (plusminus says to get the negative of the
@@ -1790,7 +1785,7 @@ ihw_adjust <- function(de_result, pvalue_column = "pvalue", type = NULL,
 #' }
 #' @export
 get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
-                          min_mean_exprs = NULL, exprs_column = "deseq_basemean",
+                          min_mean_assay = NULL, assay_column = "deseq_basemean",
                           column = "logFC", fold = "plusminus", p_column = "adj.P.Val",
                           comparison = "orequal") {
   if (is.null(z) && is.null(n) && is.null(lfc) && is.null(p)) {
@@ -1901,16 +1896,16 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
   up_genes <- up_genes[order(as.numeric(up_genes[[column]]), decreasing = TRUE), ]
   down_genes <- down_genes[order(as.numeric(down_genes[[column]]), decreasing = FALSE), ]
 
-  if (!is.null(min_mean_exprs)) {
-    if (is.null(up_genes[[exprs_column]])) {
-      warning("The column ", exprs_column,
+  if (!is.null(min_mean_assay)) {
+    if (is.null(up_genes[[assay_column]])) {
+      warning("The column ", assay_column,
               " does not appears to be in the table, cannot filter by expression.")
     } else {
       mesg("Subsetting the up/down genes to those with >= ",
-           min_mean_exprs, " expression.")
-      up_idx <- up_genes[[exprs_column]] >= min_mean_exprs
+           min_mean_assay, " expression.")
+      up_idx <- up_genes[[assay_column]] >= min_mean_assay
       up_genes <- up_genes[up_idx, ]
-      down_idx <- down_genes[[exprs_column]] >= min_mean_exprs
+      down_idx <- down_genes[[assay_column]] >= min_mean_assay
       down_genes <- down_genes[down_idx, ]
     }
   }
@@ -2018,8 +2013,8 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
         d_name <- short_names[d]
         d_string <- full_names[d]
         minus_string <- paste0(d_name, "_vs_", c_name)
-        exprs_string <- paste0(minus_string, "=", d_string, "-", c_string, ",")
-        all_pairwise[minus_string] <- exprs_string
+        assay_string <- paste0(minus_string, "=", d_string, "-", c_string, ",")
+        all_pairwise[minus_string] <- assay_string
         numerators <- c(numerators, d_name)
         denominators <- c(denominators, c_name)
       }
@@ -2033,8 +2028,8 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
       d_name <- keeper_value[2]
       d_string <- paste0(contrast_factor, d_name)
       minus_string <- paste0(n_name, "_vs_", d_name)
-      exprs_string <- paste0(minus_string, "=", n_string, "-", d_string, ",")
-      all_pairwise[minus_string] <- exprs_string
+      assay_string <- paste0(minus_string, "=", n_string, "-", d_string, ",")
+      all_pairwise[minus_string] <- assay_string
       numerators <- c(numerators, n_name)
       denominators <- c(denominators, d_name)
     }
@@ -2246,9 +2241,9 @@ semantic_copynumber_filter <- function(input, max_copies = 2, use_files = FALSE,
                                        semantic = c("mucin", "sialidase", "RHS",
                                                     "MASP", "DGF", "GP63"),
                                        semantic_column = "product") {
-  if ("expt" %in% class(input)) {
-    result <- semantic_expt_filter(input, invert = invert, semantic = semantic,
-                                   semantic_column = semantic_column)
+  if ("SummarizedExperiment" %in% class(input)) {
+    result <- semantic_filter(input, invert = invert, semantic = semantic,
+                              semantic_column = semantic_column)
     return(result)
   }
 

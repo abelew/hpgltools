@@ -4,10 +4,10 @@
 \alias{score_mhess}
 \title{A scoring function for the mh_ess TNSeq method.}
 \usage{
-score_mhess(expt, ess_column = "essm1")
+score_mhess(exp, ess_column = "essm1")
 }
 \arguments{
-\item{expt}{Input expressionset with a metadata column with the ess output files.}
+\item{exp}{Input expressionset with a metadata column with the ess output files.}
 
 \item{ess_column}{Metadata column containing the mh_ess output files.}
 }

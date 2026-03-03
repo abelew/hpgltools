@@ -2,11 +2,11 @@
 % Please edit documentation in R/normalize_shared.R
 \name{hpgl_norm}
 \alias{hpgl_norm}
-\title{Normalize a dataframe/expt, express it, and/or transform it}
+\title{Normalize a dataframe/exp, express it, and/or transform it}
 \usage{
 hpgl_norm(
   data,
-  expt_state = NULL,
+  exp_state = NULL,
   design = NULL,
   transform = "raw",
   norm = "raw",
@@ -36,9 +36,9 @@ hpgl_norm(
 )
 }
 \arguments{
-\item{data}{Some data as a df/expt/whatever.}
+\item{data}{Some data as a df/exp/whatever.}
 
-\item{expt_state}{State of the input data.}
+\item{exp_state}{State of the input data.}
 
 \item{design}{experimental design.}
 
@@ -105,9 +105,9 @@ FIXME: This function is defunct and should be deleted in favor of normalize()
 }
 \examples{
 \dontrun{
- df_raw = hpgl_norm(expt = expt)  ## Only performs low-count filtering
+ df_raw = hpgl_norm(exp = exp)  ## Only performs low-count filtering
  df_raw = hpgl_norm(df = a_df, design = a_design) ## Same, but using a df
- df_ql2rpkm = hpgl_norm(expt = expt, norm='quant', transform='log2',
+ df_ql2rpkm = hpgl_norm(exp = exp, norm='quant', transform='log2',
                         convert='rpkm')  ## Quantile, log2, rpkm
  count_table = df_ql2rpkm$counts
 }

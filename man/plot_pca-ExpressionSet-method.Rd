@@ -20,7 +20,7 @@ color-specific arguments.}
   y_pc = 2,
   max_overlaps = 20,
   num_pc = NULL,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   cond_column = "condition",
   batch_column = "batch",
@@ -57,7 +57,7 @@ color-specific arguments.}
 \item{num_pc}{How many components to calculate, default to the number of
 rows in the metadata.}
 
-\item{expt_names}{Column or character list of preferred sample names.}
+\item{exp_names}{Column or character list of preferred sample names.}
 
 \item{label_chars}{Maximum number of characters before abbreviating sample names.}
 

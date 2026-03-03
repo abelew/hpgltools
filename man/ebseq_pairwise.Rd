@@ -23,7 +23,7 @@ ebseq_pairwise(
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing data, normalization
+\item{input}{Dataframe/vector or exp class containing data, normalization
 state, etc.}
 
 \item{patterns}{Set of expression patterns to query.}
@@ -66,8 +66,8 @@ Invoking EBSeq is confusing, this should help.
 }
 \examples{
  \dontrun{
-  expt <- create_expt(metadata = "sample_sheet.xlsx", gene_info = annotations)
-  ebseq_de <- ebseq_pairwise(input = expt)
+  exp <- create_exp(metadata = "sample_sheet.xlsx", gene_info = annotations)
+  ebseq_de <- ebseq_pairwise(input = exp)
 }
 }
 \seealso{

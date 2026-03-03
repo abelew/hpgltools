@@ -33,7 +33,7 @@ snp_density_primers(
 )
 }
 \arguments{
-\item{snp_count}{Result from count_expt_snps()}
+\item{snp_count}{Result from count_exp_snps()}
 
 \item{pdata_column}{Metadata column containing the condition of
 interest.}

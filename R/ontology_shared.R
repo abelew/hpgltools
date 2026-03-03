@@ -12,8 +12,8 @@
 random_ontology <- function(input, method = "goseq", n = 200, ...) {
   ## Lets assume the result of *_pairwise() or combine_de_tables()
   input_table <- NULL
-  if (class(input) == "expt" || class(input) == "ExpressionSet") {
-    input_table <- data.frame(row.names = rownames(exprs(input)))
+  if (class(input) == "exp" || class(input) == "ExpressionSet") {
+    input_table <- data.frame(row.names = rownames(assay(input)))
     input_table[["ID"]] <- rownames(input_table)
     input_table[["DE"]] <- 1
   } else if (!is.null(input[["data"]])) {
@@ -546,7 +546,7 @@ gather_genes_orgdb <- function(goseq_data, orgdb_go, orgdb_ensembl) {
 #' @seealso [goseq] [clusterProfiler] [topGO] [goStats] [gProfiler] [GO.db]
 #' @examples
 #' \dontrun{
-#'  many_comparisons = limma_pairwise(expt = an_expt)
+#'  many_comparisons = limma_pairwise(exp = an_exp)
 #'  tables = many_comparisons$limma
 #'  this_takes_forever = limma_ontology(tables, gene_lengths = lengthdb,
 #'                                      goids = goids_df, z = 1.5, gff_file='length_db.gff')

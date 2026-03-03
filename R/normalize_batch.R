@@ -40,8 +40,8 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
   att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
   ## Gather all the likely pieces we can use
-  my_design <- pData(input)
-  my_data <- exprs(input)
+  my_design <- colData(input)
+  my_data <- assay(input)
   input_state <- state(input)
 
   ## Once again this is a place where my new stance vis a vis NAs is relevant.
@@ -711,8 +711,8 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' Finally, it prints a couple of the plots shown by Leek in his document. In
 #' other words, this is entirely derivative of someone much smarter than me.
 #'
-#' @param input Dataframe or expt or whatever as the data to analyze/modify.
-#' @param design If the data is not an expt, then put the design here.
+#' @param input Dataframe or exp or whatever as the data to analyze/modify.
+#' @param design If the data is not an exp, then put the design here.
 #' @param estimate_type Name of the estimator.
 #' @param batch1 Column in the experimental design for the first known batch.
 #' @param batch2 Only used by the limma method, a second batch column.
@@ -721,7 +721,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
 #' @param low_to_zero Move elements which are <0 to 0?
 #' @param cpus Use parallel and split intensive operations?
 #' @param na_to_zero Set any NA entries to 0?
-#' @param input_state If this is not an expt, provide the state of the data here.
+#' @param input_state If this is not an exp, provide the state of the data here.
 #' @param confounders List of confounded factors for smartSVA/iSVA.
 #' @param chosen_surrogates Somewhat redundant with surrogates above,
 #'  but provides a second place to enter because of the way I use
@@ -755,8 +755,8 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 
   if (is.null(design)) {
     ## Gather all the likely pieces we can use
-    my_design <- pData(input)
-    my_data <- exprs(input)
+    my_design <- colData(input)
+    my_data <- assay(input)
     input_state <- state(input)
   } else {
     my_design <- design
@@ -1228,7 +1228,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
     rownames(model_adjust) <- sample_names
     sv_names <- glue("SV{1:ncol(model_adjust)}")
     colnames(model_adjust) <- sv_names
-    if ("expt" %in% class(input)) {
+    if ("exp" %in% class(input)) {
       surrogate_plots <- plot_batchsv(input, model_adjust)
     }
   }
@@ -1283,7 +1283,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' @param design Model matrix defining the experimental conditions/batches/etc.
 #' @param batch1 String describing the method to try to remove the batch effect
 #'  (or FALSE to leave it alone, TRUE uses limma).
-#' @param current_design Redundant with expt_design above, but
+#' @param current_design Redundant with exp_design above, but
 #'  provides another place for normalize() to send data.
 #' @param input_state Current state of the data
 #' @param surrogate_method Also redundant for normalize()
@@ -1442,7 +1442,7 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
 #' @seealso [limma::voom()] [limma::lmFit()]
 #' @examples
 #' \dontrun{
-#'  newdata <- cbcb_batch_effect(counts, expt_model)
+#'  newdata <- cbcb_batch_effect(counts, exp_model)
 #' }
 #' @export
 cbcb_batch <- function(normalized_counts, model,
@@ -1498,9 +1498,9 @@ cbcb_batch <- function(normalized_counts, model,
 #' Given an expressionset and list of methods, try to find out how
 #' well the various methods agree via correlation.
 #'
-#' @param expt Input expressionset
+#' @param exp Input expressionset
 #' @param methods Set of methods to try out.
-compare_batches <- function(expt = NULL, methods = NULL) {
+compare_batches <- function(exp = NULL, methods = NULL) {
   if (is.null(methods)) {
     ## writing this oddly until I work out which ones to include
     methods <- c(
@@ -1525,15 +1525,15 @@ compare_batches <- function(expt = NULL, methods = NULL) {
       "sva_unsupervised")
     ## "varpart")
   }
-  if (is.null(expt)) {
+  if (is.null(exp)) {
     message("Going to make an spombe expressionSet from the fission data set.")
-    expt <- make_pombe_expt()
+    exp <- make_pombe_exp()
   }
   combined <- data.frame()
   lst <- list()
   for (m in seq_along(methods)) {
     method <- methods[m]
-    res <- exprs(normalize(expt, filter = TRUE, batch = method))
+    res <- assay(normalize(exp, filter = TRUE, batch = method))
     lst[[method]] <- res
     column <- c()
     names <- c()
@@ -1569,7 +1569,7 @@ compare_batches <- function(expt = NULL, methods = NULL) {
 #' else. Finally, it does the same ranking plot against a linear fitting Leek
 #' performed and returns the whole pile of information as a list.
 #'
-#' @param expt Experiment containing a design and other information.
+#' @param exp Experiment containing a design and other information.
 #' @param extra_factors Character list of extra factors which may be included in
 #'  the final plot of the data.
 #' @param filter_it Most of the time these surrogate methods get mad if there
@@ -1694,7 +1694,7 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
                    "+ batch_adjustments$ruv_emp")
   adjust_names <- gsub(
     pattern = "^.*adjustments\\$(.*)$", replacement = "\\1", x = adjustments)
-  starter <- edgeR::DGEList(counts = exprs(exp))
+  starter <- edgeR::DGEList(counts = assay(exp))
   norm_start <- edgeR::calcNormFactors(starter)
 
   ## Create a baseline to compare against.
@@ -1821,8 +1821,8 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
   batches <- NULL
   expr <- sum(c("exp", "ExpressionSet", "SummarizedExperiment") %in% class(data))
   if (expr) {
-    my_design <- pData(data)
-    data_mtrx <- exprs(data)
+    my_design <- colData(data)
+    data_mtrx <- assay(data)
   } else {
     my_design <- design
     data_mtrx <- as.matrix(data)
@@ -2132,8 +2132,8 @@ sv_fstatistics <- function(exp, num_surrogates = NULL,
   if (is.null(sv_df)) {
     sv_df <- svs_exp[["sv_df"]]
   }
-  pre_exprs <- exprs(exp)
-  meta <- pData(exp)
+  pre_assay <- assay(exp)
+  meta <- colData(exp)
   sv_meta <- merge(meta, sv_df, by = "row.names")
   rownames(sv_meta) <- sv_meta[["Row.names"]]
   sv_meta[["Row.names"]] <- NULL

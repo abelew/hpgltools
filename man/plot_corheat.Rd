@@ -17,11 +17,11 @@ plot_corheat(
 )
 }
 \arguments{
-\item{input_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, exp, or expressionset to work with.}
 
-\item{column_colors}{Color scheme for the samples, not needed if this is an expt.}
+\item{column_colors}{Color scheme for the samples, not needed if this is an exp.}
 
-\item{design}{Design matrix describing the experiment, not needed if this is an expt.}
+\item{design}{Design matrix describing the experiment, not needed if this is an exp.}
 
 \item{method}{Correlation statistic to use. (pearson, spearman, kendall, robust).}
 
@@ -46,7 +46,7 @@ inputs and eventual output.
 }
 \examples{
 \dontrun{
- corheat_plot <- hpgl_corheat(expt = expt, method = "robust")
+ corheat_plot <- hpgl_corheat(exp = exp, method = "robust")
 }
 }
 \seealso{

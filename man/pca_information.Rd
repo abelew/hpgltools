@@ -32,7 +32,7 @@ as factors asked for.}
 
 \item{...}{Extra arguments for the pca plotter}
 
-\item{input}{Data to analyze (usually exprs(somedataset)).}
+\item{input}{Data to analyze (usually assay(somedataset)).}
 
 \item{input_factors}{Character list of experimental conditions to query for
 R^2 against the fast.svd of the data.}
@@ -69,7 +69,7 @@ set of all PCA plots with respect to one another. (PCx vs. PCy)
 
 \examples{
 \dontrun{
- pca_info = pca_information(exprs(some_expt), some_design, "all")
+ pca_info = pca_information(assay(some_exp), some_design, "all")
  pca_info
 }
 }

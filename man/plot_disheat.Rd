@@ -17,11 +17,11 @@ plot_disheat(
 )
 }
 \arguments{
-\item{input_data}{Dataframe, expt, or expressionset to work with.}
+\item{input_data}{Dataframe, exp, or expressionset to work with.}
 
-\item{column_colors}{Color scheme (not needed if an expt is provided).}
+\item{column_colors}{Color scheme (not needed if an exp is provided).}
 
-\item{design}{Design matrix (not needed if an expt is provided).}
+\item{design}{Design matrix (not needed if an exp is provided).}
 
 \item{method}{Distance metric to use.}
 
@@ -45,7 +45,7 @@ and eventual output.
 }
 \examples{
 \dontrun{
- disheat_plot = plot_disheat(expt = expt, method = "euclidean")
+ disheat_plot = plot_disheat(exp = exp, method = "euclidean")
 }
 }
 \seealso{

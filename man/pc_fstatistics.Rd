@@ -13,6 +13,8 @@ pc_fstatistics(
 )
 }
 \arguments{
+\item{exp}{Input SE.}
+
 \item{pc_df}{dataframe of PCs}
 
 \item{num_pcs}{How many PCs to query?}
@@ -20,8 +22,6 @@ pc_fstatistics(
 \item{queries}{List of metadata factors to query.}
 
 \item{...}{Parameters to plot_pca.}
-
-\item{expt}{Input SE.}
 }
 \description{
 TODO: Use this to yank a bunch of code out of pca_information and simplify.

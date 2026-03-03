@@ -148,8 +148,8 @@ check_includes <- function(includes = NULL, apr = NULL, methods = NULL, ...) {
 #' @seealso [all_pairwise()] [extract_significant_genes()]
 #' @examples
 #' \dontrun{
-#'  expt <- create_expt(metadata="some_metadata.xlsx", gene_info=funkytown)
-#'  big_result <- all_pairwise(expt, model_batch=FALSE)
+#'  exp <- create_exp(metadata="some_metadata.xlsx", gene_info=funkytown)
+#'  big_result <- all_pairwise(exp, model_batch=FALSE)
 #'  pretty <- combine_de_tables(big_result, table='t12_vs_t0')
 #'  pretty <- combine_de_tables(big_result, table='t12_vs_t0',
 #'                              keepers=list("avsb"=c("a","b")))
@@ -1655,8 +1655,8 @@ extract_siggenes <- function(...) {
 #' @param sig_bar Add bar plots describing various cutoffs of 'significant'?
 #' @param z Z-score to define 'significant'.
 #' @param n Take the top/bottom-n genes.
-#' @param min_mean_exprs Add a minimum expression value.
-#' @param exprs_column Use this column to define expression.
+#' @param min_mean_assay Add a minimum expression value.
+#' @param assay_column Use this column to define expression.
 #' @param top_percent Use a percentage to get the top-n genes.
 #' @param p_type use an adjusted p-value?
 #' @param invert_barplots Invert the significance barplots as per Najib's request?
@@ -1682,7 +1682,7 @@ extract_siggenes <- function(...) {
 #' @export
 extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
                                       p = 0.05, sig_bar = TRUE, z = NULL, n = NULL,
-                                      min_mean_exprs = NULL, exprs_column = NULL,
+                                      min_mean_assay = NULL, assay_column = NULL,
                                       top_percent = NULL, p_type = "adj",
                                       invert_barplots = FALSE, excel = NULL, fc_column = NULL,
                                       p_column = NULL, column_suffix = TRUE, gmt = FALSE,
@@ -1776,8 +1776,8 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   if (!is.null(p)) {
     title_append <- glue("{title_append} p <= {p}")
   }
-  if (!is.null(min_mean_exprs)) {
-    title_append <- glue("{title_append} minimum expression >= {min_mean_exprs}")
+  if (!is.null(min_mean_assay)) {
+    title_append <- glue("{title_append} minimum expression >= {min_mean_assay}")
   }
   if (!is.null(z)) {
     title_append <- glue("{title_append} |z| >= {z}")
@@ -1863,7 +1863,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
       ## extra contrasts, and until I decide it is easier to skip them
       trimming <- get_sig_genes(
         this_table, lfc = lfc, p = p, z = z, n = n, column = this_fc_column,
-        min_mean_exprs = min_mean_exprs, exprs_column = exprs_column,
+        min_mean_assay = min_mean_assay, assay_column = assay_column,
         comparison = comparison, p_column = this_p_column)
       if ("try-error" %in% class(trimming) || is.null(trimming)) {
         trimmed_up[[table_name]] <- data.frame()
@@ -2126,9 +2126,9 @@ summarize_ups_downs <- function(ups, downs) {
 #'  diagrams showing the degree of similarity between the methods.
 #' @examples
 #'  \dontrun{
-#'   expt <- create_expt(metadata="some_metadata.xlsx", gene_info=funkytown)
-#'   big_result <- all_pairwise(expt, model_batch=FALSE)
-#'   pretty <- combine_de_tables(big_result, excel="excel/combined_expt.xlsx")
+#'   exp <- create_exp(metadata="some_metadata.xlsx", gene_info=funkytown)
+#'   big_result <- all_pairwise(exp, model_batch=FALSE)
+#'   pretty <- combine_de_tables(big_result, excel="excel/combined_exp.xlsx")
 #'   intersect <- intersect_significant(pretty, excel="excel/intersecting_genes.xlsx")
 #'  }
 #' @export

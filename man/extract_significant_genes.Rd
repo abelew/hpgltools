@@ -13,8 +13,8 @@ extract_significant_genes(
   sig_bar = TRUE,
   z = NULL,
   n = NULL,
-  min_mean_exprs = NULL,
-  exprs_column = NULL,
+  min_mean_assay = NULL,
+  assay_column = NULL,
   top_percent = NULL,
   p_type = "adj",
   invert_barplots = FALSE,
@@ -51,9 +51,9 @@ the deseq, edger, limma, basic, meta, or all.}
 
 \item{n}{Take the top/bottom-n genes.}
 
-\item{min_mean_exprs}{Add a minimum expression value.}
+\item{min_mean_assay}{Add a minimum expression value.}
 
-\item{exprs_column}{Use this column to define expression.}
+\item{assay_column}{Use this column to define expression.}
 
 \item{top_percent}{Use a percentage to get the top-n genes.}
 

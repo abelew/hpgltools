@@ -554,7 +554,7 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
 #' function will hopefully provide some of the requisite defaults and do some
 #' sanity checking to make it more likely that a gsva analysis will succeed.
 #'
-#' @param eset Expt object to be analyzed.
+#' @param eset Exp object to be analyzed.
 #' @param signatures Provide an alternate set of signatures (GeneSetCollections)
 #' @param data_pkg What package contains the requisite dataset?
 #' @param signature_category Specify a subset category to extract from the signatures database.
@@ -683,14 +683,14 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   ## Set up the GSVA parameters.
   gsva_result <- NULL
   gsva_params <- NULL
-  exprs_data <- assay(se)
+  assay_data <- assay(se)
   ## There are a lot of interesting options which I am not setting here, that should be fixed.
   if (method == "ssgsea") {
-    gsva_params <- GSVA::ssgseaParam(exprs_data, signature_data)
+    gsva_params <- GSVA::ssgseaParam(assay_data, signature_data)
   } else if (method == "zscore") {
-    gsva_params <- GSVA::zscoreParam(exprs_data, signature_data)
+    gsva_params <- GSVA::zscoreParam(assay_data, signature_data)
   } else {
-    gsva_params <- GSVA::gsvaParam(exprs_data, signature_data)
+    gsva_params <- GSVA::gsvaParam(assay_data, signature_data)
   }
   gsva_result <- GSVA::gsva(gsva_params, verbose = verbose)
   gene_sets_df <- data.frame(row.names = names(signature_data))
@@ -709,7 +709,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                        gene_info = gene_sets_df, count_dataframe = gsva_result)
   retlist <- list(
     "input_se" = se,
-    "input_matrix" = exprs_data,
+    "input_matrix" = assay_data,
     "gsva_result" = gsva_se,
     "signature_data" = signature_data)
   return(retlist)

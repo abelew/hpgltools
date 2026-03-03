@@ -7,7 +7,7 @@
 ebseq_size_factors(data_mtrx, norm = NULL)
 }
 \arguments{
-\item{data_mtrx}{This is exprs(expressionset)}
+\item{data_mtrx}{This is assay(expressionset)}
 
 \item{norm}{The method to pass along.}
 }

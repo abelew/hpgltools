@@ -154,7 +154,7 @@ genefilter_pofa_counts <- function(count_table, p = 0.01, A = 100) {
   num_before <- nrow(count_table)
 
   if ("ExpressionSet" %in% class(count_table)) {
-    counts <- exprs(count_table)
+    counts <- assay(count_table)
   }
   test <- genefilter::pOverA(p = p, A = A)
   filter_list <- genefilter::filterfun(test)
@@ -190,7 +190,7 @@ genefilter_cv_counts <- function(count_table, cv_min = 0.01, cv_max = 1000) {
   num_before <- nrow(count_table)
 
   if ("ExpressionSet" %in% class(count_table)) {
-    counts <- exprs(count_table)
+    counts <- assay(count_table)
   }
   test <- genefilter::cv(cv_min, cv_max)
   filter_list <- genefilter::filterfun(test)
@@ -224,7 +224,7 @@ genefilter_kofa_counts <- function(count_table, k = 1, A = 1) {
   num_before <- nrow(count_table)
 
   if ("ExpressionSet" %in% class(count_table)) {
-    counts <- exprs(count_table)
+    counts <- assay(count_table)
   }
   test <- genefilter::kOverA(k = k, A = A)
   filter_list <- genefilter::filterfun(test)

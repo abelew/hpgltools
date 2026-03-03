@@ -187,7 +187,7 @@ setMethod(
   definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
                         ...) {
-    mtrx <- as.data.frame(exprs(data))
+    mtrx <- as.data.frame(assay(data))
     colors = get_colors(data)
     plot_boxplot(mtrx, colors = colors, plot_title = plot_title, order = order,
                  violin = violin, scale = scale, sample_names = sample_names,
@@ -446,9 +446,9 @@ setMethod(
                         label_chars = 10, plot_title = NULL,
                         position = "identity", sample_names = NULL, scale = NULL,
                         ...) {
-    mtrx <- as.matrix(exprs(data))
+    mtrx <- as.matrix(assay(data))
     colors <- get_colors(data)
-    design <- pData(data)
+    design <- colData(data)
     plot_density(data = mtrx, colors = colors, colors_by = colors_by,
                  design = design, direct = direct, fill = fill, label_chars = label_chars,
                  plot_title = plot_title, position = position,
@@ -575,18 +575,18 @@ setGeneric("plot_qq_all")
 
 #' Invoke plot_qq_all using an ExpressionSet
 #'
-#' @param data Input exprs
-#' @param design provided by the exprs
-#' @param colors also from the exprs
+#' @param data Input assay
+#' @param design provided by the assay
+#' @param colors also from the assay
 #' @param labels shorten the sample IDs?
 #' @param ... passed along
 setMethod(
   "plot_qq_all", signature = signature(data = "ExpressionSet"),
   definition = function(data, design = NULL, colors = NULL, labels = "short", ...) {
-    design <- pData(data)
+    design <- colData(data)
     colors <- get_colors(data)
-    exprs <- as.data.frame(exprs(data))
-    plot_qq_all(data = exprs, design = design, colors =  colors, labels = labels, ...)
+    assay <- as.data.frame(assay(data))
+    plot_qq_all(data = assay, design = design, colors =  colors, labels = labels, ...)
   })
 
 #' Invoke plot_qq_all using a SE
@@ -601,8 +601,8 @@ setMethod(
   definition = function(data, design = NULL, colors = NULL, labels = "short", ...) {
     design <- colData(data)
     colors <- get_colors(data)
-    exprs <- as.data.frame(assay(data))
-    plot_qq_all(data = exprs, design = design, colors =  colors, labels = labels, ...)
+    assay <- as.data.frame(assay(data))
+    plot_qq_all(data = assay, design = design, colors =  colors, labels = labels, ...)
   })
 
 
@@ -622,13 +622,13 @@ setMethod(
 plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
   data_class <- class(data)[1]
   if (data_class == "exp" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
+    design <- colData(data)
     colors <- data[["colors"]]
     names <- data[["names"]]
-    data <- as.data.frame(exprs(data))
+    data <- as.data.frame(assay(data))
   } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-    design <- pData(data)
+    data <- assay(data)
+    design <- colData(data)
   } else if (data_class == "matrix" || data_class == "data.frame") {
     data <- as.data.frame(data)
   } else {
@@ -780,12 +780,12 @@ plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
   arglist <- list(...)
   data_class <- class(data)
   if (data_class == "exp" || data_class == "SummarizedExperiment") {
-    design <- pData(data)
+    design <- colData(data)
     colors <- data[["colors"]]
-    data <- exprs(data)
+    data <- assay(data)
   } else if (data_class == "ExpressionSet") {
-    data <- exprs(data)
-    design <- pData(data)
+    data <- assay(data)
+    design <- colData(data)
   } else if (data_class == "matrix" || data_class == "data.frame") {
     data <- as.matrix(data)
   } else {
@@ -919,9 +919,9 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
 
   melted <- data.table::as.data.table(reshape2::melt(data))
   if (ncol(melted) == 3) {
-    colnames(melted) <- c("gene", "sample", "exprs")
+    colnames(melted) <- c("gene", "sample", "assay")
   } else if (dim(melted)[2] == 2) {
-    colnames(melted) <- c("sample", "exprs")
+    colnames(melted) <- c("sample", "assay")
   } else {
     stop("Could not properly melt the data.")
   }
@@ -947,11 +947,11 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
   cv_data <- melted %>%
     dplyr::group_by(.data[["gene"]], .data[[x_axis]]) %>%
     dplyr::summarize(
-      "mean_exprs" = mean(.data[["exprs"]], na.rm = TRUE),
-      "sd_exprs" = sd(.data[["exprs"]], na.rm = TRUE),
-      "q1" = quantile(.data[["exprs"]], probs = 0.25),
-      "q3" = quantile(.data[["exprs"]], probs = 0.75))
-  cv_data[["cv"]] <- cv_data[["sd_exprs"]] / cv_data[["mean_exprs"]]
+      "mean_assay" = mean(.data[["assay"]], na.rm = TRUE),
+      "sd_assay" = sd(.data[["assay"]], na.rm = TRUE),
+      "q1" = quantile(.data[["assay"]], probs = 0.25),
+      "q3" = quantile(.data[["assay"]], probs = 0.75))
+  cv_data[["cv"]] <- cv_data[["sd_assay"]] / cv_data[["mean_assay"]]
   cv_data[["disp"]] <- (cv_data[["q3"]] - cv_data[["q1"]]) / (cv_data[["q3"]] + cv_data[["q1"]])
   na_idx <- is.na(cv_data[["cv"]])
   cv_data[na_idx, "cv"] <- 0
@@ -1059,9 +1059,9 @@ setMethod(
   "plot_variance_coefficients", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
                         plot_title = NULL, ...) {
-    design <- pData(data)
+    design <- colData(data)
     colors <- get_colors(data)
-    mtrx <- exprs(data)
+    mtrx <- assay(data)
     plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
                                colors = colors, plot_title = plot_title, ...)
   })
@@ -1080,8 +1080,8 @@ setMethod(
   "plot_variance_coefficients", signature = signature(data = "ExpressionSet"),
   definition = function(data, design = NULL, x_axis = "condition", colors = NULL,
                         plot_title = NULL, ...) {
-    design <- pData(data)
-    mtrx <- exprs(data)
+    design <- colData(data)
+    mtrx <- assay(data)
     plot_variance_coefficients(mtrx, design = design, x_axis = x_axis,
                                colors = colors, plot_title = plot_title, ...)
   })

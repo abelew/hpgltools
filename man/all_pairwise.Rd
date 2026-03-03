@@ -90,7 +90,7 @@ expected to violate their assumptions/rules (e.g. integers for DESeq)}
 A list of limma, deseq, edger results.
 }
 \description{
-This takes an expt object, collects the set of all possible pairwise
+This takes an exp object, collects the set of all possible pairwise
 comparisons, sets up experimental models appropriate for the differential
 expression analyses, and performs them.
 }
@@ -100,7 +100,7 @@ collects the results and does some simple comparisons among them.
 }
 \examples{
 \dontrun{
- lotsodata <- all_pairwise(input = expt)
+ lotsodata <- all_pairwise(input = exp)
  summary(lotsodata)
  ## limma, edger, deseq, basic results; plots; and summaries.
 }

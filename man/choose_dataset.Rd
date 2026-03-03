@@ -7,7 +7,7 @@
 choose_dataset(input, choose_for = "limma", force = FALSE, ...)
 }
 \arguments{
-\item{input}{Expt input.}
+\item{input}{Exp input.}
 
 \item{choose_for}{One of limma, deseq, edger, or basic.  Defines the
 requested data state.}
@@ -28,7 +28,7 @@ Invoked by _pairwise().
 }
 \examples{
 \dontrun{
- starting_data <- create_expt(metadata)
+ starting_data <- create_exp(metadata)
  modified_data <- normalize(starting_data, transform = "log2", norm = "quant")
  a_dataset <- choose_dataset(modified_data, choose_for = "deseq")
  ## choose_dataset should see that log2 data is inappropriate for DESeq2 and

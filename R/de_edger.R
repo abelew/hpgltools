@@ -19,7 +19,7 @@
 #' paths as outlined in the manual.  If you want to play with non-standard data,
 #' the force argument will round the data and shoe-horn it into EdgeR.
 #'
-#' @param input Dataframe/vector or expt class containing data, normalization
+#' @param input Dataframe/vector or exp class containing data, normalization
 #'  state, etc.
 #' @param model_fstring Formula string describing the model of interest.
 #' @param null_fstring Formula string describing the null hypothesis.
@@ -49,8 +49,8 @@
 #'  DOI:10.12688/f1000research.8987.2
 #' @examples
 #' \dontrun{
-#'  expt <- create_expt(metadata = "metadata.xlsx", gene_info = annotations)
-#'  pretend <- edger_pairwise(expt, model_batch = "sva")
+#'  exp <- create_exp(metadata = "metadata.xlsx", gene_info = annotations)
+#'  pretend <- edger_pairwise(exp, model_batch = "sva")
 #' }
 #' @export
 edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
@@ -68,7 +68,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
@@ -88,7 +88,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
-    design <- pData(model_params[["modified_input"]])
+    design <- colData(model_params[["modified_input"]])
   }
   model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
 
@@ -100,7 +100,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   ## raw <- edgeR::DGEList(counts = data, group = conditions)
   ## norm <- edgeR::calcNormFactors(raw)
   mesg("EdgeR step 1/9: Importing and normalizing data.")
-  data <- exprs(input)
+  data <- assay(input)
   norm <- import_edger(data, conditions, tximport = input[["tximport"]][["raw"]])
   final_norm <- NULL
   if (edger_method == "short") {

@@ -9,9 +9,9 @@ NULL
 #' correlations and plot them as a heatmap.  It attempts to standardize the
 #' inputs and eventual output.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
-#' @param column_colors Color scheme for the samples, not needed if this is an expt.
-#' @param design Design matrix describing the experiment, not needed if this is an expt.
+#' @param input_data Dataframe, exp, or expressionset to work with.
+#' @param column_colors Color scheme for the samples, not needed if this is an exp.
+#' @param design Design matrix describing the experiment, not needed if this is an exp.
 #' @param method Correlation statistic to use. (pearson, spearman, kendall, robust).
 #' @param sample_names Alternate names to use for the samples.
 #' @param batch_row Name of the design row used for 'batch' column colors.
@@ -23,7 +23,7 @@ NULL
 #' @seealso [grDevice] [gplot2::heatmap.2()]
 #' @examples
 #' \dontrun{
-#'  corheat_plot <- hpgl_corheat(expt = expt, method = "robust")
+#'  corheat_plot <- hpgl_corheat(exp = exp, method = "robust")
 #' }
 #' @export
 plot_corheat <- function(input_data, column_colors = NULL, design = NULL,
@@ -60,9 +60,9 @@ print.correlation_heatmap <- function(x, ...) {
 #' distances and plot them as a heatmap.  It attempts to standardize the inputs
 #' and eventual output.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
-#' @param column_colors Color scheme (not needed if an expt is provided).
-#' @param design Design matrix (not needed if an expt is provided).
+#' @param input_data Dataframe, exp, or expressionset to work with.
+#' @param column_colors Color scheme (not needed if an exp is provided).
+#' @param design Design matrix (not needed if an exp is provided).
 #' @param method Distance metric to use.
 #' @param sample_names Alternate names to use for the samples.
 #' @param batch_row Name of the design row used for 'batch' column colors.
@@ -73,7 +73,7 @@ print.correlation_heatmap <- function(x, ...) {
 #' @seealso [gplots::heatmap.2()]
 #' @examples
 #' \dontrun{
-#'  disheat_plot = plot_disheat(expt = expt, method = "euclidean")
+#'  disheat_plot = plot_disheat(exp = exp, method = "euclidean")
 #' }
 #' @export
 plot_disheat <- function(input_data, column_colors = NULL, design = NULL,
@@ -111,7 +111,7 @@ print.distance_heatmap <- function(x, ...) {
 #' distance heatmaps, handles the calculation of the relevant metrics, and plots
 #' the heatmap.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param input_data Dataframe, exp, or expressionset to work with.
 #' @param column_colors Color scheme for the samples.
 #' @param design Design matrix describing the experiment vis a vis
 #'  conditions and batches.
@@ -249,7 +249,7 @@ setGeneric("plot_heatmap")
 
 #' Run plot_heatmap with a SummarizedExperiment as input.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param input_data Dataframe, exp, or expressionset to work with.
 #' @param column_colors Color scheme for the samples.
 #' @param design Design matrix describing the experiment vis a vis
 #'  conditions and batches.
@@ -287,7 +287,7 @@ setMethod(
 
 #' Run plot_heatmap with a dataframe as input.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param input_data Dataframe, exp, or expressionset to work with.
 #' @param column_colors Color scheme for the samples.
 #' @param design Design matrix describing the experiment vis a vis
 #'  conditions and batches.
@@ -314,7 +314,7 @@ setMethod(
 
 #' Run plot_heatmap with an ExpressionSet as input.
 #'
-#' @param input_data Dataframe, expt, or expressionset to work with.
+#' @param input_data Dataframe, exp, or expressionset to work with.
 #' @param column_colors Color scheme for the samples.
 #' @param design Design matrix describing the experiment vis a vis
 #'  conditions and batches.
@@ -332,8 +332,8 @@ setMethod(
                         method = "pearson", sample_names = NULL,
                         type = "correlation", batch_row = "batch",
                         plot_title = NULL, label_chars = 10, ...) {
-    design <- pData(input_data)
-    mtrx <- exprs(input_data)
+    design <- colData(input_data)
+    mtrx <- assay(input_data)
     plot_heatmap(mtrx, column_colors = column_colors, design = design,
       method = method, sample_names = sample_names, type = type,
       batch_row = batch_row, plot_title = plot_title,
@@ -366,7 +366,7 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
                           annot_rows = "condition", cutoff = 1.0,
                           cluster_colors = NULL, scale = "none",
                           cluster_width = 2.0, cluster_function = NULL, heatmap_colors = NULL) {
-  data <- exprs(input)
+  data <- assay(input)
   if (type == "correlation") {
     data <- hpgl_cor(data, method = method)
   } else {
@@ -380,7 +380,7 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
   mydendro <- list(
       "clustfun" = cluster_function,
       "lwd" = cluster_width)
-  des <- pData(input)
+  des <- colData(input)
   col_data <- as.data.frame(des[, annot_columns])
   colnames(col_data) <- annot_columns
   row_data <- as.data.frame(des[, annot_rows])
@@ -530,9 +530,9 @@ setMethod(
                         input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
                         Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
-    input_design <- pData(data)
+    input_design <- colData(data)
     input_names <- colnames(input_design)
-    input_data <- exprs(data)
+    input_data <- assay(data)
     input_colors <- get_colors(data)
     plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
       input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
@@ -600,7 +600,7 @@ plot_sample_cvheatmap <- function(input, fun = "mean", fact = "condition",
   ## I am certain there is a better way to do this, but I am tired and not thinking well.
   column_colors <- c()
   input_colors <- get_colors(input)
-  fact_info <- pData(input)[[fact]]
+  fact_info <- colData(input)[[fact]]
   names(input_colors) <- fact_info
   for (i in seq_along(input_colors)) {
     name <- names(input_colors)[i]

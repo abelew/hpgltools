@@ -10,8 +10,8 @@ get_sig_genes(
   z = NULL,
   lfc = NULL,
   p = NULL,
-  min_mean_exprs = NULL,
-  exprs_column = "deseq_basemean",
+  min_mean_assay = NULL,
+  assay_column = "deseq_basemean",
   column = "logFC",
   fold = "plusminus",
   p_column = "adj.P.Val",
@@ -29,9 +29,9 @@ get_sig_genes(
 
 \item{p}{P-value cutoff.}
 
-\item{min_mean_exprs}{Exclude genes with less than this mean expression.}
+\item{min_mean_assay}{Exclude genes with less than this mean expression.}
 
-\item{exprs_column}{Use this column for filtering by expression.}
+\item{assay_column}{Use this column for filtering by expression.}
 
 \item{column}{Table's column used to distinguish top vs. bottom.}
 

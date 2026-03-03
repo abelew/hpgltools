@@ -28,9 +28,9 @@ Invoked by all_pairwise().
 }
 \examples{
 \dontrun{
- l = limma_pairwise(expt)
- d = deseq_pairwise(expt)
- e = edger_pairwise(expt)
+ l = limma_pairwise(exp)
+ d = deseq_pairwise(exp)
+ e = edger_pairwise(exp)
  fun = compare_led_tables(limma = l, deseq = d, edger = e)
 }
 }

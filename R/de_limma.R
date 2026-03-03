@@ -135,13 +135,13 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
   } else {
     isExpressionSet <- sm(is(counts, "ExpressionSet"))
     if (isExpressionSet) {
-      if (length(fData(counts))) {
-        out[["genes"]] <- fData(counts)
+      if (length(rowData(counts))) {
+        out[["genes"]] <- rowData(counts)
       }
-      if (length(pData(counts))) {
-        out[["targets"]] <- pData(counts)
+      if (length(colData(counts))) {
+        out[["targets"]] <- colData(counts)
       }
-      counts <- exprs(counts)
+      counts <- assay(counts)
     } else {
       counts <- as.matrix(counts)
     }
@@ -251,7 +251,7 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #'
 #' Creates the set of all possible contrasts and performs them using voom/limma.
 #'
-#' @param input Dataframe/vector or expt class containing count tables,
+#' @param input Dataframe/vector or exp class containing count tables,
 #'  normalization state, etc.
 #' @param model_fstring Formula string describing the statistical model of interest.
 #' @param null_fstring Formula string describing the null model.
@@ -296,7 +296,7 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
 #'  DOI:10.1093/nar/gkv007
 #' @examples
 #' \dontrun{
-#'  pretend <- limma_pairwise(expt)
+#'  pretend <- limma_pairwise(exp)
 #' }
 #' @export
 limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
@@ -323,7 +323,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   count_mtrx <- as.matrix(input_data[["data"]])
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- droplevels(as.factor(design[["batch"]]))
   libsize <- libsize(input)
@@ -385,7 +385,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     model_svs <- model_params[["model_adjust"]]
     null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
-    design <- pData(model_params[["modified_input"]])
+    design <- colData(model_params[["modified_input"]])
   }
   model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
 

@@ -204,16 +204,16 @@ prune_network <- function(network, min_weight = 0.4, min_connectivity = 1) {
 #' so that I have someplace to remember the general path wgcna takes and
 #' as a starting point to explore further.
 #'
-#' @param expt Input expressionset.
-wgcna_network <- function(expt) {
+#' @param exp Input expressionset.
+wgcna_network <- function(exp) {
   chosen_power <- 8
   ## WGCNA calls cor() without specifying its own namespace, so overwrite cor for the moment.
   cor <- WGCNA::cor
-  start_exprs <- t(exprs(expt))
-  l2input <- t(exprs(normalize(expt, transform = "log2")))
+  start_assay <- t(assay(exp))
+  l2input <- t(assay(normalize(exp, transform = "log2")))
 
   initial_modules <- WGCNA::blockwiseModules(
-    start_exprs, maxBlockSize = 11000, TOMType = "signed",
+    start_assay, maxBlockSize = 11000, TOMType = "signed",
     power = chosen_power, mergeCutHeight = 0.25, numericLabels = FALSE,
     verbose = 3)
   cor <- stats::cor
@@ -230,11 +230,11 @@ wgcna_network <- function(expt) {
     guideHang = 0.05)
 
   meta_numeric <- data.frame(
-    "cf_numeric" = as.numeric(as.factor(pData(l2input)[["finaloutcome"]])),
-    "visit_numeric" = as.numeric(as.factor(pData(l2input)[["visitnumber"]])))
-  rownames(meta_numeric) <- rownames(pData(l2input))
+    "cf_numeric" = as.numeric(as.factor(colData(l2input)[["finaloutcome"]])),
+    "visit_numeric" = as.numeric(as.factor(colData(l2input)[["visitnumber"]])))
+  rownames(meta_numeric) <- rownames(colData(l2input))
 
-  meta_factors <- pData(l2input)[, c("finaloutcome", "visitnumber")]
+  meta_factors <- colData(l2input)[, c("finaloutcome", "visitnumber")]
   meta_eigen <- merge(initial_eigen, meta_factors, by = "row.names")
   rownames(meta_eigen) <- meta_eigen[["Row.names"]]
   meta_eigen[["Row.names"]] <- NULL
@@ -248,17 +248,17 @@ wgcna_network <- function(expt) {
   sum(wanted)
   interesting_genes <- names(initial_modules[["colors"]])[wanted]
 
-  fData(l2input)[interesting_genes, "hgnc_symbol"]
+  rowData(l2input)[interesting_genes, "hgnc_symbol"]
 
 
   ## Note that we can do similarity matrices on the samples too in order to get
   ## dendrograms which may get interesting groups of samples?
   not_grey <- initial_modules[["colors"]] != "grey"
-  not_grey_exprs <- t(exprs(l2input))[, not_grey]
-  dim(not_grey_exprs)
-  not_grey_genes <- colnames(not_grey_exprs)
+  not_grey_assay <- t(assay(l2input))[, not_grey]
+  dim(not_grey_assay)
+  not_grey_genes <- colnames(not_grey_assay)
   dist_tom <- 1 - WGCNA::TOMsimilarityFromExpr(
-    not_grey_exprs,
+    not_grey_assay,
     power = chosen_power)
   colnames(dist_tom) <- not_grey_genes
   rownames(dist_tom) <- colnames(dist_tom)

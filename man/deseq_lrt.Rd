@@ -5,7 +5,7 @@
 \title{Bring together some of the likelihood ratio test analyses.}
 \usage{
 deseq_lrt(
-  expt,
+  exp,
   interactor_column = "visitnumber",
   interest_column = "clinicaloutcome",
   transform = "rlog",
@@ -16,7 +16,7 @@ deseq_lrt(
 )
 }
 \arguments{
-\item{expt}{Input expressionset}
+\item{exp}{Input}
 
 \item{interactor_column}{Potentially interacting metadata}
 

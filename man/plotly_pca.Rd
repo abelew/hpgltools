@@ -18,14 +18,14 @@ plotly_pca(
   y_pc = 2,
   outlines = FALSE,
   num_pc = NULL,
-  expt_names = NULL,
+  exp_names = NULL,
   label_chars = 10,
   tooltip = c("shape", "fill", "sampleid"),
   ...
 )
 }
 \arguments{
-\item{data}{an expt set of samples.}
+\item{data}{an exp set of samples.}
 
 \item{design}{a design matrix and.}
 
@@ -52,7 +52,7 @@ plotly_pca(
 \item{num_pc}{How many components to calculate, default to the number of
 rows in the metadata.}
 
-\item{expt_names}{Column or character list of preferred sample names.}
+\item{exp_names}{Column or character list of preferred sample names.}
 
 \item{label_chars}{Maximum number of characters before abbreviating sample names.}
 

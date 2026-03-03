@@ -7,7 +7,7 @@
 choose_limma_dataset(input, force = FALSE, which_voom = "limma", ...)
 }
 \arguments{
-\item{input}{Expressionset containing expt object.}
+\item{input}{Expressionset containing exp object.}
 
 \item{force}{Ingore warnings and use the provided data asis.}
 
@@ -20,7 +20,7 @@ hpgl equivalents.}
 dataset suitable for limma analysis
 }
 \description{
-Take an expt and poke at it to ensure that it will not result in troubled
+Take an exp and poke at it to ensure that it will not result in troubled
 limma results.
 }
 \seealso{

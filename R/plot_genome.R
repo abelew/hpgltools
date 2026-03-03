@@ -173,7 +173,7 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
   se <- set_conditions(se, fact = meta_group_column)
   se_meta <- colData(se)
   se_info <- rowData(se)
-  se_exprs <- assay(se)
+  se_assay <- assay(se)
   gr <- metadata(se)[["grange"]]
   colors_by_cond <- get_colors_by_condition(se)
 

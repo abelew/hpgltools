@@ -28,7 +28,7 @@ limma_pairwise(
 )
 }
 \arguments{
-\item{input}{Dataframe/vector or expt class containing count tables,
+\item{input}{Dataframe/vector or exp class containing count tables,
 normalization state, etc.}
 
 \item{model_fstring}{Formula string describing the statistical model of interest.}
@@ -95,7 +95,7 @@ Creates the set of all possible contrasts and performs them using voom/limma.
 }
 \examples{
 \dontrun{
- pretend <- limma_pairwise(expt)
+ pretend <- limma_pairwise(exp)
 }
 }
 \seealso{

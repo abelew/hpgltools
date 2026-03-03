@@ -62,7 +62,7 @@ because it was throwing segmentation faults.}
 
 \item{id_type}{Specify the ID type when loading the signature database.}
 
-\item{eset}{Expt object to be analyzed.}
+\item{eset}{Exp object to be analyzed.}
 }
 \value{
 List containing three elements: first a modified expressionset using
