@@ -14,7 +14,7 @@ make_bsgenome_from_fasta(
   build_dir = "build",
   genome_prefix = NULL,
   author = "Ashton Trey Belew <abelew@gmail.com>",
-  URL = "https://github.com/abelew/hpgltools",
+  url = "https://github.com/abelew/hpgltools",
   installp = TRUE
 )
 }
@@ -37,9 +37,9 @@ make_bsgenome_from_fasta(
 
 \item{author}{hmm}
 
-\item{installp}{Install the created package?}
-
 \item{url}{Location for the publicly available package.}
+
+\item{installp}{Install the created package?}
 }
 \description{
 Create a BSgenome from a fasta file.

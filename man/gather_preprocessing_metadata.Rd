@@ -56,6 +56,8 @@ presumably other stuff as I think of it).}
 
 \item{md5}{Seek out and/or calculate md5 checksums for this column?}
 
+\item{sanitize}{Use some sanitizing functions to ensure no strange text lurks in the output.}
+
 \item{...}{This is one of the few instances where I used
 ... intelligently.  Pass extra variables to the file specification
 and glue will pick them up (note the species entries in the

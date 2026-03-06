@@ -18,6 +18,7 @@ Description: This is a set of functions I have been using in my various analyses
              to the various tools, and handle corner cases which are not
              flexibly handled by the packages this is based upon.
 License: GPL-2 | file LICENSE
+URL: https://github.com/abelew/hpgltools
 Suggests:
   affy, AnnotationDbi, AnnotationForge, AnnotationHub, ape,
   BiocManager, BiocParallel, biomaRt, Biostrings, bluster,
@@ -27,7 +28,7 @@ Suggests:
   doParallel, dorothea, doSNOW, dotwhisker,
   EBSeq, EDASeq, enrichplot, EuPathDB,
   fastcluster, fastICA, ffpe, fission, flashClust,
-  genefilter, generics, GenomicRanges, GenomeInfoDb, genoPlotR, ggcoverage,
+  genefilter, generics, GenomicRanges, GenomeInfoDb, genoPlotR, ggbio, ggcoverage,
   ggdendro, ggrepel, ggsankey, ggsignif, ggstatsplot, ggthemes, goseq, GO.db, GOstats,
   graph, GSVA, GSVAdata, gtools, gplots, gProfileR, gprofiler2,
   HDO.db, Heatplus, Hmisc, Homo.sapiens, htmlwidgets, hpgldata, httr,
@@ -36,7 +37,7 @@ Suggests:
   KEGGREST, KEGGgraph, kmer,
   lattice, limma, locfit, lubridate,
   MatrixGenerics, matrixStats, meshes,
-  MPO.db, miscTools, motifRG, mygene,
+  MPO.db, miscTools, motifRG, mygene, mzR,
   networkD3, NOISeq, numform,
   openxlsx, OrganismDbi,
   pander, parallel, pasilla, pathfindR, pathview, pcaMethods, Peptides,
@@ -46,17 +47,17 @@ Suggests:
   reshape2, restez, rGADEM, Rgraphviz, rhdf5, rjson, rmarkdown, robust,
   robustbase, Rsamtools, Rtsne,
   rtracklayer, ruv, RUVSeq, rvest,
-  scales, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,
-  stringr, survJamda, SWATH2stats,
+  scales, seqLogo, Seqinfo, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,
+  stringr, SWATH2stats,
   taxize, testthat, tibble, tidyr, tidymodels, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
-  Vennerable, venneuler,
+  Vennerable,
   WGCNA,
   xCell, xml2
 Imports:
   Biobase, BiocGenerics, broom,
   data.table, DESeq2, DOSE, dplyr,
-  edgeR, forcats, foreach,
+  edgeR, foreach,
   GenomicFeatures, ggplot2, glue, GSEABase,
   IRanges,
   knitr,

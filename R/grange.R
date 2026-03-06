@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Extract a grange from gene x to gene y
 #'
 #' @param gr Input grange.
@@ -38,10 +41,10 @@ gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
     stop("This only works if we get one gene for the end.")
   }
   end_gr <- gr[end_num, ]
-  wanted_begin <- start(beginning_gr)
-  wanted_end <- end(end_gr)
-  annotation_starts <- start(gr)
-  annotation_ends <- end(gr)
+  wanted_begin <- GenomicRanges::start(beginning_gr)
+  wanted_end <- GenomicRanges::end(end_gr)
+  annotation_starts <- GenomicRanges::start(gr)
+  annotation_ends <- GenomicRanges::end(gr)
   ## Take the set of genes where our wanted beginning position is
   ## larger than the end of the previous gene
   ## and the wanted end is smaller than the start of the next
@@ -51,7 +54,7 @@ gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
   mesg("This range results in ", sum(wanted_idx), " genes in the subset.")
   region <- gr[wanted_idx, ]
   mcols(region)[, "orientation"] <- TRUE
-  minus_idx <- strand(region) == "-" | strand(region) == -1
+  minus_idx <- GenomicRanges::strand(region) == "-" | GenomicRanges::strand(region) == -1
   mcols(region)[minus_idx, "orientation"] <- FALSE
   mcols(region)[, "gene_name"] <- mcols(region)[, "gene_id"]
   mcols(region)[, "gene_biotype"] <- "gene"
@@ -74,7 +77,6 @@ gr_from_to <- function(gr, from, to, column = "gene_id", type_column = "type",
 #' @param group_column colData column describing the conditions of interest.
 #' @param cores Parallelize this?
 #' @param extend Expand the resulting grange?
-#' @importFrom IRanges IRanges
 #' @export
 load_se_tracks <- function(se, track_column = "deeptools_coverage", region_string = NULL,
                            name_column = "Parent", gene_name = NULL, padding = 100,
@@ -284,6 +286,7 @@ ggcoverage_prepare <- function(gr, region_string = NULL, gene_name = "HNRNPC",
                                     x = region_start_end[2]))
     }
   } else {
+    type <- NULL
     gr_info <- gr %>%
       as.data.frame() %>%
       dplyr::filter(type == wanted_type)

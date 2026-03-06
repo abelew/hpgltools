@@ -2,6 +2,9 @@
 ## standard SQLite based method for packaging annotation data in R.  These
 ## functions seek to make extracting information of interest from them easier.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Load organism annotation data from an orgdb sqlite package.
 #'
 #' Creates a dataframe gene and transcript information for a given set of gene
@@ -320,8 +323,8 @@ load_txdb_annotations <- function(txdb = NULL, gene_ids = NULL, types = c("tx", 
     tx_loaded <- do.call("library", list("package" = txdb, "character.only" = TRUE))
     txdb <- get0(txdb)
   }
-  possible_keytypes <- keytypes(txdb)
-  possible_columns <- columns(txdb)
+  possible_keytypes <- AnnotationDbi::keytypes(txdb)
+  possible_columns <- AnnotationDbi::columns(txdb)
   retlist <- list()
   gene_ids <- try(AnnotationDbi::keys(txdb, keytype = "GENEID"))
   retlist[["genes"]] <- gene_ids
@@ -593,6 +596,7 @@ guess_orgdb_keytype <- function(ids, orgdb = NULL, verbose = FALSE) {
 #' @param genus and genus.
 #' @examples
 #'  guess <- map_species_orgdb("hsapiens")
+#' @export
 map_species_orgdb <- function(species, genus = NULL) {
   if (is.null(genus)) {
     ## Then assume things like 'hsapiens'.

@@ -34,6 +34,9 @@
 
 \item{label_chars}{Maximum number of characters for abbreviating sample names.}
 
+\item{iqr_multiplier}{Distance from the outer quartiles used to call outliers,
+used for labelling/extracting outlier genes.}
+
 \item{...}{More parameters are more fun!}
 }
 \value{

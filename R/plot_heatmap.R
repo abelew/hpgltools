@@ -1,5 +1,6 @@
 ## plot_heatmap.r: Heatmaps separated by usage
 
+#' @include 01_hpgltools.R
 #' @include plot_shared.R
 NULL
 

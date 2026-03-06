@@ -8,6 +8,13 @@
 }
 \arguments{
 \item{fasta}{String describing a bsgenome or fasta file.}
+
+\item{gff}{Optional gff of annotations (if not provided it will just ask the
+whole genome).}
+
+\item{type}{Column of the gff file to use.}
+
+\item{key}{What type of entry of the gff file to key from?}
 }
 \description{
 Invoke sequence_attributes() when provided a fasta filename or name of BSgenome.

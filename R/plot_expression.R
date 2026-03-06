@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Extract groups of samples from a SE and make a boxplot of their expression
 #'
 #' @param exp Input dataset
@@ -11,7 +14,7 @@
 #' @param name_column Gene information column from which to get gene names.
 #' @param condition_column Metadata column containing the conditions to compare.
 #' @param test Pairwise test to invoke.
-#' @importFrom dplyr arrange
+#' @param excel Excel file used to record the values.
 #' @export
 ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "raw",
                                   convert = "cpm", filter = TRUE, transform = "log2",

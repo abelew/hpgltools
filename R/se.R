@@ -1,4 +1,8 @@
 ## I think the correct thing to do here is to use cbind()
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Bring together two Summarized Experiments into a larger one.
 #'
 #' @param se1 The first SE
@@ -74,8 +78,6 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
 #' @param condition_column Use a specific column in the metadata as the condition factor.
 #' @param batch_column Use a specific column in the metadata as the batch factor.x
 #' @param ... Extra options.
-#' @importFrom SummarizedExperiment SummarizedExperiment metadata<- assays
-#' @importFrom S4Vectors metadata
 #' @seealso [summarizedExperiment]
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
@@ -461,7 +463,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   if (!is.null(include_gff)) {
     grange_data <- gff2gr(include_gff)
     if (!is.null(genome_data)) {
-      seqinfo(grange_data) <- seqinfo(genome_data)
+      Seqinfo::seqinfo(grange_data) <- Seqinfo::seqinfo(genome_data)
     }
   }
   metadata(se)[["grange"]] <- grange_data
@@ -625,6 +627,7 @@ features_in_single_condition <- function(se, cutoff = 2, factor = "condition", c
 #'
 #' @param annotation Include annotations?
 #' @param host ensembl host to query
+#' @param backup_annotation Use this annotation source if ensembl is down.
 #' @export
 make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
                           backup_annotation = "org.Spombe.972h.v46.eg.db") {
@@ -683,6 +686,7 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
 #' Runs median_by_factor with fun set to 'mean'.
 #'
 #' @param data Input expt
+#' @param design Experimental design used to choose groups of samples.
 #' @param fact Metadata factor over which to perform mean().
 #' @export
 mean_by_factor <- function(data, design, fact = "condition") {
@@ -697,6 +701,7 @@ mean_by_factor <- function(data, design, fact = "condition") {
 #' median, and add that as a new column in a separate data frame.
 #'
 #' @param data Data frame, presumably of counts.
+#' @param design Experimental design used to choose groups of samples to examine.
 #' @param fact Factor describing the columns in the data.
 #' @param fun Optionally choose mean or another function.
 #' @return Data frame of the medians.
@@ -821,8 +826,10 @@ setMethod(
 #' @param se Input se.
 #' @param subset expression to use to subset on the metadata.
 #' @param ids Optional vector of sample IDs.
+#' @param min_replicates Drop samples of conditions with less than this number of replicates.
 #' @param nonzero A number of nonzero genes to use instead.
 #' @param coverage A minimum coverage to use instead.
+#' @param fact When using replication as a subset, use this colData column.
 #' @param print_excluded Print the sampleIDs excluded by this subset.
 #' @export
 subset_se <- function(se, subset = NULL, ids = NULL, min_replicates = NULL,
@@ -854,9 +861,9 @@ subset_se <- function(se, subset = NULL, ids = NULL, min_replicates = NULL,
   if (!is.null(ids)) {
     wanted_sample_idx <- starting_samples %in% ids
     subset_idx <- `&`(subset_idx, wanted_sample_idx)
-    se <- se[, idx]
-    subset_libsize <- subset_libsize[idx]
-    end_colors <- starting_colors[idx]
+    se <- se[, subset_idx]
+    subset_libsize <- subset_libsize[subset_idx]
+    end_colors <- starting_colors[subset_idx]
     subset_idx <- rep(TRUE, sum(subset_idx))
   }
 
@@ -1217,7 +1224,7 @@ generate_se_colors <- function(sample_definitions, cond_column = "condition",
 #' the data; as a result the proportion and mean values are
 #' effectively identical.
 #'
-#' @param expt Expressionset to which to add this information.
+#' @param se SummarizedExperiment to which to add this information.
 #' @param convert Use this conversion,
 #' @param transform and transformation,
 #' @param norm and normalization.

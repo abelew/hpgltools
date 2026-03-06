@@ -14,6 +14,8 @@ make_pombe_se(
 \item{annotation}{Include annotations?}
 
 \item{host}{ensembl host to query}
+
+\item{backup_annotation}{Use this annotation source if ensembl is down.}
 }
 \description{
 Create a default summarized experiment using the publicly available fission dataset.

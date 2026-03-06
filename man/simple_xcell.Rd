@@ -21,7 +21,7 @@ simple_xcell(
 )
 }
 \arguments{
-\item{se}{Expressionset to query.}
+\item{se}{SummarizedExperiment to query.}
 
 \item{signatures}{Alternate set of signatures to use.}
 
@@ -34,6 +34,8 @@ simple_xcell(
 \item{label_size}{How large to make labels when printing the final heatmap.}
 
 \item{col_margin}{Used by par() when printing the final heatmap.}
+
+\item{length_column}{rowData column with the gene lengths.}
 
 \item{row_margin}{Ibid.}
 

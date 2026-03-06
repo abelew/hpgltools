@@ -5,7 +5,7 @@
 \title{Invoke what I think is an appropriate logistical regression model.}
 \usage{
 extract_logistic_regression(
-  design,
+  meta,
   query = "condition",
   multivariable = TRUE,
   factors = NULL,
@@ -17,7 +17,7 @@ extract_logistic_regression(
 )
 }
 \arguments{
-\item{design}{Experimental design, I need to change this it is not a
+\item{meta}{Experimental design, I need to change this it is not a
 matrix.}
 
 \item{query}{Response variable.}

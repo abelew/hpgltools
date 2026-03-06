@@ -7,13 +7,13 @@
 variance_se(se, convert = "cpm", transform = "raw", norm = "raw")
 }
 \arguments{
+\item{se}{SummarizedExperiment to which to add this information.}
+
 \item{convert}{Use this conversion,}
 
 \item{transform}{and transformation,}
 
 \item{norm}{and normalization.}
-
-\item{expt}{Expressionset to which to add this information.}
 }
 \value{
 Slightly modified gene annotations including the mean/variance.

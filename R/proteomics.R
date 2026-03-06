@@ -890,7 +890,7 @@ impute_se <- function(se, filter = TRUE, p = 0.5,
   rowData(assay_set)[["num_nas"]] <- rowSums(zero_idx)
   assay(assay_set)[zero_idx] <- NA
 
-  requireNamespace("MSnbase")
+  ## requireNamespace("MSnbase")
   msn_data <- as(assay_set, "MSnSet")
   starting_counts <- assay(assay_set)
   message("Invoking impute from MSnbase with the ", fun, " method.")

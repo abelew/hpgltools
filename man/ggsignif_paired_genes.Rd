@@ -41,6 +41,8 @@ ggsignif_paired_genes(
 \item{condition_column}{Metadata column containing the conditions to compare.}
 
 \item{test}{Pairwise test to invoke.}
+
+\item{excel}{Excel file used to record the values.}
 }
 \description{
 Extract groups of samples from a SE and make a boxplot of their expression

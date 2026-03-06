@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Try plotting a chromosome (region)
 #'
 #' genoplotr is cool, I don't yet understand it though
@@ -44,7 +47,6 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
 #' @param ribbon fill in the smoothed data?
 #' @param cov_color Color for the coverage region
 #' @param y_max Explicitly set the maximum of the y axis.
-#' @importFrom stats predict loess
 #' @export
 plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 100,
                             span = 0.03, smoothed = TRUE, ribbon = FALSE, cov_color = "black",
@@ -52,7 +54,7 @@ plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 1
   g1 <- gr_from_to(gr, from, to, id_column)
   dup_idx <- duplicated(mcols(g1))
   g1 <- g1[!dup_idx, ]
-  region_string <- paste0(seqnames(range(g1)[1]), ":",
+  region_string <- paste0(Seqinfo::seqnames(range(g1)[1]), ":",
                           min(start(g1)) - padding, "-", max(start(g1)) + padding)
   g1_coverage <- ggcoverage::LoadTrackFile(track.file = coverage_files,
                                            gtf.gr = g1,
@@ -61,17 +63,17 @@ plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 1
   if (isTRUE(smoothed)) {
     cov_plot <- ggcoverage::ggcoverage(data = g1_coverage, color = "white") +
       ggplot2::geom_smooth(data = g1_coverage, se = FALSE, method = "loess", color = cov_color,
-                  method.args = list(family = "symmetric"), span = span,
-                  aes(x = start, y = score, ymin = 0))
+                           method.args = list(family = "symmetric"), span = span,
+                           aes(x = !!sym("start"), y = !!sym("score"), ymin = 0))
   } else {
     cov_plot <- ggcoverage::ggcoverage(data = g1_coverage, color = cov_color)
   }
   if (isTRUE(ribbon)) {
     cov_plot <- cov_plot +
       ggplot2::geom_ribbon(data = g1_coverage, outline.type = "full", show.legend = FALSE,
-                  aes(x = start, y = score, ymin = 0,
-                      ymax = stats::predict(stats::loess(score ~ start, span = span))),
-                  fill = cov_color)
+                           aes(x = !!sym("start"), y = !!sym("score"), ymin = 0,
+                               ymax = stats::predict(stats::loess(score ~ start, span = span))),
+                           fill = cov_color)
   }
 
   if (is.null(y_max)) {
@@ -169,18 +171,15 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
                                overlap_type = "tight", overlap_gap = 0.1,
                                arrow_type = "closed", arrow_gap = NULL, label_column = NULL,
                                bg_color = "white", gene_color_by = "strand", gene_colors = NULL,
-                               facet = TRUE, y_scale = NULL) {
+                               facet = TRUE, y_scale = NULL, cores = 4) {
   se <- set_conditions(se, fact = meta_group_column)
   se_meta <- colData(se)
-  se_info <- rowData(se)
-  se_assay <- assay(se)
   gr <- metadata(se)[["grange"]]
   colors_by_cond <- get_colors_by_condition(se)
 
   if (is.null(gene_colors)) {
     gene_colors <- c("-" = "cornflowerblue", "+" = "darkolivegreen3")
   }
-  bs <- metadata(se)[["genome"]]
   padding_start <- 0
   padding_end <- 0
   if (length(padding) == 1) {
@@ -191,19 +190,23 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
     padding_end <- padding[2]
   }
   coverage_files <- se_meta[[coverage_column]]
+  missing_files <- is.na(coverage_files)
+  if (sum(missing_files) > 0) {
+    warning("Some coverage files may be missing.")
+  }
   message("Getting grange subset with padding, start: ", padding_start, " end: ", padding_end, ".")
   gr_subset <- gr_from_to(gr, from, to, column = id_column, type_column = feature_type_column,
                           type = feature_type, padding_start = padding_start,
                           padding_end = padding_end)
-  gr_start <- min(start(gr_subset))
-  gr_end <- max(end(gr_subset))
+  gr_start <- min(GenomicRanges::start(gr_subset))
+  gr_end <- max(GenomicRanges::end(gr_subset))
   mesg("The region from ", from, " to ", to, " starts at ", gr_start, " and ends at ", gr_end, ".")
   dup_idx <- duplicated(mcols(gr_subset))
   if (sum(dup_idx) > 0) {
     mesg("There were ", sum(dup_idx), " duplicates in this region.")
     gr_subset <- gr_subset[!dup_idx, ]
   }
-  region_string <- paste0(seqnames(range(gr_subset)[1]), ":",
+  region_string <- paste0(Seqinfo::seqnames(range(gr_subset)[1]), ":",
                           min(start(gr_subset)), "-", max(start(gr_subset)))
   ## Match the expectations of ggcoverage
   convert = tolower(convert)
@@ -332,56 +335,72 @@ print.ggcoverage_plot <- function(x, ...) {
   return(invisible(x))
 }
 
-plot_ggbio_heatmap <- function(grange, tbl, tilesize = 1000,
+#' Use ggbio to create a heatmap of a grange dataset.
+#'
+#' @param grange_data Input grange with starts/stops/etc
+#' @param tbl Table of locations of interest
+#' @param tilesize Bin the genome to this length
+#' @param scaffolds Include scaffolds?
+plot_ggbio_heatmap <- function(grange_data, tbl, tilesize = 1000,
                                scaffolds = FALSE) {
-  scaffold_idx <- grepl(x = as.character(seqnames(grange_data)), pattern = "SCAF")
+  scaffold_idx <- grepl(x = as.character(Seqinfo::seqnames(grange_data)), pattern = "SCAF")
   no_scaffolds <- grange_data[!scaffold_idx]
-  scaffold_idx <- grepl(x = as.character(names(seqinfo(grange_data))), pattern = "SCAF")
-  chr_names <- names(seqinfo(grange_data))[!scaffold_idx]
-  no_scaffolds <- seqinfo(grange_data)[chr_names]
+  scaffold_idx <- grepl(x = as.character(names(Seqinfo::seqinfo(grange_data))), pattern = "SCAF")
+  chr_names <- names(Seqinfo::seqinfo(grange_data))[!scaffold_idx]
+  no_scaffolds <- Seqinfo::seqinfo(grange_data)[chr_names]
 
   tbl[["position2"]] <- tbl[["Position"]]
   tbl[["SNP"]] <- NULL
   rownames(tbl) <- NULL
-  bins_1k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize,
+  bins_1k <- GenomicRanges::tileGenome(Seqinfo::seqlengths(no_scaffolds), tilewidth = tilesize,
                                        cut.last.tile.in.chrom = TRUE)
-  bins_5k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize * 5,
-                                     cut.last.tile.in.chrom = TRUE)
-  bins_10k <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize * 10,
+  bins_5k <- GenomicRanges::tileGenome(Seqinfo::seqlengths(no_scaffolds), tilewidth = tilesize * 5,
+                                       cut.last.tile.in.chrom = TRUE)
+  bins_10k <- GenomicRanges::tileGenome(Seqinfo::seqlengths(no_scaffolds), tilewidth = tilesize * 10,
                                         cut.last.tile.in.chrom = TRUE)
-  bins_1nt <- GenomicRanges::tileGenome(seqlengths(no_scaffolds), tilewidth = tilesize / 10,
-                                      cut.last.tile.in.chrom = TRUE)
+  bins_1nt <- GenomicRanges::tileGenome(Seqinfo::seqlengths(no_scaffolds), tilewidth = tilesize / 10,
+                                        cut.last.tile.in.chrom = TRUE)
   tbl[["strand"]] <- "+"
   ## I want to calculate the number of intersecting positions between my auto_tbl and the 1k bins.
   start <- tbl[, c("Chromosome", "Position", "position2", "strand", "strong23")]
   colnames(start) <- c("chr", "start", "end", "strand", "z23")
   start[["chr"]] <- gsub(x = start[["chr"]], pattern = "-", replacement = "_")
-  var_grange <- makeGRangesFromDataFrame(start, seqinfo = no_scaffolds, keep.extra.columns = TRUE)
-  vars_per_bin <- findOverlaps(bins_1k, var_grange)
+  var_grange <- GenomicRanges::makeGRangesFromDataFrame(start, seqinfo = no_scaffolds,
+                                                        keep.extra.columns = TRUE)
+  vars_per_bin <- GenomicRanges::findOverlaps(bins_1k, var_grange)
   vars_per_bin_numeric <- as.data.frame(bins_1k)
   vars_per_bin_numeric[["bin"]] <- rownames(vars_per_bin_numeric)
 
+  ##
+
   count_per_bin <- as.data.frame(vars_per_bin) %>%
-    group_by(queryHits) %>%
+    group_by(!!sym("queryHits")) %>%
     dplyr::tally()
   colnames(count_per_bin) <- c("bin", "num")
   vars_per_bin_numeric <- merge(vars_per_bin_numeric, count_per_bin, by = "bin", all.x = TRUE)
   missing_idx <- is.na(vars_per_bin_numeric[["num"]])
   vars_per_bin_numeric[missing_idx, "num"] <- 0
   vars_per_bin <- vars_per_bin_numeric[, c("seqnames", "start", "end", "width", "strand", "num")]
-  vpb_grange <- makeGRangesFromDataFrame(vars_per_bin, seqinfo = no_scaffolds, keep.extra.columns = TRUE)
-  kary <- autoplot(vpb_grange, layout = "karyogram", aes(color = num, fill = num)) +
-    scale_color_gradient(low = "blue", high = "red") +
-    scale_fill_gradient(low = "blue", high = "red")
+  vpb_grange <- GenomicRanges::makeGRangesFromDataFrame(
+    vars_per_bin, seqinfo = no_scaffolds, keep.extra.columns = TRUE)
+  kary <- ggbio::autoplot(vpb_grange, layout = "karyogram",
+                          aes(color = !!sym("num"), fill = !!sym("num"))) +
+    ggplot2::scale_color_gradient(low = "blue", high = "red") +
+    ggplot2::scale_fill_gradient(low = "blue", high = "red")
   ## theme_bw(base_size = 10) +
   kary
-  var_kary <- ggbio() +
-    layout_karyogram(vpb_grange, aes(color = num, fill = num)) +
-    scale_fill_gradient(low = "blue", high = "white") +
-    scale_color_gradient(low = "blue", high = "white") +
-    theme_bw(base_size = 10)
+  var_kary <- ggbio::ggbio() +
+    ggbio::layout_karyogram(vpb_grange,
+                            aes(color = !!sym("num"), fill = !!sym("num"))) +
+    ggplot2::scale_fill_gradient(low = "blue", high = "white") +
+    ggplot2::scale_color_gradient(low = "blue", high = "white") +
+    ggplot2::theme_bw(base_size = 10)
   var_kary
   retlist <- list(
+    "bins_1k" = bins_1k,
+    "bins_5k" = bins_5k,
+    "bins_10k" = bins_10k,
+    "bins_1nt" = bins_1nt,
     "kary" = kary,
     "variants" = var_kary)
   return(retlist)

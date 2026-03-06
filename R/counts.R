@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Sum the reads/gene for multiple sequencing runs of a single condition/batch.
 #'
 #' On occasion we have multiple technical replicates of a sequencing run.  This
@@ -150,8 +153,6 @@ setMethod(
 #' \dontrun{
 #'  count_tables <- read_counts(as.character(sample_ids), as.character(count_filenames))
 #' }
-#' @importFrom data.table as.data.table
-#' @importFrom S4Vectors mcols
 #' @export
 read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
                         all.x = TRUE, all.y = FALSE, merge_type = "merge",

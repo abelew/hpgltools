@@ -1,6 +1,9 @@
 ## de_edger.r: Standardize inputs/outputs for differential expression analysis
 ## with EdgeR.  The caveats and ideas here are basically identical to de_deseq.r
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Set up a model matrix and set of contrasts to do pairwise comparisons using EdgeR.
 #'
 #' This function performs the set of possible pairwise comparisons using EdgeR.
@@ -65,7 +68,6 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   mesg("Starting edgeR pairwise comparisons.")
   input <- sanitize_se(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
-  count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)
@@ -73,7 +75,6 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
   batch_table <- table(batches)
-  condition_levels <- levels(conditions)
   mesg("This edger pairwise comparison should compare across:")
   print(condition_table)
   appended_fstring <- model_fstring
@@ -84,9 +85,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                                       num_surrogates = num_surrogates,
                                       filter = filter,
                                       ...)
-    estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
-    null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
     design <- colData(model_params[["modified_input"]])
   }
@@ -180,7 +179,6 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   result_list <- list()
   lrt_list <- list()
   sc <- vector("list", length(apc[["names"]]))
-  end <- length(apc[["names"]])
   for (con in seq_along(apc[["names"]])) {
     name <- apc[["names"]][[con]]
     sc[[name]] <- gsub(pattern = ",", replacement = "", apc[["all_pairwise"]][[con]])
@@ -213,15 +211,19 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   } ## End for loop
 
   tmp_file <- tmpmd5file(pattern = "edger_cov", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  dispersions <- sm(try(edgeR::plotBCV(y = final_norm), silent = TRUE))
-  dispersion_plot <- NULL
-  if (class(dispersions)[1] != "try-error") {
-    dispersion_plot <- grDevices::recordPlot()
+  this_plot <- try(png(filename = tmp_file))
+  if ("try-error" %in% class(this_plot)) {
+    message("Unable to open the temporary plot.")
+  } else {
+    dev.control("enable")
+    dispersions <- sm(try(edgeR::plotBCV(y = final_norm), silent = TRUE))
+    dispersion_plot <- NULL
+    if (class(dispersions)[1] != "try-error") {
+      dispersion_plot <- grDevices::recordPlot()
+    }
+    dev.off()
+    file.remove(tmp_file)
   }
-  plotted <- dev.off()
-  removed <- file.remove(tmp_file)
 
   retlist <- list(
       "all_tables" = result_list,

@@ -10,6 +10,7 @@
 #' @param method Type of transformation to perform: log2/log10/log.
 #' @param base Other log scales?
 #' @param model_fstring Formula describing the model of interest.
+#' @param low_to_zero Set values less than 0 to 0?
 #' @param ... Options I might pass from other functions are dropped into
 #'  arglist.
 #' @return dataframe of transformed counts.

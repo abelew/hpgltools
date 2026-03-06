@@ -4,6 +4,9 @@
 ## use and therefore some of the code in this file is some of the very first R
 ## code I learned and therefore potentially... bad.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' A minor change to limma's voom with quality weights to attempt to address some corner cases.
 #'
 #' This copies the logic employed in hpgl_voom().  I suspect one should not use it.
@@ -57,14 +60,18 @@ hpgl_voomweighted <- function(data, fun_model, libsize = NULL, normalize.method 
   attr(wts, "arrayweights") <- NULL
   if (plot) {
     tmp_file <- tmpmd5file(pattern = "voom", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
-    barplot(aw, names = 1:length(aw), main = "Sample-specific weights",
-            ylab = "Weight", xlab = "Sample", col = col)
-    abline(h = 1, col = 2, lty = 2)
-    voom_barplot <- grDevices::recordPlot()
-    plotted <- dev.off()
-    removed <- file.remove(tmp_file)
+    this_plot <- try(png(filename = tmp_file))
+    if ("try-error" %in% class(this_plot)) {
+      message("Unable to open the temporary plot: ", tmp_file, ".")
+    } else {
+      dev.control("enable")
+      barplot(aw, names = 1:length(aw), main = "Sample-specific weights",
+              ylab = "Weight", xlab = "Sample", col = col)
+      abline(h = 1, col = 2, lty = 2)
+      voom_barplot <- grDevices::recordPlot()
+      dev.off()
+      file.remove(tmp_file)
+    }
   }
   if (replace.weights) {
     v[["weights"]] <- wts

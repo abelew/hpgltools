@@ -36,7 +36,8 @@ plot_ggcoverage_se(
   gene_color_by = "strand",
   gene_colors = NULL,
   facet = TRUE,
-  y_scale = NULL
+  y_scale = NULL,
+  cores = 4
 )
 }
 \arguments{

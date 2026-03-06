@@ -53,6 +53,8 @@ all_cprofiler(
 
 \item{together}{Concatenate the up/down genes into one set?}
 
+\item{todo}{List of methods to try enrichment/gsea}
+
 \item{orgdb}{Name of the DBI containing the annotations for this organism.}
 
 \item{orgdb_from}{Column from which to convert the gene IDs.}
@@ -69,54 +71,53 @@ all_cprofiler(
 
 \item{second_fc_column}{A fallback column for FC values.}
 
-\item{internal}{I dunno}
+\item{internal}{This changes the output data structure, but I forget how.}
 
 \item{updown}{Seek out categories with increased enrichment,  or decreased.}
 
-\item{permutations}{Run x permutations in clusterProfiler.}
+\item{permutations}{Run x permutations in clusterProfiler. (deprecated by cp authors)}
 
 \item{min_groupsize}{Ignore groups with less than x genes.}
 
-\item{max_groupsize}{Ignore groups which are too big.}
+\item{max_groupsize}{Ignore groups with more than x genes.}
 
 \item{kegg_prefix}{Prefix of this kegg organism ID.}
 
 \item{kegg_organism}{Full name of this organism when querying KEGG.}
 
-\item{organism}{String name of the organism.}
+\item{organism}{Organism for things like DOSE etc, TODO: double check that this is still needed}
 
 \item{categories}{Plot this number of categories by default.}
 
-\item{padj_type}{Use this FDR}
+\item{padj_type}{FDR correction method.}
 
-\item{mesh_category}{Use this category for MESH.}
+\item{mesh_category}{Mesh category to query}
 
-\item{mesh_dbname}{Use this MESH sub-database.}
+\item{mesh_dbname}{Database in mesh to query}
 
-\item{msigdb_category}{Use this mSigDB sub-database.}
+\item{msigdb_category}{Category of mSigDB to query}
 
-\item{msig_db}{Use this database file for the msigdb data.}
+\item{msig_db}{Dataframe of mSigDB gene sets.}
+
+\item{kegg_universe}{Manually set universe of kegg genes/IDs.}
+
+\item{reactome_organism}{I think not needed any longer.}
+
+\item{mesh_db}{Location of mesh database/package.}
+
+\item{ah_data}{Which annotationhub dataset to use with mesh}
+
+\item{signature_data}{Manually provided list of gene sets.}
+
+\item{signature_df}{Manually provided df of signatures.}
+
+\item{de_table_namedf}{Alternate set of gene names.}
+
+\item{sig_genes_namedf}{Alternate set of gene names for the significant genes.}
 
 \item{excel}{Output xlsx filename.}
 
 \item{...}{Arguments to pass to simple_clusterprofiler().}
-
-\item{do_gsea}{Perform a full gene set enrichment analysis.}
-
-\item{do_david}{Do a david over representation search? (the java
-DAVID interface is kind of broken, this should stay FALSE)}
-
-\item{do_kegg}{Attempt a KEGG over representation analysis.}
-
-\item{plot_type}{Choose specific plot(s).}
-
-\item{do_reactome}{what it says on the tin.}
-
-\item{do_dose}{Attempt disease ontology search.}
-
-\item{do_mesh}{Attempt MESH search.}
-
-\item{do_msigdb}{Attempt mSigDB search.}
 }
 \description{
 Most of the options are taken from simple_cprofiler and passed directly down.

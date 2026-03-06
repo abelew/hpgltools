@@ -33,6 +33,10 @@ simple_proper(
 \arguments{
 \item{de_tables}{The result of combined_de_tables.}
 
+\item{apr}{Result from all_pairwise() to help fill in the model data.}
+
+\item{mtrx}{Input se to help fill in the model data.}
+
 \item{p}{Cutoff}
 
 \item{experiment}{The default data set in PROPER is entitled 'cheung'.}

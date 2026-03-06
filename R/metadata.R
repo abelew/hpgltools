@@ -343,6 +343,7 @@ analyses more difficult/impossible.")
 #' @param r1_input_column Column containing the required names.
 #' @param r2_input_column Ibid.
 #' @param md5 Seek out and/or calculate md5 checksums for this column?
+#' @param sanitize Use some sanitizing functions to ensure no strange text lurks in the output.
 #' @param ... This is one of the few instances where I used
 #' ... intelligently.  Pass extra variables to the file specification
 #' and glue will pick them up (note the species entries in the
@@ -1669,6 +1670,7 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
 #' @param subtype Specific annotation type to search.
 #' @param new_spec New specification resulting from this invocation.
 #' @param tag GFF tag used to extract IDs.
+#' @param sum_column Put the new column at this location in the output dataframe.
 dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
                                 species = "*", basedir = "preprocessing",
                                 type = "genome", subtype = "gene",
@@ -1676,7 +1678,7 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
   output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_sum_column(
         meta, input_file_spec, verbose = verbose,
@@ -1737,11 +1739,12 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
 #' @param input_file_spec Input file specification to hunt down the
 #'  file of interest.
 #' @param verbose Print diagnostic information while running?
+#' @param new_spec An alternate file_spec for a newer version of the input pipeline.
 #' @param basedir Root directory containing the files/logs of metadata.
 dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
                                    new_spec = NULL, basedir = "preprocessing") {
-  input_files <- seek_filnames(meta, input_file_spec, new_spec, basedir = basedir)
-  output_entries <- rep(0, length(filenames_with_wildcards))
+  input_files <- seek_filenames(meta, input_file_spec, new_spec, basedir = basedir)
+  output_entries <- rep(0, length(input_files))
   for (row in seq_len(nrow(meta))) {
     input_file <- input_files[[row]]
     if (is.null(input_file)) {
@@ -1749,13 +1752,13 @@ dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
     }
     found <- 0
     if (length(input_file) == 0) {
-      warning("There is no file matching: ", filenames_with_wildcards[row],
+      warning("There is no file matching: ", input_files[row],
               ".")
       output_entries[row] <- ''
       next
     }
     if (is.na(input_file)) {
-      warning("The input file is NA for: ", filenames_with_wildcards[row], ".")
+      warning("The input file is NA for: ", input_files[row], ".")
       output_entries[row] <- ''
       next
     }
@@ -1980,8 +1983,10 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
 #' @param as Coerce the output to a specific data type (numeric/character/etc).
 #' @param verbose For testing regexes.
 #' @param type Make explicit the type of data (genome/rRNA/Tx/etc).
+#' @param subtype Explicitly set this secondary input type.
 #' @param backup_search A secondary search for when I change stuff.
 #' @param backup_replace A secondary replace for when I change stuff.
+#' @param tag Use tag as an additional filter when required.
 #' @param ... Used to pass extra variables to glue for finding files.
 dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   species = "*", basedir = "preprocessing",
@@ -2094,6 +2099,7 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
 #' @param column Column to yank from
 #' @param input_file_spec Input file specification to hunt down the
 #'  file of interest.
+#' @param new_spec Potential alternate spec for a newer version of the input pipeline.
 #' @param file_type csv or tsv?
 #' @param chosen_func If set, use this function to summarize the result.
 #' @param species Specify a species, or glob it.

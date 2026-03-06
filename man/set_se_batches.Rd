@@ -4,7 +4,7 @@
 \alias{set_se_batches}
 \title{Set the batches for a summarized experiment.}
 \usage{
-set_se_batches(se, fact, ids = NULL, handle_na = "unknown")
+set_se_batches(se, fact, ids = NULL, handle_na = "unknown", drop = TRUE)
 }
 \arguments{
 \item{se}{Input se}
@@ -12,6 +12,10 @@ set_se_batches(se, fact, ids = NULL, handle_na = "unknown")
 \item{fact}{factor of new batches}
 
 \item{ids}{specific IDs to change}
+
+\item{handle_na}{Fill NA values with this.}
+
+\item{drop}{Drop levels with no elements?}
 }
 \description{
 Set the batches for a summarized experiment.

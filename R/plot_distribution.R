@@ -1,6 +1,38 @@
 ## plot_distribution.r: A few plots to describe data distributions
 ## Currently this includes boxplots, density plots, and qq plots.
 
+make_summary_df <- function(df, iqr_multiplier = 1.5) {
+  df <- as.data.frame(df)
+  summary_df <- data.frame(row.names = c("min", "q1", "median", "mean", "q3",
+                                         "max", "iqr", "iqr_high", "iqr_low",
+                                         "sd", "var", "stdvar"))
+  for (col in colnames(df)) {
+    summary_df[[col]] <- rep(0, nrow(summary_df))
+    col_summary <- summary(df[[col]])
+    summary_df["min", col] <- col_summary[[1]]
+    summary_df["q1", col] <- col_summary[[2]]
+    summary_df["median", col] <- col_summary[[3]]
+    summary_df["mean", col] <- col_summary[[4]]
+    summary_df["q3", col] <- col_summary[[5]]
+    summary_df["max", col] <- col_summary[[6]]
+    summary_df["iqr", col] <- col_summary[[5]] - col_summary[[2]]
+    outlier_dist <- summary_df["iqr", col] * iqr_multiplier
+    summary_df["iqr_high", col] <- col_summary[[5]] + outlier_dist
+    summary_df["iqr_low", col] <- col_summary[[1]] - outlier_dist
+    column_sd <- sd(df[[col]])
+    column_var <- var(df[[col]])
+    column_stdvar <- column_var / col_summary[[4]]
+    summary_df["sd", col] <- column_sd
+    summary_df["var", col] <- column_var
+    summary_df["stdvar", col] <- column_stdvar
+  }
+  return(summary_df)
+}
+
+#' Generic plot_boxplot dispatch
+#'
+#' @param data data of indeterminate type
+#' @param ... Other arguments
 plot_boxplot <- function(data, ...) {
   message("A generic boxplot for genomic/etc data.")
   message("It was passed an object of type ", class(data),
@@ -25,6 +57,8 @@ setGeneric("plot_boxplot")
 #' @param scale Whether to log scale the y-axis.
 #' @param sample_names Another version of the sample names for printing.
 #' @param label_chars  Maximum number of characters for abbreviating sample names.
+#' @param iqr_multiplier Distance from the outer quartiles used to call outliers,
+#'  used for labelling/extracting outlier genes.
 #' @param ... More parameters are more fun!
 #' @return Ggplot2 boxplot of the samples.  Each boxplot
 #' contains the following information: a centered line describing the
@@ -42,8 +76,8 @@ setMethod(
   definition = function(data, colors = NULL, plot_title = NULL, order = NULL,
                         violin = FALSE, scale = NULL, sample_names = NULL, label_chars = 10,
                         iqr_multiplier = 1.5, ...) {
-    arglist <- list(...)
     ## I am now using this check of the data in a few places, so I function'd it.
+    starting_df <- data
     scale_data <- check_plot_scale(data, scale)
     scale <- scale_data[["scale"]]
     data <- scale_data[["data"]]
@@ -51,7 +85,6 @@ setMethod(
     if (is.null(colors)) {
       colors <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "Blues"))(dim(data)[2])
     }
-    data_matrix <- as.matrix(data)
     ## Likely only needed when using quantile norm/batch correction and it sets a value to < 0
     invalid_idx <- data < 0
     if (sum(invalid_idx) > 0) {
@@ -65,11 +98,7 @@ setMethod(
     }
 
     if (!is.null(sample_names) & class(sample_names) == "character") {
-      if (length(sample_names) == 1) {
-        colnames(data) <- make.names(design[[sample_names]], unique = TRUE)
-      } else {
-        colnames(data) <- sample_names
-      }
+      colnames(data) <- sample_names
     }
     if (!is.null(label_chars) & is.numeric(label_chars)) {
       colnames(data) <- abbreviate(colnames(data), minlength = label_chars)
@@ -112,6 +141,7 @@ setMethod(
       boxplot <- boxplot +
         sm(ggplot2::geom_boxplot(aes(fill = .data[["sample"]]),
                                  na.rm = TRUE, fill = colors, size = 0.5,
+                                 coef = iqr_multiplier,
                                  outlier.size = 1.5,
                                  guide = "none",
                                  outlier.colour = ggplot2::alpha("black", 0.2)))
@@ -126,42 +156,73 @@ setMethod(
       boxplot <- boxplot + ggplot2::ggtitle(plot_title)
     }
 
+    rescale <- "none"
     if (scale == "log") {
       boxplot <- boxplot +
         ggplot2::scale_y_continuous(labels = scales::scientific,
                                     trans = "log2")
+      rescale <- "log2"
     } else if (scale == "logdim") {
       boxplot <- boxplot +
         ggplot2::coord_trans(y = "log2", labels = scales::scientific)
+      rescale <- "log2"
     } else if (isTRUE(scale)) {
       boxplot <- boxplot +
         ggplot2::scale_y_continuous(trans = "log10",
                                     labels = scales::scientific)
+      rescale <- "log10"
     }
-    data_df <- boxplot[["data"]]
-    high_quart <- summary(data_df[["reads"]])[[5]]
-    low_quart <- summary(data_df[["reads"]])[[2]]
-    outlier_dist <- (high_quart - low_quart) * iqr_multiplier
-    high_outlier <- high_quart + outlier_dist
-    low_outlier <- low_quart - outlier_dist
-    high_gene_df <- scale_data[["data"]] %>%
-      as.data.frame() %>%
-      dplyr::filter_all(dplyr::any_vars(. >= high_quart))
-    high_outlier_df <- scale_data[["data"]] %>%
-      as.data.frame() %>%
-      dplyr::filter_all(dplyr::any_vars(. >= high_outlier))
-    low_gene_df <- scale_data[["data"]] %>%
-      as.data.frame() %>%
-      dplyr::filter_all(dplyr::any_vars(. <= low_quart))
-    low_outlier_df <- scale_data[["data"]] %>%
-      as.data.frame() %>%
-      dplyr::filter_all(dplyr::any_vars(. >= low_outlier))
+
+    test_df <- starting_df
+    if (rescale == "log2") {
+      test_df <- log2(test_df + 1)
+    } else if (rescale == "log10") {
+      test_df <- log2(test_df + 1) / log(10)
+    }
+    summary_info <- make_summary_df(test_df, iqr_multiplier = iqr_multiplier)
+    print(summary_info)
+    high_genes <- list()
+    num_high_genes <- rep(0, ncol(summary_info))
+    low_genes <- list()
+    num_low_genes <- rep(0, ncol(summary_info))
+    high_outlier_genes <- list()
+    num_high_outlier_genes <- rep(0, ncol(summary_info))
+    low_outlier_genes <- list()
+    num_low_outlier_genes <- rep(0, ncol(summary_info))
+    the_colnames <- colnames(summary_info)
+    for (num in seq_len(ncol(summary_info))) {
+      col <- the_colnames[num]
+      test_vector <- test_df[[col]]
+      the_names <- rownames(test_df)
+      high_idx <- test_vector >= summary_info["q3", col]
+      num_high_genes[num] <- sum(high_idx)
+      low_idx <- test_vector <= summary_info["q1", col]
+      num_low_genes[num] <- sum(low_idx)
+      high_outlier_idx <- test_vector >= summary_info["iqr_high", col]
+      num_high_outlier_genes[num] <- sum(high_outlier_idx)
+      low_outlier_idx <- test_vector <= summary_info["iqr_low", col]
+      num_low_outlier_genes[num] <- sum(low_outlier_idx)
+      high_genes[[col]] <- the_names[high_idx]
+      low_genes[[col]] <- the_names[low_idx]
+      high_outlier_genes[[col]] <- the_names[high_outlier_idx]
+      low_outlier_genes[[col]] <- the_names[low_outlier_idx]
+    }
+    names(num_high_genes) <- the_colnames
+    names(num_low_genes) <- the_colnames
+    names(num_high_outlier_genes) <- the_colnames
+    names(num_low_outlier_genes) <- the_colnames
+
     retlist <- list(
       "plot" = boxplot,
-      "high_df" = high_gene_df,
-      "high_outlier_df" = high_outlier_df,
-      "low_df" = low_gene_df,
-      "low_outlier_df" = low_outlier_df)
+      "summary_info" = summary_info,
+      "high_genes" = high_genes,
+      "num_high_genes" = num_high_genes,
+      "high_outlier_genes" = high_outlier_genes,
+      "num_high_outlier_genes" = num_high_outlier_genes,
+      "low_genes" = low_genes,
+      "num_low_genes" = num_low_genes,
+      "low_outlier_genes" = low_outlier_genes,
+      "num_low_outlier_genes" = num_low_outlier_genes)
     class(retlist) <- "gene_boxplot"
     return(retlist)
   })
@@ -234,6 +295,10 @@ print.gene_boxplot <- function(x, ...) {
   return(invisible(x))
 }
 
+#' Generic dispatch of plot_density when the input is unknown.
+#'
+#' @param data Arbitrary data passed to plot_density.
+#' @param ... Other arguments
 plot_density <- function(data, ...) {
   message("A generic density for genomic/etc data.")
   message("It was passed an object of type ", class(data),
@@ -523,7 +588,6 @@ print.density_plot <- function(x, ...) {
 #' @example inst/examples/plot_distribution.R
 #' @export
 plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ...) {
-  arglist <- list(...)
   sample_data <- data[, c(1, 2)]
   means <- rowMeans(data)
   sample_data[["mean"]] <- means
@@ -531,8 +595,6 @@ plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ..
   ratios <- list()
   means <- list()
   comparisons <- length(colnames(data))
-  row_columns <- ceiling(sqrt(comparisons))
-  rows <- nrow(data)
   ## I want to make a square containing the graphs.
   count <- 1
   for (i in seq_len(comparisons)) {
@@ -551,22 +613,30 @@ plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ..
   }
 
   tmp_file <- tmpmd5file(pattern = "multi", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  result <- plot_multiplot(logs)
-  log_plots <- grDevices::recordPlot()
-  dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  this_plot <- try(png(filename = tmp_file))
+  if ("try-error" %in% class(this_plot)) {
+    warning("Unable to open the output plot file: ", tmp_file, ".")
+  } else {
+    dev.control("enable")
+    result <- plot_multiplot(logs)
+    log_plots <- grDevices::recordPlot()
+    dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+  }
 
   tmp_file <- tmpmd5file(pattern = "multi", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  plot_multiplot(ratios)
-  ratio_plots <- grDevices::recordPlot()
-  dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  this_plot <- try(png(filename = tmp_file))
+  if ("try-error" %in% class(this_plot)) {
+    warning("Unable to open the output plot file: ", tmp_file, ".")
+  } else {
+    dev.control("enable")
+    plot_multiplot(ratios)
+    ratio_plots <- grDevices::recordPlot()
+    dev.off()
+    removed <- suppressWarnings(file.remove(tmp_file))
+    removed <- unlink(dirname(tmp_file))
+  }
 
   plots <- list(logs = log_plots, ratios = ratio_plots, medians = means)
   return(plots)

@@ -53,9 +53,13 @@ outputs if this changes, but for the moment I am sort of assuming
 
 \item{type}{Make explicit the type of data (genome/rRNA/Tx/etc).}
 
+\item{subtype}{Explicitly set this secondary input type.}
+
 \item{backup_search}{A secondary search for when I change stuff.}
 
 \item{backup_replace}{A secondary replace for when I change stuff.}
+
+\item{tag}{Use tag as an additional filter when required.}
 
 \item{...}{Used to pass extra variables to glue for finding files.}
 }

@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Invoke PROPER and replace its default data set with data of interest.
 #'
 #' Recent reviewers of Najib's grants have taken an increased interest in
@@ -150,6 +153,8 @@ controlled at 0.2, we need to have at least 5 samples in each treatment group.")
 #' given dataset in the way expected by PROPER.
 #'
 #' @param de_tables The result of combined_de_tables.
+#' @param apr Result from all_pairwise() to help fill in the model data.
+#' @param mtrx Input se to help fill in the model data.
 #' @param p Cutoff
 #' @param experiment The default data set in PROPER is entitled 'cheung'.
 #' @param nsims Number of simulations to perform.
@@ -299,7 +304,7 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
     ## Stealing from plotPower to get the relevant cutoffs
     nsims = dim(powers[["power"]])[3]
     observed_power = apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
-    power_se = apply(powers[["power"]], c(1, 2), sd, na.rm = TRUE) / sqrt(nsims)
+    power_se = apply(powers[["power"]], c(1, 2), !!sd, na.rm = TRUE) / sqrt(nsims)
     ix.na = apply(observed_power, 1, function(x) all(is.na(x)))
     observed_power = observed_power[!ix.na, ]
     power_se = power_se[!ix.na, ]
@@ -462,7 +467,8 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
 
 #' Given the result of simple_proper, plot the various results.
 #'
-#' @param powers The result from comparePowers()
+#' @param powers The result from comparePowers().
+#' @param result The result from simple_proper().
 #' @param add_coverage Add a line of the actual coverage in an experiment.
 #' @param x_intercept Add a line showing the significance deemed interesting.
 proper_plots <- function(powers, result, add_coverage = TRUE, x_intercept = 1) {
@@ -552,7 +558,6 @@ proper_plots <- function(powers, result, add_coverage = TRUE, x_intercept = 1) {
 #' Stealing the hiddent function run.deseq2 from PROPER.
 #'
 #' @param dat Input data.
-#' @importFrom S4Vectors DataFrame
 proper_run_deseq2 <- function(dat) {
   cond <- factor(dat$designs)
   dds <- DESeq2::DESeqDataSetFromMatrix(dat$counts, DataFrame(cond), ~cond)

@@ -29,6 +29,8 @@ dispatch_csv_search(
 \item{input_file_spec}{Input file specification to hunt down the
 file of interest.}
 
+\item{new_spec}{Potential alternate spec for a newer version of the input pipeline.}
+
 \item{file_type}{csv or tsv?}
 
 \item{chosen_func}{If set, use this function to summarize the result.}

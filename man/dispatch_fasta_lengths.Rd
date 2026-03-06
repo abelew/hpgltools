@@ -20,6 +20,8 @@ file of interest.}
 
 \item{verbose}{Print diagnostic information while running?}
 
+\item{new_spec}{An alternate file_spec for a newer version of the input pipeline.}
+
 \item{basedir}{Root directory containing the files/logs of metadata.}
 }
 \description{

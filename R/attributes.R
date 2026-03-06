@@ -47,7 +47,7 @@ annotation <- function(object, ...) {
 
 #' Get the batch column from a se.
 #'
-#' @param exp Input summarized experiment.
+#' @param object Input summarized experiment.
 #' @example inst/examples/attributes_se.R
 #' @export
 setMethod(
@@ -63,6 +63,7 @@ setMethod(
 #' is intended to set the latter for a dataset.
 #'
 #' @param exp Input data structure.
+#' @param annot Annotation package name to give to the input data structure.
 #' @param ... Arguments passed along.
 #' @export
 set_annotation <- function(exp, annot, ...) {
@@ -81,16 +82,16 @@ setGeneric("set_annotation")
 #' @export
 setMethod(
   "set_annotation", signature(exp = "SummarizedExperiment"),
-  definition = function(exp, ...) {
+  definition = function(exp, annot, ...) {
     mcols(exp)[["annotation"]] <- annot
     return(exp)
   })
 
 #' Add a annotation mcolumn to a se.
 #'
-#' @param se Summarized Experiment to modify.
+#' @param object Summarized Experiment to modify.
+#' @param ... Arbitrary arguments.
 #' @param value vector of batches.
-#' @importFrom BiocGenerics annotation<-
 `annotation<-` <- function(object, ..., value) {
   BiocGenerics::annotation(object, ...) <- value
   return(object)
@@ -98,6 +99,10 @@ setMethod(
 setGeneric("annotation<-")
 
 #' Ensure we have an annotation setter for SEs
+#'
+#' @param object Input SE
+#' @param ... Other arguments.
+#' @param value Character vector of annotations.
 #' @export
 setMethod(
   "annotation<-", signature(object = "SummarizedExperiment",
@@ -114,7 +119,6 @@ setMethod(
 #' @param i undef
 #' @param withDimnames undef
 #' @param ... extra args.
-#' @importFrom SummarizedExperiment assay
 #' @export
 assay <- function(x, i, withDimnames = TRUE, ...) {
   SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...)
@@ -127,7 +131,6 @@ assay <- function(x, i, withDimnames = TRUE, ...) {
 #' @param i I am guessing a subsetter
 #' @param withDimnames I do not know.
 #' @param ... Extra args!
-#' @importFrom SummarizedExperiment assay
 #' @export
 setMethod(
   "assay", signature(x = "ExpressionSet"),
@@ -171,7 +174,6 @@ setMethod(
 #' @param withDimnames undef
 #' @param ... extra args.
 #' @param value New value.
-#' @importFrom SummarizedExperiment assay<-
 #' @export
 `assay<-` <- function(x, i, withDimnames = TRUE, ..., value) {
   SummarizedExperiment::assay(x, i, withDimnames = withDimnames, ...) <- value
@@ -186,7 +188,6 @@ setMethod(
 #' @param withDimnames I do not know, I need to look this up.
 #' @param ... Extra args.
 #' @param value New values for the expressionset.
-#' @importFrom SummarizedExperiment assay<-
 #' @export
 setMethod(
   "assay<-", signature(x = "ExpressionSet"),
@@ -216,7 +217,7 @@ setMethod(
   "batches", signature(exp = "SummarizedExperiment"),
   definition = function(exp) {
     batches <- colData(exp)[["batch"]]
-    names(batches) <- sampleNames(exp)
+    names(batches) <- Biobase::sampleNames(exp)
     return(batches)
   })
 
@@ -267,7 +268,6 @@ setGeneric("batches<-")
 #' @param i undef
 #' @param withDimnames undef
 #' @param ... extra args.
-#' @importFrom SummarizedExperiment colData
 #' @export
 colData <- function(x, i, withDimnames = TRUE, ...) {
   SummarizedExperiment::colData(x, i, withDimnames = withDimnames, ...)
@@ -293,7 +293,6 @@ setMethod(
 #' @param x The SummarizedExperiment input
 #' @param ... extra args.
 #' @param value New value.
-#' @importFrom SummarizedExperiment colData<-
 #' @export
 `colData<-` <- function(x, ..., value) {
   SummarizedExperiment::colData(x, ...) <- value
@@ -306,7 +305,6 @@ setMethod(
 #'  expressionSet, or summarizedExperiment.
 #' @param ... args for the arglist
 #' @param value New values for the expressionset.
-#' @importFrom SummarizedExperiment colData<-
 #' @export
 setMethod(
   "colData<-", signature(x = "ExpressionSet"),
@@ -321,7 +319,6 @@ setMethod(
 #'  expressionSet, or summarizedExperiment.
 #' @param ... args for the arglist
 #' @param value New values for the expressionset.
-#' @importFrom SummarizedExperiment colData<-
 #' @export
 setMethod(
   "colData<-", signature(x = "SummarizedExperiment", value = "data.frame"),
@@ -534,7 +531,7 @@ setMethod(
   "conditions", signature(exp = "SummarizedExperiment"),
   definition = function(exp) {
     conditions <- colData(exp)[["condition"]]
-    names(conditions) <- sampleNames(exp)
+    names(conditions) <- Biobase::sampleNames(exp)
     return(conditions)
   })
 
@@ -558,6 +555,8 @@ setGeneric("set_conditions")
 #' @param fact Factor of conditions
 #' @param ids Set of ids to change.
 #' @param prefix Prefix of each sample name
+#' @param handle_na Redefine NA as this.
+#' @param drop Drop empty factor levels.
 #' @param null_cell If a cell is null, what to change it to?
 #' @param colors Set the colors as well?
 #' @param ... Arbitrary arguments.
@@ -803,8 +802,10 @@ setGeneric("semantic_filter")
 #' @param se Input se
 #' @param fact factor of new batches
 #' @param ids specific IDs to change
+#' @param handle_na Fill NA values with this.
+#' @param drop Drop levels with no elements?
 #' @export
-set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown") {
+set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown", drop = TRUE) {
   original_batches <- colData(se)[["batch"]]
   original_length <- length(original_batches)
   if (length(fact) == 1) {
@@ -828,7 +829,12 @@ set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown") {
       fact[na_idx] <- handle_na
     }
   }
+  fact <- as.factor(fact)
+  if (isTRUE(drop)) {
+    fact <- droplevels(fact)
+  }
   colData(se)[["batch"]] <- fact
+
   message("The number of samples by batch are: ")
   print(table(colData(se)[["batch"]]))
   return(se)
@@ -840,7 +846,6 @@ set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown") {
 #' @param colors Set of colors to add.
 #' @param chosen_palette If colors is TRUE, use this palette to set colors.
 #' @param change_by Use this factor to set the colors.
-#' @importFrom S4Vectors metadata
 #' @export
 set_se_colors <- function(se, colors = TRUE,
                           chosen_palette = "Dark2", change_by = "condition") {
@@ -1240,7 +1245,6 @@ what_happened <- function(exp = NULL, transform = "raw", convert = "raw",
 #'
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
-#' @importFrom Biobase exprs
 #' @export
 exprs <- function(object) {
   Biobase::exprs(object)
@@ -1261,7 +1265,6 @@ setMethod(
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
 #' @param value new value
-#' @importFrom Biobase exprs<-
 #' @export
 `exprs<-` <- function(object, value) {
   message("I am from Biobase and am explicitly imported, wtf.")
@@ -1277,10 +1280,10 @@ setMethod(
 setMethod(
   "exprs<-", signature(object = "ExpressionSet", value = "data.frame"),
   definition = function(object, value) {
-    testthat::expect_equal(colnames(exprs(object)),
+    testthat::expect_equal(colnames(Biobase::exprs(object)),
                            colnames(value))
-    object <- as.matrix(exprs(value))
-    exprs(object) <- value
+    object <- as.matrix(Biobase::exprs(value))
+    Biobase::exprs(object) <- value
     return(object)
   })
 
@@ -1292,7 +1295,7 @@ setMethod(
 setMethod(
   "exprs<-", signature(object = "SummarizedExperiment"),
   definition = function(object, value) {
-    testthat::expect_equal(colnames(exprs(object)),
+    testthat::expect_equal(colnames(Biobase::exprs(object)),
                            colnames(value))
     if (class(value)[1] == "data.frame") {
       value <- as.matrix(value)
@@ -1305,7 +1308,6 @@ setMethod(
 #'
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
-#' @importFrom Biobase fData
 #' @export
 fData <- function(object) {
   Biobase::fData(object)
@@ -1326,7 +1328,6 @@ setMethod(
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
 #' @param value new value
-#' @importFrom Biobase fData<-
 #' @export
 `fData<-` <- function(object, value) {
   Biobase::fData(object) <- value
@@ -1341,7 +1342,7 @@ setMethod(
 setMethod(
   "fData<-", signature(object = "SummarizedExperiment"),
   definition = function(object, value) {
-    testthat::expect_equal(rownames(fData(object)),
+    testthat::expect_equal(rownames(Biobase::fData(object)),
                            rownames(value))
     SummarizedExperiment::rowData(object) <- value
     return(object)
@@ -1377,7 +1378,7 @@ libsize_factor <- function(object) {
   libsizes <- libsize(object)
   max_libsize <- max(libsizes)
   norm_factor <- libsizes / max_libsize
-  names(norm_factor) <- sampleNames(object)
+  names(norm_factor) <- Biobase::sampleNames(object)
   return(norm_factor)
 }
 
@@ -1385,7 +1386,6 @@ libsize_factor <- function(object) {
 #'
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
-#' @importFrom Biobase notes
 #' @export
 notes <- function(object) {
   Biobase::notes(object)
@@ -1395,7 +1395,6 @@ notes <- function(object) {
 #'
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
-#' @importFrom Biobase pData
 #' @export
 pData <- function(object) {
   Biobase::pData(object)
@@ -1420,7 +1419,6 @@ setMethod(
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
 #' @param value new value
-#' @importFrom Biobase pData<-
 #' @export
 `pData<-` <- function(object, value) {
   message("I am from Biobase and am explicitly imported, wtf.")
@@ -1453,7 +1451,6 @@ setMethod(
 #' @param x Input object
 #' @param use.names new value
 #' @param ... extra args
-#' @importFrom SummarizedExperiment rowData
 #' @export
 rowData <- function(x, use.names = TRUE, ...) {
   SummarizedExperiment::rowData(x, use.names = use.names, ...)
@@ -1477,10 +1474,9 @@ setMethod(
 #' @param x Input object
 #' @param ... extra args
 #' @param value new value.
-#' @importFrom SummarizedExperiment rowData<-
 #' @export
 `rowData<-` <- function(x, ..., value) {
-  SummarizedExperiment::rowData(x, use.names = use.names, ...) <- value
+  SummarizedExperiment::rowData(x, use.names = TRUE, ...) <- value
   return(x)
 }
 
@@ -1488,7 +1484,6 @@ setMethod(
 #'
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
-#' @importFrom Biobase sampleNames
 #' @export
 sampleNames <- function(object) {
   Biobase::sampleNames(object)
@@ -1509,7 +1504,6 @@ setMethod(
 #' message("I am from Biobase and am explicitly imported, wtf.")
 #' @param object Input object
 #' @param value new value
-#' @importFrom Biobase sampleNames<-
 #' @export
 `sampleNames<-` <- function(object, value) {
   Biobase::sampleNames(object) <- value

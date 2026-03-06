@@ -9,6 +9,8 @@ mean_by_factor(data, design, fact = "condition")
 \arguments{
 \item{data}{Input expt}
 
+\item{design}{Experimental design used to choose groups of samples.}
+
 \item{fact}{Metadata factor over which to perform mean().}
 }
 \description{

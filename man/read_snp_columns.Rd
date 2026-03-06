@@ -23,6 +23,9 @@ read_snp_columns(
 \item{verbose}{Print information about the input data.}
 
 \item{reader}{Use readr:: or read.table().}
+
+\item{scale}{Used to define low vs high confidence values, set to (1,0) if lower numbers
+mean higher confidence.}
 }
 \value{
 A big honking data table.

@@ -6,6 +6,13 @@
 \usage{
 \S4method{annotation}{SummarizedExperiment,character}(object, ...) <- value
 }
+\arguments{
+\item{object}{Input SE}
+
+\item{...}{Other arguments.}
+
+\item{value}{Character vector of annotations.}
+}
 \description{
 Ensure we have an annotation setter for SEs
 }

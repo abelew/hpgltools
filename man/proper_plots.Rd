@@ -7,7 +7,9 @@
 proper_plots(powers, result, add_coverage = TRUE, x_intercept = 1)
 }
 \arguments{
-\item{powers}{The result from comparePowers()}
+\item{powers}{The result from comparePowers().}
+
+\item{result}{The result from simple_proper().}
 
 \item{add_coverage}{Add a line of the actual coverage in an experiment.}
 

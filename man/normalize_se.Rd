@@ -97,6 +97,8 @@ of surrogates.}
 
 \item{length_column}{annotation column containing gene lengths for rpkm.}
 
+\item{model_fstring}{Model formula string used for things like sva/pca/etc.}
+
 \item{...}{Arbitrary arguments.}
 }
 \description{

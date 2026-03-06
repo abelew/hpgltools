@@ -712,11 +712,15 @@ setMethod(
     names <- pd[["samplenames"]]
     colors <- colors(data)
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
-                 exp_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
-                 plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,
-                 y_intercept = y_intercept, ...)
+      exp_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
+      plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,
+      y_intercept = y_intercept, ...)
   })
 
+#' Generic for plot_pairwise_ma for unknown input types.
+#'
+#' @param data Arbitrary input data.
+#' @param ... Other arguments intended for plot_pairwise_ma()
 plot_pairwise_ma <- function(data, ...) {
   message("This function is intended to set the colors of a dataset.")
   message("It was passed an object of type ", class(data),

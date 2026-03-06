@@ -2,6 +2,9 @@
 ## from biomart. Most of our projects use Ensembl gene IDs, thus having
 ## consistent access to the ensembl annotations is quite useful.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Search a mart for a usable dataset.
 #'
 #' @param mart Biomart instance to poke at in an attempt to find a dataset.
@@ -513,7 +516,6 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 # #' @param row.names Not currently used
 # #' @param optional I am not sure
 # #' @param ... Unused optional parameters.
-# #' @importFrom BiocGenerics as.data.frame
 # #' @export
 #setMethod(
 #  "as.data.frame", signature = signature(x = "annotations_biomart"),

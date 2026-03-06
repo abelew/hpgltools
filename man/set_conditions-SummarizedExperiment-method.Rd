@@ -25,6 +25,10 @@
 
 \item{prefix}{Prefix of each sample name}
 
+\item{handle_na}{Redefine NA as this.}
+
+\item{drop}{Drop empty factor levels.}
+
 \item{null_cell}{If a cell is null, what to change it to?}
 
 \item{colors}{Set the colors as well?}

@@ -3,6 +3,9 @@
 ## so wanted a way to create reasonably nice workbooks without intervention and
 ## therefore hopefully without significant chance of shenanigans.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Create the named worksheet in a workbook, this function was not well named.
 #'
 #' This tries to make sure that some of the problems of creating new worksheets
@@ -29,8 +32,12 @@ check_xlsx_worksheet <- function(wb, sheet) {
   if (class(newsheet)[1] == "try-error") {
     if (grepl(pattern = "already exists", x = newsheet[1])) {
       message("The sheet already exists.")
-      tt <- openxlsx::removeWorksheet(wb, sheet)
-      newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet), silent = TRUE)
+      removed <- try(openxlsx::removeWorksheet(wb, sheet))
+      if ("try-error" %in% class(removed)) {
+        message("Unable to remove worksheet: ", sheet, ".")
+      } else {
+        newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet), silent = TRUE)
+      }
     } else if (grepl(pattern = "too long", x = newsheet[1])) {
       sheet <- abbreviate(sheet, minlength = 28)
       newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet), silent = TRUE)
@@ -64,6 +71,9 @@ init_xlsx <- function(excel = "excel/something.xlsx") {
   excel_dir <- dirname(as.character(excel))
   if (!file.exists(excel_dir)) {
     created <- dir.create(excel_dir, recursive = TRUE)
+    if (!isTRUE(created)) {
+      warning("The excel directory: ", excel_dir, " was not created.")
+    }
   }
   write_permission <- as.numeric(file.access(excel_dir, 2))
   if (write_permission < 0) {
@@ -73,6 +83,9 @@ init_xlsx <- function(excel = "excel/something.xlsx") {
   if (file.exists(excel)) {
     message("Deleting the file ", excel, " before writing the tables.")
     removed <- file.remove(excel)
+    if (!is.TRUE(removed)) {
+      warning("The excel file ", excel, " was not removed.")
+    }
   }
   wb <- openxlsx::createWorkbook(creator = "hpgltools")
   retlist <- list(
@@ -113,7 +126,6 @@ sanitize_percent <- function(numbers, df = NULL) {
 
   encoded <- grepl(x = numbers, pattern = "\\%")
   numericable <- suppressWarnings(as.numeric(numbers))
-  num_encoded <- sum(encoded)
   for (n in seq_along(numbers)) {
     start <- numbers[n]
     encode <- encoded[n]
@@ -251,7 +263,6 @@ setMethod(
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
                         date_format = "yyyy-mm-dd",
                         column_width = "heuristic", ...) {
-    arglist <- list(...)
     old_options <- options(openxlsx.dateFormat = date_format)
     ## Added to check if each column is comprised of whole numbers.
     ## If this is TRUE for a column, do not use the float_format
@@ -300,7 +311,8 @@ setMethod(
       ## An important caveat:
       ## glue'd() strings are not just class character, but their own thing,
       ## which means that just dumping them in this situation leads to unexpected results.
-      xl_result <- openxlsx::writeData(
+      ## writeData returns an invisible(0)
+      openxlsx::writeData(
         wb = wb, sheet = sheet,
         x = as.character(title),
         startCol = new_col, startRow = new_row)
@@ -320,7 +332,6 @@ setMethod(
 
     final_data <- as.data.frame(data)
     for (col in seq_len(ncol(final_data))) {
-      column_name <- colnames(final_data)[col]
       if ("list" %in% class(final_data[[col]])) {
         ## The above did not work, trying what I found in:
         ## https://stackoverflow.com/questions/15930880/unlist-all-list-elements-in-a-dataframe

@@ -7,7 +7,7 @@
 \S4method{annotation}{SummarizedExperiment}(object)
 }
 \arguments{
-\item{exp}{Input summarized experiment.}
+\item{object}{Input summarized experiment.}
 }
 \description{
 Get the batch column from a se.

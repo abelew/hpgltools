@@ -9,6 +9,8 @@ set_annotation(exp, annot, ...)
 \arguments{
 \item{exp}{Input data structure.}
 
+\item{annot}{Annotation package name to give to the input data structure.}
+
 \item{...}{Arguments passed along.}
 }
 \description{

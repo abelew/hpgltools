@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Count n-mers in a given data set using Biostrings
 #'
 #' This just calls PDict() and vcountPDict() on a sequence database given a
@@ -605,6 +608,10 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
 #' Invoke sequence_attributes() when provided a fasta filename or name of BSgenome.
 #'
 #' @param fasta String describing a bsgenome or fasta file.
+#' @param gff Optional gff of annotations (if not provided it will just ask the
+#'  whole genome).
+#' @param type Column of the gff file to use.
+#' @param key What type of entry of the gff file to key from?
 #' @export
 setMethod(
   "sequence_attributes", signature(fasta = "character"),
@@ -635,7 +642,7 @@ setMethod(
 make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_name, provider,
                                      build_dir = "build", genome_prefix = NULL,
                                      author = "Ashton Trey Belew <abelew@gmail.com>",
-                                     URL = "https://github.com/abelew/hpgltools", installp = TRUE) {
+                                     url = "https://github.com/abelew/hpgltools", installp = TRUE) {
   if (!file.exists(build_dir)) {
     created <- dir.create(build_dir, recursive = TRUE)
   }
@@ -672,7 +679,6 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
   sequence_names <- gsub(pattern = ", $", replacement = ")", x = sequence_names)
 
   ## Now start creating the DESCRIPTION file
-  desc_file <- file.path(build_dir, "DESCRIPTION")
   descript <- desc::description$new("!new")
   descript$set(Package = pkgname)
   descript$set(Title = title)
@@ -682,7 +688,7 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
   descript$set(Maintainer = author)
   descript$set(Description = glue::glue("A BSgenome for {title}."))
   descript$set(License = "Artistic-2.0")
-  descript$set(URL = "https://eupathdb.org")
+  descript$set(URL = url)
   descript$set(seqs_srcdir = build_dir)
   descript$set(seqnames = sequence_names)
   descript$set(organism = organism)

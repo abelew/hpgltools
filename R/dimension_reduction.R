@@ -136,7 +136,7 @@ setGeneric("iDA", signature = c("object"),
 setMethod(
   "iDA", signature = signature(object = "matrix"),
   function(object, ...) {
-    iDAoutput <- iDA::iDA_core(object, ...)
+    iDAoutput <- iDA::iDA(object, ...)
     return(iDAoutput)
 
   })
@@ -231,17 +231,17 @@ pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
 #' @section Warning:
 #'  This function has gotten too damn big and needs to be split up.
 #'
-#' @param input Data to analyze (usually assay(somedataset)).
+#' @param exp Data to analyze (usually assay(somedataset)).
+#' @param factors Character list of experimental conditions to query for
+#'  R^2 against the fast.svd of the data.
+#' @param colors_chosen Colors to use when comparing fstats etc.
 #' @param input_design Dataframe describing the experimental design, containing
 #'  columns with useful information like the conditions, batches, number of
 #'  cells, whatever...
-#' @param input_factors Character list of experimental conditions to query for
-#'  R^2 against the fast.svd of the data.
-#' @param colors_chosen Colors to use when comparing fstats etc.
-#' @param input_state State of the input.
 #' @param num_components Number of principle components to compare the design
 #'  factors against. If left null, it will query the same number of components
 #'  as factors asked for.
+#' @param input_state State of the input.
 #' @param plot_pcas Plot the set of PCA plots for every pair of PCs queried.
 #' @param ... Extra arguments for the pca plotter
 #' @return a list of fun pca information:
@@ -945,7 +945,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
       y_label <- y_name
     },
     "ida" = {
-      svd_result <- iDA::iDA_core(data.use = mtrx, NormCounts = mtrx)
+      svd_result <- iDA::iDA(data.use = mtrx, NormCounts = mtrx)
       pc_table <- scale(svd_result[[2]])
       x_name <- glue::glue("LD{x_pc}")
       y_name <- glue::glue("LD{y_pc}")

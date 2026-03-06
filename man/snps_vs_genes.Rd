@@ -29,6 +29,8 @@ snps_vs_genes(
 
 \item{observed_in}{Minimum proportion of samples required before this is deemed real.}
 
+\item{more_than}{There must be more than this number of hits for a variant to be counted.}
+
 \item{chr_column}{Name of the metadata column with the chromosome names.}
 
 \item{ignore_strand}{Ignore strand information when returning?}

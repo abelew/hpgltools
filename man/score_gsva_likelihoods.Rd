@@ -19,6 +19,8 @@ score_gsva_likelihoods(
 )
 }
 \arguments{
+\item{gsva_se}{Input result from simple_gsva()}
+
 \item{score}{What type of scoring to perform, against a value, column, row?}
 
 \item{category}{What category to use as baseline?}
@@ -39,8 +41,6 @@ column to use to find it?}
 \item{row_margin}{this parameter}
 
 \item{cutoff}{Highlight only the categories deemed more significant than this.}
-
-\item{gsva_result}{Input result from simple_gsva()}
 }
 \value{
 The scores according to the provided category, factor, sample, or

@@ -1,5 +1,8 @@
 ## helpers_misc.r: Some random helper functions.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Make a backup of an existing file with n revisions, like VMS!
 #'
 #' Sometimes I just want to kick myself for overwriting important files and then
@@ -464,7 +467,7 @@ rbind_summary_rows <- function(df) {
   for (col in colnames(df)) {
     if (class(df[[col]])[1] == "numeric") {
       column_summary <- as.numeric(summary(df[[col]]))
-      column_sd <- sd(df[[col]])
+      column_sd <- stats::sd(df[[col]])
       cv <- column_sd / column_summary[4]
       column_summary <- c(column_summary, column_sd, cv)
     } else {

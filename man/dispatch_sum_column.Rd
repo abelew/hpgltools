@@ -35,6 +35,8 @@ dispatch_sum_column(
 \item{new_spec}{New specification resulting from this invocation.}
 
 \item{tag}{GFF tag used to extract IDs.}
+
+\item{sum_column}{Put the new column at this location in the output dataframe.}
 }
 \description{
 Note: This is not taking some important things into account yet.

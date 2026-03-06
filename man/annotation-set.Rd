@@ -7,9 +7,11 @@
 annotation(object, ...) <- value
 }
 \arguments{
-\item{value}{vector of batches.}
+\item{object}{Summarized Experiment to modify.}
 
-\item{se}{Summarized Experiment to modify.}
+\item{...}{Arbitrary arguments.}
+
+\item{value}{vector of batches.}
 }
 \description{
 Add a annotation mcolumn to a se.

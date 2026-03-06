@@ -16,6 +16,11 @@ pca_information(
 )
 }
 \arguments{
+\item{exp}{Data to analyze (usually assay(somedataset)).}
+
+\item{factors}{Character list of experimental conditions to query for
+R^2 against the fast.svd of the data.}
+
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
 
 \item{input_design}{Dataframe describing the experimental design, containing
@@ -31,11 +36,6 @@ as factors asked for.}
 \item{plot_pcas}{Plot the set of PCA plots for every pair of PCs queried.}
 
 \item{...}{Extra arguments for the pca plotter}
-
-\item{input}{Data to analyze (usually assay(somedataset)).}
-
-\item{input_factors}{Character list of experimental conditions to query for
-R^2 against the fast.svd of the data.}
 }
 \value{
 a list of fun pca information:

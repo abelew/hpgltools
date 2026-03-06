@@ -166,7 +166,21 @@ setMethod(
 #' vector, coerces it to a single-column dataframe, and invokes
 #' sanitize on it.
 #'
-#' @inheritParams sanitize_metadata
+#' @param input Input metadata
+#' @param columns Set of columns to check, if left NULL, all columns
+#'  will be molested.
+#' @param na_value Fill NA values with a string.
+#' @param lower Set everything to lowercase?
+#' @param punct Remove punctuation?
+#' @param factorize Set some columns to factors?  If set to a vector
+#'  of length >=1, then set all of the provided columns to factors.
+#'  When set to 'heuristic', set any columns with <= max_levels
+#'  different elements to factors.
+#' @param max_levels When heuristically setting factors, use this as
+#'  the heuristic, when NULL it is the number of samples / 6
+#' @param spaces Remove any spaces in this column?
+#' @param numbers Sanitize numbers by adding a prefix character to them?
+#' @param numeric Recast the values as numeric when possible?
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "character"),
@@ -239,7 +253,7 @@ setMethod(
 #' @param input Input metadata
 #' @param columns Set of columns to check, if left NULL, all columns
 #'  will be molested.
-#' @param na_string Fill NA values with a string.
+#' @param na_value Fill NA values with a string.
 #' @param lower Set everything to lowercase?
 #' @param punct Remove punctuation?
 #' @param spaces Remove any spaces in this column?

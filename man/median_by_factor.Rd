@@ -9,6 +9,8 @@ median_by_factor(data, design, fact = "condition", fun = "median")
 \arguments{
 \item{data}{Data frame, presumably of counts.}
 
+\item{design}{Experimental design used to choose groups of samples to examine.}
+
 \item{fact}{Factor describing the columns in the data.}
 
 \item{fun}{Optionally choose mean or another function.}

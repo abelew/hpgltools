@@ -14,6 +14,7 @@
 #' @param method Type of conversion to perform: edgecpm/cpm/rpkm/cp_seq_m.
 #' @param annotations Dataframe of gene annotations.
 #' @param length_column Column of the annotations describing the gene lengths.
+#' @param na_to_zero Set NA values to 0?
 #' @param ... Options I might pass from other functions are dropped into
 #'  arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to
 #'  match, and annotation type).

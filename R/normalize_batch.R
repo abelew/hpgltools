@@ -159,7 +159,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
         mesg("batch_counts: Using limma's removeBatchEffect to remove batch effect.")
         new_counts <- limma::removeBatchEffect(log2_mtrx, batch = batches)
       } else {
-        batches2 <- as.factor(design[[batch2]])
+        batches2 <- as.factor(my_design[[batch2]])
         new_counts <- limma::removeBatchEffect(log2_mtrx, batch = batches, batch2 = batches2)
       }
       message(strwrap(prefix = " ", initial = "", "If you receive a warning: 'NANs produced', one
@@ -178,7 +178,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
                                 normalize.method = "quantile",
                                 plot = FALSE)
       batch_fit <- limma::lmFit(batch_voom, design = batch_model)
-      new_counts <- residuals(batch_fit, batch_voom[["E"]])
+      new_counts <- stats::residuals(batch_fit, batch_voom[["E"]])
       ## This is still fubar!
       ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
       if (input_state[["transform"]] == "raw") {
@@ -191,8 +191,8 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
       doParallel::registerDoParallel(cl)
       batch_model <- as.formula("~ (1|batch)")
       mesg("The function fitvarPartModel may take excessive memory, you have been warned.")
-      batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, design)
-      new_counts <- residuals(batch_fit)
+      batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, my_design)
+      new_counts <- stats::residuals(batch_fit)
       rm(batch_fit)
       parallel::stopCluster(cl)
     },
@@ -563,7 +563,7 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
       norm <- edgeR::calcNormFactors(ruv_input)
       ruv_input <- try(edgeR::estimateDisp(norm, design = conditional_model, robust = TRUE))
       ruv_fit <- edgeR::glmFit(ruv_input, conditional_model)
-      ruv_res <- residuals(ruv_fit, type = "deviance")
+      ruv_res <- stats::residuals(ruv_fit, type = "deviance")
       ruv_normalized <- EDASeq::betweenLaneNormalization(linear_mtrx, which = "upper")
       ## This also gets mad if you pass it a df and not matrix
       controls <- rep(TRUE, dim(linear_mtrx)[1])
@@ -992,12 +992,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
                                    par.prior = TRUE, prior.plots = prior_plots,
                                    mean.only = FALSE))
     },
-    "combatmod" = {
-      mesg("batch_counts: Using a modified cbcbSEQ combatMod for batch correction.")
-      new_counts <- cbcb_combat(dat = linear_mtrx, batch = batches,
-                                mod = conditions, noscale = noscale)
-    },
-    "fsva" = {
+   "fsva" = {
       ## Ok, I have a question:
       ## If we perform fsva using log2(data) and get back SVs on a scale of ~ -1
       ## to 1, then why are these valid for changing and visualizing the linear
@@ -1070,7 +1065,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
                              normalize.method = "quantile",
                              plot = FALSE)
    batch_fit <- limma::lmFit(batch_voom, design = batch_model)
-   new_counts <- residuals(batch_fit, batch_voom[["E"]])
+   new_counts <- stats::residuals(batch_fit, batch_voom[["E"]])
    ## This is still fubar!
    ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
    if (input_state[["transform"]] == "raw") {
@@ -1144,7 +1139,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
    norm <- edgeR::calcNormFactors(ruv_input)
    ruv_input <- try(edgeR::estimateDisp(norm, design = conditional_model, robust = TRUE))
    ruv_fit <- edgeR::glmFit(ruv_input, conditional_model)
-   ruv_res <- residuals(ruv_fit, type = "deviance")
+   ruv_res <- stats::residuals(ruv_fit, type = "deviance")
    ruv_normalized <- EDASeq::betweenLaneNormalization(linear_mtrx, which = "upper")
    ## This also gets mad if you pass it a df and not matrix
    controls <- rep(TRUE, dim(linear_mtrx)[1])
@@ -1209,7 +1204,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
    batch_model <- as.formula("~ (1|batch)")
    mesg("The function fitvarPartModel may take excessive memory, you have been warned.")
    batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, design)
-   new_counts <- residuals(batch_fit)
+   new_counts <- stats::residuals(batch_fit)
    rm(batch_fit)
    parallel::stopCluster(cl)
  },
@@ -1283,6 +1278,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 #' @param design Model matrix defining the experimental conditions/batches/etc.
 #' @param batch1 String describing the method to try to remove the batch effect
 #'  (or FALSE to leave it alone, TRUE uses limma).
+#' @param current_state List describing the state of the input data.
 #' @param current_design Redundant with exp_design above, but
 #'  provides another place for normalize() to send data.
 #' @param input_state Current state of the data
@@ -1471,14 +1467,14 @@ cbcb_batch <- function(normalized_counts, model,
   batch_voom <- limma::voom(normalized_counts, design = batch_model, plot = FALSE)
   if (method == "subtract") {
     modified_fit <- limma::lmFit(batch_voom)
-    new_data <- residuals(modified_fit, batch_voom)
+    new_data <- stats::residuals(modified_fit, batch_voom)
   } else if (method == "add") {
     fit <- limma::lmFit(normal_voom)
     ## I got confusered here, this might be incorrect.
     ##new_data <- tcrossprod(normal_voom[["coefficient"]], cond_modified_model) +
-    ##  residuals(normal_voom, normalized_counts)
+    ##  stats::residuals(normal_voom, normalized_counts)
     new_data <- tcrossprod(normal_voom[["coefficient"]], conditional_model) +
-      residuals(normal_voom, normalized_counts)
+      stats::residuals(normal_voom, normalized_counts)
   } else {
     stop("This currently only understands 'add' or 'subtract'.")
   }
@@ -1527,7 +1523,7 @@ compare_batches <- function(exp = NULL, methods = NULL) {
   }
   if (is.null(exp)) {
     message("Going to make an spombe expressionSet from the fission data set.")
-    exp <- make_pombe_exp()
+    exp <- make_pombe_se()
   }
   combined <- data.frame()
   lst <- list()
@@ -2044,9 +2040,13 @@ Rerun ISVA with cf.m = NULL option")
   rssNULL <- rowSums(residNULL * residNULL)
   fstats <- ((rssNULL - rss1) / (df1 - df0)) /
     (rss1 / (ncol(data.m) - df1))
-  pv.v <- 1 - isva::pf(fstats,
-                       df1 = (df1 - df0),
-                       df2 = (ncol(data.m) - df1))
+  ## Reminder to self, stats::pf() is a way to get values from the F distribution.
+  ## That is the weird one which as a probability distribution sometimes looks like
+  ## a hump with a long tail, but sometimes starts high and tails; its cumulative
+  ## therefore sometimes takes a while to start moving up
+  pv.v <- 1 - pf(fstats,
+                 df1 = (df1 - df0),
+                 df2 = (ncol(data.m) - df1))
   pv.s <- sort(pv.v, decreasing = FALSE, index.return = TRUE)
   qv.v <- p.adjust(pv.s[["x"]])
   ntop <- length(which(qv.v < th))

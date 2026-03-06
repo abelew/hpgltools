@@ -25,6 +25,8 @@ transform_counts(
 
 \item{model_fstring}{Formula describing the model of interest.}
 
+\item{low_to_zero}{Set values less than 0 to 0?}
+
 \item{...}{Options I might pass from other functions are dropped into
 arglist.}
 }

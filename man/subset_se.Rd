@@ -22,9 +22,13 @@ subset_se(
 
 \item{ids}{Optional vector of sample IDs.}
 
+\item{min_replicates}{Drop samples of conditions with less than this number of replicates.}
+
 \item{nonzero}{A number of nonzero genes to use instead.}
 
 \item{coverage}{A minimum coverage to use instead.}
+
+\item{fact}{When using replication as a subset, use this colData column.}
 
 \item{print_excluded}{Print the sampleIDs excluded by this subset.}
 }

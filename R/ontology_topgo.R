@@ -551,7 +551,7 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
 #' The topgo function GenTable is neat, but it needs some simplification to not
 #' be obnoxious.
 #'
-#' @param result Topgo result.
+#' @param results Topgo result.
 #' @param godata The ontology database.
 #' @param limit Pvalue limit defining 'significant'.
 #' @param limitby Type of test to perform.

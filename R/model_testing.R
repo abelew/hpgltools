@@ -36,7 +36,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
                                       scale = TRUE, intercept = FALSE, factors = NULL,
                                       excel = NULL, family = NULL, conf = NULL, step = FALSE) {
   if (isFALSE(multivariable)) {
-    serial <- iterate_linear_regression(design, query = query, factors = factors,
+    serial <- iterate_linear_regression(meta, query = query, factors = factors,
                                         conf = conf, excel = excel)
     return(serial)
   }
@@ -118,7 +118,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
 #'  For the purposes of a 'normal' logistic regression, I think
 #' 'binomial' is sufficient.
 #'
-#' @param design Experimental design, I need to change this it is not a
+#' @param meta Experimental design, I need to change this it is not a
 #'  matrix.
 #' @param query Response variable.
 #' @param multivariable When not true, this will iterate over every
@@ -130,11 +130,11 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
 #' @param excel Output xlsx file to which we print the f values etc.
 #' @param intercept Set an intercept for the regression?
 #' @export
-extract_logistic_regression <- function(design, query = "condition", multivariable = TRUE,
+extract_logistic_regression <- function(meta, query = "condition", multivariable = TRUE,
                                         factors = NULL, family = "binomial", conf = 0.95,
                                         scale = TRUE, excel = NULL, intercept = FALSE) {
   if (isFALSE(multivariable)) {
-    serial <- iterate_logistic_regression(design, query = query, factors = factors, family = family,
+    serial <- iterate_logistic_regression(meta, query = query, factors = factors, family = family,
                                           conf = conf, excel = excel)
     return(serial)
   }
@@ -142,17 +142,17 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   ## TODO: Make this smart enough to accept a formula string in addition to a
   ## vector of factors of interest.
   initial_fstring <- glue("{query} ~ .")
-  if (isTRUE(scale) && class(design[[query]])[1] == "numeric") {
+  if (isTRUE(scale) && class(meta[[query]])[1] == "numeric") {
     initial_fstring <- glue("scale({query}) ~ .")
   }
   if (!is.null(factors)) {
     initial_fstring <- glue("{query} ~ ")
-    if (isTRUE(scale) && class(design[[query]])[1] == "numeric") {
+    if (isTRUE(scale) && class(meta[[query]])[1] == "numeric") {
       initial_fstring <- glue("scale({query}) ~ ")
     }
     for (fct in factors) {
       message("Adding: ", fct)
-      if (isTRUE(scale) && class(design[[fct]])[1] == "numeric") {
+      if (isTRUE(scale) && class(meta[[fct]])[1] == "numeric") {
         initial_fstring <- glue("{initial_fstring} scale({fct}) +")
       } else {
         initial_fstring <- glue("{initial_fstring} {fct} +")
@@ -162,8 +162,8 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
   }
 
   mesg("Testing regression coefficients with model string: ", initial_fstring, ".")
-  initial_glm <- suppressWarnings(glm(as.formula(initial_fstring), data = design,
-                     family = family))
+  initial_glm <- suppressWarnings(glm(as.formula(initial_fstring), data = meta,
+                                      family = family))
   initial_summary <- summary(initial_glm)
   summary_df <- initial_summary[["coefficients"]]
   initial_conf <- stats::confint(initial_glm, level = conf)
@@ -191,7 +191,7 @@ extract_logistic_regression <- function(design, query = "condition", multivariab
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "logistic_summary")
-    written <- write_xlsx(data = design, wb = wb, sheet = "input")
+    written <- write_xlsx(data = meta, wb = wb, sheet = "input")
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
   }
   retlist <- list(

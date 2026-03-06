@@ -58,11 +58,15 @@ genomic_kmer_dist <- function(directory = "tree", root = NULL) {
 }
 
 #' Repeat genomic_kmer_dist() with some changes to make it appropriate for CDS comparisons
+#'
+#' @param directory Directory containing fasta files to examine
+#' @param root Root entry of the output tree
+#' @param kmer Kmer length
+#' @param max Maximum number of sequences to examine.
 CDS_kmer_dist <- function(directory = "tree", root = NULL, kmer = 7, max = NULL) {
   files <- list.files(directory, pattern = "\\.fasta$|\\.fa$|\\.fsa$")
   sequence_vectors <- list()
   sequence_set <- c()
-  count <- 0
   sequence_names <- c()
   for (f in files) {
     file_path <- file.path(directory, f)

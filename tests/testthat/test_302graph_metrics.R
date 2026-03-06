@@ -42,7 +42,22 @@ test_that("Histogram data is as expected?", {
 box_plot <- sm(plot_boxplot(pasilla_se))
 actual <- head(box_plot[["plot"]][["data"]][["reads"]])
 test_that("Box plot data is as expected?", {
-    expect_equal(expected, actual, tolerance = 1)
+  expect_equal(expected, actual, tolerance = 1)
+})
+## See how many genes are deemed 'high' in sample treated1
+## high in this case is bigger than q3
+expected <- 2539
+actual <- box_plot[["num_high_genes"]][["treated1"]]
+test_that("Can we recapitulate the set of high genes shown in the plot?", {
+  expect_equal(expected, actual)
+})
+
+strict_boxplot <- plot_boxplot(pasilla_se, iqr_multiplier = 1.2)
+## Looking at the plot, we see that treated1 has 2 outliers in this case.
+expected <- 2
+actual <- strict_boxplot[["num_high_outlier_genes"]][["treated1"]]
+test_that("Can we recapitulate the set of high outlier genes shown in the plot?", {
+  expect_equal(expected, actual)
 })
 
 ## Ahh yes I changed the cbcb_filter options to match those from the cbcbSEQ vignette.

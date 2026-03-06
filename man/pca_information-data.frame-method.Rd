@@ -17,6 +17,11 @@ data; dispatch accordingly.}
 )
 }
 \arguments{
+\item{exp}{Data to analyze (usually assay(somedataset)).}
+
+\item{factors}{Character list of experimental conditions to query for
+R^2 against the fast.svd of the data.}
+
 \item{colors_chosen}{Colors to use when comparing fstats etc.}
 
 \item{input_design}{Dataframe describing the experimental design, containing

@@ -33,6 +33,9 @@ denominator of a proportion.}
 \item{reader}{Method to read the data, readr or read.table.}
 
 \item{verbose}{Be verbose?}
+
+\item{scale}{Force the matrix to go from low->high on this scale (0,1) by default;
+thus one may set it to (1,0) if a high-confidence snp is a score near 0.}
 }
 \value{
 A new exp object

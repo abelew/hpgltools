@@ -80,7 +80,6 @@ do_batch <- function(count_table, method = "raw", design, batch1 = "batch",
 #'
 #' @param object Data structure to normalize.
 #' @param ... Other options.
-#' @importFrom BiocGenerics normalize
 normalize <- function(object, ...) {
   ## I did export this function because I think it
   ## made of is shenanigans.
@@ -165,7 +164,6 @@ normalize_exp <- function(exp, ## The exp class passed to the normalizer
                            na_to_zero = FALSE, adjust_method = "ruv", verbose = TRUE,
                            num_surrogates = "be", length_column = NULL,
                            ...) {
-  arglist <- list(...)
   exp_state <- state(exp)
   new_exp <- exp
   type <- ""
@@ -267,15 +265,13 @@ normalize_exp <- function(exp, ## The exp class passed to the normalizer
   } else {
     normalized <- sm(hpgl_norm(
       data, exp_state = exp_state, design = design, transform = transform, norm = norm,
-      convert = convert, batch = batch, batch1 = batch1, batch2=batch2, low_to_zero = low_to_zero,
+      convert = convert, batch = batch, batch1 = batch1, batch2 = batch2, low_to_zero = low_to_zero,
       filter = filter, annotations = annotations, fasta = fasta, thresh = thresh,
       batch_step = batch_step, min_samples = min_samples, p = p, A = A, k = k, cv_min = cv_min,
       cv_max = cv_max, entry_type = entry_type, adjust_method = adjust_method,
       num_surrogates = num_surrogates, length_column = length_column,
       ...))
   }
-
-  final_libsize <- normalized[["libsize"]]
   final_data <- as.matrix(normalized[["count_table"]])
 
   ## A recent update to Biobase adds a test in the function
@@ -312,7 +308,7 @@ normalize_exp <- function(exp, ## The exp class passed to the normalizer
     "transform" = normalized[["actions"]][["transform"]])
 
   ## Keep in mind that low_to_zero should be ignored if transform_state is not raw.
-  if (new_state[["transform"]] == "raw" & isTRUE(low_to_zero)) {
+  if (new_state[["transform"]] == "raw" && isTRUE(low_to_zero)) {
     low_idx <- assay(current_assay) < 0
     ## Do not forget that na does not count when looking for numbers < x.
     na_idx <- is.na(assay(current_assay))
@@ -406,6 +402,7 @@ normalize_exp <- function(exp, ## The exp class passed to the normalizer
 #' @param cpus Number of cpus to use.
 #' @param noscale I think used only by combat -- scale the data?
 #' @param length_column annotation column containing gene lengths for rpkm.
+#' @param model_fstring Model formula string used for things like sva/pca/etc.
 #' @param ... Arbitrary arguments.
 #' @export
 normalize_se <- function(se, ## The exp class passed to the normalizer
@@ -451,9 +448,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
   }
 
   design <- as.data.frame(colData(se))
-  original_counts <- count_table
-
-  type <- ""
   if (is.null(filter) || isFALSE(filter)) {
     filter <- "raw"
   } else if (isTRUE(filter)) {
@@ -528,9 +522,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
     "count_table" = count_table,
     "libsize" = original_libsize)
   current_libsize <- original_libsize
-  current_mtrx <- as.matrix(count_table)
-
-  batched_counts <- NULL
   normalized_counts <- NULL
   filtered_counts <- NULL
   sv_df <- NULL
@@ -543,7 +534,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
       adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
-    batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
@@ -580,7 +570,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
 
-  normalized <- count_table
   norm_performed <- norm
   if (norm == "raw") {
     mesg("Step 2: not normalizing the data.")
@@ -651,7 +640,8 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
     mesg("Step 4: not transforming the data.")
   } else {
     mesg("Step 4: transforming the data with ", transform, ".")
-    transformed_counts <- transform_counts(count_table, method = transform, design = design, model_fstring = model_fstring,
+    transformed_counts <- transform_counts(count_table, method = transform, design = design,
+                                           model_fstring = model_fstring,
                                            ...)
     ## transformed_counts <- transform_counts(count_table, transform = transform)
     current_libsize <- transformed_counts[["libsize"]]
@@ -685,7 +675,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
   if (!is.null(arglist[["impute"]])) {
     impute <- arglist[["impute"]]
   }
-  impute_performed <- impute
   if (impute != "raw") {
     imputed_counts <- impute_se(count_table)
     current_libsize <- imputed_counts[["libsize"]]
@@ -794,7 +783,6 @@ hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
                       k = 0.01, A = 1000, cv_min = 0.001, cv_max = 1, entry_type = "gene",
                       adjust_method = "ruv", num_surrogates = "be", length_column = "length",
                       cpus = 4, noscale = FALSE, ...) {
-  arglist <- list(...)
   filter_performed <- "raw"
   norm_performed <- "raw"
   convert_performed <- "raw"
@@ -818,7 +806,6 @@ hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
   ## all of my data frame usage to them?
   if (data_class == "exp") {
     original_counts <- data[["original_counts"]]
-    original_libsizes <- data[["original_libsize"]]
     design <- colData(data)
     annot <- rowData(data)
     counts <- assay(data)
@@ -839,7 +826,7 @@ hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
     ## keeping this explicit for the moment. In the case of data.tables, even if
     ## you set the rownames, the first column might still be rowname characters
     ## I don't yet fully understand this, so I will add an explicit test here.
-    if (data_class == "data.table" & class(counts[[1]]) == "character") {
+    if (data_class == "data.table" && class(counts[[1]]) == "character") {
       rownames(counts) <- make.names(counts[[1]], unique = TRUE)
       counts <- counts[-1]
     }
@@ -863,7 +850,7 @@ hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
   batched_counts <- NULL
   if (!is.numeric(batch_step)) {
     batch_step <- 4
-  } else if (batch_step > 5 | batch_step < 0) {
+  } else if (batch_step > 5 || batch_step < 0) {
     batch_step <- 4
   }
 
@@ -883,7 +870,7 @@ hpgl_norm <- function(data, exp_state = NULL, design = NULL, transform = "raw",
 
   ## Step 1: count filtering
   filtered_counts <- NULL
-  if (filter == FALSE | filter == "raw") {
+  if (filter == FALSE || filter == "raw") {
     mesg("Step 1: not doing count filtering.")
   } else {
     if (isTRUE(filter)) {
@@ -1063,9 +1050,7 @@ normalize_todo <- function(exp, todo = list()) {
     "filter" = "filter_counts",
     "batch" = "batch_counts",
     "impute" = "impute_counts")
-  annot <- rowData(exp)
   counts <- assay(exp)
-  design <- colData(exp)
   count_table <- list("count_table" = counts,
                       "libsize" = exp[["libsize"]])
   for (i in seq_along(todo)) {
@@ -1084,7 +1069,6 @@ normalize_todo <- function(exp, todo = list()) {
     arglist[["count_table"]] <- count_table
     arglist[["method"]] <- method
     for (a in args) {
-      name <- names(args)[a]
       arglist[[a]] <- args[[a]]
     }
     mesg("Invoking: ", call)

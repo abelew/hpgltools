@@ -99,13 +99,13 @@ NULL
 #' It falls under a few main topics
 #'
 #' \itemize{
-#' \item Data exploration, look for trends in sequencing data and identify batch
-#'       effects or skewed distributions.
-#' \item Differential expression analyses, use DESeq2/limma/EdgeR in a hopefully
-#'       robust and flexible fashion.
-#' \item Ontology analyses, use goseq/clusterProfiler/topGO/GOStats/gProfiler in
-#'       hopefully robust ways.
-#' \item Perform some simple TnSeq analyses.
+#'  \item Data exploration, look for trends in sequencing data and identify batch
+#'        effects or skewed distributions.
+#'  \item Differential expression analyses, use DESeq2/limma/EdgeR in a hopefully
+#'        robust and flexible fashion.
+#'  \item Ontology analyses, use goseq/clusterProfiler/topGO/GOStats/gProfiler in
+#'        hopefully robust ways.
+#'  \item Perform some simple TnSeq analyses.
 #' }
 #'
 #' To see examples of this in action, check out the vignettes:
@@ -113,23 +113,19 @@ NULL
 #'
 #' @name hpgltools
 #' @import Biobase
-#' @importFrom BiocGenerics normalize conditions conditions<-
+#' @import ggplot2
+#' @import graphics
+#' @import stats
+#' @import SummarizedExperiment
+#' @importFrom BiocGenerics
+#'  annotation annotation<- as.data.frame conditions conditions<- normalize
 #' @importFrom data.table data.table as.data.table setkey rbindlist
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
-#' @importFrom ggplot2 aes ggplot theme labs scale_fill_manual element_text
-#' @importFrom graphics
-#'  abline axis barplot hist layout lines mtext par plot.new
-#'  rect strheight strwidth text title
 #' @importFrom grDevices recordPlot
+#' @importFrom IRanges %over%
 #' @importFrom rlang abort sym
-#' @importFrom stats
-#'  aggregate anova as.dendrogram as.formula ave biplot coef coefficients
-#'  complete.cases cor cor.test dist dnorm family formula glm hclust lm
-#'  lowess median model.matrix na.omit order.dendrogram p.adjust
-#'  p.adjust.methods pnorm princomp quantile relevel reorder resid
-#'  rnbinom setNames step t.test wilcox.test
-#' @importFrom SummarizedExperiment assay rowData colData
+#' @importFrom S4Vectors DataFrame metadata mcols mcols<-
 #' @importFrom utils
 #'  capture.output data download.file head installed.packages read.csv read.delim
 #'  read.table setTxtProgressBar tail write.csv write.table

@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Change gene IDs to the format expected by gsva using an orgdb.
 #'
 #' Though it is possible to use gsva without ENTREZ IDs, it is not trivial.
@@ -394,7 +397,7 @@ intersect_signatures <- function(gsva_result, lst, freq_cutoff = 2,
 #'   * A single score against all scores.
 #'   * Rows (gene sets) against the set of all gene sets.
 #'
-#' @param gsva_result Input result from simple_gsva()
+#' @param gsva_se Input result from simple_gsva()
 #' @param score What type of scoring to perform, against a value, column, row?
 #' @param category What category to use as baseline?
 #' @param factor Which experimental factor to compare against?
@@ -466,7 +469,7 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
   ## gsva scores, so that is good, I will therefore just say 'higher is better'.
   cheesy_likelihood <- function(test) {
     gsva_mean <- mean(population_values)
-    gsva_sd <- sd(population_values)
+    gsva_sd <- stats::sd(population_values)
     num_values <- length(population_values)
     pop_sd <- gsva_sd * sqrt((num_values - 1) / num_values)
     notz <- (test - gsva_mean) / pop_sd
@@ -554,7 +557,7 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
 #' function will hopefully provide some of the requisite defaults and do some
 #' sanity checking to make it more likely that a gsva analysis will succeed.
 #'
-#' @param eset Exp object to be analyzed.
+#' @param se SummarizedExperiment object to be analyzed.
 #' @param signatures Provide an alternate set of signatures (GeneSetCollections)
 #' @param data_pkg What package contains the requisite dataset?
 #' @param signature_category Specify a subset category to extract from the signatures database.
@@ -820,13 +823,14 @@ to: {prettyNum(max(assay(x[['se']])))}.")
 #' seems pretty nifty for its use case.  Thus this function is intended to make
 #' invoking it easier/faster.
 #'
-#' @param se Expressionset to query.
+#' @param se SummarizedExperiment to query.
 #' @param signatures Alternate set of signatures to use.
 #' @param genes Subset of genes to query.
 #' @param spill The xCell spill parameter.
 #' @param expected_types Set of assumed types in the data.
 #' @param label_size How large to make labels when printing the final heatmap.
 #' @param col_margin Used by par() when printing the final heatmap.
+#' @param length_column rowData column with the gene lengths.
 #' @param row_margin Ibid.
 #' @param sig_cutoff Only keep celltypes with a significance better than this.
 #' @param verbose Print some extra information during runtime.

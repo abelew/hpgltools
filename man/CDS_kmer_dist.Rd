@@ -6,6 +6,15 @@
 \usage{
 CDS_kmer_dist(directory = "tree", root = NULL, kmer = 7, max = NULL)
 }
+\arguments{
+\item{directory}{Directory containing fasta files to examine}
+
+\item{root}{Root entry of the output tree}
+
+\item{kmer}{Kmer length}
+
+\item{max}{Maximum number of sequences to examine.}
+}
 \description{
 Repeat genomic_kmer_dist() with some changes to make it appropriate for CDS comparisons
 }

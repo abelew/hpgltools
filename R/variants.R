@@ -1,3 +1,9 @@
+## variants.R: Functions intended to help parse out an examine variant information provided
+## by tools like snippy/freebayes/mpileup.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Given a pile of variants from freebayes and friends, make a table of what changed.
 #'
 #' My post-processor of the results from mpileup/freebayes provides
@@ -26,7 +32,6 @@ classify_variants <- function(metadata, coverage_column = "bedtools_coverage_fil
                      "transition", "transversion",
                      "sense", "missense", "nonsense", "suppressor")
   mutations_by_sample <- data.frame(row.names = mutation_rows)
-  missing_name <- paste0("regions_missing_", min_missing, "nt")
   missing_by_sample <- rep(0, nrow(metadata))
   names(missing_by_sample) <- rownames(metadata)
   for (s in seq_len(nrow(metadata))) {
@@ -229,6 +234,8 @@ print.classified_mutations <- function(x, ...) {
 #'  denominator of a proportion.
 #' @param reader Method to read the data, readr or read.table.
 #' @param verbose Be verbose?
+#' @param scale Force the matrix to go from low->high on this scale (0,1) by default;
+#'  thus one may set it to (1,0) if a high-confidence snp is a score near 0.
 #' @return A new exp object
 #' @seealso [Biobase] freebayes:DOI:10.48550/arXiv.1207.3907,
 #'  mpileup:DOI:10.1093/gigascience/giab008
@@ -296,7 +303,7 @@ count_snps <- function(exp, annot_column = "bcftable",
     message("The rownames are missing the chromosome identifier,
 they probably came from an older version of this method.")
     pat <- "^(.+)_(.+)_(.+)_(.+)$"
-    new <-"chr_\\1_pos_\\2_ref_\\3_alt_\\4"
+    new <- "chr_\\1_pos_\\2_ref_\\3_alt_\\4"
     new_names <- gsub(pattern = pat, replacement = new, x = test_names)
     snp_dt[["rownames"]] <- new_names
   }
@@ -388,7 +395,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   }
   if (isTRUE(do_save) && file.exists(glue("{savefile}_{factor}.rda"))) {
     retlist <- new.env()
-    loaded <- load(savefile, envir = retlist)
+    load(savefile, envir = retlist)
     retlist <- retlist[["retlist"]]
     return(retlist)
   }
@@ -418,14 +425,13 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   ## and 0
   values <- by_factor_data[["sums"]]
   min_values <- by_factor_data[["mins"]]
-  max_values <- by_factor_data[["maxs"]]
   all_homo <- values
   all_hetero <- values
   observed <- values
   not_observed <- values
   observed_norm <- values
   spc <- by_factor_data[["samples_per_condition"]]
-  for (f in 1:length(spc)) {
+  for (f in seq_along(spc)) {
     num <- spc[f]
     fact <- names(spc)[f]
     observed_norm[[fact]] <- observed[[fact]] / num  ## So, if every sample agrees
@@ -460,8 +466,8 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
     exclusive_homo[!exclusive_homo_idx, col] <- 0
     exclusive_hetero_idx <- rowSums(observed) == 1 & all_hetero[[col]] == 1 &
       rowSums(all_hetero) == 1
-    exclusive_homo[exclusive_homo_idx, col] <- 1
-    exclusive_homo[!exclusive_homo_idx, col] <- 0
+    exclusive_hetero[exclusive_hetero_idx, col] <- 1
+    exclusive_hetero[!exclusive_hetero_idx, col] <- 0
     exclusive_not_idx <- rowSums(observed) == ncol(observed) - 1 & observed[[col]] == 0
     exclusive_not[exclusive_not_idx, col] <- 1
     exclusive_not[!exclusive_not_idx, col] <- 0
@@ -472,11 +478,11 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   exclusive_not_keepers <- rowSums(exclusive_not) > 0
   exclusive_not <- exclusive_not[exclusive_not_keepers, ]
 
-  tt <- sm(requireNamespace("parallel"))
-  tt <- sm(requireNamespace("doParallel"))
-  tt <- sm(requireNamespace("iterators"))
-  tt <- sm(requireNamespace("foreach"))
-  tt <- sm(try(attachNamespace("foreach"), silent = TRUE))
+  sm(requireNamespace("parallel"))
+  sm(requireNamespace("doParallel"))
+  sm(requireNamespace("iterators"))
+  sm(requireNamespace("foreach"))
+  sm(try(attachNamespace("foreach"), silent = TRUE))
   cores <- parallel::detectCores()
   cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
@@ -549,7 +555,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                            replacement = "\\1", x = rownames(all_hetero))
   all_hetero[["chr"]] <- hetero_chr_names
   hetero_individual_chromosomes <- levels(as.factor(hetero_chr_names))
-  num_lvels <- length(hetero_individual_chromosomes)
+  num_levels <- length(hetero_individual_chromosomes)
   message("Counting heterozygous positions by chromosome/contig.")
   hetero_chr <- list()
   i <- 1
@@ -787,7 +793,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
     "observed_density" = observed_density_by_chr)
 
   if (isTRUE(do_save)) {
-    saved <- save(list = "retlist", file = savefile)
+    save(list = "retlist", file = savefile)
   }
   class(retlist) <- "categorized_snp_sets"
   return(retlist)
@@ -801,6 +807,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
 #' @param do_save Save the result?
 #' @param savefile outptu savefile.
 #' @param proportion Used with stringency.
+#' @param max_cutoff Maximum value beyond which to ignore a variant.
 #' @export
 get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                          stringency = NULL, do_save = FALSE,
@@ -814,7 +821,7 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   }
   if (isTRUE(do_save) && file.exists(glue("{savefile}_{factor}.rda"))) {
     retlist <- new.env()
-    loaded <- load(savefile, envir = retlist)
+    load(savefile, envir = retlist)
     retlist <- retlist[["retlist"]]
     return(retlist)
   }
@@ -871,11 +878,11 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
               replacement = "\\1", x = rownames(observed))
   observed[["chr"]] <- chr
 
-  tt <- sm(requireNamespace("parallel"))
-  tt <- sm(requireNamespace("doParallel"))
-  tt <- sm(requireNamespace("iterators"))
-  tt <- sm(requireNamespace("foreach"))
-  tt <- sm(try(attachNamespace("foreach"), silent = TRUE))
+  sm(requireNamespace("parallel"))
+  sm(requireNamespace("doParallel"))
+  sm(requireNamespace("iterators"))
+  sm(requireNamespace("foreach"))
+  sm(try(attachNamespace("foreach"), silent = TRUE))
   cores <- parallel::detectCores()
   cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
@@ -970,7 +977,7 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
     "invert_names" = invert_names,
     "density" = density_by_chr)
   if (isTRUE(do_save)) {
-    saved <- save(list = "retlist", file = savefile)
+    save(list = "retlist", file = savefile)
   }
   class(retlist) <- "snp_sets"
   return(retlist)
@@ -1023,24 +1030,24 @@ plot_snp_upset <- function(snp_sets, text_scale = 2, color_by = NULL,
 snpnames2gr <- function(names, gr = NULL) {
   pos_df <- data.frame(row.names = names)
   pos_df[["chr"]] <- gsub(pattern = "^chr_(.+)_pos_.+_ref.+_alt.+$",
-                          replacement = "\\1",
-                          x = rownames(pos_df))
+    replacement = "\\1",
+    x = rownames(pos_df))
   pos_df[["start"]] <- as.numeric(gsub(pattern = "^chr_.+_pos_(.+)_ref.+_alt.+$",
-                                       replacement = "\\1",
-                                       x = rownames(pos_df)))
+    replacement = "\\1",
+    x = rownames(pos_df)))
   pos_df[["end"]] <- pos_df[["start"]]
   pos_df[["strand"]] <- "+"
   pos_df[["reference"]] <- gsub(pattern = "^chr_.+_pos_.+_ref_(.+)_alt.+$",
-                                replacement = "\\1",
-                                x = rownames(pos_df))
+    replacement = "\\1",
+    x = rownames(pos_df))
   pos_df[["alternate"]] <- gsub(pattern = "^chr_.+_pos_.+_ref_.+_alt_(.+)$",
-                                replacement = "\\1",
-                                x = rownames(pos_df))
+    replacement = "\\1",
+    x = rownames(pos_df))
   if (is.null(gr)) {
     variants_gr <- GenomicRanges::makeGRangesFromDataFrame(pos_df, keep.extra.columns = TRUE)
   } else {
-    variants_gr <- GenomicRanges::makeGRangesFromDataFrame(pos_df, seqinfo = seqinfo(gr),
-                                                           keep.extra.columns = TRUE)
+    variants_gr <- GenomicRanges::makeGRangesFromDataFrame(pos_df, seqinfo = Seqinfo::seqinfo(gr),
+      keep.extra.columns = TRUE)
   }
   return(variants_gr)
 }
@@ -1061,6 +1068,8 @@ snpnames2gr <- function(names, gr = NULL) {
 #' @param column Column from the bcf file to read.
 #' @param verbose Print information about the input data.
 #' @param reader Use readr:: or read.table().
+#' @param scale Used to define low vs high confidence values, set to (1,0) if lower numbers
+#'  mean higher confidence.
 #' @seealso [readr]
 #' @return A big honking data table.
 read_snp_columns <- function(samples, file_lst, column = "diff_count",
@@ -1158,7 +1167,6 @@ read_snp_columns <- function(samples, file_lst, column = "diff_count",
 snp_by_chr <- function(observations, chr_name = "01", limit = 1) {
   set_names <- list()
   possibilities <- c()
-  count <- 0
   kept_rows <- observations[["chr"]] == chr_name
   observations <- observations[kept_rows, ]
   kept_cols <- "chr" != colnames(observations)
@@ -1258,7 +1266,6 @@ snps_intersections <- function(exp, snp_result,
   features[["seqnames"]] <- gsub(pattern = "^.+_(.+)$",
                                  replacement = "\\1", x = features[["seqnames"]])
   grange_input <- features[, c("start", "end", "seqnames")]
-  grange_dup <- duplicated(grange_input)
   exp_granges <- GenomicRanges::makeGRangesFromDataFrame(grange_input)
 
   set_names <- snp_result[["set_names"]]
@@ -1285,8 +1292,8 @@ snps_intersections <- function(exp, snp_result,
     summarized_by_chr <- data.table::as.data.table(inter_by_gene)
     ## Faking out r cmd check with a couple empty variables which will be used by data.table
     seqnames <- count <- NULL
-    .N <- NULL  ## .N is a read-only symbol in data.table
-    summarized_by_chr[, count := .N, by = list(seqnames)]
+    ## .N <- NULL  ## .N is a read-only symbol in data.table
+    summarized_by_chr[, count := !!sym(".N"), by = list(seqnames)]
     summarized_by_chr <- unique(summarized_by_chr[, c("seqnames", "count"), with = FALSE])
     chr_summaries[[inter_name]] <- summarized_by_chr
 
@@ -1334,6 +1341,7 @@ and combination of factors in the data.")
 #' @param snp_name_column Ditto for the snp_expressionset.
 #' @param snp_start_column Metadata column containing the variant positions.
 #' @param exp_gid_column ID column for the genes.
+#' @param ignore_strand Assume snps are not stranded.
 #' @param genes Set of genes to cross reference.
 #' @return New expressionset with only the variants for the genes of interest.
 #' @seealso [GenomicRanges::makeGRangesFromDataFrame()] [IRanges::subsetByOverlaps()]
@@ -1405,6 +1413,7 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 #' @param end_column and the end column of each gene?
 #' @param snp_name_column Name of the column in the metadata with the sequence names.
 #' @param observed_in Minimum proportion of samples required before this is deemed real.
+#' @param more_than There must be more than this number of hits for a variant to be counted.
 #' @param chr_column Name of the metadata column with the chromosome names.
 #' @param ignore_strand Ignore strand information when returning?
 #' @return List with some information by gene.
@@ -1418,7 +1427,6 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 #'  gene_intersections <- snps_vs_genes(exp, snp_result)
 #' }
 #' @export
-#' @importFrom S4Vectors mcols mcols<-
 snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = "end",
                           snp_name_column = "seqnames", observed_in = NULL,
                           more_than = 0, chr_column = "chromosome", ignore_strand = TRUE) {
@@ -1519,8 +1527,8 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   message("There are ", length(snps_by_chr), " overlapping variants and genes.")
 
   summarized_by_chr <- data.table::as.data.table(snps_by_chr)
-  .N <- NULL  ## .N is a read-only symbol in data.table
-  summarized_by_chr[, count := .N, by = list(seqnames)]
+  ## .N <- NULL  ## .N is a read-only symbol in data.table
+  summarized_by_chr[, count := !!sym(".N"), by = list(!!seqnames)]
 
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
@@ -1604,8 +1612,6 @@ print.snps_genes <- function(x, ...) {
 #'  snp_result <- get_snp_sets(snp_exp)
 #'  gene_intersections <- snps_vs_genes(exp, snp_result)
 #' }
-#' @importFrom S4Vectors mcols mcols<-
-#' @importFrom IRanges %over%
 #' @export
 snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_column = "end",
                                  strand_column = "strand", padding = 200, normalize = TRUE,
@@ -1741,9 +1747,9 @@ snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_co
   message("There are ", length(snps_by_threep), " overlapping variants and 3' padded UTRs.")
   summarized_threep_by_chr <- data.table::as.data.table(snps_by_threep)
 
-  .N <- NULL  ## .N is a read-only symbol in data.table
-  summarized_fivep_by_chr[, count := .N, by = list(seqnames)]
-  summarized_threep_by_chr[, count := .N, by = list(seqnames)]
+  ## .N <- NULL  ## .N is a read-only symbol in data.table
+  summarized_fivep_by_chr[, count := !!sym(".N"), by = list(seqnames)]
+  summarized_threep_by_chr[, count := !!sym(".N"), by = list(seqnames)]
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
   ## which is sort of the opposite of what I want.
@@ -1761,7 +1767,6 @@ snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_co
 
   summarized_fivep_by_gene <- IRanges::countOverlaps(
     query = fivep_granges, subject = snp_granges, type = "any", ignore.strand = ignore_strand)
-  tt <- fivep_granges %over% snp_ranges
   summarized_threep_by_gene <- IRanges::countOverlaps(
     query = threep_granges, subject = snp_granges, type = "any", ignore.strand = ignore_strand)
   summarized_fivep_idx <- order(summarized_fivep_by_gene, decreasing = TRUE)
@@ -1901,7 +1906,6 @@ xref_regions <- function(sequence_df, gff, bin_width = 600,
     ## Get the left one:  ##                ##
 
     hits <- 0
-    hit_df <- data.frame()
     primer_inside_feature <- xref_features[["start"]] <= amplicon_start &
       xref_features[["end"]] >= amplicon_end
     number_inside <- sum(primer_inside_feature)

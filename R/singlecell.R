@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Add binary state information to the scd.
 #'
 #' I am adding these only so that it is easier to visualize the cells
@@ -627,8 +630,6 @@ plot_seurat_scatter <- function(scd, set = NULL) {
 #'  are exceedingly long with often a consistent prefix.
 #' @param min_mean Currently unused, but intended to filter out gsc
 #'  which are not observed to any significant degree.
-#' @importFrom dplyr vars
-#' @importFrom tidyselect all_of
 summarize_scd_clusters <- function(scd, fx = "mean", column_prefix = "descartes",
                                    column_range = NULL, cluster_column = "cluster_sample",
                                    real_column_names = NULL, abbreviate = TRUE,
@@ -662,10 +663,10 @@ summarize_scd_clusters <- function(scd, fx = "mean", column_prefix = "descartes"
 
   mean_df <- summary_df %>%
     dplyr::group_by(!!sym(cluster_column)) %>%
-    dplyr::summarise_at(vars(all_of(real_column_names)), list(name = mean))
+    dplyr::summarise_at(dplyr::vars(tidyselect::all_of(real_column_names)), list(name = !!mean))
   sd_df <- summary_df %>%
     dplyr::group_by(!!sym(cluster_column)) %>%
-    dplyr::summarise_at(vars(all_of(real_column_names)), list(name = sd))
+    dplyr::summarise_at(dplyr::vars(tidyselect::all_of(real_column_names)), list(name = !!sd))
 
   mean_df <- as.data.frame(mean_df)
   rownames(mean_df) <- mean_df[[1]]

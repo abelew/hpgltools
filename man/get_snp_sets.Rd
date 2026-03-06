@@ -26,6 +26,8 @@ get_snp_sets(
 \item{savefile}{outptu savefile.}
 
 \item{proportion}{Used with stringency.}
+
+\item{max_cutoff}{Maximum value beyond which to ignore a variant.}
 }
 \description{
 Collect variants associated with specific conditions.

@@ -26,6 +26,8 @@ simple_gsva(
 )
 }
 \arguments{
+\item{se}{SummarizedExperiment object to be analyzed.}
+
 \item{signatures}{Provide an alternate set of signatures (GeneSetCollections)}
 
 \item{data_pkg}{What package contains the requisite dataset?}
@@ -61,8 +63,6 @@ because it was throwing segmentation faults.}
 \item{verbose}{Print some information while running?}
 
 \item{id_type}{Specify the ID type when loading the signature database.}
-
-\item{eset}{Exp object to be analyzed.}
 }
 \value{
 List containing three elements: first a modified expressionset using

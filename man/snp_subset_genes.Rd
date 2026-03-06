@@ -35,6 +35,8 @@ snp_subset_genes(
 
 \item{exp_gid_column}{ID column for the genes.}
 
+\item{ignore_strand}{Assume snps are not stranded.}
+
 \item{genes}{Set of genes to cross reference.}
 }
 \value{

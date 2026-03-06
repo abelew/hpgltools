@@ -1,3 +1,6 @@
+#' @include 01_hpgltools.R
+NULL
+
 #' Use AnnotationDbi to translate geneIDs from type x to type y.
 #'
 #' This is intended to convert all the IDs in a geneSet from one ID type to
@@ -232,25 +235,23 @@ parse_msigdb <- function(filename) {
 #' Extract metadata from the msigdb sqlite data.
 #'
 #' @param filename db file.
-#'
-#' @importFrom RSQLite dbConnect dbFetch dbClearResult dbSendQuery
 parse_msigdb_sqlite <- function(filename) {
   db <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = filename)
-  author_query <- dbSendQuery(conn = db, "SELECT * FROM author")
-  author_df <- dbFetch(author_query)
-  cleared <- dbClearResult(author_query)
-  collection_query <- dbSendQuery(conn = db, "SELECT * FROM collection")
-  collection_df <- dbFetch(collection_query)
-  cleared <- dbClearResult(collection_query)
-  pub_query <- dbSendQuery(conn = db, "SELECT * FROM publication")
-  pub_df <- dbFetch(pub_query)
-  cleared <- dbClearResult(pub_query)
-  gs_query <- dbSendQuery(conn = db, "SELECT * FROM gene_set")
-  gs_df <- dbFetch(gs_query)
-  cleared <- dbClearResult(gs_query)
-  detail_query <- dbSendQuery(conn = db, "SELECT * FROM gene_set_details")
-  detail_df <- dbFetch(detail_query)
-  cleared <- dbClearResult(detail_query)
+  author_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM author")
+  author_df <- RSQLite::dbFetch(author_query)
+  cleared <- RSQLite::dbClearResult(author_query)
+  collection_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM collection")
+  collection_df <- RSQLite::dbFetch(collection_query)
+  cleared <- RSQLite::dbClearResult(collection_query)
+  pub_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM publication")
+  pub_df <- RSQLite::dbFetch(pub_query)
+  cleared <- RSQLite::dbClearResult(pub_query)
+  gs_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM gene_set")
+  gs_df <- RSQLite::dbFetch(gs_query)
+  cleared <- RSQLite::dbClearResult(gs_query)
+  detail_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM gene_set_details")
+  detail_df <- RSQLite::dbFetch(detail_query)
+  cleared <- RSQLite::dbClearResult(detail_query)
   closed <- RSQLite::dbDisconnect(db)
   combined <- merge(gs_df, detail_df, by.x = "id", by.y = "gene_set_id")
   combined <- merge(combined, pub_df, by = "id", all.x = TRUE)
@@ -348,7 +349,7 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
       genes <- strsplit(x = gmt_df[set, "genes"], ' ')[[1]]
       ## TODO: Other slots I should fill in when possible: geneIdType, colectionType,
       ## longDescription, organism, pubMedIds, urls, contributor, version
-      gsl[[cat]] <- GeneSet(setName = cat, geneIds = genes, shortDescription = desc)
+      gsl[[cat]] <- GSEABase::GeneSet(setName = cat, geneIds = genes, shortDescription = desc)
     }
     sig_data <- GSEABase::GeneSetCollection(gsl)
   } else if (class(signatures)[1] == "character" && grepl(pattern = "\\.xml$", x = signatures)) {
@@ -420,7 +421,6 @@ load_msig_metadata <- function(db = "reference/msigdb_v2024.1.Hs.db") {
 #' @param min_gmt_genes Minimum number of genes in the set for consideration.
 #' @return Small list comprised of the created gene set collection(s).
 #' @seealso [GSEABase]
-#' @importFrom GSEABase GeneSet GeneColorSet
 #' @export
 make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "org.Hs.eg.db",
                               researcher_name = "elsayed", study_name = "macrophage",

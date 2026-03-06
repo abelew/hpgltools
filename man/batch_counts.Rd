@@ -31,6 +31,8 @@ batch_counts(
 \item{batch1}{String describing the method to try to remove the batch effect
 (or FALSE to leave it alone, TRUE uses limma).}
 
+\item{current_state}{List describing the state of the input data.}
+
 \item{current_design}{Redundant with exp_design above, but
 provides another place for normalize() to send data.}
 

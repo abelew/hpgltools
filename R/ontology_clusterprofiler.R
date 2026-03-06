@@ -11,6 +11,7 @@
 #' @param tables Result from combine_de_tables.
 #' @param according_to Use this result type for the clusterprofiler searches.
 #' @param together Concatenate the up/down genes into one set?
+#' @param todo List of methods to try enrichment/gsea
 #' @param orgdb Name of the DBI containing the annotations for this organism.
 #' @param orgdb_from Column from which to convert the gene IDs.
 #' @param orgdb_to Column to which to convert, this must match the ontology IDS.
@@ -21,31 +22,27 @@
 #' @param second_fc_column A fallback column for FC values.
 #' @param internal This changes the output data structure, but I forget how.
 #' @param updown Seek out categories with increased enrichment,  or decreased.
-#' @param permutations Run x permutations in clusterProfiler.
+#' @param permutations Run x permutations in clusterProfiler. (deprecated by cp authors)
 #' @param min_groupsize Ignore groups with less than x genes.
+#' @param max_groupsize Ignore groups with more than x genes.
 #' @param kegg_prefix Prefix of this kegg organism ID.
 #' @param kegg_organism Full name of this organism when querying KEGG.
-#' @param do_gsea Perform a full gene set enrichment analysis.
+#' @param organism Organism for things like DOSE etc, TODO: double check that this is still needed
 #' @param categories Plot this number of categories by default.
-#' @param do_david Do a david over representation search? (the java
-#'  DAVID interface is kind of broken, this should stay FALSE)
-#' @param do_kegg Attempt a KEGG over representation analysis.
 #' @param padj_type FDR correction method.
-#' @param plot_type Choose specific plot(s).
-#' @param do_reactome Attempt a reactome over representation analysis.
+#' @param mesh_category Mesh category to query
+#' @param mesh_dbname Database in mesh to query
+#' @param msigdb_category Category of mSigDB to query
+#' @param msig_db Dataframe of mSigDB gene sets.
+#' @param kegg_universe Manually set universe of kegg genes/IDs.
+#' @param reactome_organism I think not needed any longer.
+#' @param mesh_db Location of mesh database/package.
+#' @param ah_data Which annotationhub dataset to use with mesh
+#' @param signature_data Manually provided list of gene sets.
+#' @param signature_df Manually provided df of signatures.
+#' @param de_table_namedf Alternate set of gene names.
+#' @param sig_genes_namedf Alternate set of gene names for the significant genes.
 #' @param excel Output xlsx filename.
-#' @param organism String name of the organism.
-#' @param internal I dunno
-#' @param max_groupsize Ignore groups which are too big.
-#' @param padj_type Use this FDR
-#' @param do_reactome what it says on the tin.
-#' @param do_dose Attempt disease ontology search.
-#' @param do_mesh Attempt MESH search.
-#' @param do_msigdb Attempt mSigDB search.
-#' @param mesh_category Use this category for MESH.
-#' @param mesh_dbname Use this MESH sub-database.
-#' @param msigdb_category Use this mSigDB sub-database.
-#' @param msig_db Use this database file for the msigdb data.
 #' @param ... Arguments to pass to simple_clusterprofiler().
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE, todo = NULL,
@@ -62,7 +59,6 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
                           signature_df = NULL, de_table_namedf = NULL,
                           sig_genes_namedf = NULL,
                           excel = "excel/all_cp.xlsx", ...) {
-  arglist <- list(...)
   ret <- list()
   input_up <- list()
   input_down <- list()
@@ -71,7 +67,6 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
   xlsx_dir <- dirname(excel)
   xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
   ## Check if this came from extract_significant_genes or extract_abundant_genes.
-  fc_col <- paste0(according_to, "_logfc")
   if (!is.null(sig[[according_to]][["ups"]])) {
     input_up <- sig[[according_to]][["ups"]]
     input_down <- sig[[according_to]][["downs"]]
@@ -198,7 +193,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
 }
 
 cp_go_enrich <- function(sig_gene_list, org, orgdb_to, level, universe_to, min_groupsize,
-                      padj_type) {
+                         padj_type, pcutoff = 0.05) {
   ego_all_mf <- ego_all_bp <- ego_all_cc <- NULL ## GO enrichment data structures
   ego_all_mf_df <- ego_all_bp_df <- ego_all_cc_df <- NULL ## GO enrichment full dfs
   ego_sig_mf_df <- ego_sig_bp_df <- ego_sig_cc_df <- NULL ## pvalue cutoff dfs
@@ -271,7 +266,7 @@ cp_go_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5, pcutoff = 0.0
 
 cp_kegg_organism <- function(organism, orgdb, kegg_organism = NULL) {
   if (is.null(kegg_organism)) {
-    org_meta <- AnnotationDbi::metadata(org)
+    org_meta <- AnnotationDbi::metadata(orgdb)
     org_row <- org_meta[["name"]] == "ORGANISM"
     organism <- org_meta[org_row, "value"]
     ## Only grab the first of potentially multiple outputs.
@@ -319,7 +314,7 @@ cp_kegg_universe <- function(kegg_organism, sig_gene_list, kegg_universe = NULL)
   return(retlist)
 }
 
-cp_kegg_enrich <- function(kegg_sig_ids, kegg_organism = NULL) {
+cp_kegg_enrich <- function(kegg_sig_ids, kegg_organism = NULL, pcutoff = 0.05) {
   mesg("Performing KEGG over-representation analysis.")
   all_kegg <- try(clusterProfiler::enrichKEGG(
     kegg_sig_ids, organism = kegg_organism, keyType = "kegg", pvalueCutoff = 1.0))
@@ -339,7 +334,7 @@ cp_kegg_enrich <- function(kegg_sig_ids, kegg_organism = NULL) {
 }
 
 cp_kegg_gsea <- function(de_table_merged, kegg_universe, kegg_organism,
-                         min_groupsize = 5,
+                         min_groupsize = 5, pcutoff = 0.05,
                          internal = FALSE, fc_column = "deseq_logfc") {
   lastcol <- ncol(de_table_merged)
   kegg_genelist <- as.vector(de_table_merged[[fc_column]])
@@ -379,7 +374,7 @@ cp_kegg_gsea <- function(de_table_merged, kegg_universe, kegg_organism,
 }
 
 cp_david_enrich <- function(sig_gene_list, min_groupsize = 5,
-                            david_id = NULL, david_user = NULL) {
+                            david_id = NULL, david_user = NULL, pcutoff = 0.05) {
   if (is.null(david_user)) {
     return(NULL)
   }
@@ -393,7 +388,7 @@ cp_david_enrich <- function(sig_gene_list, min_groupsize = 5,
     if ("try-error" %in% class(david_all)) {
       todo[["gse_david"]] <- FALSE
     } else {
-      david_all_df <- as.data.frame(david_search, stringsAsFactors = FALSE)
+      david_all_df <- as.data.frame(david_all, stringsAsFactors = FALSE)
       sig_idx <- david_all_df[["p.adjust"]] <= pcutoff
       david_sig_df <- david_all_df[sig_idx, ]
     }
@@ -403,22 +398,6 @@ cp_david_enrich <- function(sig_gene_list, min_groupsize = 5,
     "david_all_df" = david_all_df,
     "david_sig_df" = david_sig_df)
   class(retlist) <- "hpgltools::cp_david_enrich"
-  return(retlist)
-}
-
-cp_david_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5) {
-  gse_david <- NULL
-  gse_david_all_df <- gse_david_sig_df <- data.frame()
-  gse_david <- sm(suppressWarnings(clusterProfiler::gseDAVID(
-    geneList = genelist, OrgDb = org, keyType = orgdb_to, ont = "ALL", minGSSize = min_groupsize)))
-  gse_david_all_df <- as.data.frame(gse_david)
-  sig_idx <- gse_david_df[["p.adjust"]] <= pcutoff
-  gse_david_sig_df <- gse_david_all_df[sig_idx, ]
-  retlist <- list(
-    "gse_david" = gse_david,
-    "gse_david_all_df" = gse_david_all_df,
-    "gsa_david_gse_df" = gse_david_gse_df)
-  class(retlist) <- "hpgltools::cp_david_gsea"
   return(retlist)
 }
 
@@ -482,7 +461,7 @@ cp_react_gsea <- function(genelist, reactome_organism,
   } else {
     gse_reactome_all_df <- as.data.frame(gse_all_reactome, stringsAsFactors = FALSE)
     sig_idx <- gse_reactome_all_df[["p.adjust"]] <= pcutoff
-    gse_reactome_sig_df <- reactome_all_df[sig_idx, ]
+    gse_reactome_sig_df <- gse_reactome_all_df[sig_idx, ]
     mesg("Found ", nrow(gse_reactome_sig_df), " Reactome GSE hits.")
   }
   retlist <- list(
@@ -554,9 +533,9 @@ cp_dose_gsea <- function(genelist, dose_db, dose_orgn,
   gse_dose_all_df <- gse_dose_sig_df <- data.frame()
   mesg("Performing DOSE GSEA.")
   gse_dose <- try(
-    DOSE::gseDO(geneList = genelist, ont = do_db, organism = orgn,
-                  pvalueCutoff = 1.0, minGSSize = min_groupsize,
-                  maxGSSize = max_groupsize))
+    DOSE::gseDO(geneList = genelist, ont = dose_db, organism = dose_orgn,
+                pvalueCutoff = 1.0, minGSSize = min_groupsize,
+                maxGSSize = max_groupsize))
   if ("try-error" %in% class(gse_dose)) {
     return(NULL)
   } else {
@@ -612,7 +591,7 @@ cp_mesh_enrich <- function(sig_gene_list, mesh_db, mesh_org,
                            min_groupsize = 5, max_groupsize = 500, qcutoff = 0.1,
                            pcutoff = 0.05) {
   mesh_all <- try(meshes::enrichMeSH(
-    gene = sig_gene_list, MeSHDb = mesh_db, database = mesh_dbname,
+    gene = sig_gene_list, MeSHDb = mesh_db, database = mesh_org,
     pvalueCutoff = 1.0, pAdjustMethod = padj_type, universe = universe_to,
     minGSSize = min_groupsize, maxGSSize = max_groupsize,
     qvalueCutoff = qcutoff), silent = TRUE)
@@ -655,7 +634,8 @@ cp_mesh_gsea <- function(genelist, mesh_db, mesh_dbname,
   return(retlist)
 }
 
-cp_msigdb_loaded <- function(signature_data, msig_db, msigdb_category, id_type = "entrez") {
+cp_msigdb_loaded <- function(signature_data, msig_db, msigdb_category,
+                             id_type = "entrez") {
   if (is.null(signature_data)) {
     signature_data <- try(load_gmt_signatures(
       signatures = msig_db, signature_category = msigdb_category, id_type = "entrez"))
@@ -676,7 +656,7 @@ cp_msigdb_loaded <- function(signature_data, msig_db, msigdb_category, id_type =
 }
 
 cp_msigdb_enrich <- function(sig_gene_list, signature_data = NULL, signature_df = NULL,
-                          org = NULL) {
+                             org = NULL, pcutoff = 0.05) {
   msigdb_all <- NULL
   msigdb_all_df <- msigdb_sig_df <- data.frame()
   expected_term_type <- "ENTREZID"
@@ -707,7 +687,7 @@ cp_msigdb_enrich <- function(sig_gene_list, signature_data = NULL, signature_df 
 
 cp_msigdb_gsea <- function(genelist, signature_data, signature_df, org,
                            min_groupsize = 5, max_groupsize = 500,
-                           padj_type = "BH") {
+                           padj_type = "BH", pcutoff = 0.05) {
   gse_msigdb_all <- NULL
   gse_msigdb_all_df <- gse_msigdb_sig_df <- data.frame()
   mesg("Starting msigDB GSEA.")
@@ -905,11 +885,20 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   } else {
     stop("Need either the name of an orgdb package or the orgdb itself.")
   }
+  sig_genenames <- rownames(sig_genes)
+
+  mapper_keys <- AnnotationDbi::keytypes(org)
+  universe_genes <- AnnotationDbi::keys(org)
+  all_genenames <- c()
+  if (is.null(de_table)) {
+    all_genenames <- universe_genes
+  } else {
+    all_genenames <- rownames(de_table)
+  }
 
   if (is.null(orgdb_from)) {
     mesg("Guessing appropriate keytype for the orgdb.")
-    key_info <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genenames, to = orgdb_to,
-                                   possible_keys = mapper_keys, universe = all_genenames)
+    key_info <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genes, to = orgdb_to)
     orgdb_sig_from <- key_info[["orgdb_sig_from"]]
     de_table_namedf <- key_info[["gene_df"]]
     sig_genes_namedf <- key_info[["sig_df"]]
@@ -1034,8 +1023,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   }
 
   ## msigdb sanity check
-  signature_info <- cp_msigdb_loaded(signature_data, msig_db, msigdb_category,
-                                     id_type = id_type)
+  signature_info <- cp_msigdb_loaded(signature_data, msig_db, msigdb_category)
   if (is.null(signature_info)) {
     todo[["enrich_msigdb"]] <- FALSE
     todo[["gse_msigdb"]] <- FALSE
@@ -1049,7 +1037,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   go_data <- list()
   if (isTRUE(todo[["enrich_go"]])) {
     go_enrich_info <- cp_go_enrich(sig_gene_list, org, orgdb_to, go_level, universe_to,
-                                   min_groupsize, padj_type)
+                                   min_groupsize, padj_type, pcutoff = pcutoff)
     if (!is.null(go_enrich_info)) {
       go_data[["MF_all"]] <- go_enrich_info[["ego_all_mf_df"]]
       go_data[["MF_sig"]] <- go_enrich_info[["ego_sig_mf_df"]]
@@ -1077,7 +1065,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   kegg_data <- list()
   if (isTRUE(todo[["enrich_kegg"]])) {
-    kegg_info <- cp_kegg_enrich(kegg_sig_ids, kegg_organism = kegg_organism)
+    kegg_info <- cp_kegg_enrich(kegg_sig_ids, kegg_organism = kegg_organism, pcutoff = pcutoff)
     if (!is.null(kegg_info)) {
       kegg_data <- kegg_info
     }
@@ -1085,7 +1073,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   if (isTRUE(todo[["gse_kegg"]])) {
     gse_kegg_data <- cp_kegg_gsea(de_table_merged, kegg_universe, kegg_organism,
-                                  min_groupsize = min_groupsize,
+                                  min_groupsize = min_groupsize, pcutoff = pcutoff,
                                   internal = internal, fc_column = fc_column)
     if (!is.null(gse_kegg_data)) {
       kegg_data[["gse_all_kegg"]] <- gse_kegg_data[["gse_all_kegg"]]
@@ -1101,10 +1089,6 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   if (isTRUE(todo[["enrich_david"]])) {
     david_data <- cp_david_enrich(sig_gene_list, min_groupsize = min_groupsize,
                                   david_id = david_id, david_user = david_user)
-  }
-  todo[["david_gse"]] <- FALSE
-  if (isTRUE(todo[["david_gse"]])) {
-    david_data <- cp_david_gsea(genelist, org, orgdb_to, min_groupsize = min_groupsize)
   }
 
   reactome_data <- list()
@@ -1160,7 +1144,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   mesh_data <- list()
   if (isTRUE(todo[["enrich_mesh"]])) {
     mesh_info <- cp_mesh_enrich(sig_gene_list, mesh_db, mesh_org,
-                                padj_type = padj_type, universe_to = unverse_to,
+                                padj_type = padj_type, universe_to = universe_to,
                                 min_groupsize = min_groupsize, max_groupsize,
                                 qcutoff = qcutoff, pcutoff = pcutoff)
     if (!is.null(mesh_info)) {
@@ -1183,7 +1167,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
 
   msigdb_data <- list()
   if (isTRUE(todo[["enrich_msigdb"]])) {
-    msigdb_info <- cp_msigdb_enrich(sig_gene_list, signature_data, signature_df, org)
+    msigdb_info <- cp_msigdb_enrich(sig_gene_list, signature_data, signature_df, org,
+                                    pcutoff = pcutoff)
     if (!is.null(msigdb_info)) {
       msigdb_data[["msigdb_all"]] <- msigdb_info[["msigdb_all"]]
       msigdb_data[["msigdb_all_df"]] <- msigdb_info[["msigdb_all_df"]]
@@ -1194,7 +1179,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   if (isTRUE(todo[["gse_msigdb"]])) {
     msigdb_info <- cp_msigdb_gsea(genelist, signature_data, signature_df, org,
                                   min_groupsize = min_groupsize, max_groupsize = max_groupsize,
-                                  padj_type = padj_type)
+                                  padj_type = padj_type, pcutoff = pcutoff)
     if (!is.null(msigdb_info)) {
       msigdb_data[["gse_msigdb_all"]] <- msigdb_info[["gse_msigdb_all"]]
       msigdb_data[["gse_msigdb_all_df"]] <- msigdb_info[["gse_msigdb_all_df"]]

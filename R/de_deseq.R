@@ -54,8 +54,8 @@ deseq_lrt <- function(exp, interactor_column = "visitnumber",
 
   ## Lets check the rank of this design before making the DESeq data structure.
   deseq_test <- colData(exp)
-  data_full_model <- stats::model.matrix.default(full_model, data = colData(exp))
-  data_reduced_model <-  stats::model.matrix.default(reduced_model, data = colData(exp))
+  data_full_model <- stats::model.matrix.default(full_model, data = deseq_test)
+  data_reduced_model <-  stats::model.matrix.default(reduced_model, data = deseq_test)
   full_model_columns <- ncol(data_full_model)
   reduced_model_columns <- ncol(data_reduced_model)
   full_model_rank <- qr(data_full_model)[["rank"]]
@@ -63,6 +63,9 @@ deseq_lrt <- function(exp, interactor_column = "visitnumber",
   if (full_model_rank < full_model_columns) {
     message("Creating the data set will fail because the resulting model is too low rank.")
     message("Consider trying without the interaction.")
+  }
+  if (reduced_model_rank < reduced_model_columns) {
+    message("The reduced model rank is less than the number of reduced model columns.")
   }
 
   deseq_input <- DESeq2::DESeqDataSetFromMatrix(countData = assay(exp),
@@ -153,6 +156,7 @@ deseq_pairwise <- function(...) {
 #' @export
 print.deseq_lrt <- function(x, ...) {
   summary_string <- glue("The result from deseq_lrt().")
+  message(summary_string)
 }
 
 #' Set up model matrices contrasts and do pairwise comparisons of all conditions using DESeq2.
@@ -240,7 +244,6 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   batches <- as.factor(design[["batch"]])
   condition_table <- table(conditions)
   batch_table <- table(batches)
-  condition_levels <- levels(conditions)
 
   ## Make a model matrix which will have one entry for
   ## each of the condition/batches
@@ -252,13 +255,10 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   appended_fstring <- model_fstring
   if ("character" %in% class(model_svs)) {
     model_params <- adjuster_svs(input, model_fstring = model_fstring,
-                                      null_fstring = null_fstring,
-                                      model_svs = model_svs,
-                                      num_surrogates = num_surrogates, filter = filter,
-                                      ...)
-    estimate_type <- model_svs
+                                 null_fstring = null_fstring, model_svs = model_svs,
+                                 num_surrogates = num_surrogates, filter = filter,
+                                 ...)
     model_svs <- model_params[["model_adjust"]]
-    null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
     design <- colData(model_params[["modified_input"]])
   } else if ("matrix" %in% class(model_svs)) {
@@ -328,15 +328,18 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   }
   normalized_counts <- DESeq2::counts(deseq_disp)
   tmp_file <- tmpmd5file(pattern = "deseq_disp", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  this_plot <- try(png(filename = tmp_file))
+  if ("try-error" %in% this_plot) {
+    message("Unable to open the output plot file: ", tmp_file, ".")
+  }
+  dev.control("enable")
   dispersions <- sm(try(DESeq2::plotDispEsts(deseq_run), silent = TRUE))
   dispersion_plot <- NULL
   if (class(dispersions)[1] != "try-error") {
     dispersion_plot <- grDevices::recordPlot()
   }
-  plotted <- dev.off()
-  removed <- file.remove(tmp_file)
+  dev.off()
+  file.remove(tmp_file)
 
   ## possible options:  betaPrior = TRUE, betaPriorVar, modelMatrix = NULL
   ## modelMatrixType, maxit = 100, useOptim = TRUE useT = FALSE df useQR = TRUE
@@ -349,10 +352,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   denominators <- list()
   numerators <- list()
   result_list <- list()
-  coefficient_list <- list()
   ## The following is an attempted simplification of the contrast formulae
-  end <- length(condition_levels) - 1
-  number_comparisons <- sum(seq_len(end))
   ## Something peculiar has happened, since making the condition levels
   ## ordered in the exps, deseq no longer necessarily orders it contrasts
   ## the same as limma/edger.
@@ -451,8 +451,6 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       ## So grab the second element of an arbitrary list element.
       intercept_name <- intercept_pairing[[1]][2]
       ## Now grab a list of every other column
-      not_intercepts_idx <- ! grepl(pattern = intercept_name, x = unlist(intercept_pairing))
-      not_intercepts <- unlist(intercept_pairing)[not_intercepts_idx]
       for (count in seq_len(ncol(coefficient_df))) {
         column_name <- colnames(coefficient_df)[count]
         if (count == 1) {
@@ -480,8 +478,6 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       ## Those indexes found in the numerator+denominator list will be subtracted
       ## Previously this line was 'containing_names_idx <- columns %in% num_den'
       ## I think that was wrong, it should be this:
-      containing_names_idx <- colnames(coefficient_df) %in% num_den
-      containing_names <- columns[containing_names_idx]
       ## If the are not in the numerator+denominator list, then they must be the
       ## SVs (except the first column of course, that is the intercept.
       extra_names_idx <- ! columns %in% num_den
@@ -578,8 +574,6 @@ print.deseq_pairwise <- function(x, ...) {
 #' @seealso [sva] [RUVSeq] [all_adjusters()] [normalize()]
 #' @return DESeqDataSet with at least some of the SVs appended to the model.
 deseq_try_sv <- function(data, summarized, svs, num_sv = NULL) {
-  counts <- DESeq2::counts(data)
-  passed <- FALSE
   if (is.null(num_sv)) {
     num_sv <- ncol(svs)
   }
