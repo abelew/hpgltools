@@ -208,7 +208,7 @@ plot_heatmap <- function(input_data, column_colors = NULL, design = NULL,
     row_colors <- rep("white", length(column_colors))
   } else if (length(levels(as.factor(design[[batch_row]]))) >= 2) {
     ## We have >= 2 batches, and so will fill in the column colors
-    num_batch_colors <- length(levels(as.factor(design[[batch_row]])))
+    ## num_batch_colors <- length(levels(as.factor(design[[batch_row]])))
     batch_color_assignments <- as.integer(as.factor(design[[batch_row]]))
     row_colors <- RColorBrewer::brewer.pal(12, "Set3")[batch_color_assignments]
   } else {
@@ -220,8 +220,8 @@ plot_heatmap <- function(input_data, column_colors = NULL, design = NULL,
   na_idx <- is.na(heatmap_data)
   heatmap_data[na_idx] <- 0
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   if (type == "correlation") {
     map <- heatmap.3(heatmap_data, keysize = keysize, labRow = sample_names,
                      labCol = sample_names, ColSideColors = column_colors,
@@ -238,8 +238,8 @@ plot_heatmap <- function(input_data, column_colors = NULL, design = NULL,
   }
   recorded_heatmap_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   retlist <- list("map" = map,
                   "plot" = recorded_heatmap_plot,
@@ -424,12 +424,12 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
     cluster = myclust, labels = mylabs, scale = scale, col = heatmap_colors)
 
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   plot(final_map)
   rec_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
   removed <- unlink(dirname(tmp_file))
 
   retlist <- list(
@@ -495,15 +495,15 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   na_idx <- is.na(data)
   data[na_idx] <- -20
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   heatmap.3(data, keysize = 0.8, labRow = row_label, col = heatmap_colors,
             dendrogram = dendrogram, labCol = input_names, margins = c(12, 8),
             trace = "none", ColSideColors = colors, linewidth = 0.5,
             main = plot_title, Rowv = Rowv, Colv = Colv)
   sample_heatmap_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
   removed <- unlink(dirname(tmp_file))
   return(sample_heatmap_plot)
 }
@@ -526,7 +526,7 @@ setGeneric("plot_sample_heatmap")
 #' @param ... More parameters for a good time!
 #' @export
 setMethod(
-  "plot_sample_heatmap", signature = (data = "ExpressionSet"),
+  "plot_sample_heatmap", signature(data = "ExpressionSet"),
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
                         input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
@@ -633,18 +633,15 @@ plot_sample_cvheatmap <- function(input, fun = "mean", fact = "condition",
   }
 
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   heatmap.3(cvs, keysize = 0.8, labRow = rownames(cvs), col = heatmap_colors, dendrogram = dendrogram,
             margins = c(12, 8), trace = "none", ColSideColors = column_colors,
             linewidth = 0.5, main = plot_title, Rowv = Rowv, Colv = Colv)
   cv_heatmap_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
-
-  point_df <- cvs[, c(x_factor, y_factor)]
-
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
   return(cv_heatmap_plot)
 }
 

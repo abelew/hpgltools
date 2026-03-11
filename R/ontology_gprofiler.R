@@ -74,7 +74,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
-      slept <- Sys.sleep(3)
+      Sys.sleep(3)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- simple_gprofiler2(down, first_col = fc_col,
                                                plot_type = plot_type,
@@ -163,7 +163,6 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
                               threshold = 0.05, adjp = "g_SCS", domain_scope = "annotated",
                               bg = NULL, min_genes = 10, ordered = TRUE, id_col = "row.names",
                               plot_type = "dotplot", excel = NULL, min_go_level = 3, ...) {
-  gene_list <- NULL
   num_genes <- 0
   gene_ids <- NULL
   if (is.null(id_col)) {
@@ -435,8 +434,8 @@ gprofiler2enrich <- function(retlst, ontology = "MF", cutoff = 1,
                          x = genes_per_category[["intersection"]])
 
   ## Right now the cutoff is 1.0, which is not particularly interesting/useful.
-  interesting_cutoff_idx <- interesting[["p_value"]] <= cutoff
-  interesting_cutoff <- interesting[interesting_cutoff_idx, ]
+  ## interesting_cutoff_idx <- interesting[["p_value"]] <= cutoff
+  ## interesting_cutoff <- interesting[interesting_cutoff_idx, ]
 
   ## Note that for the moment I am repeating the pvalue/p.adjust/qvalue because
   ## I am reasonably certain that gprofiler2 does its own adjustment.

@@ -1,4 +1,7 @@
-## I think the correct thing to do here is to use cbind()
+## se.R: Functions to help create and maintain summarizedExperiments.
+## These are the primary data structure used throughout hpgltools.
+## They recently supplanted the ExpressionSet, thus one running task
+## I would like to complete is to ensure there are no more expressionset references.
 
 #' @include 01_hpgltools.R
 NULL
@@ -31,8 +34,6 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
   exprs1 <- assay(se1)
   exprs2 <- assay(se2)
   exprs_both <- cbind(exprs1, exprs2)
-  meta1 <- metadata(se1)
-  meta2 <- metadata(se2)
   ## Not sure how I want to deal with the metadata.
   both_se <- SummarizedExperiment(assays = exprs_both,
                                   rowData = rowData(se1),
@@ -157,11 +158,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   message("The sample definitions comprises: ", nrow(sample_definitions),
           " rows(samples) and ", ncol(sample_definitions),
           " columns(metadata fields).")
-  num_samples <- nrow(sample_definitions)
   ## Create a matrix of counts with columns as samples and rows as genes
   ## This may come from either a data frame/matrix, a list of files from the metadata
   ## or it can attempt to figure out the location of the files from the sample names.
-  filenames <- NULL
   all_count_tables <- NULL
   ## This set of if() statements is too complex and requires some reworking.
   if (!is.null(count_dataframe)) {
@@ -571,7 +570,8 @@ features_in_single_condition <- function(se, cutoff = 2, factor = "condition", c
   solo_this_list <- list()
   solo_other_list <- list()
   shared_list <- list()
-  neither_list <- list()
+  neither_this_list <- list()
+  neither_that_list <- list()
   for (cond in condition_set) {
     if (!is.null(chosen)) {
       if (! cond %in% chosen) {
@@ -612,14 +612,16 @@ features_in_single_condition <- function(se, cutoff = 2, factor = "condition", c
     shared_list[[cond]] <- in_both_sets
     solo_this_list[[cond]] <- only_this_set
     solo_other_list[[cond]] <- only_other_set
-    neither_list[[cond]] <- neither_set_this
+    neither_this_list[[cond]] <- neither_set_this
+    neither_that_list[[cond]] <- neither_set_that
   }
   retlist <- list(
     "shared" = shared_list,
     "solo_this" = solo_this_list,
     "solo_other" = solo_other_list,
-    "neither" = neither_list
-  )
+    "neither_this" = neither_this_list,
+    "neither_that" = neither_that_list)
+  class(retlist) <- "hpgltools::features_in_single_condition"
   return(retlist)
 }
 
@@ -632,9 +634,9 @@ features_in_single_condition <- function(se, cutoff = 2, factor = "condition", c
 make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
                           backup_annotation = "org.Spombe.972h.v46.eg.db") {
   fission <- new.env()
-  tt <- sm(requireNamespace("fission"))
-  tt <- sm(try(attachNamespace("fission"), silent = TRUE))
-  tt <- data(fission, envir = fission)
+  sm(requireNamespace("fission"))
+  sm(try(attachNamespace("fission"), silent = TRUE))
+  data(fission, envir = fission)
   ## some minor shenanigans to get around the oddities of loading from data()
   fission <- fission[["fission"]]
   meta <- as.data.frame(fission@colData)
@@ -667,7 +669,6 @@ make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
                                                       fields = "^annot"))
       annotations <- pombe_annotations[["genes"]]
     } else {
-      pombe_mart <- pombe_annotations[["mart"]]
       annotations <- pombe_annotations[["annotation"]]
       ## As per create_pombe_se:
       ## I think ensembl changed the IDs to match and the following line is no longer needed.
@@ -835,7 +836,6 @@ setMethod(
 subset_se <- function(se, subset = NULL, ids = NULL, min_replicates = NULL,
                       nonzero = NULL, coverage = NULL, fact = "condition",
                       print_excluded = TRUE) {
-  starting_se <- se
   starting_metadata <- colData(se)
   starting_samples <- sampleNames(se)
   starting_colors <- get_colors(se)
@@ -1140,9 +1140,9 @@ sanitize_se <- function(se, keep_underscore = TRUE, factors = c("condition", "ba
     start_string <- gsub(pattern = "[^\\PP_]", replacement = "", x = start_string, perl = TRUE)
     start_string <- gsub(pattern = "[[:blank:]]", replacement = "", x = start_string)
     if (isTRUE(keep_underscore)) {
-      start_string <- gsub(pattern="[^_[:^punct:]]", replacement = "", x = start_string, perl = TRUE)
+      start_string <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = start_string, perl = TRUE)
     } else {
-      start_string <- gsub(pattern="[[:punct:]]", replacement = "", x = start_string)
+      start_string <- gsub(pattern = "[[:punct:]]", replacement = "", x = start_string)
     }
     end_fact <- droplevels(as.factor(start_string))
     colData(se)[[fact]] <- end_fact
@@ -1186,7 +1186,7 @@ generate_se_colors <- function(sample_definitions, cond_column = "condition",
   }
   ## And also the number of samples
   num_samples <- nrow(sample_definitions)
-  if (!is.null(sample_colors) & length(sample_colors) == num_samples) {
+  if (!is.null(sample_colors) && length(sample_colors) == num_samples) {
     ## Thus if we have a numer of colors == the number of samples, set each sample
     ## with its own color
     chosen_colors <- sample_colors
@@ -1260,20 +1260,28 @@ variance_se <- function(se, convert = "cpm", transform = "raw", norm = "raw") {
   return(se)
 }
 
+#' Write out an xlsx file of just normalized expression data.
+#'
+#' As per a recent request from Marina.
+#'
+#' @param se Input se
+#' @param excel Output xlsx file.
+#' @param norm Normalization method to employ.
+#' @param convert Conversion to apply.
+#' @param transform Transformation to apply.
+#' @param batch Use this batch/sv method.
+#' @param filter Filter the data using this function.
+#' @param color_na Highlight problematic cells with red (or not).
+#' @param merge_order Put the counts or annotations first?
+#' @export
 write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "raw",
                                 convert = "cpm", transform = "log2", batch = "raw",
                                 filter = "cbcb", color_na = "#DD0000",
                                 merge_order = "counts_first", ...) {
-  arglist <- list(...)
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
-  excel_basename <- xlsx[["basename"]]
   new_row <- 1
   new_col <- 1
-
-  ## I think the plot dimensions should increase as the number of samples increase
-  plot_dim <- 6
-  num_samples <- ncol(assay(se))
 
   ## Write an introduction to this foolishness.
   message("Writing the first sheet, containing a legend and some summary data.")
@@ -1290,13 +1298,13 @@ write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "
       "The median normalized counts by condition factor on 'median_data'."),
     stringsAsFactors = FALSE)
   colnames(legend) <- c("Worksheets", "Contents")
-  xls_result <- write_xlsx(data = legend, wb = wb, sheet = sheet, rownames = FALSE,
-                           title = "Columns used in the following tables.")
+  legend_result <- write_xlsx(data = legend, wb = wb, sheet = sheet, rownames = FALSE,
+                              title = "Columns used in the following tables.")
   rows_down <- nrow(legend)
   new_row <- new_row + rows_down + 3
   annot <- as.data.frame(colData(se), stringsAsFactors = FALSE)
-  xls_result <- write_xlsx(data = annot, wb = wb, start_row = new_row, rownames = FALSE,
-                           sheet = sheet, start_col = 1, title = "Experimental Design.")
+  design_result <- write_xlsx(data = annot, wb = wb, start_row = new_row, rownames = FALSE,
+                              sheet = sheet, start_col = 1, title = "Experimental Design.")
   mesg("Writing the normalized reads.")
   sheet <- "norm_data"
   new_col <- 1
@@ -1317,13 +1325,13 @@ write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "
                             ...))
   norm_reads <- assay(norm_data)
   info <- rowData(norm_data)
-  read_info <- merge(info, norm_reads,by = "row.names")
+  read_info <- merge(info, norm_reads, by = "row.names")
   rownames(read_info) <- read_info[["Row.names"]]
   read_info[["Row.names"]] <- NULL
   title <- what_happened(norm_data)
-  xls_result <- write_xlsx(wb = wb, data = read_info, rownames = FALSE,
-                           start_row = new_row, start_col = new_col,
-                           sheet = sheet, title = title)
+  data_result <- write_xlsx(wb = wb, data = read_info, rownames = FALSE,
+                            start_row = new_row, start_col = new_col,
+                            sheet = sheet, title = title)
 
   ## Potentially useful for proteomics data and subtracted data.
   if (!is.null(color_na)) {
@@ -1333,14 +1341,21 @@ write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "
       row_definition <- which(nas[[col]]) + 2
       col_idx <- colnames(read_info) == col
       col_definition <- which(col_idx)
-      colored <- openxlsx::addStyle(wb, sheet = sheet, na_style,
-                                    rows = row_definition, cols = col_definition)
+      openxlsx::addStyle(wb, sheet = sheet, na_style,
+                         rows = row_definition, cols = col_definition)
     }
   }
   save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  if ("Try-error" %in% class(save_result)) {
+    warning("Unable to save the file: ", excel, ".")
+  }
   retlist <- list(
     "raw" = assay(se),
+    "legend_result" = legend_result,
+    "design_result" = design_result,
+    "data_result" = data_result,
     "norm" = norm_data)
+  class(retlist) <- "hpgltools::write_normalized_se"
   return(retlist)
 }
 
@@ -1381,7 +1396,6 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
                      violin = TRUE, sample_heat = NULL, convert = "cpm", transform = "log2",
                      batch = "svaseq", filter = TRUE, med_or_mean = "mean",
                      color_na = "#DD0000", merge_order = "counts_first", ...) {
-  arglist <- list(...)
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
   excel_basename <- xlsx[["basename"]]
@@ -1470,8 +1484,8 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
       row_definition <- which(nas[[col]]) + 2
       col_idx <- colnames(read_info) == col
       col_definition <- which(col_idx)
-      colored <- openxlsx::addStyle(wb, sheet = sheet, na_style,
-                                    rows = row_definition, cols = col_definition)
+      openxlsx::addStyle(wb, sheet = sheet, na_style,
+                         rows = row_definition, cols = col_definition)
     }
   }
 
@@ -1484,14 +1498,14 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   }
 
   ## Start with library sizes.
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Legend.",
-                                      startRow = new_row, startCol = new_col)
+  openxlsx::writeData(wb, sheet = sheet, x = "Legend.",
+                      startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw library sizes.",
-                                      startRow = new_row, startCol = new_col)
+  openxlsx::writeData(wb, sheet = sheet, x = "Raw library sizes.",
+                      startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Non-zero genes.",
-                                      startRow = new_row, startCol = new_col)
+  openxlsx::writeData(wb, sheet = sheet, x = "Non-zero genes.",
+                      startRow = new_row, startCol = new_col)
   new_row <- new_row + 1
   new_col <- 1
   legend_plot <- metrics[["legend"]]
@@ -1754,7 +1768,6 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     reduced_model_columns <- 0
     full_model_rank <- 0
     reduced_model_rank <- 0
-    varpart_factors <- c("condition")
     fstring <- "~ condition + batch"
     if ("try-error" %in% class(data_full_model)) {
       do_varpart <- FALSE
@@ -2182,9 +2195,9 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
     "saved" = save_result
   )
   for (img in image_files) {
-    removed <- try(suppressWarnings(file.remove(img)), silent = TRUE)
+    try(suppressWarnings(file.remove(img)), silent = TRUE)
   }
-  class(retlist) <- "written_se"
+  class(retlist) <- "hpgltools::write_se"
   return(retlist)
 }
 
@@ -2193,7 +2206,7 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
 #' @param x List containing all the many plots, the dataframes, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.written_se <- function(x, ...) {
+`print.hpgltools::write_se` <- function(x, ...) {
   result_string <- glue("The result from write_se() sent to:
 {x[['excel']]}")
   message(result_string)

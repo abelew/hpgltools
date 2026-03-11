@@ -167,7 +167,8 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
 
   message("Extracting instrument information for ", file)
   instruments <- rvest::xml_nodes(x = input, css = "msinstrument")
-  instrument_data <- data.frame(row.names=(1:length(instruments)), stringsAsFactors = FALSE)
+  inst_vector <- seq_along(instruments)
+  instrument_data <- data.frame(row.names = inst_vector, stringsAsFactors = FALSE)
   instrument_values <- c("msmanufacturer", "msmodel", "msionisation",
                          "msmassanalyzer", "msdetector")
   for (v in instrument_values) {
@@ -181,7 +182,8 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
 
   message("Extracting scan information for ", file)
   scans <- rvest::xml_nodes(input, "scan")
-  scan_data <- data.frame(row.names=(1:length(scans)), stringsAsFactors = FALSE)
+  scan_vector <- seq_along(scans)
+  scan_data <- data.frame(row.names = scan_vector, stringsAsFactors = FALSE)
   scan_wanted <- c("peakscount", "scantype", "centroided", "mslevel", "polarity",
                    "retentiontime", "collisionenergy", "lowmz", "highmz", "basepeakmz",
                    "basepeakintensity", "totioncurrent")
@@ -201,7 +203,8 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
 
   message("Extracting precursor information for ", file)
   precursors <- rvest::xml_nodes(scans, "precursormz")
-  precursor_data <- data.frame(row.names=(1:length(precursors)), stringsAsFactors = FALSE)
+  precursor_vector <- seq_along(precursors)
+  precursor_data <- data.frame(row.names = precursor_vector, stringsAsFactors = FALSE)
   precursor_wanted <- c("precursorintensity", "activationmethod",
                         "windowwideness", "precursorscannum")
   precursor_numeric <- c("precursorintensity", "precursorscannum",
@@ -262,14 +265,14 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
     ## So, yeah, that is annoying, but whatever.
     pre_file <- file.path(acq_dir, acq_file)
     message("Writing acquisition file to: ", pre_file)
-    no_cols <- write.table(x = acquisition_windows, file = pre_file, sep = "\t", quote = FALSE,
-                           row.names = FALSE, col.names = FALSE)
+    write.table(x = acquisition_windows, file = pre_file, sep = "\t", quote = FALSE,
+                row.names = FALSE, col.names = FALSE)
     osw_file <- file.path(acq_dir, glue("openswath_{acq_file}"))
     ## This is the file for openswathworkflow.
     message("Writing osw acquisitions to: ", osw_file)
-    plus_cols <- write.table(x = acquisition_windows, file = osw_file,
-                             sep = "\t", quote = FALSE,
-                             row.names = FALSE, col.names = TRUE)
+    write.table(x = acquisition_windows, file = osw_file,
+                sep = "\t", quote = FALSE,
+                row.names = FALSE, col.names = TRUE)
   }
   retlist <- list(
       "file" = file,
@@ -306,7 +309,7 @@ extract_mzML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
   instrument <- mzR::instrumentInfo(input)
   info <- mzR::runInfo(input)
   scan_data <- mzR::header(input)
-  closed <- mzR::close(input)
+  mzR::close(input)
   retlist <- list(
       "instrument" = instrument,
       "info" = info,
@@ -353,11 +356,6 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
   ## changes, I will split it into its own function so make changes in one place
   ## happen in both but until I can ensure to myself that it is functional in
   ## both contexts I will not. Palette for colors when auto-chosen
-  chosen_palette <- "Dark2"
-  if (!is.null(arglist[["palette"]])) {
-    chosen_palette <- arglist[["palette"]]
-  }
-
   sample_definitions <- data.frame()
   if (class(metadata)[1] == "data.frame") {
     sample_definitions <- metadata
@@ -388,26 +386,15 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
   res <- list()
   num_files <- nrow(meta)
   if (isTRUE(parallel)) {
-    tt <- sm(requireNamespace("parallel"))
-    tt <- sm(requireNamespace("doParallel"))
-    tt <- sm(requireNamespace("iterators"))
-    tt <- sm(requireNamespace("foreach"))
-    tt <- sm(try(attachNamespace("foreach"), silent = TRUE))
+    sm(requireNamespace("parallel"))
+    sm(requireNamespace("doParallel"))
+    sm(requireNamespace("iterators"))
+    sm(requireNamespace("foreach"))
+    sm(try(attachNamespace("foreach"), silent = TRUE))
     ## cores <- parallel::detectCores() / 2
     cores <- 4
     cl <- parallel::makeCluster(cores)
     doSNOW::registerDoSNOW(cl)
-    show_progress <- interactive() & is.null(getOption("knitr.in.progress"))
-    if (isTRUE(show_progress)) {
-      bar <- utils::txtProgressBar(max = num_files, style = 3)
-    }
-    progress <- function(n) {
-      setTxtProgressBar(bar, n)
-    }
-    pb_opts <- list()
-    if (isTRUE(show_progress)) {
-      pb_opts <- list("progress" = progress)
-    }
     res_names <- c()
     res <- foreach(i = seq_len(num_files),
                    ## .combine = "c", .multicombine = TRUE,
@@ -426,9 +413,6 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
                        returns[[file]] <- file_result
                      }
                    }
-    if (isTRUE(show_progress)) {
-      close(bar)
-    }
     parallel::stopCluster(cl)
   } else {
     res_names <- c()
@@ -456,6 +440,10 @@ extract_msraw_data <- function(metadata, write_windows = TRUE, id_column = "samp
   if (!is.null(savefile)) {
     mzxml_data <- retlist
     save_result <- try(save(list = c("mzxml_data"), file = savefile), silent = TRUE)
+    if ("try-error" %in% class(save_result)) {
+      warning("Unable to save the mz XML data to: ", savefile, ".")
+    }
+    rm(mzxml_data)
   }
   return(retlist)
 }
@@ -681,9 +669,9 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
                  "isomassd", "RT", "RT_score", "modified_peptides",
                  "variable_mods", "static_mods")
   query_data <- query_data[, new_order]
-  check_masses <- testthat::expect_equal(query_data[["precursor_neutral_mass"]],
-                                         query_data[["calc_neutral_pep_mass"]],
-                                         tolerance = 0.1)
+  testthat::expect_equal(query_data[["precursor_neutral_mass"]],
+                         query_data[["calc_neutral_pep_mass"]],
+                         tolerance = 0.1)
   result <- data.table::as.data.table(query_data)
   return(result)
 }
@@ -756,11 +744,6 @@ extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
   ## split it into its own function so make changes in one place happen in both
   ## but until I can ensure to myself that it is functional in both contexts I will not.
   ## Palette for colors when auto-chosen
-  chosen_palette <- "Dark2"
-  if (!is.null(arglist[["palette"]])) {
-    chosen_palette <- arglist[["palette"]]
-  }
-
   sample_definitions <- data.frame()
   if ("data.frame" %in% class(metadata)) {
     sample_definitions <- metadata
@@ -818,6 +801,10 @@ extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
   if (!is.null(savefile)) {
     pyprophet_data <- retlist
     save_result <- try(save(list = c("pyprophet_data"), file = savefile), silent = TRUE)
+    if ("try-error" %in% class(save_result)) {
+      warning("Unable to save pyprophet_data to: ", savefile, ".")
+    }
+    rm(pyprophet_data)
   }
   class(retlist) <- c("pyprophet_tables", "list")
   return(retlist)
@@ -935,7 +922,7 @@ impute_se <- function(se, filter = TRUE, p = 0.5,
 #' @export
 mean_by_bioreplicate <- function(se, fact = "bioreplicate", fun = "mean") {
   ## Set all the zeros to NA so that when we do cpm and mean they will get dropped.
-  mtrx<- assay(se)
+  mtrx <- assay(se)
   zero_idx <- mtrx == 0
   new <- mtrx
   new[zero_idx] <- NA
@@ -976,15 +963,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
   message("Reading ", xlsx_file)
   result <- readxl::read_xlsx(path = xlsx_file, sheet = 1, col_names = FALSE)
   group_data <- list()
-  show_progress <- interactive() & is.null(getOption("knitr.in.progress"))
-  if (isTRUE(show_progress)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (r in seq_len(nrow(result))) {
-    if (isTRUE(show_progress)) {
-      pct_done <- r / nrow(result)
-      setTxtProgressBar(bar, pct_done)
-    }
     row <- as.data.frame(result[r, ])
     row[, is.na(row)] <- ""
     ## The following 3 stanzas handle the creation of the levels of our data structure
@@ -1014,7 +993,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
     }
     ## Once the column names for the data are defined, we consider how to
     ## Fill in the actual data, the protein group is probably the least interesting.
-    if (row[, 1] == FALSE | row[, 1] == TRUE) {
+    if (row[, 1] == FALSE || row[, 1] == TRUE) {
       group_information <- row[group_keepers]
       colnames(group_information) <- group_colnames
       group_information[["ID"]] <- sub(pattern = "^.* GN=(\\w+) .*$",
@@ -1029,7 +1008,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
     }
     ## When the 2nd column is FALSE, then this defined a protein in the group.
     ## The protein data structure is likely the most interesting.
-    if (row[, 2] == FALSE | row[, 2] == TRUE) {
+    if (row[, 2] == FALSE || row[, 2] == TRUE) {
       protein_information <- row[protein_keepers]
       colnames(protein_information) <- protein_colnames
       protein_information[["ID"]] <- sub(pattern = "^.* GN=(\\w+) .*$",
@@ -1044,7 +1023,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
     }
     ## When the 3rd group is FALSE, then this adds a peptide.
     ## The peptide data structure is the most detailed, but probably not the most interesting.
-    if (row[, 3] == FALSE | row[, 3] == TRUE) {
+    if (row[, 3] == FALSE || row[, 3] == TRUE) {
       peptide_information <- row[peptide_keepers]
       colnames(peptide_information) <- peptide_colnames
       current <- group_data[[group_accession]][["data"]][[protein_accession]][["data"]]
@@ -1053,24 +1032,13 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
       next
     }
   } ## End iterating over ever row of this unholy stupid data structure.
-  if (isTRUE(show_progress)) {
-    close(bar)
-  }
   message("Finished parsing, reorganizing the protein data.")
 
   protein_df <- data.frame()
   peptide_df <- data.frame()
   protein_names <- c()
   message("Starting to iterate over ", length(group_data),  " groups.")
-  show_progress <- interactive() & is.null(getOption("knitr.in.progress"))
-  if (isTRUE(show_progress)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   for (g in seq_along(group_data)) {
-    if (isTRUE(show_progress)) {
-      pct_done <- g / length(group_data)
-      setTxtProgressBar(bar, pct_done)
-    }
     group <- as.character(names(group_data)[g])
     protein_group <- group_data[[group]][["data"]]
     protein_accessions <- names(protein_group)
@@ -1083,9 +1051,6 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
       peptide_df <- rbind(peptide_df, peptide_data)
     }
   } ## End of the for loop
-  if (isTRUE(show_progress)) {
-    close(bar)
-  }
   current_colnames <- colnames(protein_df)
   current_colnames <- tolower(current_colnames)
   ## percent signs are stupid in columns.
@@ -1138,6 +1103,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
     }
   }
 
+  options(old_options)
   retlist <- list(
       "names" = protein_names,
       "group_data" = group_data,
@@ -1196,29 +1162,17 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
                             do_max = TRUE, do_min = TRUE, ...) {
   retlist <- list()
   retlist[["decoy_lists"]] <- SWATH2stats::assess_decoy_rate(s2s_exp)
-  decoy_ratio <- as.numeric(retlist[["decoy_lists"]][["ratio"]])
   decoy_number <- grepl(pattern = "^DECOY", x = s2s_exp[["proteinname"]])
   message("There were ", sum(!decoy_number),
           " observations and ", sum(decoy_number), " decoy observations.")
   retlist[["fdr_overall"]] <- SWATH2stats::assess_fdr_overall(
-                                               s2s_exp,
-                                               output = "Rconsole",
-                                               plot = plot)
+    s2s_exp, output = "Rconsole", plot = plot)
   retlist[["byrun_fdr"]] <- SWATH2stats::assess_fdr_byrun(
-                                             s2s_exp,
-                                             FFT = fft,
-                                             plot = plot,
-                                             output = "Rconsole")
+    s2s_exp, FFT = fft, plot = plot, output = "Rconsole")
   retlist[["chosen_mscore"]] <- SWATH2stats::mscore4assayfdr(
-                                                 s2s_exp,
-                                                 FFT = fft,
-                                                 fdr_target = target_fdr,
-                                                 ...)
+    s2s_exp, FFT = fft, fdr_target = target_fdr, ...)
   retlist[["prot_score"]] <- SWATH2stats::mscore4protfdr(
-                                              s2s_exp,
-                                              FFT = fft,
-                                              fdr_target = target_fdr,
-                                              ...)
+    s2s_exp, FFT = fft, fdr_target = target_fdr, ...)
   message("Starting mscore filter.")
   retlist[["raw"]] <- s2s_exp
   filt <- s2s_exp

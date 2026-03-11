@@ -573,11 +573,9 @@ setMethod(
     se <- exp
     original_conditions <- colData(se)[["condition"]]
     original_length <- length(original_conditions)
-    original_num_conditions <- length(levels(as.factor(original_conditions)))
     new_se <- se  ## Explicitly copying se to new_se
     ## because when I run this as a function call() it seems to be not properly setting
     ## the conditions and I do not know why.
-    fact_vector <- NULL
     fact_name <- "condition"
     if (!is.null(ids)) {
       ## Change specific id(s) to given condition(s).
@@ -603,7 +601,6 @@ setMethod(
         if (!is.null(prefix)) {
           new_fact <- paste0(prefix, new_fact)
         }
-        fact_vector <- new_fact
         colData(new_se)[["condition"]] <- new_fact
         ## new_se[["design"]][["condition"]] <- new_fact
       } else {
@@ -614,7 +611,6 @@ setMethod(
     } else {
       colData(new_se)[["condition"]] <- fact
       ## new_se[["design"]][["condition"]] <- fact
-      fact_vector <- fact
     }
 
     if (!is.null(handle_na)) {
@@ -739,7 +735,6 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
     new_mtrx <- mtrx
   }
   start_rows <- nrow(mtrx)
-  numbers_removed <- 0
   if (semantic_column == "rownames") {
     annot_strings <- rownames(annots)
   } else {
@@ -749,13 +744,14 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
     stop("The column ", semantic_column, " does not appear in the annotations.")
   }
 
+  type = "kept"
   if (is.null(topn)) {
     for (string in semantic) {
       idx <- NULL
       if (isTRUE(invert)) {
         ## Keep the rows which match the ~7 strings above.
         ## For these, we will re-grep the full table each time and just add the matches.
-        type <- "Kept"
+        type <- "kept"
         idx <- grepl(pattern = string, x = annot_strings)
         message("Hit ", sum(idx), " genes for term ", string, ".")
         ## Then, after grepping, just append the matched rows to the new annotations and matrix.
@@ -764,7 +760,7 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
         new_annots <- rbind(new_annots, tmp_annots)
         new_mtrx <- rbind(new_mtrx, tmp_mtrx)
       } else {
-        type <- "Removed"
+        type <- "removed"
         ## In the case of removals, I need to only grep what is left after each iteration.
         if (semantic_column == "rownames") {
           idx <- grepl(pattern = string, x = rownames(new_annots))
@@ -780,7 +776,7 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
     } ## End for loop
     end_rows <- nrow(new_mtrx)
     lost_rows <- start_rows - end_rows
-    message("semantic_filter(): Removed ", lost_rows, " genes.")
+    message("semantic_filter(): ", type, ", ", lost_rows, " genes.")
   } else {
     ## Instead of a string based sematic filter, take the topn most abundant
     medians <- rowMedians(mtrx)
@@ -792,7 +788,6 @@ semantic_filter <- function(input, invert = FALSE, topn = NULL,
 
   keepers <- rownames(new_annots)
   new_data <- input[keepers, ]
-  new_libsizes <- colSums(assay(new_data))
   return(new_data)
 }
 setGeneric("semantic_filter")
@@ -860,13 +855,11 @@ set_se_colors <- function(se, colors = TRUE,
 
   num_conditions <- length(levels(condition_factor))
   design <- colData(se)
-  num_samples <- nrow(design)
-  sample_ids <- design[["sampleid"]]
   ## chosen_colors <- se[["conditions"]]
   chosen_colors <- condition_factor
   chosen_names <- names(chosen_colors)
   sample_colors <- NULL
-  if (is.null(colors) | isTRUE(colors)) {
+  if (is.null(colors) || isTRUE(colors)) {
     sample_colors <- sm(
       grDevices::colorRampPalette(
         RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
@@ -1025,7 +1018,6 @@ set_se_colors <- function(se, colors = TRUE,
 set_factors <- function(se, condition = NULL, batch = NULL, ids = NULL,
                         table = "metadata", class = "factor",
                         columns = NULL, ...) {
-  arglist <- list(...)
   if (!is.null(condition)) {
     se <- set_conditions(se, fact = condition, ...)
   }
@@ -1098,9 +1090,7 @@ setGeneric("set_genenames")
 setMethod(
   "set_genenames", signature(exp = "SummarizedExperiment"),
   definition = function(exp, ids = NULL, column = NULL, ...) {
-    arglist <- list(...)
     se <- exp
-    current_ids <- rownames(assay(se))
     if (is.null(column) && is.null(ids)) {
       stop("Nothing was provided to change the IDs.")
     } else if (is.null(column)) {

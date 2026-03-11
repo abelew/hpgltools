@@ -2,6 +2,9 @@
 ## first GSEA tool I learned about.  It is not particularly robust, this seeks
 ## to amend that.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Filter a goseq significance search
 #'
 #' Given a goseq result, use some simple filters to pull out the

@@ -1,10 +1,18 @@
-## Given a set of nucleotides/amino acids, use the Peptides
-## package to create a matrix of scores describing them.
+## peptides.R: Examine individual peptide sequences.
 
-## For the moment, I am going to just use an amino acid fasta file.
-## I think I would like to be able to take an expressionset, which
-## would obviously only work for non-spliced organisms -- unless the
-## annotations include the introns...
+#' @include 01_hpgltools.R
+NULL
+
+#' Given a set of nucleotides/amino acids, use the Peptides
+#' package to create a matrix of scores describing them.
+#'
+#' For the moment, I am going to just use an amino acid fasta file.
+#' I think I would like to be able to take an expressionset, which
+#' would obviously only work for non-spliced organisms -- unless the
+#' annotations include the introns...
+#'
+#' @param file Input fasta file of peptide sequences.
+#' @param sanitize_names Sanitize the fasta file IDs?
 score_amino_acids <- function(file, sanitize_names = TRUE) {
   ## In this case, I have the cds sequences from L.major, so I will
   ## translate them.
@@ -137,6 +145,5 @@ score_amino_acids <- function(file, sanitize_names = TRUE) {
   ## tt <- Peptides::stScales(aa_sequences)
   rownames(metrics) <- metrics[["rownames"]]
   metrics[["rownames"]] <- NULL
-
   return(metrics)
 }

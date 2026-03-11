@@ -1,3 +1,7 @@
+## singlecell.R: A series of functions intended to assist with scRNA data, this
+## is currently focused on seurat, I would like to change that to use the actual
+## bioconductor data structures.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -17,7 +21,6 @@ add_binary_states <- function(scd, column = NULL) {
   if (!is.null(column)) {
     identity_levels <- levels(as.factor(scd[[column]]))
   }
-  cell_ids <- colnames(scd)
 
   for (group in identity_levels) {
     not_value <- paste0("Not ", group)
@@ -63,7 +66,8 @@ add_clonotype_annotations <- function(scd, start_path, type = "t") {
   tcr_nodup <- tcr[!tcr_duplicate_barcode_idx, ]
   mesg("  After deduplication, the vdj data has ", nrow(tcr_nodup), " rows.")
 
-  both <- as.data.frame(merge(tcr_nodup, ref, by.x="raw_clonotype_id", by.y="clonotype_id"))
+  both <- as.data.frame(merge(tcr_nodup, ref,
+                              by.x = "raw_clonotype_id", by.y = "clonotype_id"))
   rownames(both) <- both[["barcode"]]
   both[["barcode"]] <- NULL
 
@@ -152,7 +156,6 @@ create_scd <- function(metadata, expression_column = "gexfile",
     merged <- list()
   }
 
-  cell_ids <- c()
   for (dirname in metadata[[expression_column]]) {
     path_name <- basename(dirname)
     start_path <- file.path(dirname, "outs", "per_sample_outs", path_name)
@@ -289,8 +292,8 @@ filter_scd <- function(scd, min_num_rna = 200, max_num_rna = NULL,
     mesg("Plotting the data before filtering.")
   }
   pre_plots <- plot_seurat_scatter(scd)
-  sufficient_rna <- nFeature_RNA <- NULL
-  if (!is.null(min_num_rna) & !is.null(max_num_rna)) {
+  sufficient_rna <- NULL
+  if (!is.null(min_num_rna) && !is.null(max_num_rna)) {
     mesg("Filtering both less than minimum and more than maximum.")
     sufficient_rna <- current_meta[["nFeature_RNA"]] >= min_num_rna &
       current_meta[["nFeature_RNA"]] <= max_num_rna
@@ -351,8 +354,8 @@ filter_scd <- function(scd, min_num_rna = 200, max_num_rna = NULL,
   }
   current_meta <- filt_scd@meta.data
 
-  sufficient_ribo <- pct_ribo <- pct_mito <- NULL
-  if (!is.null(min_pct_ribo) & !is.null(max_pct_ribo)) {
+  sufficient_ribo <- NULL
+  if (!is.null(min_pct_ribo) && !is.null(max_pct_ribo)) {
     sufficient_ribo <- current_meta[["pct_ribo"]] >= min_pct_ribo &
       current_meta[["pct_ribo"]] <= max_pct_ribo
   } else if (!is.null(min_pct_ribo)) {
@@ -382,7 +385,7 @@ filter_scd <- function(scd, min_num_rna = 200, max_num_rna = NULL,
   current_meta <- filt_scd@meta.data
 
   sufficient_mito <- NULL
-  if (!is.null(min_pct_mito) & !is.null(max_pct_mito)) {
+  if (!is.null(min_pct_mito) && !is.null(max_pct_mito)) {
     sufficient_mito <- current_meta[["pct_mito"]] >= min_pct_mito &
       filt_scd[["pct_mito"]] <= max_pct_mito
   } else if (!is.null(min_pct_mito)) {
@@ -425,7 +428,7 @@ filter_scd <- function(scd, min_num_rna = 200, max_num_rna = NULL,
   post_plots <- plot_seurat_scatter(filt_scd)
 
   message(sprintf("All filters removed %d (%f%%) cells, %d (%f%%) genes, %d (%f%%) counts.",
-                  start_cells - current_cells, (1.0 -(current_cells / start_cells)) * 100.0,
+                  start_cells - current_cells, (1.0 - (current_cells / start_cells)) * 100.0,
                   start_genes - current_genes, (1.0 - (current_genes / start_genes)) * 100.0,
                   start_counts - current_counts, (1.0 - (current_counts / start_counts)) * 100.0))
 
@@ -594,7 +597,7 @@ plot_seurat_scatter <- function(scd, set = NULL) {
       "count_vs_mito" = c("nCount_RNA", "pct_mito"))
   }
 
-  for (p in 1:length(set)) {
+  for (p in seq_len(length(set))) {
     name <- names(set)[p]
     xy <- set[[p]]
     x_column <- xy[1]

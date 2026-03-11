@@ -3,6 +3,10 @@
 ## transformations and scaling/conversion methods (cpm/rpkm) because ... well
 ## because they just feel different to me.
 
+#' @include 01_hpgltools.R
+NULL
+
+
 #' Perform a simple normalization of a count table.
 #'
 #' This provides shortcut interfaces for normalization functions from
@@ -45,7 +49,7 @@ normalize_counts <- function(data, design = NULL, method = "raw",
     if (is.null(data)) {
       stop("The list provided contains no count_table.")
     }
-  } else if (data_class == "matrix" | data_class == "data.frame") {
+  } else if (data_class == "matrix" || data_class == "data.frame") {
     ## some functions prefer matrix, so I am keeping this explicit
     count_table <- as.data.frame(data)
   } else {
@@ -55,135 +59,135 @@ This works with: exp, ExpressionSet, data.frame, and matrices.
   }
   conditions <- design[[condition_column]]
 
-  switchret <- switch(
-      method,
-      "qshrink" = {
-        count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
-                                    plot = TRUE)
-        norm_performed <- "qshrink"
-      },
-      "qshrink_median" = {
-        count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
-                                    plot = TRUE, refType = "median",
-                                    groupLoc = "median", window = 50)
-        norm_performed <- "qshrink_median"
-      },
-      "quant" = {
-        ## Quantile normalization (Bolstad et al., 2003)
-        count_rownames <- rownames(count_table)
-        count_colnames <- colnames(count_table)
-        count_table <- preprocessCore::normalize.quantiles(
-                                           as.matrix(count_table))
-        rownames(count_table) <- count_rownames
-        colnames(count_table) <- count_colnames
-        norm_performed <- "quant"
-      },
-      "quant_robust" = {
-        count_rownames <- rownames(count_table)
-        count_colnames <- colnames(count_table)
-        ## 20181210 -- this gives a pthread_create() error 22.
-        ##count_table <- preprocessCore::normalize.quantiles(
-        ##                                 as.matrix(count_table), copy = TRUE)
-        count_table <- preprocessCore::normalize.quantiles.robust(
-                                           as.matrix(count_table))
-        rownames(count_table) <- count_rownames
-        colnames(count_table) <- count_colnames
-        norm_performed <- "quant_robust"
-      },
-      "quantile" = {
-        ## Quantile normalization (Bolstad et al., 2003)
-        count_rownames <- rownames(count_table)
-        count_colnames <- colnames(count_table)
-        count_table <- preprocessCore::normalize.quantiles(
-                                           as.matrix(count_table), copy = TRUE)
-        rownames(count_table) <- count_rownames
-        colnames(count_table) <- count_colnames
-        norm_performed <- "quant"
-      },
-      "rle" = {
-        ## Get the tmm normalization factors
-        count_table <- edgeR::DGEList(counts = count_table)
-        norms <- edgeR::calcNormFactors(count_table, method = "RLE")
-        ## libsizes = count_table$samples$lib.size
-        factors <- norms[["samples"]][["norm.factors"]]
-        counts <- norms[["counts"]]
-        tmm_counts <- counts / factors
-        count_table <- as.matrix(tmm_counts)
-        norm_performed <- "rle"
-      },
-      "sf" = {
-        original_cols <- colnames(count_table)
-        conds <- design[["condition"]]
-        if (is.null(conds)) {
-          conds <- original_cols
-        }
-        fstring <- glue("~{condition_column}")
-        form <- as.formula(fstring)
-        cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
-                                              colData = design, design = form)
-        factors <- BiocGenerics::estimateSizeFactors(cds)
-        count_table <- BiocGenerics::counts(factors, normalized = TRUE)
-        norm_performed <- "sf"
-      },
-      "sf2" = {
-        ## Size-factored normalization is a part of DESeq
-        factors <- DESeq2::estimateSizeFactorsForMatrix(count_table)
-        num_rows <- dim(count_table)[1]
-        sf_counts <- count_table / do.call(rbind, rep(list(factors), num_rows))
-        ##sf_counts = counts / (libsizes * factors)
-        count_table <- as.matrix(sf_counts)
-        norm_performed <- "sf2"
-      },
-      "tmm" = {
-        ## TMM normalization is documented in edgeR
-        ## Set up the edgeR data structure
-        count_table <- edgeR::DGEList(counts = count_table)
-        norms <- edgeR::calcNormFactors(count_table, method = "TMM")
-        ## libsizes = count_table$samples$lib.size
-        factors <- norms[["samples"]][["norm.factors"]]
-        counts <- norms[["counts"]]
-        tmm_counts <- counts / factors
-        count_table <- as.matrix(tmm_counts)
-        norm_performed <- "tmm"
-      },
-      "upperquartile" = {
-        ## Get the tmm normalization factors
-        count_table <- edgeR::DGEList(counts = count_table)
-        norms <- edgeR::calcNormFactors(count_table, method = "upperquartile")
-        ## libsizes = count_table$samples$lib.size
-        factors <- norms[["samples"]][["norm.factors"]]
-        counts <- norms[["counts"]]
-        tmm_counts <- counts / factors
-        count_table <- as.matrix(tmm_counts)
-        norm_performed <- "upperquartile"
-      },
-      "vsd" = {
-        original_cols <- colnames(count_table)
-        conds <- design[[condition_column]]
-        if (is.null(conds)) {
-          conds <- original_cols
-        }
-        fit_type <- "parametric"
-        if (!is.null(arglist[["fit_type"]])) {
-          fit_type <- arglist[["fit_type"]]
-        }
-        tt <- sm(requireNamespace("locfit"))
-        tt <- sm(requireNamespace("DESeq2"))
-        fstring <- glue("~{condition_column}")
-        form <- as.formula(fstring)
-        cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
-                                              colData = design, design = form)
-        cds <- DESeq2::estimateSizeFactors(cds)
-        cds <- DESeq2::estimateDispersions(cds, fitType = fit_type)
-        count_table <- DESeq2::getVarianceStabilizedData(cds)
-        norm_performed <- "vsd"
-      },
-      {
-        message("Did not recognize the normalization, leaving the table alone.
+  switch(
+    method,
+    "qshrink" = {
+      count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
+                                  plot = TRUE)
+      norm_performed <- "qshrink"
+    },
+    "qshrink_median" = {
+      count_table <- hpgl_qshrink(assay = count_table, groups = conditions,
+                                  plot = TRUE, refType = "median",
+                                  groupLoc = "median", window = 50)
+      norm_performed <- "qshrink_median"
+    },
+    "quant" = {
+      ## Quantile normalization (Bolstad et al., 2003)
+      count_rownames <- rownames(count_table)
+      count_colnames <- colnames(count_table)
+      count_table <- preprocessCore::normalize.quantiles(
+        as.matrix(count_table))
+      rownames(count_table) <- count_rownames
+      colnames(count_table) <- count_colnames
+      norm_performed <- "quant"
+    },
+    "quant_robust" = {
+      count_rownames <- rownames(count_table)
+      count_colnames <- colnames(count_table)
+      ## 20181210 -- this gives a pthread_create() error 22.
+      ##count_table <- preprocessCore::normalize.quantiles(
+      ##                                 as.matrix(count_table), copy = TRUE)
+      count_table <- preprocessCore::normalize.quantiles.robust(
+        as.matrix(count_table))
+      rownames(count_table) <- count_rownames
+      colnames(count_table) <- count_colnames
+      norm_performed <- "quant_robust"
+    },
+    "quantile" = {
+      ## Quantile normalization (Bolstad et al., 2003)
+      count_rownames <- rownames(count_table)
+      count_colnames <- colnames(count_table)
+      count_table <- preprocessCore::normalize.quantiles(
+        as.matrix(count_table), copy = TRUE)
+      rownames(count_table) <- count_rownames
+      colnames(count_table) <- count_colnames
+      norm_performed <- "quant"
+    },
+    "rle" = {
+      ## Get the tmm normalization factors
+      count_table <- edgeR::DGEList(counts = count_table)
+      norms <- edgeR::calcNormFactors(count_table, method = "RLE")
+      ## libsizes = count_table$samples$lib.size
+      factors <- norms[["samples"]][["norm.factors"]]
+      counts <- norms[["counts"]]
+      tmm_counts <- counts / factors
+      count_table <- as.matrix(tmm_counts)
+      norm_performed <- "rle"
+    },
+    "sf" = {
+      original_cols <- colnames(count_table)
+      conds <- design[["condition"]]
+      if (is.null(conds)) {
+        conds <- original_cols
+      }
+      fstring <- glue("~{condition_column}")
+      form <- as.formula(fstring)
+      cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
+                                            colData = design, design = form)
+      factors <- BiocGenerics::estimateSizeFactors(cds)
+      count_table <- BiocGenerics::counts(factors, normalized = TRUE)
+      norm_performed <- "sf"
+    },
+    "sf2" = {
+      ## Size-factored normalization is a part of DESeq
+      factors <- DESeq2::estimateSizeFactorsForMatrix(count_table)
+      num_rows <- dim(count_table)[1]
+      sf_counts <- count_table / do.call(rbind, rep(list(factors), num_rows))
+      ##sf_counts = counts / (libsizes * factors)
+      count_table <- as.matrix(sf_counts)
+      norm_performed <- "sf2"
+    },
+    "tmm" = {
+      ## TMM normalization is documented in edgeR
+      ## Set up the edgeR data structure
+      count_table <- edgeR::DGEList(counts = count_table)
+      norms <- edgeR::calcNormFactors(count_table, method = "TMM")
+      ## libsizes = count_table$samples$lib.size
+      factors <- norms[["samples"]][["norm.factors"]]
+      counts <- norms[["counts"]]
+      tmm_counts <- counts / factors
+      count_table <- as.matrix(tmm_counts)
+      norm_performed <- "tmm"
+    },
+    "upperquartile" = {
+      ## Get the tmm normalization factors
+      count_table <- edgeR::DGEList(counts = count_table)
+      norms <- edgeR::calcNormFactors(count_table, method = "upperquartile")
+      ## libsizes = count_table$samples$lib.size
+      factors <- norms[["samples"]][["norm.factors"]]
+      counts <- norms[["counts"]]
+      tmm_counts <- counts / factors
+      count_table <- as.matrix(tmm_counts)
+      norm_performed <- "upperquartile"
+    },
+    "vsd" = {
+      original_cols <- colnames(count_table)
+      conds <- design[[condition_column]]
+      if (is.null(conds)) {
+        conds <- original_cols
+      }
+      fit_type <- "parametric"
+      if (!is.null(arglist[["fit_type"]])) {
+        fit_type <- arglist[["fit_type"]]
+      }
+      sm(requireNamespace("locfit"))
+      sm(requireNamespace("DESeq2"))
+      fstring <- glue("~{condition_column}")
+      form <- as.formula(fstring)
+      cds <- DESeq2::DESeqDataSetFromMatrix(countData = count_table,
+                                            colData = design, design = form)
+      cds <- DESeq2::estimateSizeFactors(cds)
+      cds <- DESeq2::estimateDispersions(cds, fitType = fit_type)
+      count_table <- DESeq2::getVarianceStabilizedData(cds)
+      norm_performed <- "vsd"
+    },
+    {
+      message("Did not recognize the normalization, leaving the table alone.
   Recognized normalizations include: 'qsmooth', 'sf', 'sf2', 'vsd', 'quant',
   'tmm', 'qsmooth_median', 'upperquartile', and 'rle.'")
-        count_table <- as.matrix(count_table)
-      }
+      count_table <- as.matrix(count_table)
+    }
   ) ## End of the switch statement.
   norm_libsize <- colSums(count_table, na.rm = TRUE)
   norm_counts <- list(count_table = count_table, libsize = norm_libsize,
@@ -272,7 +276,7 @@ hpgl_qshrink <- function(data = NULL, groups = NULL, refType = "mean",
            xlab = "u (norm. gene ranks)", ylab = "Weight", ylim = c(0, 1), ...)
     }
     abline(h = 0.5, v = 0.5, col = "red", lty = 2)
-    newpar <- par(oldpar)
+    par(oldpar)
   }
   return(normAssay)
 }

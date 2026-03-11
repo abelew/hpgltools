@@ -1,3 +1,6 @@
+## plot_genome.R: Various ways of looking at coverage across chromosomes and/or
+## heatmap-esque metrics over distance.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -14,7 +17,7 @@ NULL
 #' @export
 genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL,
                                 plot_title = "Genome plot") {
-  tt <- download_gbk(accession)
+  downloaded <- download_gbk(accession)
   segments <- try(genoPlotR::read_dna_seg_from_file(glue("{accession}.gb")))
   if (is.null(start)) {
     start <- 1
@@ -25,11 +28,18 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
 
   mid_pos <- genoPlotR::middle(segments)
   xlims <- list(c(Inf, -Inf), c(-Inf, Inf), c(start, end))
-  genoPlotR::plot_gene_map(dna_segs = list(segments),
-                           main = plot_title,
-                           gene_type = "side_blocks",
-                           dna_seg_scale = TRUE,
-                           scale = FALSE)
+  gene_map <- genoPlotR::plot_gene_map(dna_segs = list(segments),
+                                       main = plot_title,
+                                       gene_type = "side_blocks",
+                                       dna_seg_scale = TRUE,
+                                       scale = FALSE)
+  retlist <- list(
+    "gbk_info" = downloaded,
+    "mid_pos" = mid_pos,
+    "limits" = xlims,
+    "plot" = gene_map)
+  class(retlist) <- "hpgltools::genoplot_chromosome"
+  return(retlist)
 }
 
 #' Plot coverage from a grange using ggcoverage
@@ -159,7 +169,7 @@ print.coverage_plot <- function(x, ...) {
 #' @param gene_colors specify factor of gene colors.
 #' @param facet Use a specifc factor to facet the data.
 #' @param y_scale Set a specifc y-axis scale.
-plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
+plot_ggcoverage_se <- function(se, from = 1, to = 10, id_column = "gene_id",
                                coverage_column = "deeptools_coverage", convert = "cpm",
                                norm = NULL, transform = NULL,
                                padding = c(1, 2), span = 0.03, smoothed = TRUE, ribbon = FALSE,
@@ -209,14 +219,14 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
   region_string <- paste0(Seqinfo::seqnames(range(gr_subset)[1]), ":",
                           min(start(gr_subset)), "-", max(start(gr_subset)))
   ## Match the expectations of ggcoverage
-  convert = tolower(convert)
-  coverage_info = load_se_tracks(se, track_column = coverage_column,
-                                 region_string = region_string, name_column = feature_name_column,
-                                 gene_name = gene_name, padding = padding,
-                                 bin_size = bin_size, convert = convert, transform = transform,
-                                 norm = norm,
-                                 type_column = meta_type_column,
-                                 group_column = meta_group_column, cores = cores)
+  convert <- tolower(convert)
+  coverage_info <- load_se_tracks(se, track_column = coverage_column,
+                                  region_string = region_string, name_column = feature_name_column,
+                                  gene_name = gene_name, padding = padding,
+                                  bin_size = bin_size, convert = convert, transform = transform,
+                                  norm = norm,
+                                  type_column = meta_type_column,
+                                  group_column = meta_group_column, cores = cores)
   coverage_info <- as.data.frame(coverage_info)
   coverage_info[["shared"]] <- "all"
 
@@ -246,13 +256,13 @@ plot_ggcoverage_se <- function(se, from = 1 , to = 10, id_column = "gene_id",
     loess_max <- max(smoothed_info[["fitted"]])
     mesg("The maximum observed coverage in the smoothed region is: ", loess_max, ".")
     max_coverage <- loess_max
-    Type <- NULL
     cov_plot <- ggcoverage::ggcoverage(data = coverage_info, color = hidden_colors,
                                        facet.key = facet_key, range.position = "out") +
       ggplot2::geom_smooth(data = coverage_info, se = FALSE, method = "loess",
                            method.args = list(family = "symmetric"), span = span,
                            show.legend = FALSE,
-                           aes(x = start, y = score, ymin = 0, color = Type))
+                           aes(x = !!sym("start"), y = !!sym("score"),
+                               ymin = 0, color = !!sym("Type")))
   } else {
     cov_plot <- ggcoverage::ggcoverage(data = coverage_info, color = cov_color)
   }

@@ -122,12 +122,11 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
   colors <- as.character(colors)
   sum <- NULL
 
+  ## Reminder to self, I had some logic here to pull exp_names from the experimental
+  ## design if the length of exp_names == 1; if I decide to bring
+  ## that logic back, it needs to move to the appropriate setMethod.
   if (!is.null(exp_names) && class(exp_names) == "character") {
-    if (length(exp_names) == 1) {
-      colnames(mtrx) <- make.names(design[[exp_names]], unique = TRUE)
-    } else {
-      colnames(mtrx) <- exp_names
-    }
+    colnames(mtrx) <- exp_names
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
     colnames(mtrx) <- abbreviate(colnames(mtrx), minlength = label_chars)
@@ -643,15 +642,15 @@ plot_rpm <- function(input, workdir = "images", output = "01.svg", name = "LmjF.
   ## post_stop = subset(rpm_region, position > my_end)
   stop_idx <- rpm_region[["position"]] > my_end
   post_stop <- rpm_region[stop_idx, ]
-  ## cds = subset(rpm_region, position >= my_start & position < my_end)
-  cds_idx <- rpm_region[["position"]] >= my_start & rpm_region[["position"]] < my_end
-  cds <- rpm_region[cds_idx, ]
+  ## cds_idx <- rpm_region[["position"]] >= my_start & rpm_region[["position"]] < my_end
+  ## cds <- rpm_region[cds_idx, ]
 
+  ## Why did I feel the need to do this little piece of insanity?
   eval(substitute(
     expr = {
       stupid <- aes(y = 0, yend = 0, x = my_start, xend = my_end)
-    },
-    env <- list(my_start = my_start, my_end = my_end)))
+    }, env = list(my_start = my_start, my_end = my_end)
+    ))
 
   if (strand == "+") {
     gene_arrow <- grid::arrow(type = "closed", ends = "last")

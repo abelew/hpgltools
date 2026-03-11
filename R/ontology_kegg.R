@@ -53,7 +53,7 @@ simple_pathview <- function(gene_input = NULL, compound_input = NULL,
   ## Please note that the KGML parser fails if other XML parsers are loaded into R
   ## eh = new.env(hash = TRUE, size = NA)
   ## There is a weird namespace conflict when using pathview, so I will reload it here
-  tmp <- sm(library(pathview)) ## I am not sure how else to avoid the error
+  sm(library(pathview)) ## I am not sure how else to avoid the error
   ## 'unable to load 'bods''
   ## If a table from limma was passed to this, just assume that one wants logFC
   ## Similar stanzas should probably be added for deseq/edger
@@ -340,7 +340,6 @@ get_kegg_compounds <- function(pathway = "all", abbreviation = NULL,
   result <- NULL
   species <- gsub(pattern = " ", replacement = "_", x = as.character(species))
   savefile <- glue("kegg_{species}.rda.xz")
-  kegg_data <- NULL
   if (file.exists(savefile)) {
     message("Reading from the savefile, delete ", savefile, " to regenerate.")
     result <- new.env()
@@ -358,7 +357,6 @@ get_kegg_compounds <- function(pathway = "all", abbreviation = NULL,
     } else {
       paths[1] <- pathway
     }
-    total_genes <- 0
     result <- data.frame()
     for (count in seq_along(paths)) {
       path <- paths[count]
@@ -427,7 +425,6 @@ get_kegg_genes <- function(pathway = "all", abbreviation = NULL,
   result <- NULL
   species <- gsub(pattern = " ", replacement = "_", x = as.character(species))
   savefile <- glue("kegg_{species}.rda.xz")
-  kegg_data <- NULL
   if (file.exists(savefile)) {
     message("Reading from the savefile, delete ", savefile, " to regenerate.")
     result <- new.env()
@@ -603,7 +600,6 @@ get_kegg_orgn <- function(species = "Leishmania", short = TRUE) {
 #' @export
 pct_all_kegg <- function(all_ids, sig_ids, organism = "dme", pathways = "all",
                          pathdir = "kegg_pathways", verbose = FALSE, ...) {
-  arglist <- list(...)
   if (!file.exists(pathdir)) {
     dir.create(pathdir)
   }
@@ -742,7 +738,6 @@ pct_all_kegg <- function(all_ids, sig_ids, organism = "dme", pathways = "all",
 pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
                           organism = "dme", pathdir = "kegg_pathways", ...) {
   ## warning("This function may not work, it seems to be missing some genes.")
-  arglist <- list(...)
   if (!file.exists(pathdir)) {
     dir.create(pathdir)
   }
@@ -826,6 +821,8 @@ pct_kegg_diff <- function(all_ids, sig_ids, pathway = "00500",
   message(pct_edge_diff, "% edges differentially expressed in pathway ",
           pathway, ": '", path_name, "'.")
   retlist <- list(
+    "all_keggids" = all_keggids,
+    "de_keggids" = de_keggids,
     "pathway" = pathway,
     "filename" = filename,
     "percent_nodes" = pct_node_diff,
@@ -862,7 +859,10 @@ rv:45.0) Gecko/20100101 Firefox/45.0')} \\
   if (isTRUE(silent)) {
     cmdline <- glue::glue("{cmdline} 2>/dev/null 1>&2")
   }
-  status <- system(cmdline)
+  status <- try(system(cmdline))
+  if ("try-error" %in% status) {
+    warning("Failed to run: ", cmdline, ".")
+  }
   return(invisible(kgml))
 }
 

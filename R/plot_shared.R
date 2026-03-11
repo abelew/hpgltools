@@ -1,3 +1,5 @@
+## plot_shared.R: Various plotting helpers which do not fit into other categories.
+
 ## Note to self, I think for future ggplot2 plots, I must start by creating the data frame
 ## Then cast every column in it explicitly, and only then invoke ggplot(data = df ...)
 
@@ -34,7 +36,7 @@ check_plot_scale <- function(data, scale = NULL, max_data = 10000, min_data = 10
     data[na_idx] <- 0
   }
   if (is.null(scale)) {
-    if (max(data) > max_data & min(data) < min_data) {
+    if (max(data) > max_data && min(data) < min_data) {
       mesg("This data will benefit from being displayed on the log scale.")
       mesg("If this is not desired, set scale='raw'")
       scale <- "log"
@@ -130,13 +132,13 @@ ggplt <- function(gg, filename = "ggplot.html",
   ## of the scope of my interest.
   out <- suppressWarnings(plotly::ggplotly(gg,
                                            ...))
-  widget <- htmlwidgets::saveWidget(
+  htmlwidgets::saveWidget(
     plotly::as_widget(out), base, selfcontained, libdir = libdir,
     background = background, title = plot_title, knitrOptions = knitrOptions)
   final <- base
   if (dir != ".") {
     final <- file.path(dir, base)
-    moved <- file.rename(base, final)
+    file.rename(base, final)
   }
   return(final)
 }
@@ -189,7 +191,6 @@ ggplt <- function(gg, filename = "ggplot.html",
 graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean",
                           title_suffix = NULL, qq = NULL, ma = NULL, cv = NULL, gene_heat = NULL,
                           ...) {
-  arglist <- list(...)
   if (!exists("input", inherits = FALSE)) {
     stop("The input data does not exist.")
   }
@@ -382,7 +383,7 @@ graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean"
     "tsne_plot" = tsne[["plot"]],
     "tsne_table" = tsne[["table"]]
   )
-  new_options <- options(old_options)
+  options(old_options)
   class(ret_data) <- "graphed_metrics"
   return(ret_data)
 }
@@ -422,14 +423,14 @@ plot_legend <- function(stuff) {
   leg <- which(sapply(tmp[["grobs"]], function(x) x[["name"]]) == "guide-box")
   legend <- tmp[["grobs"]][[leg]]
   tmp_file <- tmpmd5file(pattern = "legend", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   grid::grid.newpage()
   grid::grid.draw(legend)
   legend_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   ret <- list(
     "color_fact" = color_fact,

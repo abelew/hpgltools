@@ -1,3 +1,8 @@
+## power_estimation.R: Methods to explore estimates of statistical power in an experiment.
+## Currently this pretty much exclusively uses the package PROPER.  I am not particularly
+## pleased with that tool and would like to revisit this with some logic of my own,
+## or to find a more satisfactory tool for these purposes.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -41,9 +46,9 @@ default_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 2
     stop("This accepts only 'deseq' or 'edger'.")
   }
   genes <- nrow(de_tables[["data"]][[1]])
-  attached <- attachNamespace("PROPER")
+  attachNamespace("PROPER")
   ds <- c(experiment)
-  loaded <- data(list = ds, package = "PROPER")
+  data(list = ds, package = "PROPER")
   simulation_options <- PROPER::RNAseq.SimOptions.2grp(
     ngenes = genes,
     p.DE = p,
@@ -66,12 +71,12 @@ default_proper <- function(de_tables, p = 0.05, experiment = "cheung", nsims = 2
                                  delta = delta)
 
   tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   PROPER::plotPower(powers)
   power_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
   removed <- unlink(dirname(tmp_file))
 
   tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
@@ -228,7 +233,7 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
     ## cheesing out with a paste0 for now.
     num <- numerators[con_num]
     den <- denominators[con_num]
-    num_contrasts = length(contrasts)
+    num_contrasts <- length(contrasts)
     vs_string <- glue("{num}_vs_{den}")
     message("Working on contrast ", con_num, "/", num_contrasts, ": ", vs_string, ".")
     ## The variable 'used' is a string describing the contrast
@@ -302,14 +307,14 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
     plots <- proper_plots(powers, simulation_result,
                           add_coverage = add_coverage, x_intercept = x_intercept)
     ## Stealing from plotPower to get the relevant cutoffs
-    nsims = dim(powers[["power"]])[3]
-    observed_power = apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
-    power_se = apply(powers[["power"]], c(1, 2), !!sd, na.rm = TRUE) / sqrt(nsims)
-    ix.na = apply(observed_power, 1, function(x) all(is.na(x)))
-    observed_power = observed_power[!ix.na, ]
-    power_se = power_se[!ix.na, ]
-    strata = levels(cut(0, powers[["strata"]]))
-    strata = strata[!ix.na]
+    nsims <- dim(powers[["power"]])[3]
+    observed_power <- apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
+    power_se <- apply(powers[["power"]], c(1, 2), !!sd, na.rm = TRUE) / sqrt(nsims)
+    ix.na <- apply(observed_power, 1, function(x) all(is.na(x)))
+    observed_power <- observed_power[!ix.na, ]
+    power_se <- power_se[!ix.na, ]
+    strata <- levels(cut(0, powers[["strata"]]))
+    strata <- strata[!ix.na]
 
     chosen_replicate_column <- which(reps == describe_samples)
     chosen_replicates_first_gt <- which(observed_power[, chosen_replicate_column] >=
@@ -397,8 +402,8 @@ update.RNAseq.SimOptions.2grp <- "PROPER" %:::% "update.RNAseq.SimOptions.2grp"
 #' @param DEmethod I suggest using only either edgeR or DESeq2.
 #' @param verbose Print some information along the way?
 #' @seealso [PROPER]
-my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
-                        DEmethod = c("edger", "deseq", "deseq2"), verbose = TRUE) {
+my_runsims <- function(Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
+                       DEmethod = c("edger", "deseq", "deseq2"), verbose = TRUE) {
   DEmethod <- match.arg(DEmethod)
   if (missing(Nreps2)) {
     Nreps2 <- Nreps
@@ -462,6 +467,7 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
     "Nreps1" = Nreps,
     "Nreps2" = Nreps2,
     "sim.opts" = sim.opts)
+  set.seed(old_seed)
   return(retlist)
 }
 
@@ -473,17 +479,17 @@ my_runsims <- function (Nreps = c(3, 5, 7, 10), Nreps2, nsims = 100, sim.opts,
 #' @param x_intercept Add a line showing the significance deemed interesting.
 proper_plots <- function(powers, result, add_coverage = TRUE, x_intercept = 1) {
     tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     ## PROPER's plotting functions result in a bunch of annoying warnings.
     suppressWarnings(PROPER::plotPower(powers))
     if (isTRUE(add_coverage)) {
       abline(v = x_intercept)
     }
     power_plot <- grDevices::recordPlot()
-    off <- dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    dev.off()
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
     tmp_file <- tmpmd5file(pattern = "power", fileext = ".png")
     this_plot <- png(filename = tmp_file)
     controlled <- dev.control("enable")

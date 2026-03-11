@@ -1,4 +1,4 @@
-## annotation_genbank.r: A group of functions to extract annotations from
+## annotation_genbank.R: A group of functions to extract annotations from
 ## GenBank. Probably the second most likely annotation source is NCBI, so this
 ## file seeks to simplify extracting annotations from genbank flat files and/or
 ## the NCBI web interface.

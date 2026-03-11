@@ -44,15 +44,18 @@ clear_session <- function(keepers = NULL, depth = 10) {
   basic_packages <- c("package:stats", "package:graphics", "package:grDevices",
                       "package:utils", "package:datasets", "package:methods",
                       "package:base")
-  package_list <- search()[ifelse(unlist(gregexpr("package:", search()))==1, TRUE, FALSE)]
+  package_list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
   package_list <- setdiff(package_list, basic_packages)
-  result <- R.utils::gcDLLs()
+  result <- try(R.utils::gcDLLs())
+  if ("try-error" %in% class(result)) {
+    warning("Unable to invoked gcDLLs().")
+  }
   if (length(package_list) > 0) {
     for (package in package_list) {
       detach(package, character.only = TRUE)
     }
   }
-  tt <- sm(rm(list = ls(all.names = TRUE), envir = globalenv()))
+  rm(list = ls(all.names = TRUE), envir = globalenv())
 }
 
 #' Similarity measure which combines elements from Pearson correlation and

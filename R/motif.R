@@ -16,7 +16,6 @@
 #' @export
 simple_gadem <- function(inputfile, genome = "BSgenome.Hsapiens.UCSC.hs19",
                          p = 0.1, e = 0.0, ...) {
-  arglist <- list(...)
   ext <- tools::file_ext(inputfile)
   sequences <- NULL
   if (ext == "bed") {

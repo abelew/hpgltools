@@ -54,7 +54,6 @@ tnseq_saturation <- function(data, column = "Reads", ylimit = 100, adjust = 2) {
   max_reads <- max(table[[column]], na.rm = TRUE)
   table[["l2"]] <- log2(table[[column]] + 1)
   table[["sample"]] <- "sample"
-  count <- NULL
   density_plot <- ggplot(data = table, mapping = aes(x = .data[["l2"]])) +
     ggplot2::geom_density(aes(y = ggplot2::after_stat(.data[["count"]])),
                           position = "identity", adjust = adjust) +
@@ -124,6 +123,7 @@ tnseq_saturation <- function(data, column = "Reads", ylimit = 100, adjust = 2) {
     "hit_positions" = hit_positions,
     "hits_summary" = hits_summary,
     "density" = density_plot,
+    "violin" = violin_plot,
     "plot" = data_plot
   )
 
@@ -162,9 +162,9 @@ plot_essentiality <- function(file, order_by = "posterior_zbar", keep_esses = FA
   ess <- readr::read_tsv(file = file, comment = "#",
                          col_names = c("gene", "orf_hits", "orf_tas", "max_run",
                                        "max_run_span", "posterior_zbar", "call"),
-                         col_types = c("gene"="c", "orf_hits"="i", "orf_tas"="i",
-                                       "max_run"="i", "max_run_span"="i",
-                                       "posterior_zbar"="d", "call"="f"))
+                         col_types = c("gene" = "c", "orf_hits" = "i", "orf_tas" = "i",
+                                       "max_run" = "i", "max_run_span" = "i",
+                                       "posterior_zbar" = "d", "call" = "f"))
   if (!is.null(order_by)) {
     order_idx <- order(ess[[order_by]], decreasing = FALSE)
     ess <- ess[order_idx, ]
@@ -183,7 +183,7 @@ plot_essentiality <- function(file, order_by = "posterior_zbar", keep_esses = FA
   }
   sig_border <- insig_border + num_uncertain
 
-  ess[["rank"]] <- 1:nrow(ess)
+  ess[["rank"]] <- seq_along(nrow(ess))
   zbar_plot <- ggplot(
     data = ess,
     aes(x = .data[["rank"]], y = .data[["posterior_zbar"]], colour = .data[["call"]])) +
@@ -227,9 +227,9 @@ score_mhess <- function(exp, ess_column = "essm1") {
     ess <- readr::read_tsv(file = file, comment = "#",
                            col_names = c("gene", "orf_hits", "orf_tas", "max_run",
                                          "max_run_span", "posterior_zbar", "call"),
-                           col_types = c("gene"="c", "orf_hits"="i", "orf_tas"="i",
-                                         "max_run"="i", "max_run_span"="i",
-                                         "posterior_zbar"="d", "call"="f"))
+                           col_types = c("gene" = "c", "orf_hits" = "i", "orf_tas" = "i",
+                                         "max_run" = "i", "max_run_span" = "i",
+                                         "posterior_zbar" = "d", "call" = "f"))
     ess_df <- as.data.frame(ess[, c("gene", "call")])
     rownames(ess_df) <- gsub(x = ess_df[["gene"]], pattern = "^cds_",
                              replacement = "")
@@ -332,6 +332,7 @@ tnseq_multi_saturation <- function(meta, meta_column, ylimit = 100,
   retlist <- list(
     "table" = table,
     "plot" = plt,
+    "violin" = violin,
     "ggstats" = ggstats)
   return(retlist)
 }

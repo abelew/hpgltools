@@ -16,9 +16,8 @@
 #' @param ... Extra arguments for the downstream functions.
 #' @return ggplot2 goodness.
 #' @export
-plot_intensity_mz <- function(mzxml_data, loess = FALSE, alpha = 0.5, ms1=TRUE, ms2=TRUE,
+plot_intensity_mz <- function(mzxml_data, loess = FALSE, alpha = 0.5, ms1 = TRUE, ms2 = TRUE,
                               x_scale = NULL, y_scale = NULL, ...) {
-  arglist <- list(...)
   metadata <- mzxml_data[["metadata"]]
   colors <- mzxml_data[["colors"]]
   sample_data <- mzxml_data[["sample_data"]]
@@ -119,7 +118,6 @@ plot_intensity_mz <- function(mzxml_data, loess = FALSE, alpha = 0.5, ms1=TRUE, 
 #' @export
 plot_mzxml_boxplot <- function(mzxml_data, table = "precursors", column = "precursorintensity",
                                violin = FALSE, names = NULL, plot_title = NULL, scale = NULL, ...) {
-  arglist <- list(...)
   metadata <- mzxml_data[["metadata"]]
   colors <- mzxml_data[["colors"]]
   sample_data <- mzxml_data[["sample_data"]]
@@ -219,7 +217,6 @@ plot_mzxml_boxplot <- function(mzxml_data, table = "precursors", column = "precu
 plot_pyprophet_counts <- function(pyprophet_data, type = "count", keep_real = TRUE,
                                   keep_decoys = TRUE, expt_names = NULL, label_chars = 10,
                                   plot_title = NULL, scale = NULL, ...) {
-  arglist <- list(...)
   metadata <- pyprophet_data[["metadata"]]
   colors <- pyprophet_data[["colors"]]
   sample_data <- pyprophet_data[["sample_data"]]
@@ -227,7 +224,7 @@ plot_pyprophet_counts <- function(pyprophet_data, type = "count", keep_real = TR
   samples <- length(sample_data)
 
   ## Reset the sample names if one wants a specific column from the metadata.
-  if (!is.null(expt_names) & class(expt_names) == "character") {
+  if (!is.null(expt_names) && class(expt_names) == "character") {
     if (length(expt_names) == 1) {
       names(sample_data) <- make.names(metadata[[expt_names]], unique = TRUE)
     } else {
@@ -285,7 +282,7 @@ plot_pyprophet_counts <- function(pyprophet_data, type = "count", keep_real = TR
     plotted_data[["sum"]] <- as.numeric(plotted_data[["sum"]])
   }
 
-  if (!is.null(label_chars) & is.numeric(label_chars)) {
+  if (!is.null(label_chars) && is.numeric(label_chars)) {
     plot_df[["id"]] <- abbreviate(plot_df[["id"]], minlength = label_chars)
   }
   our_plot <- plot_sample_bars(plotted_data, integerp = TRUE,
@@ -325,8 +322,6 @@ plot_pyprophet_xy <- function(pyprophet_data, keep_real = TRUE, size = 6, label_
                               keep_decoys = TRUE, expt_names = NULL, label_chars = 10,
                               x_type = "count", y_type = "intensity",
                               plot_title = NULL, scale = NULL, ...) {
-  arglist <- list(...)
-
   x_data <- plot_pyprophet_counts(pyprophet_data,
                                   type = x_type,
                                   keep_real = keep_real,
@@ -398,7 +393,6 @@ plot_pyprophet_xy <- function(pyprophet_data, keep_real = TRUE, size = 6, label_
 plot_pyprophet_distribution <- function(pyprophet_data, column = "delta_rt", keep_real = TRUE,
                                         keep_decoys = TRUE, expt_names = NULL, label_chars = 10,
                                         plot_title = NULL, scale = NULL, ...) {
-  arglist <- list(...)
   metadata <- pyprophet_data[["metadata"]]
   colors <- pyprophet_data[["colors"]]
   sample_data <- pyprophet_data[["sample_data"]]
@@ -406,7 +400,7 @@ plot_pyprophet_distribution <- function(pyprophet_data, column = "delta_rt", kee
   samples <- length(sample_data)
 
   ## Reset the sample names if one wants a specific column from the metadata.
-  if (!is.null(expt_names) & class(expt_names) == "character") {
+  if (!is.null(expt_names) && class(expt_names) == "character") {
     if (length(expt_names) == 1) {
       names(sample_data) <- make.names(metadata[[expt_names]], unique = TRUE)
     } else {
@@ -568,8 +562,6 @@ plot_pyprophet_protein <- function(pyprophet_data, column = "intensity", keep_re
                                    protein = NULL, plot_title = NULL, scale = NULL, legend = NULL,
                                    order_by = "condition", show_all = TRUE,
                                    ...) {
-  arglist <- list(...)
-
   metadata <- pyprophet_data[["metadata"]]
   colors <- pyprophet_data[["colors"]]
   sample_data <- pyprophet_data[["sample_data"]]
@@ -586,7 +578,7 @@ plot_pyprophet_protein <- function(pyprophet_data, column = "intensity", keep_re
   }
 
   ## Reset the sample names if one wants a specific column from the metadata.
-  if (!is.null(expt_names) & class(expt_names) == "character") {
+  if (!is.null(expt_names) && class(expt_names) == "character") {
     if (length(expt_names) == 1) {
       names(sample_data) <- make.names(metadata[[expt_names]], unique = TRUE)
     } else {
@@ -691,7 +683,7 @@ plot_pyprophet_protein <- function(pyprophet_data, column = "intensity", keep_re
   final_df[[column]] <- scale_data[["data"]]
 
   color_names <- names(colors)
-  if (!is.null(label_chars) & is.numeric(label_chars)) {
+  if (!is.null(label_chars) && is.numeric(label_chars)) {
     final_df[["sample"]] <- abbreviate(final_df[["sample"]], minlength = label_chars)
     color_names <- abbreviate(color_names, minlength = label_chars)
     names(null_samples) <- abbreviate(names(null_samples), minlength = label_chars)
@@ -723,7 +715,7 @@ plot_pyprophet_protein <- function(pyprophet_data, column = "intensity", keep_re
     ggplot2::ylab(column) +
     ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.1),
                          size = 2, alpha = 0.5) +
-    ggplot2::annotate("text", x = 1:length(obs),
+    ggplot2::annotate("text", x = seq_along(obs),
                       y = max(final_df[[column]] + (0.2 * max(final_df[[column]]))),
                       label = as.character(obs)) +
     ggplot2::labs(caption = glue::glue("Number observed peptides in all samples: {sum_obs}"))
@@ -770,8 +762,6 @@ plot_pyprophet_protein <- function(pyprophet_data, column = "intensity", keep_re
 plot_pyprophet_points <- function(pyprophet_data, xaxis = "mass", xscale = NULL, sample = NULL,
                                   yaxis = "leftwidth", yscale = NULL, alpha = 0.4, color_by = "sample",
                                   legend = TRUE, size_column = "mscore", rug = TRUE, ...) {
-  arglist <- list(...)
-
   metadata <- pyprophet_data[["metadata"]]
   colors <- pyprophet_data[["colors"]]
   sample_data <- pyprophet_data[["sample_data"]]
@@ -945,9 +935,6 @@ plot_peprophet_data <- function(table, xaxis = "precursor_neutral_mass", xscale 
   table[["size"]] <- as.factor(table[["size"]])
   levels(table[["size"]]) <- c("01smallest", "02small", "03medium_small",
                                "04medium_big", "05big", "06biggest")
-  my_sizes <- c("01smallest"=0.4, "02small"=8, "03medium_small"=1.2,
-                "04medium_big"=1.6, "05big"=2.0, "06biggest"=2.4)
-
   scale_x_cont <- "raw"
   if (!is.null(xscale)) {
     if (is.numeric(xscale)) {

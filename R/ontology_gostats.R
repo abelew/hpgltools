@@ -1,3 +1,8 @@
+## ontology_gostats.R:  Helpers for gostats.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Create a clusterProfiler compatible enrichResult data structure from a gostats result.
 #'
 #' The metrics and visualization methods in clusterProfiler are the
@@ -45,8 +50,9 @@ gostats2enrich <- function(retlist, ontology = "MF", cutoff = 0.1,
   genes_per_category <- gather_ontology_genes(
     retlist, ontology = ontology, column = "Pvalue",
     pval = cutoff)
-  category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
-  interesting_cutoff[["term_nohtml"]] <- gsub(x = interesting_cutoff[["Term"]], pattern = "^<a href.*>(.*)</a>", replacement = "\\1")
+  ## category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
+  interesting_cutoff[["term_nohtml"]] <- gsub(
+    x = interesting_cutoff[["Term"]], pattern = "^<a href.*>(.*)</a>", replacement = "\\1")
 
   ## FIXME: This is _definitely_ wrong for BgRatio
   representation_df <- data.frame(
@@ -73,7 +79,7 @@ gostats2enrich <- function(retlist, ontology = "MF", cutoff = 0.1,
              gene = sig_genes,
              universe = godf[["ID"]],
              ## universe = extID,
-             geneSets = list(up=sig_genes),
+             geneSets = list("up" = sig_genes),
              ## geneSets = geneSets,
              organism = organism,
              keytype = "UNKNOWN",
@@ -118,7 +124,6 @@ simple_gostats <- function(sig_genes, go_db = NULL, gff = NULL, gff_df = NULL, u
   ## The import(gff) is being used for this primarily because it uses integers
   ## for the rownames and because it (should) contain every gene in the
   ## 'universe' used by GOstats, as much it ought to be pretty much perfect.
-  arglist <- list(...)
   if (is.null(gff_df) && is.null(gff)) {
     warning("This requires a gff or gff database of gene IDs.")
     ## Perhaps I should make this a bit more flexible, I can integer index orgdbs etc.
@@ -143,12 +148,12 @@ simple_gostats <- function(sig_genes, go_db = NULL, gff = NULL, gff_df = NULL, u
   try(detach("package:GOstats", unload = TRUE), silent = TRUE)
   try(detach("package:Category", unload = TRUE), silent = TRUE)
   ## In theory, requireNamespace is sufficient, but that is not true.
-  tt <- sm(requireNamespace("GOstats"))
-  tt <- sm(requireNamespace("GSEABase"))
-  tt <- sm(requireNamespace("AnnotationDbi"))
-  tt <- sm(requireNamespace("Category"))
-  lib_result <- sm(requireNamespace("GOstats"))
-  att_result <- sm(try(attachNamespace("GOstats"), silent = TRUE))
+  sm(requireNamespace("GOstats"))
+  sm(requireNamespace("GSEABase"))
+  sm(requireNamespace("AnnotationDbi"))
+  sm(requireNamespace("Category"))
+  sm(requireNamespace("GOstats"))
+  sm(try(attachNamespace("GOstats"), silent = TRUE))
   message("simple_gostats(): gff_type is: ", gff_type,
           ". Change that if there are bad merges.")
   types <- c("cds", "gene", "exon", "protein_coding")
@@ -297,7 +302,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
   if (!is.null(dim(bp_over_table))) {
@@ -309,7 +314,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
   if (!is.null(dim(cc_over_table))) {
@@ -321,7 +326,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
   if (!is.null(dim(mf_under_table))) {
@@ -333,7 +338,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
   if (!is.null(dim(bp_under_table))) {
@@ -345,7 +350,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
   if (!is.null(dim(cc_under_table))) {
@@ -357,7 +362,7 @@ perhaps change gff_type to make the merge work.")
     error = function(cond) {
       return(1)
     },
-    finally={
+    finally = {
     })
   }
 
@@ -462,6 +467,9 @@ perhaps change gff_type to make the merge work.")
   if (!is.null(excel)) {
     message("Writing data to: ", excel, ".")
     excel_ret <- sm(try(write_gostats_data(retlist, excel = excel)))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Failed to write the gostats data to: ", excel, ".")
+    }
   }
   enrich_results <- list()
   for (ont in c("bp", "mf", "cc")) {

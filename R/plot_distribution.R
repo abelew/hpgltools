@@ -614,6 +614,7 @@ plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ..
 
   tmp_file <- tmpmd5file(pattern = "multi", fileext = ".png")
   this_plot <- try(png(filename = tmp_file))
+  result <- NULL
   if ("try-error" %in% class(this_plot)) {
     warning("Unable to open the output plot file: ", tmp_file, ".")
   } else {
@@ -621,8 +622,8 @@ plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ..
     result <- plot_multiplot(logs)
     log_plots <- grDevices::recordPlot()
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
   }
 
   tmp_file <- tmpmd5file(pattern = "multi", fileext = ".png")
@@ -631,14 +632,14 @@ plot_qq_all <- function(data, design = NULL, colors = NULL, labels = "short", ..
     warning("Unable to open the output plot file: ", tmp_file, ".")
   } else {
     dev.control("enable")
-    plot_multiplot(ratios)
+    result <- plot_multiplot(ratios)
     ratio_plots <- grDevices::recordPlot()
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
   }
 
-  plots <- list(logs = log_plots, ratios = ratio_plots, medians = means)
+  plots <- list(logs = log_plots, ratios = ratio_plots, medians = means, result = result)
   return(plots)
 }
 setGeneric("plot_qq_all")
@@ -690,21 +691,6 @@ setMethod(
 #' @seealso [Biobase]
 #' @export
 plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
-  data_class <- class(data)[1]
-  if (data_class == "exp" || data_class == "SummarizedExperiment") {
-    design <- colData(data)
-    colors <- data[["colors"]]
-    names <- data[["names"]]
-    data <- as.data.frame(assay(data))
-  } else if (data_class == "ExpressionSet") {
-    data <- assay(data)
-    design <- colData(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    data <- as.data.frame(data)
-  } else {
-    stop("This understands classes of type: exp, ExpressionSet, data.frame, and matrix.")
-  }
-
   xlabel <- colnames(data)[x]
   ylabel <- colnames(data)[y]
   xvector <- as.vector(data[, x])
@@ -820,8 +806,25 @@ plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
     "ratio" = ratio_plot,
     "log" = log_ratio_plot,
     "summary" = log_summary)
+  class(qq_plots) <- "hpgltools::plot_single_qq"
   return(qq_plots)
 }
+setGeneric("plot_single_qq")
+
+#' SE as input to plot_single_qq()
+#'
+#' @inherit plot_single_qq
+setMethod("plot_single_qq", signature(data = "SummarizedExperiment"),
+  definition = function(data, x = 1, y = 2, labels = TRUE) {
+    df <- as.data.frame(assay(data))
+    plot_single_qq(df, x = x, y = y, labels = labels)
+  })
+
+setMethod("plot_single_qq", signature(data = "matrix"),
+  definition = function(data, x = 1, y = 2, labels = TRUE) {
+    df <- as.data.frame(data)
+    plot_single_qq(df, x = x, y = y, labels = labels)
+  })
 
 #' Plot the representation of the top-n genes in the total counts / sample.
 #'
@@ -848,19 +851,6 @@ plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
 plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
                       plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
   arglist <- list(...)
-  data_class <- class(data)
-  if (data_class == "exp" || data_class == "SummarizedExperiment") {
-    design <- colData(data)
-    colors <- data[["colors"]]
-    data <- assay(data)
-  } else if (data_class == "ExpressionSet") {
-    data <- assay(data)
-    design <- colData(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    data <- as.matrix(data)
-  } else {
-    stop("This understands classes of type: SE, ExpressionSet, data.frame, and matrix.")
-  }
 
   if (is.null(plot_labels)) {
     if (ncol(data) < 30) {
@@ -941,6 +931,28 @@ plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
   class(retlist) <- "topn_plot"
   return(retlist)
 }
+
+#' SE as input to plot_topn()
+#'
+#' @inherit plot_topn
+setMethod("plot_topn", signature(data = "SummarizedExperiment"),
+          definition = function(data, plot_title = NULL, num = 100, sample_names = NULL,
+                                plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
+            df <- as.data.frame(assay(data))
+            plot_topn(df, plot_title = plot_title, num = num,
+                      sample_names = sample_names, plot_labels = plot_labels,
+                      label_chars = label_chars, plot_legend = plot_legend, ...)
+          })
+
+setMethod("plot_topn", signature(data = "matrix"),
+          definition = function(data, plot_title = NULL, num = 100, sample_names = NULL,
+                                plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
+            df <- as.data.frame(data)
+            plot_topn(df, plot_title = plot_title, num = num,
+                      sample_names = sample_names, plot_labels = plot_labels,
+                      label_chars = label_chars, plot_legend = plot_legend, ...)
+          })
+
 
 #' Print a result from plot_topn().
 #'
@@ -1078,8 +1090,8 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
       ggplot2::geom_violin(aes(fill = .data[["x_axis"]]), width = 1, scale = "area") +
       ggplot2::scale_fill_manual(values = color_list, name = x_axis) +
       ggplot2::stat_summary(fun.data = get_mean_cv, geom = "text",
-                            position = ggplot2::position_fill(vjust=-0.1)) +
-      ggplot2::annotate("text", x = seq_len(length(sample_numbers)),
+                            position = ggplot2::position_fill(vjust = -0.1)) +
+      ggplot2::annotate("text", x = seq_along(sample_numbers),
                         y = max(cv_data[[type]] + (0.05 * max(cv_data[[type]]))),
                         label = as.character(sample_numbers)) +
       ggplot2::theme_bw(base_size = base_size) +

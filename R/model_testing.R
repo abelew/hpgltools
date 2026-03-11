@@ -1,6 +1,9 @@
-## model_testing.r: Some functions to get ready to pass models to various
+## model_testing.R: Some functions to get ready to pass models to various
 ## DE/test/etc methods.  These functions seek to catch some corner cases when
 ## playing with the various model types when using DESeq/etc.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Perform some checks on a formula string
 #'
@@ -85,13 +88,18 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
-    excel_basename <- xlsx[["basename"]]
     written <- write_xlsx(data = initial_summary, wb = wb, sheet = "lm_summary")
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "lm_summary")
+    if ("try-error" %in% class(try-result)) {
+      warning("Unable to insert the lm_summary plot.")
+    }
     written <- write_xlsx(data = meta, wb = wb, sheet = "input")
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Unable to save the xlsx file: ", excel, ".")
+    }
   }
   retlist <- list(
     "initial_lm" = initial_lm,
@@ -186,13 +194,18 @@ extract_logistic_regression <- function(meta, query = "condition", multivariable
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
-    excel_basename <- xlsx[["basename"]]
     written <- write_xlsx(data = full_summary, wb = wb, sheet = "logistic_summary")
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "logistic_summary")
+    if ("try-error" %in% class(try_result)) {
+      warning("Unable to write the logistic_summary plot.")
+    }
     written <- write_xlsx(data = meta, wb = wb, sheet = "input")
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Unable to save the xlsx file: ", excel, ".")
+    }
   }
   retlist <- list(
     "initial_glm" = initial_glm,
@@ -282,7 +295,7 @@ get_formula_factors <- function(formula_string = NULL) {
   }
 
   fct_vector <- c()
-  for (i in seq_len(length(factor_vector))) {
+  for (i in seq_along(factor_vector)) {
     factor_vector[i] <- gsub(x = factor_vector[i], pattern = "[[:space:]]", replacement = "")
     if (grepl(x = factor_vector[i], pattern = "^[[:digit:]]+$")) {
       next
@@ -404,13 +417,18 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
-    excel_basename <- xlsx[["basename"]]
     written <- write_xlsx(data = full_summary, wb = wb, sheet = "logistic_summary")
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "logistic_summary")
+    if ("try-error" %in% class(try_result)) {
+      warning("Unable to add the logistic_summary plot.")
+    }
     written <- write_xlsx(data = design, wb = wb, sheet = "input")
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Unable to write the xlsx output: ", excel, ".")
+    }
   }
   retlist <- list(
     "initial_lm" = initial_lm,
@@ -503,13 +521,18 @@ using all and assuming the first column (", all_factors[1], ") is the query.")
   if (!is.null(excel)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
-    excel_basename <- xlsx[["basename"]]
     written <- write_xlsx(data = summary_df, wb = wb, sheet = "logistic_summary")
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "logistic_summary")
+    if ("try-error" %in% class(try_result)) {
+      warning("Unable to add the logistic_summary.")
+    }
     written <- write_xlsx(data = design, wb = wb, sheet = "input")
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Unable to save the xlsx file: ", excel, ".")
+    }
   }
   retlist <- list(
     "initial_glm" = initial_glm,
@@ -589,7 +612,6 @@ sanitize_model <- function(model, keep_underscore = TRUE,
 #' @seealso [model.matrix()] [qr()]
 #' @export
 test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
-  arglist <- list(...)
   ## For testing, use some existing matrices/data
   message("There are ", length(levels(as.factor(design[, goal]))),
           " levels in the goal: ", goal, ".")
@@ -613,7 +635,7 @@ test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
         next
       }
       message("Testing an experimental design with ", goal, " and ", factor, ".")
-      matrix_goal <- design[, goal]
+      ## matrix_goal <- design[, goal]
       matrix_factor <- design[, factor]
       if (length(levels(as.factor(matrix_factor))) == 1) {
         message("Factor ", factor, " has only 1 level, skipping it.")

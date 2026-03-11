@@ -1,4 +1,7 @@
-## Attempt to standardize some network-formation functions.
+## network.R: Attempt to standardize some network-formation functions.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Given a matrix of scores (bit score, e-value, etc), create an adjacency graph.
 #'
@@ -130,11 +133,11 @@ annotate_network_nodes <- function(network, df, column = "assemblyxls", col_numb
   entries <- rownames(df)
   net_names <- igraph::vertex_attr(network, name = "name")
   nodes_annotated <- 0
-  for (e in seq_len(length(entries))) {
+  for (e in seq_along(entries)) {
     entry <- entries[e]
     gene_annotation_file <- df[e, column]
     gene_annotations <- try(sm(extract_metadata(gene_annotation_file,
-                                                fill = "")), silent=TRUE)
+                                                fill = "")), silent = TRUE)
     if ("try-error" %in% class(gene_annotations)) {
       next
     }
@@ -146,7 +149,7 @@ annotate_network_nodes <- function(network, df, column = "assemblyxls", col_numb
     pfam_defined <- pfam_names[defined_names]
     entries_found <- 0
     nodes_found <- 0
-    for (d in seq_len(length(pfam_defined))) {
+    for (d in seq_along(pfam_defined)) {
       defined_name <- names(pfam_defined)[d]
       defined_value <- pfam_defined[d]
       pfam_nodes <- net_names == defined_name
@@ -208,6 +211,7 @@ prune_network <- function(network, min_weight = 0.4, min_connectivity = 1) {
 wgcna_network <- function(exp) {
   chosen_power <- 8
   ## WGCNA calls cor() without specifying its own namespace, so overwrite cor for the moment.
+  starting_cor <- cor
   cor <- WGCNA::cor
   start_assay <- t(assay(exp))
   l2input <- t(assay(normalize(exp, transform = "log2")))
@@ -216,7 +220,7 @@ wgcna_network <- function(exp) {
     start_assay, maxBlockSize = 11000, TOMType = "signed",
     power = chosen_power, mergeCutHeight = 0.25, numericLabels = FALSE,
     verbose = 3)
-  cor <- stats::cor
+  cor <- starting_cor
 
   initial_eigen <- initial_modules[["MEs"]]
   network_colors <- WGCNA::labels2colors(initial_modules[["colors"]])

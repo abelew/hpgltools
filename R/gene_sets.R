@@ -1,3 +1,6 @@
+## gene_sets.R: Work with gene sets, to get them ready for the various enrichment analyses,
+## or just to extract genes of interest from the various datatypes/filetypes that maintain them.
+
 #' @include 01_hpgltools.R
 NULL
 

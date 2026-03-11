@@ -61,7 +61,7 @@ slide_de_threshold <- function(de_table, contrast = 1, lfc = 1.0, p = 0.05,
         df, aes(x = .data[["deseq_logfc"]], y = .data[["lp"]],
                 color = .data[["both_sig"]])) +
         ggplot2::geom_point()
-    }, height = 400,width = 600)
+    }, height = 400, width = 600)
     output$volcano_summary <- renderTable({
       stuff <- dat()
       summary_df <- data.frame("lfc" = c(0, 0),

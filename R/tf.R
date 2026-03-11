@@ -41,7 +41,7 @@ simple_dorothea <- function(exp, gene_column = "ensembl_gene_id",
   ## Now recast the rownames as hgnc IDs.  Those IDs are weird and
   ## redundant, so keep that in mind.
   hgnc <- rowData(exp)[, c(gene_column, hgnc_column)]
-  tmp_mtrx <- merge(mtrx, hgnc, by.x="row.names", by.y = gene_column)
+  tmp_mtrx <- merge(mtrx, hgnc, by.x = "row.names", by.y = gene_column)
   rownames(tmp_mtrx) <- make.names(tmp_mtrx[[hgnc_column]],
                                    unique = TRUE)
   tmp_mtrx[["Row.names"]] <- NULL
@@ -61,7 +61,7 @@ simple_dorothea <- function(exp, gene_column = "ensembl_gene_id",
 
   ## Their confidence scores are 'A', 'B', 'C', 'D' and maybe more.
   confidence <- NULL
-  regulons = dorothea_df %>%
+  regulons <- dorothea_df %>%
     filter(confidence %in% conf)
 
   ## viper is what does the real work as far as I can tell.

@@ -1,7 +1,10 @@
-## normalize_batch.r: Bring together various surrogate/batch
+## normalize_batch.R: Bring together various surrogate/batch
 ## estimation/correction methods.  I want to be able to compare/contrast
 ## surrogate estimators and batch correction methods.  These functions attempt
 ## to make that possible.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Apply the suite of destructive batch estimate tools
 #'
@@ -36,8 +39,8 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
                             cpus = 4, na_to_zero = TRUE, confounders = NULL,
                             adjust_method = "ruv", filter = "raw", thresh = 1,
                             noscale = FALSE, prior_plots = FALSE, control_type = "norm") {
-  lib_result <- sm(requireNamespace("ruv"))
-  att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
+  sm(requireNamespace("ruv"))
+  sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
   ## Gather all the likely pieces we can use
   my_design <- colData(input)
@@ -83,7 +86,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
   num_normal <- sum(linear_mtrx > 1, na.rm = TRUE)
   normal_pct <- scales::percent(num_normal / elements)
   mesg("batch_counts: Before batch/surrogate estimation, ",
-       num_normal, " entries are x>1: ", normal_pct, ".")
+       num_normal, " entries are x>1: ", normal_pct, " on a ", input_scale, " scale.")
   num_zero <- sum(linear_mtrx == 0, na.rm = TRUE)
   zero_pct <- scales::percent(num_zero / elements)
   mesg("batch_counts: Before batch/surrogate estimation, ",
@@ -104,22 +107,23 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
             num_zero, " entries are x<0: ", neg_pct, ".")
   }
 
-  fctrs <- get_formula_factors(model_fstring)
-  contrast_fctr <- fctrs[["factors"]][1]
-
+  ## fctrs <- get_formula_factors(model_fstring)
+  ## contrast_fctr <- fctrs[["factors"]][1]
   conditional_formula <- as.formula(model_fstring)
   conditional_model <- model.matrix(conditional_formula, data = my_design)
-  if (is.null(null_fstring)) {
-    null_model <- conditional_model[, 1]
-  } else {
-    null_formula <- as.formula(null_fstring)
-    null_model <- model.matrix(null_formula, data = my_design)
-  }
-
+  ## I do not think I need to create a null model any longer, that is the responsibility
+  ## of the downstream function given the fstring.
+  ## Ergo: FIXME, remove this if {} once I am certain I do not need null_model.
+  ## if (is.null(null_fstring)) {
+  ##   null_model <- conditional_model[, 1]
+  ## } else {
+  ##   null_formula <- as.formula(null_fstring)
+  ##   null_model <- model.matrix(null_formula, data = my_design)
+  ## }
   batches <- my_design[[batch1]]
 
   ## Everything in this switch should directly return a new matrix of count-like data
-  switchret <- switch(
+  switch(
     estimate_type,
     "combat" = {
       ## This peculiar syntax should match combat and combat_noscale
@@ -168,51 +172,51 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
         new_counts <- (2 ^ new_counts) - 1
       }
     },
-    "limmaresid" = {
-      ## ok a caveat:  voom really does require input on the base 10 scale and returns
-      ## log2 scale data.  Therefore we need to make sure that the input is
-      ## provided appropriately.
-      mesg("batch_counts: Using residuals of limma's lmfit to remove batch effect.")
-      batch_model <- model.matrix(~batches)
-      batch_voom <- limma::voom(linear_mtrx, batch_model,
-                                normalize.method = "quantile",
-                                plot = FALSE)
-      batch_fit <- limma::lmFit(batch_voom, design = batch_model)
-      new_counts <- stats::residuals(batch_fit, batch_voom[["E"]])
-      ## This is still fubar!
-      ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
-      if (input_state[["transform"]] == "raw") {
-        new_counts <- (2 ^ new_counts) - 1
-      }
-    },
-    "varpart" = {
-      mesg("Taking residuals from a linear mixed model as suggested by variancePartition.")
-      cl <- parallel::makeCluster(cpus)
-      doParallel::registerDoParallel(cl)
-      batch_model <- as.formula("~ (1|batch)")
-      mesg("The function fitvarPartModel may take excessive memory, you have been warned.")
-      batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, my_design)
-      new_counts <- stats::residuals(batch_fit)
-      rm(batch_fit)
-      parallel::stopCluster(cl)
-    },
-    {
-      svs <- adjuster_svs(
-        input, model_fstring = model_fstring, null_fstring = null_fstring,
-        model_svs = estimate_type, batch1 = batch1, batch2 = batch2,
-        num_surrogates = num_surrogates, low_to_zero = low_to_zero, cpus = cpus,
-        na_to_zero = na_to_zero, confounders = confounders,
-        adjust_method = adjust_method, filter = filter,
-        thresh = thresh, control_type = control_type)
-      model_adjust <- svs[["model_adjust"]]
-      output_scale <- svs[["output_scale"]]
-      mesg("Adjusting counts with method: ", adjust_method, ".")
-      new_counts <- counts_from_surrogates(data = input, adjust = model_adjust,
-                                           method = adjust_method, design = my_design)
-      if (output_scale == "log2") {
-        new_counts <- (2 ^ new_counts) - 1
-      }
-    })
+ "limmaresid" = {
+   ## ok a caveat:  voom really does require input on the base 10 scale and returns
+   ## log2 scale data.  Therefore we need to make sure that the input is
+   ## provided appropriately.
+   mesg("batch_counts: Using residuals of limma's lmfit to remove batch effect.")
+   batch_model <- model.matrix(~batches)
+   batch_voom <- limma::voom(linear_mtrx, batch_model,
+                             normalize.method = "quantile",
+                             plot = FALSE)
+   batch_fit <- limma::lmFit(batch_voom, design = batch_model)
+   new_counts <- stats::residuals(batch_fit, batch_voom[["E"]])
+   ## This is still fubar!
+   ##new_counts <- limma::residuals.MArrayLM(batch_fit, batch_voom)
+   if (input_state[["transform"]] == "raw") {
+     new_counts <- (2 ^ new_counts) - 1
+   }
+ },
+ "varpart" = {
+   mesg("Taking residuals from a linear mixed model as suggested by variancePartition.")
+   cl <- parallel::makeCluster(cpus)
+   doParallel::registerDoParallel(cl)
+   batch_model <- as.formula("~ (1|batch)")
+   mesg("The function fitvarPartModel may take excessive memory, you have been warned.")
+   batch_fit <- variancePartition::fitVarPartModel(linear_mtrx, formula = batch_model, my_design)
+   new_counts <- stats::residuals(batch_fit)
+   rm(batch_fit)
+   parallel::stopCluster(cl)
+ },
+ {
+   svs <- adjuster_svs(
+     input, model_fstring = model_fstring, null_fstring = null_fstring,
+     model_svs = estimate_type, batch1 = batch1, batch2 = batch2,
+     num_surrogates = num_surrogates, low_to_zero = low_to_zero, cpus = cpus,
+     na_to_zero = na_to_zero, confounders = confounders,
+     adjust_method = adjust_method, filter = filter,
+     thresh = thresh, control_type = control_type)
+   model_adjust <- svs[["model_adjust"]]
+   output_scale <- svs[["output_scale"]]
+   mesg("Adjusting counts with method: ", adjust_method, ".")
+   new_counts <- counts_from_surrogates(data = input, adjust = model_adjust,
+                                        method = adjust_method, design = my_design)
+   if (output_scale == "log2") {
+     new_counts <- (2 ^ new_counts) - 1
+   }
+ })
   return(new_counts)
 }
 
@@ -256,8 +260,8 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
   ## Without the following requireNamespace(ruv)
   ## we get an error 'unable to find an inherited method for function RUVr'
   ## ruv_loaded <- try(require(package = "ruv", quietly = TRUE))
-  lib_result <- sm(requireNamespace("ruv"))
-  att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
+  sm(requireNamespace("ruv"))
+  sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
 
   ## Gather all the likely pieces we can use
@@ -366,8 +370,8 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
     if (chosen_surrogates > 1) {
       vword <- "variables"
     }
-  mesg("The ", num_surrogates, " method chose ",
-       chosen_surrogates, " surrogate ", vword, ".")
+    mesg("The ", num_surrogates, " method chose ",
+         chosen_surrogates, " surrogate ", vword, ".")
   } else if (class(num_surrogates) == "numeric") {
     mesg("A specific number of surrogate variables was chosen: ", num_surrogates, ".")
     chosen_surrogates <- num_surrogates
@@ -690,7 +694,7 @@ guess_num_surrogates <- function(design, linear_mtrx, log2_mtrx,
     chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model))
   } else {
     chosen_surrogates <- sm(sva::num.sv(dat = log2_mtrx, mod = conditional_model,
-                                       method = guess_type))
+                                        method = guess_type))
   }
   return(chosen_surrogates)
 }
@@ -749,8 +753,8 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   ## Without the following requireNamespace(ruv)
   ## we get an error 'unable to find an inherited method for function RUVr'
   ## ruv_loaded <- try(require(package = "ruv", quietly = TRUE))
-  lib_result <- sm(requireNamespace("ruv"))
-  att_result <- sm(try(attachNamespace("ruv"), silent = TRUE))
+  sm(requireNamespace("ruv"))
+  sm(try(attachNamespace("ruv"), silent = TRUE))
   ## In one test, this seems to have been enough, but in another, perhaps not.
 
   if (is.null(design)) {
@@ -957,7 +961,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   ## Just an aside, calling this a base 10 matrix is stupid.  Just because something is
   ## put on a log scale does not suddently make it octal or binary or imaginary!
   surrogate_input <- linear_mtrx
-  switchret <- switch(
+  switch(
     estimate_type,
     "combat" = {
       ## This peculiar syntax should match combat and combat_noscale
@@ -992,7 +996,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
                                    par.prior = TRUE, prior.plots = prior_plots,
                                    mean.only = FALSE))
     },
-   "fsva" = {
+    "fsva" = {
       ## Ok, I have a question:
       ## If we perform fsva using log2(data) and get back SVs on a scale of ~ -1
       ## to 1, then why are these valid for changing and visualizing the linear
@@ -1307,7 +1311,7 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
                          current_state = NULL, current_design = NULL, input_state = NULL,
                          surrogate_method = NULL, num_surrogates = NULL, low_to_zero = FALSE,
                          cpus = 4, batch2 = NULL, noscale = TRUE, adjust_method = "ruv") {
-                       ##, ...) {
+  ##, ...) {
   arglist <- list()
   if (!is.null(arglist[["batch"]])) {
     method <- arglist[["batch"]]
@@ -1597,7 +1601,7 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
     mesg("The exp has not been filtered, ",
          "set filter_type/filter_it if you want other options.")
     exp <- normalize(exp, filter = filter_type,
-                           ...)
+                     ...)
   }
   pca_plots <- list()
   pca_plots[["null"]] <- plot_pca(exp)[["plot"]]
@@ -1846,7 +1850,7 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
                                 data = my_design)
   }
 
-   new_model <- conditional_model
+  new_model <- conditional_model
   ## Explicitly append columns of the adjust matrix to the conditional model.
   ## In the previous code, this was: 'X <- cbind(conditional_model, sva$sv)'
   ## new_model <- cbind(conditional_model, adjust)
@@ -2127,8 +2131,8 @@ sv_fstatistics <- function(exp, num_surrogates = NULL,
                            sv_df = NULL, queries = c("typeofcells", "visitnumber", "donor"),
                            ...) {
   svs_exp <- normalize(exp, filter = filter, norm = norm, convert = convert,
-                             transform = transform, batch = batch,
-                             ...)
+                       transform = transform, batch = batch,
+                       ...)
   if (is.null(sv_df)) {
     sv_df <- svs_exp[["sv_df"]]
   }
@@ -2175,7 +2179,7 @@ svpc_fstats <- function(exp, ...) {
   if (exp[["state"]][["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
     pre_norm <- normalize(exp, transform = "log2", convert = "cpm",
-                               filter = TRUE)
+                          filter = TRUE)
   } else {
     pre_norm <- exp
   }

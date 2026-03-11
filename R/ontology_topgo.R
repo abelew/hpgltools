@@ -10,9 +10,7 @@ df_to_mappings <- function(go_db) {
   go_lst <- list()
   for (id in seq_along(gene_ids)) {
     id_name <- gene_ids[id]
-    id_vector <- c()
     categories <- go_db[["ID"]] == id_name
-    category_names <- go_db[categories, "GO"]
     if (sum(categories) > 0) {
       vector <- go_db[categories, "GO"]
       na <- is.na(vector)
@@ -78,7 +76,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   ## What I should do: create the data structure returned by readMappings()
   ## Creating this file denovo is dumb
   if (isTRUE(overwrite) && file.exists(goid_map)) {
-    removed <- file.remove(goid_map)
+    file.remove(goid_map)
   }
   #gomap_info <- make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
   #if (is.null(gomap_info)) {
@@ -128,10 +126,10 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   if (isTRUE(parallel)) {
     cl <- parallel::makeCluster(4)
     doParallel::registerDoParallel(cl)
-    tt <- sm(requireNamespace("parallel"))
-    tt <- sm(requireNamespace("doParallel"))
-    tt <- sm(requireNamespace("iterators"))
-    tt <- sm(requireNamespace("foreach"))
+    sm(requireNamespace("parallel"))
+    sm(requireNamespace("doParallel"))
+    sm(requireNamespace("iterators"))
+    sm(requireNamespace("foreach"))
     res <- foreach(c = seq_along(methods),
                  ## .combine = "c", .multicombine = TRUE,
                  .packages = c("hpgltools", "Hmisc", "topGO")) %dopar% {
@@ -361,14 +359,13 @@ do_topgo <- function(type, go_map = NULL, fisher_genes = NULL, ks_genes = NULL,
                      selector = "topDiffGenes", sigforall = TRUE, numchar = 300,
                      pval_column = "adj.P.Val", overwrite = FALSE,
                      cutoff = 0.05, densities = FALSE, pval_plots = TRUE) {
-  tt <- try(sm(requireNamespace("topGO")), silent = TRUE)
-  tt <- try(sm(attachNamespace("topGO")), silent = TRUE)
+  try(sm(attachNamespace("topGO")), silent = TRUE)
   retlist <- list(
       "BP" = list(),
       "MF" = list(),
       "CC" = list())
   for (ont in names(retlist)) {
-    switchret <- switch(
+    switch(
         type,
         "fisher" = {
           retlist[[ont]][["type"]] <- "fisher"
@@ -490,7 +487,6 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   q_column <- paste0("padj_", column)
   interesting_name <- paste0(tolower(ontology), "_interesting")
   godata <- retlist[["godata"]][[result_name]]
-  result_data <- retlist[["results"]][[result_name]]
   interesting <- retlist[["tables"]][[interesting_name]]
   bg_genes <- godata@allGenes
   scores <- interesting[[column]]
@@ -537,7 +533,7 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
              gene = sig_genes,
              universe = godata@graph@nodes,
              ## universe = extID,
-             geneSets = list(up=sig_genes),
+             geneSets = list("up" = sig_genes),
              ## geneSets = geneSets,
              organism = organism,
              keytype = "UNKNOWN",
@@ -725,7 +721,7 @@ make_id2gomap <- function(goid_map = "reference/go/id2go.map", go_db = NULL,
         stop("There is neither a id2go file nor a data frame of goids.")
       } else {
         message("Attempting to generate a id2go file in the format expected by topGO.")
-        new_go <- reshape2::dcast(go_db, ID~., value.var = "GO",
+        new_go <- reshape2::dcast(go_db, !!sym("ID~."), value.var = "GO",
                                   fun.aggregate = paste, collapse = ",")
         write.table(new_go, file = goid_map, sep = "\t",
                     row.names = FALSE, quote = FALSE, col.names = FALSE)
@@ -740,19 +736,6 @@ make_id2gomap <- function(goid_map = "reference/go/id2go.map", go_db = NULL,
 
   ## Pass back an easier to handle go database.
   return(new_go)
-}
-
-hpgl_topdiffgenes <- function(scores, df = get0("sig_genes"), direction = "up") {
-  ## Testing parameters
-  ##scores = pvals
-  ##df = epi_cl14clbr_high
-  ## Here is the original topDiffGenes
-  ## topDiffGenes <- function(allScore) {
-  ##   return(allScore < 0.01)
-  ##}
-  ## my version of this will expect a limma result table from which I will
-  ## extract the entries with low p-values and logFCs which are high or low
-  quartiles <- summary(df)
 }
 
 #' A very simple selector of strong scoring genes (by p-value)

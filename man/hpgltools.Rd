@@ -24,6 +24,13 @@ It falls under a few main topics
 To see examples of this in action, check out the vignettes:
 \code{browseVignettes(package = 'hpgltools')}
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/abelew/hpgltools}
+}
+
+}
 \author{
 \strong{Maintainer}: Ashton Belew \email{abelew@umd.edu}
 

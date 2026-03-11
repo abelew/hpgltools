@@ -31,7 +31,7 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
 
   start_dev <- dev.list()
   result <- NULL
-  switchret <- switch(
+  switch(
     ext,
     "bmp" = {
       result <- bmp(filename = file, width = width, height = height, ...)
@@ -76,7 +76,7 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
                      units = "in", res = res, ...)
     }) ## End of the switch
   ## Find the new device for closing later.
-  controlled <- dev.control("enable")
+  dev.control("enable")
   now_dev <- dev.list()
   new_dev_idx <- ! names(now_dev) %in% names(start_dev)
   new_dev <- now_dev[new_dev_idx]
@@ -108,7 +108,7 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
   }
 
   if (isTRUE(crop)) {
-    cropped <- knitr::plot_crop(file)
+    knitr::plot_crop(file)
   }
   return(image)
 }
@@ -128,9 +128,9 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
 #' @param center_a The position of the center of 'a'.
 #' @return something which I don't yet know.
 #' @export
-plot_spirograph <- function(radius_a = 1, radius_b=-4, dist_bc=-2,
+plot_spirograph <- function(radius_a = 1, radius_b = -4, dist_bc = -2,
                             revolutions = 158, increments = 3160, center_a = list(x = 0, y = 0)) {
-  center_b_start <- list(x = 0, y = center_a$y + radius_a + radius_b)
+  ## center_b_start <- list(x = 0, y = center_a$y + radius_a + radius_b)
   angle_a <- seq(0, 2 * pi * revolutions, revolutions * increments)
   circum_a <- 2 * pi * radius_a
   circum_b <- 2 * pi * radius_b
@@ -283,7 +283,7 @@ ggplotly_url <- function(plot, filename = "ggplotly_url.html", id_column = "id",
                          url_info = NULL, tooltip = "all", url_column = "url") {
   first_tooltip_column <- "label"
   if (is.null(tooltip) || tooltip == "all") {
-    tooltip_columns <- "label"
+    first_tooltip_column <- "label"
   } else {
     first_tooltip_column <- tooltip[1]
   }
@@ -300,7 +300,7 @@ ggplotly_url <- function(plot, filename = "ggplotly_url.html", id_column = "id",
   } else if ("glue" %in% class(url_info) && length(url_info) == 1) {
     message("url_info has length 1, assuming it is a glue specification including {ids}.")
     ## Assuming url_data looks like: 'http://useast.ensembl.org/Mus_musculus/Gene/Summary?q={ids}'
-    ids <- plot[["data"]][[id_column]]
+    ## ids <- plot[["data"]][[id_column]]
     plot[["data"]][[url_column]] <- glue(url_info)
   } else if ("data.frame" %in% class(url_info)) {
     ## This assumes url data has a column named whatever is url_column

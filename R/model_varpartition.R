@@ -3,6 +3,9 @@
 ## Partition is fun, but weird.  This file seeks to simplify and standardize
 ## these methods.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' A shortcut for replotting the percent plots from variancePartition.
 #'
 #' In case I wish to look at different numbers of genes from variancePartition
@@ -68,11 +71,10 @@ simple_varpart <- function(input, fstring = "~ condition + batch",
                            cpus = NULL, genes = 40, parallel = TRUE,
                            strict_filter = TRUE, modify_input = TRUE) {
   cl <- NULL
-  para <- NULL
-  lib_result <- sm(requireNamespace("variancePartition"))
-  att_result <- sm(try(attachNamespace("variancePartition"), silent = TRUE))
-  lib_result <- sm(requireNamespace("BiocParallel"))
-  att_result <- sm(try(attachNamespace("BiocParallel"), silent = TRUE))
+  sm(requireNamespace("variancePartition"))
+  sm(try(attachNamespace("variancePartition"), silent = TRUE))
+  sm(requireNamespace("BiocParallel"))
+  sm(try(attachNamespace("BiocParallel"), silent = TRUE))
   if (isTRUE(parallel)) {
     cl <- NULL
     if (is.null(cpus)) {
@@ -84,7 +86,7 @@ simple_varpart <- function(input, fstring = "~ condition + batch",
     } else {
       cl <- parallel::makeCluster(cpus)
     }
-    para <- doParallel::registerDoParallel(cl)
+    doParallel::registerDoParallel(cl)
     ## multi <- BiocParallel::MulticoreParam()
   }
   design <- colData(input)
@@ -155,6 +157,7 @@ which are shared among multiple samples.")
                                                   formula = test_formula, data = design)
     last_fact <- fctrs[length(fctrs)]
     idx <- order(design[[condition_fctr]], design[[last_fact]])
+    design <- design[idx, ]
     ##first <- variancePartition::plotCorrStructure(fitting, reorder = idx)
     test_strat <- data.frame(Expression = data[3, ],
                              first = design[[condition_fctr]],

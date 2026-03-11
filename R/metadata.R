@@ -1,3 +1,5 @@
+## metadata.R: A series of functions intended to help work with various metadata.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -99,8 +101,6 @@ extract_metadata <- function(metadata, id_column = "sampleid", fill = NULL,
                              condition_column = NULL, batch_column = NULL, ...) {
   ## FIXME: Now that this has been yanked into its own function,
   ## Make sure it sets good, standard rownames.
-  file <- NULL
-
   meta_dataframe <- NULL
   meta_file <- NULL
   ## Handle this via dispatch
@@ -376,10 +376,10 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
       "column" = "input_r1")
     specification[["md5_r2_raw"]] <- list(
       "column" = "input_r2")
-#    specification[["md5_r1_trimmed"]] <- list(
-#      "column" = "trimmed_r1")
-#    specification[["md5_r2_trimmed"]] <- list(
-#      "column" = "trimmed_r2")
+    #    specification[["md5_r1_trimmed"]] <- list(
+    #      "column" = "trimmed_r1")
+    #    specification[["md5_r2_trimmed"]] <- list(
+    #      "column" = "trimmed_r2")
     if (!is.null(r1_input_column)) {
       specification[["md5_r1_raw"]] <- list(
         "column" = r1_input_column)
@@ -554,7 +554,7 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
                                       specification, basedir = "preprocessing", verbose = FALSE,
                                       new_spec = NULL, species = "*", type = "genome",
                                       subtype = "gene", tag = "ID", ...) {
-  switchret <- switch(
+  switch(
     entry_type,
     "aragorn_tRNAs" = {
       search <- "^\\d+ genes found"
@@ -1623,7 +1623,7 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
   output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_count_lines(
         meta, search, input_file_spec, verbose = verbose,
@@ -1641,9 +1641,6 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
     }
     input_handle <- file(input_file, "r", blocking = FALSE)
     input_vector <- readLines(input_handle)
-    last_found <- NULL
-    this_found <- NULL
-    all_found <- c()
     found_idx <- grepl(x = input_vector, pattern = search)
     num_hits <- 0
     if (inverse) {
@@ -1750,16 +1747,15 @@ dispatch_fasta_lengths <- function(meta, input_file_spec, verbose = verbose,
     if (is.null(input_file)) {
       next
     }
-    found <- 0
     if (length(input_file) == 0) {
       warning("There is no file matching: ", input_files[row],
               ".")
-      output_entries[row] <- ''
+      output_entries[row] <- ""
       next
     }
     if (is.na(input_file)) {
       warning("The input file is NA for: ", input_files[row], ".")
-      output_entries[row] <- ''
+      output_entries[row] <- ""
       next
     }
 
@@ -1789,7 +1785,7 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
   output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, species = species_name,
@@ -1803,7 +1799,7 @@ dispatch_filename_search <- function(meta, input_file_spec, verbose = verbose,
   for (row in seq_len(nrow(meta))) {
     input_file <- input_filenames[[row]]
     if (is.null(input_file)) {
-      input_file <- ''
+      input_file <- ""
     }
     output_entries[row] <- input_file
   }
@@ -1864,7 +1860,6 @@ dispatch_md5 <- function(meta, entry_type, input_file_spec,
   input_filenames <- meta[[input_column_name]]
   output_entries <- rep("", nrow(meta))
   for (row in seq_len(nrow(meta))) {
-    found <- 0
     ## Just in case there are multiple matches
     input_base_file <- input_filenames[row]
     sample_id <- rownames(meta)[row]
@@ -1907,7 +1902,7 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
   output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_metadata_ratio(
         meta, numerator_column = numerator_column,
@@ -1917,7 +1912,6 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
     }
     return(output_entries)
   }
-  column_number <- ncol(meta)
   if (is.null(numerator_column)) {
     numerator_column <- colnames(meta)[ncol(meta)]
   }
@@ -1935,7 +1929,7 @@ dispatch_metadata_ratio <- function(meta, numerator_column = NULL,
     }
     ##test_numerator_regex <- grep(x = colnames(meta), pattern = paste0("^", numerator_column))
   }
-  if (is.null(meta[[numerator_column]]) | is.null(meta[[denominator_column]])) {
+  if (is.null(meta[[numerator_column]]) || is.null(meta[[denominator_column]])) {
     if (isTRUE(verbose)) {
       message("Missing data to calculate the ratio between: ", numerator_column,
               " and ", denominator_column, ".")
@@ -1994,14 +1988,13 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
                                   as = NULL, verbose = FALSE, type = "genome", subtype = "gene",
                                   backup_search = NULL, backup_replace = NULL, tag = "ID",
                                   ...) {
-  arglist <- list(...)
   ## if (length(arglist) > 0) {
   ##
   ## }
   output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose,
@@ -2026,7 +2019,7 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
     input_vector <- readLines(input_handle)
     if (length(input_vector) == 0) {
       ## Empty file, move on.
-      output_entries[row] <- ''
+      output_entries[row] <- ""
       next
     }
     last_found <- NULL
@@ -2116,11 +2109,10 @@ dispatch_csv_search <- function(meta, column, input_file_spec, new_spec = NULL,
                                 subtype = "gene", tag = "ID",
                                 basedir = "preprocessing", which = "first",
                                 verbose = FALSE, ...) {
-  arglist <- list(...)
   output_entries <- rep("", nrow(meta))
   if (length(species) > 1) {
     output_entries <- data.frame(row.names = seq_len(nrow(meta)))
-    for (s in seq_len(length(species))) {
+    for (s in seq_along(species)) {
       species_name <- species[s]
       output_entries[[species_name]] <- dispatch_csv_search(
         meta, column, input_file_spec, file_type = file_type,
@@ -2274,12 +2266,12 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
   my_links[["value"]] <- nrow(design)
 
   result <- list("all" = nrow(design))
-  for (p in seq_len(length(permutations))) {
+  for (p in seq_along(permutations)) {
     element <- permutations[p]
     pieces <- strsplit(x = element, split = " ")[[1]]
 
     working_meta <- design
-    for (cat_num in seq_len(length(pieces))) {
+    for (cat_num in seq_along(pieces)) {
       category <- pieces[cat_num]
       factor <- factors[cat_num]
       idx <- working_meta[[factor]] == category
@@ -2291,7 +2283,8 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
       target_node_idx <- my_nodes[["name"]] == element
       target_node <- my_nodes[target_node_idx, "node"]
       if (length(pieces) > 1) {
-        source_node_pieces <- pieces[1:length(pieces) - 1]
+        desired <- seq(from = 1, to = (length(pieces) - 1))
+        source_node_pieces <- pieces[desired]
         source_node_name <- stringi::stri_paste(source_node_pieces, collapse = " ")
         source_node_idx <- my_nodes[["name"]] == source_node_name
         source_node <- my_nodes[source_node_idx, "node"]
@@ -2344,18 +2337,18 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
     if (isTRUE(drill_down)) {
       ## Set the plot name and color names:
       plot_df[["name"]] <- gsub(x = plot_df[["node"]],
-        pattern = "^.* (\\w+$)",
-        replacement = "\\1")
+                                pattern = "^.* (\\w+$)",
+                                replacement = "\\1")
       plot_df[["name"]] <- paste0(plot_df[["name"]], ":",
                                   plot_df[["value"]])
       color_level_suffixes <- gsub(x = color_levels,
-        pattern = "^.* (\\w+$)",
-        replacement = "\\1")
+                                   pattern = "^.* (\\w+$)",
+                                   replacement = "\\1")
       color_fact_idx <- names(all_colors) %in% color_level_suffixes
       color_suffix_fact <- all_colors[color_fact_idx]
       new_color_fact <- rep("#000000", length(color_level_suffixes))
       names(new_color_fact) <- color_levels
-      for (col in seq_len(length(new_color_fact))) {
+      for (col in seq_along(new_color_fact)) {
         color_name <- color_level_suffixes[col]
         color_suffix <- as.character(color_suffix_fact[color_name])
         new_color_fact[col] <- color_suffix
@@ -2369,12 +2362,14 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
     "observed_nodes" = unique(plot_df[["node"]]))
 
   if (fill == "node") {
-    ggplt <- ggplot(plot_df, aes(x = x, next_x = next_x, node = node,
-                                 next_node = next_node, fill = factor(node), label = name))
+    ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                 node = !!sym("node"), next_node = !!sym("next_node"),
+                                 fill = factor(!!sym("node")), label = !!sym("name")))
   } else if (fill == "next") {
     message("Filling to next node?")
-    ggplt <- ggplot(plot_df, aes(x = x, next_x = next_x, node = node,
-                                 next_node = next_node, fill = factor(next_node), label = name))
+    ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                 node = !!sym("node"), next_node = !!sym("next_node"),
+                                 fill = factor(!!sym("next_node")), label = !!sym("name")))
   }
   ggplt <- ggplt +
     ggsankey::geom_sankey(flow.alpha = 0.6,
@@ -2398,7 +2393,7 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
             plot.title = element_text(hjust = 0.5))
   }
   retlist[["ggplot"]] <- ggplt
-  class(retlist) <- "meta_sankey"
+  class(retlist) <- "hpgltools::meta_sankey"
   return(retlist)
 }
 setGeneric("plot_meta_sankey")
@@ -2467,12 +2462,12 @@ plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch
   my_links[["value"]] <- nrow(design)
 
   result <- list("all" = nrow(design))
-  for (p in seq_len(length(permutations))) {
+  for (p in seq_along(permutations)) {
     element <- permutations[p]
     pieces <- strsplit(x = element, split = " ")[[1]]
 
     working_meta <- design
-    for (cat_num in seq_len(length(pieces))) {
+    for (cat_num in seq_along(pieces)) {
       category <- pieces[cat_num]
       factor <- factors[cat_num]
       idx <- working_meta[[factor]] == category
@@ -2484,7 +2479,8 @@ plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch
       target_node_idx <- my_nodes[["name"]] == element
       target_node <- my_nodes[target_node_idx, "node"]
       if (length(pieces) > 1) {
-        source_node_pieces <- pieces[1:length(pieces) - 1]
+        desired <- seq(from = 1, to = (length(pieces) - 1))
+        source_node_pieces <- pieces[desired]
         source_node_name <- stringi::stri_paste(source_node_pieces, collapse = " ")
         source_node_idx <- my_nodes[["name"]] == source_node_name
         source_node <- my_nodes[source_node_idx, "node"]
@@ -2538,10 +2534,9 @@ plot_meta_interactive_sankey <- function(design, factors = c("condition", "batch
 #' @return Df of metadata.
 #' @seealso [openxlsx] [readODS]
 #' @export
-read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "#", sanitize = TRUE, sanitize_underscore = FALSE,
+read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "#",
+                          sanitize = TRUE, sanitize_underscore = FALSE,
                           ...) {
-  arglist <- list(...)
-
   extension <- tools::file_ext(file)
   if (extension == "csv") {
     definitions <- read.csv(file = file, comment.char = comment,
@@ -2573,7 +2568,7 @@ read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "
 
   if (!is.null(comment)) {
     first_column <- as.data.frame(definitions)[[1]]
-    commented <- grepl(x = definitions[[1]], pattern = "^#")
+    commented <- grepl(x = first_column, pattern = "^#")
     ## keep the un-commented lines.
     definitions <- definitions[! commented, ]
   }
@@ -2617,7 +2612,6 @@ seek_filenames <- function(meta, input_file_spec, new_spec, basedir = "preproces
     message("Example regex filename: ", filenames_with_wildcards[1], ".")
   }
   for (row in seq_len(nrow(meta))) {
-    found <- 0
     ## Just in case there are multiple matches
     input_file <- Sys.glob(filenames_with_wildcards[row])[1]
     new_file <- NA
@@ -2680,10 +2674,14 @@ tar_meta_column <- function(meta, column = "hisat_count_table", output = NULL, c
     }
   }
   mesg("Creating a tar archive of ", toString(include_list))
+  tarred <- NULL
   if (is.null(compression)) {
-    tarred <- utils::tar(output, files = include_list)
+    tarred <- try(utils::tar(output, files = include_list))
   } else {
-    tarred <- utils::tar(output, files = include_list, compression = compression)
+    tarred <- try(utils::tar(output, files = include_list, compression = compression))
+  }
+  if ("try-error" %in% class(tarred)) {
+    warning("Tar failed to create ", output, ".")
   }
   retlist <- list(
     "output" = output,
@@ -2733,7 +2731,8 @@ setMethod(
 #' 1.  Trimomatic (the assemblies I was doing were miseq phage).
 #' 2.  Fastqc the trimmed reads.
 #' 3.  Racer to correct sequencer-based errors.
-#' 4.  Perform an initial classification with kraken vs. the standard database. (thus if there is contamination we can pick it up)
+#' 4.  Perform an initial classification with kraken vs. the standard database.
+#'     (thus if there is contamination we can pick it up)
 #' 5.  Use kraken to make a hypotehtical host for the phage and filter it.
 #' 6.  Classify the remaining sequence with kraken vs a viral database.
 #' 7.  Generate an initial assembly via unicycler.
@@ -2741,13 +2740,16 @@ setMethod(
 #' 9.  Use Blast to search the ICTV for likely taxonomy.
 #' 10. Count ORFs to define the +/- strands.
 #' 11. Use Phageterm to define the DTRs and/or reorient the genome.
-#' 12. Perform a taxonomy search on the assembled genome via phastaf (thus we can see if it is segmented or multiple genomes).
+#' 12. Perform a taxonomy search on the assembled genome via phastaf
+#'     (thus we can see if it is segmented or multiple genomes).
 #' 13. Calculate coverage on a per-nucleotide basis.
 #' 14. Search for likely terminases, and reorient the genome if phageterm (#11) failed.
 #' 15. Create an initial annotation genbank file via prokka.
 #' 16. Supplement the prokka ORFs via a trained prodigal run.
 #' 17. Supplement them again via a promiscuous run of glimmer.
-#' 18. Use phanotate as the arbiter of 'correct' phage ORFs. (e.g. the ORFs from #15-17 will only be used if they agree with and/or do not interfere with these).
+#' 18. Use phanotate as the arbiter of 'correct' phage ORFs.
+#'     (e.g. the ORFs from #15-17 will only be used if they agree with
+#'      and/or do not interfere with these).
 #' 19. Merge the results from #15-18 into a single set of ORFs/genbank.
 #' 20. Calculate the assembly kmer content via jellyfish.
 #' 21. Look for t(m)RNAs via aragorn.
@@ -3215,11 +3217,11 @@ steal_salmon_tx_ids <- function(meta, annotations, meta_column = "salmon_count_t
   }
   salmon_files <- meta[[meta_column]]
   first_file <- salmon_files[1]
-  stolen_versions <- readr::read_tsv(first_file, skip = 1,
-                                     col_names = c("Name", "Length", "EffectiveLength", "TPM", "NumReads"), col_types = c("cdddd"))
-  stolen_versions[[annot_tx_column]] <- gsub(pattern = "^(.+)\\.\\d+$",
-                                             replacement = "\\1",
-                                             x = stolen_versions[["Name"]])
+  stolen_versions <- readr::read_tsv(
+    first_file, skip = 1,
+    col_names = c("Name", "Length", "EffectiveLength", "TPM", "NumReads"), col_types = c("cdddd"))
+  stolen_versions[[annot_tx_column]] <- gsub(
+    pattern = "^(.+)\\.\\d+$", replacement = "\\1", x = stolen_versions[["Name"]])
   stolen_versions <- as.data.frame(stolen_versions[, c(annot_tx_column, "Name")])
   colnames(stolen_versions) <- c(annot_tx_column, "salmon_tx_version")
   rownames(stolen_versions) <- stolen_versions[["salmon_tx_version"]]

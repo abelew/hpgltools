@@ -1,4 +1,5 @@
 ## plot_hist.r: Histograms used in other functions
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -78,7 +79,6 @@ plot_histogram <- function(df, binwidth = NULL, log = FALSE, bins = 500, adjust 
 plot_multihistogram <- function(data, log = FALSE, binwidth = NULL, bins = NULL, colors = NULL) {
   if (is.data.frame(data)) {
     df <- data
-    columns <- colnames(df)
     summary_df <- summary(df)
     play_all <- data.frame()
     for (col in seq_along(colnames(df))) {

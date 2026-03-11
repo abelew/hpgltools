@@ -29,27 +29,27 @@ random_ontology <- function(input, method = "goseq", n = 200, ...) {
   input_idx <- sample(x = nrow(input_table), size = n)
   input_table <- input_table[input_idx, ]
   random_result <- NULL
-  switchret <- switch(
-      method,
-      "goseq" = {
-        random_result <- simple_goseq(input_table, ...)
-      },
-      "clusterp" = {
-        random_result <- simple_clusterprofiler(input_table, ...)
-      },
-      "topgo" = {
-        random_result <- simple_topgo(input_table, ...)
-      },
-      "gostats" = {
-        random_result <- simple_gostats(input_table, ...)
-      },
-      "gprofiler" = {
-        random_result <- simple_gprofiler(input_table, ...)
-      },
-      {
-        message("Not sure what to do with this method.")
-        random_result <- NULL
-      })
+  switch(
+    method,
+    "goseq" = {
+      random_result <- simple_goseq(input_table, ...)
+    },
+    "clusterp" = {
+      random_result <- simple_clusterprofiler(input_table, ...)
+    },
+    "topgo" = {
+      random_result <- simple_topgo(input_table, ...)
+    },
+    "gostats" = {
+      random_result <- simple_gostats(input_table, ...)
+    },
+    "gprofiler" = {
+      random_result <- simple_gprofiler(input_table, ...)
+    },
+    {
+      message("Not sure what to do with this method.")
+      random_result <- NULL
+    })
 
   return(random_result)
 }
@@ -75,7 +75,6 @@ extract_lengths <- function(db = NULL, gene_list = NULL,
                             possible_types = c("GenomicFeatures::genes",
                                                "GenomicFeatures::cds",
                                                "GenomicFeatures::transcripts"), ...) {
-  arglist <- list(...)
   ## The 3 ids correspond to the columns produced by genes/cds/transcripts
   ## respectively which contain the IDs. If one is overwritten, the other
   ## should be, too.
@@ -88,7 +87,6 @@ extract_lengths <- function(db = NULL, gene_list = NULL,
   ## tell which is correct because we cannot be certain which ID type has been
   ## provided.  Therefore, this function will query every type and try to find
   ## the one with the best overlap against the set of gene IDs provided.
-  tmpdb <- db
   metadf <- NULL
   gene_list <- gene_list[complete.cases(gene_list)]
   chosen_column <- NULL
@@ -105,7 +103,8 @@ extract_lengths <- function(db = NULL, gene_list = NULL,
     testing <- NULL
     ty <- possible_types[c]
     ## make a granges/iranges using the function in possible_types.
-    test_string <- glue("testing <- {ty}(tmpdb)")
+    ## FIXME: replace with do.call()
+    test_string <- glue("testing <- {ty}(db)")
     eval(parse(text = test_string))
     ## as.data.frame is not only base, but also biocgenerics!!!
     ## Make a dataframe out of the information above and find the most
@@ -161,7 +160,6 @@ extract_go <- function(db, metadf = NULL, keytype = "ENTREZID") {
   keytype <- toupper(keytype)
   possible_keytypes <- AnnotationDbi::keytypes(db)
   godf <- data.frame()
-  success <- FALSE
   ids <- AnnotationDbi::keys(x = db, keytype = keytype)
   if ("GOID" %in% possible_keytypes) {
     godf <- sm(AnnotationDbi::select(x = db, keys = ids, keytype = keytype,
@@ -249,7 +247,7 @@ goterm <- function(go = "GO:0032559") {
   go <- as.character(go)
   term <- function(id) {
     value <- try(as.character(
-        AnnotationDbi::Term(GO.db::GOTERM[id])), silent = TRUE)
+      AnnotationDbi::Term(GO.db::GOTERM[id])), silent = TRUE)
     if (class(value) == "try-error") {
       value <- "not found"
     }
@@ -283,7 +281,7 @@ gosyn <- function(go = "GO:0000001") {
     go <- as.character(go)
     result <- ""
     value <- try(as.character(
-        AnnotationDbi::Synonym(GO.db::GOTERM[go])), silent = TRUE)
+      AnnotationDbi::Synonym(GO.db::GOTERM[go])), silent = TRUE)
     result <- paste(deparse_go_value(value), collapse = "; ")
     return(result)
   }
@@ -312,7 +310,7 @@ gosec <- function(go = "GO:0032432") {
     go <- as.character(go)
     result <- ""
     value <- try(as.character(
-        AnnotationDbi::Secondary(GO.db::GOTERM[go])), silent = TRUE)
+      AnnotationDbi::Secondary(GO.db::GOTERM[go])), silent = TRUE)
     result <- deparse_go_value(value)
     return(result)
   }
@@ -341,7 +339,7 @@ godef <- function(go = "GO:0032432") {
   def <- function(id) {
     ## This call to AnnotationDbi might be wrong
     value <- try(as.character(
-        AnnotationDbi::Definition(GO.db::GOTERM[id])), silent = TRUE)
+      AnnotationDbi::Definition(GO.db::GOTERM[id])), silent = TRUE)
     if (class(value) == "try-error") {
       value <- "not found"
     }
@@ -485,7 +483,6 @@ gather_genes_orgdb <- function(goseq_data, orgdb_go, orgdb_ensembl) {
   ## all_ontologies <- mappedkeys(orgdb)
   ## all_mappings <- as.list(orgdb[all_ontologies])
   my_table <- goseq_data[["godata_interesting"]]
-  my_ontologies <- my_table[["category"]]
   my_genes <- goseq_data[["input"]][["ensembl_gene"]]
 
   my_table[["entrez_ids"]] <- ""
@@ -560,7 +557,6 @@ all_ontology_searches <- function(de_out, gene_lengths = NULL, goids = NULL, n =
                                   do_cluster = TRUE, do_topgo = TRUE,
                                   do_gostats = TRUE, do_gprofiler = TRUE,
                                   do_trees = FALSE, ...) {
-  arglist <- list(...)
   message("This function expects a list of contrast tables and annotation information.")
   message("The annotation information would be gene lengths and ontology ids")
   if (isTRUE(do_goseq) && is.null(gene_lengths)) {
@@ -569,8 +565,6 @@ all_ontology_searches <- function(de_out, gene_lengths = NULL, goids = NULL, n =
   if (isTRUE(do_cluster) && is.null(gff_file)) {
     stop("Performing a clusterprofiler search requires a gff file.")
   }
-  arglist <- list(...)
-
   goid_map <- get0("goid_map")
   if (is.null(goid_map)) {
     goid_map <- "reference/go/id2go.map"
@@ -591,7 +585,7 @@ limma_pairwise(), edger_pairwise(), or deseq_pairwise().")
   ## In which case, coerse it to a list of 1
   if (!is.null(de_out[["logFC"]])) {
     tmp <- de_out
-    de_out <- list("first"=tmp)
+    de_out <- list("first" = tmp)
     rm(tmp)
   }
 
@@ -623,17 +617,17 @@ limma_pairwise(), edger_pairwise(), or deseq_pairwise().")
       goseq_down_ontology <- try(simple_goseq(down_genes, goids, gene_lengths))
       if (isTRUE(do_trees)) {
         goseq_up_trees <- try(
-            goseq_trees(goseq_up_ontology, goid_map = goid_map))
+          goseq_trees(goseq_up_ontology, goid_map = goid_map))
         goseq_down_trees <- try(
-            goseq_trees(goseq_down_ontology, goid_map = goid_map))
+          goseq_trees(goseq_down_ontology, goid_map = goid_map))
       }
     }
 
     if (isTRUE(do_cluster)) {
       cluster_up_ontology <- try(
-          simple_clusterprofiler(up_genes, datum, orgdb = orgdb, ...))
+        simple_clusterprofiler(up_genes, datum, orgdb = orgdb, ...))
       cluster_down_ontology <- try(
-          simple_clusterprofiler(down_genes, datum, orgdb = orgdb, ...))
+        simple_clusterprofiler(down_genes, datum, orgdb = orgdb, ...))
       if (isTRUE(do_trees)) {
         cluster_up_trees <- try(cluster_trees(up_genes, cluster_up_ontology,
                                               goid_map = goid_map, go_db = goids))
@@ -644,9 +638,9 @@ limma_pairwise(), edger_pairwise(), or deseq_pairwise().")
 
     if (isTRUE(do_topgo)) {
       topgo_up_ontology <- try(
-          simple_topgo(up_genes, goid_map = goid_map, go_db = goids))
+        simple_topgo(up_genes, goid_map = goid_map, go_db = goids))
       topgo_down_ontology <- try(
-          simple_topgo(down_genes, goid_map = goid_map, go_db = goids))
+        simple_topgo(down_genes, goid_map = goid_map, go_db = goids))
       if (isTRUE(do_trees)) {
         topgo_up_trees <- try(topgo_trees(topgo_up_ontology))
         topgo_down_trees <- try(topgo_trees(topgo_down_ontology))
@@ -655,9 +649,9 @@ limma_pairwise(), edger_pairwise(), or deseq_pairwise().")
 
     if (isTRUE(do_gostats)) {
       gostats_up_ontology <- try(
-          simple_gostats(up_genes, gff_file, goids, gff_type = gff_type))
+        simple_gostats(up_genes, gff_file, goids, gff_type = gff_type))
       gostats_down_ontology <- try(
-          simple_gostats(down_genes, gff_file, goids, gff_type = gff_type))
+        simple_gostats(down_genes, gff_file, goids, gff_type = gff_type))
       if (isTRUE(do_trees)) {
         message("gostats_trees has never been tested, this is commented out for the moment.")
       }
@@ -743,18 +737,6 @@ subset_ontology_search <- function(changed_counts, doplot = TRUE, do_goseq = TRU
   up_gprofiler <- list()
   down_gprofiler <- list()
   ## goseq() requires minimally gene_lengths and goids
-  lengths <- arglist[["lengths"]]
-  goids <- NULL
-  if (is.null(arglist[["goids"]])) {
-    goids <- arglist[["go_db"]]
-  } else {
-    goids <- arglist[["goids"]]
-  }
-  gff <- arglist[["gff"]]
-  gff_type <- arglist[["gff_type"]]
-  types_list <- c("up_goseq", "down_goseq", "up_cluster", "down_cluster",
-                  "up_topgo", "down_topgo", "up_gostats", "down_gostats",
-                  "up_gprofiler", "down_gprofiler")
   names_list <- names(up_list)
   names_length <- length(names_list)
   for (cluster_count in seq_len(names_length)) {
@@ -789,16 +771,16 @@ subset_ontology_search <- function(changed_counts, doplot = TRUE, do_goseq = TRU
   }
 
   ret <- list(
-      "up_goseq" = up_goseq,
-      "down_goseq" = down_goseq,
-      "up_cluster" = up_cluster,
-      "down_cluster" = down_cluster,
-      "up_topgo" = up_topgo,
-      "down_topgo" = down_topgo,
-      "up_gostats" = up_gostats,
-      "down_gostats" = down_gostats,
-      "up_gprofiler" = up_gprofiler,
-      "down_gprofiler" = down_gprofiler)
+    "up_goseq" = up_goseq,
+    "down_goseq" = down_goseq,
+    "up_cluster" = up_cluster,
+    "down_cluster" = down_cluster,
+    "up_topgo" = up_topgo,
+    "down_topgo" = down_topgo,
+    "up_gostats" = up_gostats,
+    "down_gostats" = down_gostats,
+    "up_gprofiler" = up_gprofiler,
+    "down_gprofiler" = down_gprofiler)
   if (!file.exists("savefiles")) {
     dir.create("savefiles")
   }

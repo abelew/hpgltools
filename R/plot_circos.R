@@ -30,7 +30,6 @@
 circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2",
                        color = "blue", color_alpha = 0, radius = 0.75, thickness = 3,
                        ribbon = "yes", show = "yes", z = "0") {
-  annot <- cfg@annot
   color <- circos_format_color(color, alpha = color_alpha)
   arc_cfg_file <- cfg@cfg_file
   arc_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = arc_cfg_file)
@@ -53,7 +52,7 @@ circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2
   message("Writing data file: ", arc_data_file, " with the ", first_col, " column.")
   print_arc <- function(x) {
     cat(x[5], " chr5005 ", x[1], " ", x[2], "\n", x[5], " chr5448 ", x[3], " ", x[4], "\n\n",
-        file = "circos/data/crossref_5005_5448.txt", append = TRUE, sep = "")
+        file = arc_data_file, append = TRUE, sep = "")
   }
   file.remove(arc_data_file, showWarnings = FALSE) ## To avoid appending forever.
   apply(df, 1, print_arc)
@@ -81,7 +80,7 @@ circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2
   close(data_cfg_out)
 
   rel_cfg_file <- file.path("conf", basename(arc_cfg_file))
-  rel_data_file <- file.path("data", basename(arc_data_file))
+  ## rel_data_file <- file.path("data", basename(arc_data_file))
   master_cfg_string <- glue("
   ## The histogram ring for {first_col}
   <<include {rel_cfg_file}>>
@@ -90,7 +89,6 @@ circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2
   master_cfg_out <- file(cfg@cfg_file, open = "a+")
   cat(master_cfg_string, file = master_cfg_out, sep = "")
   close(master_cfg_out)
-
   return(radius)
 }
 
@@ -438,6 +436,9 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
+  if (happyp[["found_chromosomes"]] == 0) {
+    warning("circos_check_chromosomes() did not find any chromosomes.")
+  }
 
   ## FIXME: Redo this with %>%
   hist_cfg_file <- cfg@cfg_file
@@ -448,7 +449,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   mesg("Writing data file: ", hist_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = hist_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-  num_colors <- 1
+  ## num_colors <- 1
   ## if (is.null(colors)) {
   ##     conditions <- levels(as.factor(df[["call"]]))
   ##     num_colors <- length(conditions)
@@ -528,14 +529,19 @@ circos_ideogram <- function(name = "default", conf_dir = "circos/conf", band_url
                             label_font = "condensedbold",
                             spacing_default = "0", spacing_break = "0",
                             fill_color = "black", fill_alpha = 0,
-                            radius = "0.85", radius_padding = "0.05",
+                            radius = "0.85", radius_padding = "0.05", show_label = FALSE,
                             label_size = "36", band_stroke_thickness = "2") {
   stroke_color <- circos_format_color(stroke_color, alpha = stroke_alpha)
   fill_color <- circos_format_color(fill_color, alpha = stroke_alpha)
   ideogram_outfile <- glue("{conf_dir}/ideograms/{name}.conf")
-  created <- suppressWarnings(dir.create(dirname(ideogram_outfile), recursive = TRUE))
+  suppressWarnings(dir.create(dirname(ideogram_outfile), recursive = TRUE))
   out <- file(ideogram_outfile, open = "w+")
-  show_label <- "no"
+  if (isTRUE(show_label)) {
+    show_label <- "yes"
+  } else {
+    show_label <- "no"
+  }
+
   ideogram_string <- glue("
 ## The following plot stanza describes the ideograms
 <ideogram>
@@ -605,7 +611,7 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 
   ## genome_length <- 0
   chr_df <- data.frame()
-  if (is.null(lengths) & is.null(fasta)) {
+  if (is.null(lengths) && is.null(fasta)) {
     stop("circos_karyotype() requires chromosome length or fasta file.")
   } else if (!is.null(lengths)) {
     ## genome_length <- sum(lengths)
@@ -624,6 +630,9 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, chr_df)
+  if (happyp[["found_chromosomes"]] <= 0) {
+    warning("circos_check_chromosomes() did not find any chromosomes.")
+  }
 
   chr_num <- nrow(chr_df)
   outfile <- glue("{conf_dir}/karyotypes/{name}.conf")
@@ -761,7 +770,9 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
-
+  if (happyp[["found_chromosomes"]] <= 0) {
+    warning("circos_check_chromosomes did not find any chromosomes.")
+  }
   ## FIXME: Redo this with %>%
   line_cfg_file <- cfg@cfg_file
   line_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = line_cfg_file)
@@ -774,7 +785,7 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   plot_min <- min(full_table[[colname]])
   plot_max <- max(full_table[[colname]])
   plot_gap <- paste0(gap, "u")
-  num_colors <- 1
+  ## num_colors <- 1
   ## if (is.null(colors)) {
   ##     conditions <- levels(as.factor(df[["call"]]))
   ##     num_colors <- length(conditions)
@@ -857,7 +868,7 @@ circos_make <- function(cfg, target = "", circos = "circos", verbose = FALSE) {
   output <- file.path(circos_dir, "Makefile")
   if (!file.exists(circos_dir)) {
     message("The circos directory does not exist, creating: ", circos_dir)
-    created <- suppressWarnings(dir.create(circos_dir, recursive = TRUE))
+    suppressWarnings(dir.create(circos_dir, recursive = TRUE))
   }
   if (!file.exists("circos/etc")) {
     system("ln -s /etc/circos circos/etc")
@@ -1277,7 +1288,6 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
                           strand_column = "strand", id_column = NULL,
                           cog_map = NULL,
                           radius = 1800, chr_units = 1000, band_url = NULL, ...) {
-  arglist <- list(...)
   mesg("This assumes you have a colors.conf in circos/colors/ ",
        "and fonts.conf in circos/fonts/")
   mesg("It also assumes you have conf/ideogram.conf, conf/ticks.conf, ",
@@ -1289,11 +1299,11 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
 
   if (!file.exists(data_dir)) {
     mesg("Creating the data directory: ", data_dir)
-    created <- suppressWarnings(dir.create(data_dir, recursive = TRUE))
+    suppressWarnings(dir.create(data_dir, recursive = TRUE))
   }
   if (!file.exists(conf_dir)) {
     mesg("The circos directory does not exist, creating: ", conf_dir)
-    created <- suppressWarnings(dir.create(conf_dir, recursive = TRUE))
+    suppressWarnings(dir.create(conf_dir, recursive = TRUE))
   }
 
   ## Set up some data which will be shared by all the other functions.
@@ -1461,7 +1471,6 @@ chromosomes_display_default = yes
   wd <- getwd()
   final_cfg <- file.path(wd, base_dir, to_path)
   if (!file.exists(final_cfg)) {
-    tmpwd <- glue("{wd}/circos")
     setwd(file.path(wd, base_dir))
     from <- gsub(pattern = "circos/", replacement = "", x = cfgout)
     file.symlink(from, to_path)
@@ -1573,7 +1582,6 @@ circos_ticks <- function(name = "default", conf_dir = "circos/conf",
 
   tick_outfile <- file.path(conf_dir, paste0("ticks_", name, ".conf"))
   out <- file(tick_outfile, open = "w")
-  show_label <- "no"
   tick_string <- glue("
 ## The following plot stanza describes the ticks
 show_ticks = {show_ticks}
@@ -1742,7 +1750,9 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
-
+  if (happyp[["found_chromosomes"]] <= 0) {
+    warning("No chrosomosomes were found by circos_check_chromosomes().")
+  }
   tile_cfg_file <- cfg@cfg_file
   tile_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = tile_cfg_file)
   tile_cfg_file <- paste0(tile_cfg_file, "_", basename,  colname, "_tile.conf")
@@ -1794,7 +1804,7 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
     if (isTRUE(hashp)) {
       red_component <- "0x00"
       green_component <- "0x00"
-      blue_compnent <- "0x00"
+      blue_component <- "0x00"
       this_color <- gsub(pattern = "^#", replacement = "", x = colors[[c]])
       red_component <- strtoi(glue("0x{substr(this_color, 1, 2)}"))
       green_component <- strtoi(glue("0x{substr(this_color, 3, 4)}"))
@@ -1850,12 +1860,11 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
 #' @return TRUE or FALSE
 check_circos <- function(object) {
   ret <- c()
-  base_dir <- dirname(object@data_dir)
   conf_dir <- dirname(object@cfg_file)
   data_dir <- object@data_dir
 
   if (!file.exists(data_dir)) {
-    msg <- message(data_dir, " does not exist. Creating the data directory now.")
+    message(data_dir, " does not exist. Creating the data directory now.")
     created <- dir.create(data_dir, recursive = TRUE)
     if (isFALSE(created)) {
       ret <- c(ret, data_dir)

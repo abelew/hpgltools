@@ -1,4 +1,7 @@
-# normalize_convert.r: Simplify the invocation of cpm/rpkm/etc.
+# normalize_convert.R: Simplify the invocation of cpm/rpkm/etc.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Perform a cpm/rpkm/whatever transformation of a count table.
 #'
@@ -33,52 +36,52 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
   }
   count_table <- as.data.frame(count_table)
 
-  switchret <- switch(
-      method,
-      "nacpm" = {
-        zero_idx <- count_table == 0
-        message("Converting ", sum(zero_idx), " zeros to NA.")
-        count_table[zero_idx] <- NA
-        na_colsums <- colSums(count_table, na.rm = TRUE)
-        count_table <- edgeR::cpm(count_table, lib.size = na_colsums)
-      },
-      "cpm" = {
-        libsize <- NULL
-        na_idx <- is.na(count_table)
-        if (sum(na_idx) > 0) {
-          warning("There are ", sum(na_idx), " NAs in the expressionset.")
-          libsize <- colSums(count_table, na.rm = TRUE)
-        }
-        neg_idx <- count_table < 0
-        neg_sum <- 0
-        neg_sum <- sum(neg_idx, na.rm = TRUE)
-        if (neg_sum > 0) {
-          warning("There are ", neg_sum, " negative values in the expressionset, modifying it.")
-          count_table[neg_idx] <- 0
-        }
-        count_table <- edgeR::cpm(count_table, lib.size = libsize, na.rm = TRUE)
-      },
-      "cbcbcpm" = {
-        lib_size <- colSums(count_table, na.rm = TRUE)
-        ## count_table = t(t((count_table$counts + 0.5) / (lib_size + 1)) * 1e+06)
-        transposed <- t(count_table + 0.5)
-        cp_counts <- transposed / (lib_size + 1)
-        cpm_counts <- t(cp_counts * 1e+06)
-        count_table <- cpm_counts
-      },
-      "rpkm" = {
-        count_table <- hpgl_rpkm(count_table, annotations = annotations,
-                                 length_column = length_column, ...)
-      },
-      "cp_seq_m" = {
-        counts <- edgeR::cpm(count_table)
-        count_table <- divide_seq(counts, annotations = annotations,
-                                  length_column = length_column, ...)
-        ## count_table <- divide_seq(counts, annotations = annotations, genome = genome)
-      },
-      {
-        message("Not sure what to do with the method: ", method, ".")
+  switch(
+    method,
+    "nacpm" = {
+      zero_idx <- count_table == 0
+      message("Converting ", sum(zero_idx), " zeros to NA.")
+      count_table[zero_idx] <- NA
+      na_colsums <- colSums(count_table, na.rm = TRUE)
+      count_table <- edgeR::cpm(count_table, lib.size = na_colsums)
+    },
+    "cpm" = {
+      libsize <- NULL
+      na_idx <- is.na(count_table)
+      if (sum(na_idx) > 0) {
+        warning("There are ", sum(na_idx), " NAs in the expressionset.")
+        libsize <- colSums(count_table, na.rm = TRUE)
       }
+      neg_idx <- count_table < 0
+      neg_sum <- 0
+      neg_sum <- sum(neg_idx, na.rm = TRUE)
+      if (neg_sum > 0) {
+        warning("There are ", neg_sum, " negative values in the expressionset, modifying it.")
+        count_table[neg_idx] <- 0
+      }
+      count_table <- edgeR::cpm(count_table, lib.size = libsize, na.rm = TRUE)
+    },
+    "cbcbcpm" = {
+      lib_size <- colSums(count_table, na.rm = TRUE)
+      ## count_table = t(t((count_table$counts + 0.5) / (lib_size + 1)) * 1e+06)
+      transposed <- t(count_table + 0.5)
+      cp_counts <- transposed / (lib_size + 1)
+      cpm_counts <- t(cp_counts * 1e+06)
+      count_table <- cpm_counts
+    },
+    "rpkm" = {
+      count_table <- hpgl_rpkm(count_table, annotations = annotations,
+                               length_column = length_column, ...)
+    },
+    "cp_seq_m" = {
+      counts <- edgeR::cpm(count_table)
+      count_table <- divide_seq(counts, annotations = annotations,
+                                length_column = length_column, ...)
+      ## count_table <- divide_seq(counts, annotations = annotations, genome = genome)
+    },
+    {
+      message("Not sure what to do with the method: ", method, ".")
+    }
   ) ## End of the switch
   if (isTRUE(na_to_zero)) {
     na_idx <- is.na(count_table)
@@ -87,8 +90,8 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
 
   libsize <- colSums(count_table, na.rm = TRUE)
   counts <- list(
-      "count_table" = count_table,
-      "libsize" = libsize)
+    "count_table" = count_table,
+    "libsize" = libsize)
   return(counts)
 }
 setGeneric("convert_counts")
@@ -216,7 +219,7 @@ divide_seq <- function(counts, ...) {
       colnames(annotation_df)[hit_idx] <- "chromosome"
     }
   }
-  if (is.null(annotation_df[["chromosome"]]) & !is.null(annotation_df[["seqnames"]])) {
+  if (is.null(annotation_df[["chromosome"]]) && !is.null(annotation_df[["seqnames"]])) {
     annotation_df[["chromosome"]] <- annotation_df[["seqnames"]]
   }
 
@@ -231,10 +234,10 @@ divide_seq <- function(counts, ...) {
 
   ## We should have a sanitized annotation_df now.
   if (is.null(annotation_gr)) {
-    annot_df <- annotation_df
+    annotation_df <- annotation_df
     annotation_gr <- GenomicRanges::makeGRangesFromDataFrame(
-                                        annotation_df,
-                                        seqnames.field = "chromosome")
+      annotation_df,
+      seqnames.field = "chromosome")
   }
 
   ## Test that the annotations and genome have the same seqnames
@@ -254,7 +257,7 @@ divide_seq <- function(counts, ...) {
                     glue("chr{unique(GenomicRanges::seqnames(annotation_gr))}"))
     GenomeInfoDb::seqlevels(annotation_gr) <- new_levels
     GenomicRanges::seqnames(annotation_gr) <- factor(
-        glue("chr{GenomicRanges::seqnames(annotation_gr)}"), levels = new_levels)
+      glue("chr{GenomicRanges::seqnames(annotation_gr)}"), levels = new_levels)
   } else if (hits < length(annotation_seqnames)) {
     warning("Not all the annotation sequences were found, this will probably end badly.")
   }
@@ -344,14 +347,14 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
 ")
     rownames(annotations) <- make.names(annotations[["ID"]], unique = TRUE)
     count_table_in <- as.data.frame(
-        count_table[rownames(count_table) %in% rownames(annotations), ],
-        stringsAsFactors = FALSE)
+      count_table[rownames(count_table) %in% rownames(annotations), ],
+      stringsAsFactors = FALSE)
     if (dim(count_table_in)[1] == 0) {
       stop("The ID column failed too.")
     }
   }
   colnames(count_table_in) <- colnames(count_table)
-  count_table_in[["temporary_id_number"]] <- 1:nrow(count_table_in)
+  count_table_in[["temporary_id_number"]] <- seq_len(nrow(count_table_in))
   merged_annotations <- merge(count_table_in, annotations, by = "row.names", all.x = TRUE)
   rownames(merged_annotations) <- merged_annotations[, "Row.names"]
   merged_annotations[["Row.names"]] <- NULL
@@ -365,13 +368,13 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   ## rownames(count_table_in) = merged_annotations[,"Row.names"]
   ## Sometimes I am stupid and call it length...
   lenvec <- NULL
-  if (is.null(length_column) &
-        is.null(merged_annot[["length"]]) &
+  if (is.null(length_column) && is.null(merged_annot[["length"]]) &&
         is.null(merged_annot[["width"]])) {
     if (!is.null(merged_annot[["start_column"]]) &&
           !is.null(merged_annot[["end_column"]])) {
       length_column <- "length"
-      merged_annot[[length_column]] <- abs(merged_annot[[start_column]] - merged_annot[[end_column]])
+      merged_annot[[length_column]] <- abs(
+        merged_annot[[start_column]] - merged_annot[[end_column]])
     } else {
       message("There appears to be no gene length annotation data, here are the possible columns:")
       message(toString(colnames(annotations)))
@@ -393,10 +396,10 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
 
   if (is.null(merged_annot[[length_column]])) {
     if (!is.null(merged_annot[[start_column]]) &&
-        !is.null(merged_annot[[end_column]])) {
+          !is.null(merged_annot[[end_column]])) {
       merged_annot[["width"]] <- abs(as.numeric(merged_annot[[start_column]]) -
                                        as.numeric(merged_annot[[end_column]]))
-      chosen_column <- "width"
+      length_column <- "width"
     } else {
       stop("There is no column, ", length_column, ", unable to make a width column.")
     }
@@ -414,7 +417,7 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   lenvec <- as.vector(as.numeric(merged_annot[[length_column]]))
 
   names(lenvec) <- rownames(merged_annot)
-  tt <- sm(requireNamespace("edgeR"))
+  sm(requireNamespace("edgeR"))
   rpkm_count_table <- edgeR::rpkm(as.matrix(merged_counts), gene.length = lenvec)
   colnames(rpkm_count_table) <- colnames(count_table)
   return(rpkm_count_table)

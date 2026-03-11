@@ -1,3 +1,8 @@
+## genes.R: Examine the rows of a SE (e.g. the genes)
+
+#' @include 01_hpgltools.R
+NULL
+
 #' A temporary alias to subset_genes
 #'
 #' @param ... Parameters passed to subset_genes().
@@ -53,7 +58,6 @@ subset_genes <- function(input, column = "txtype", method = "remove", ids = NULL
 subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL,
                             warning_cutoff = 90, meta_column = NULL,
                             patterns = c("snRNA", "tRNA", "rRNA"), ...) {
-  arglist <- list(...)
   annotations <- rowData(se)
   expression <- assay(se)
   if (is.null(ids) && is.null(annotations[[column]])) {

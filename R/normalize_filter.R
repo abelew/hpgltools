@@ -1,4 +1,7 @@
-## normalize_filter.r: Invoke the various expressionset filtering tools.
+## normalize_filter.R: Invoke the various expressionset filtering tools.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Call various count filters.
 #'
@@ -40,9 +43,9 @@ filter_counts <- function(count_table, method = "cbcb", p = 0.01, A = 1, k = 1,
     method <- arglist[["filter"]]
   }
   if (tolower(method) == "povera") {
-    type <- "pofa"
+    method <- "pofa"
   } else if (tolower(method) == "kovera") {
-    type <- "kofa"
+    method <- "kofa"
   }
   if (isTRUE(method)) {
     method <<- "cbcb"
@@ -53,37 +56,37 @@ filter_counts <- function(count_table, method = "cbcb", p = 0.01, A = 1, k = 1,
   }
 
   filtered_counts <- NULL
-  switchret <- switch(
-      method,
-      "cbcb" = {
-        filtered_counts <- cbcb_filter_counts(count_table, threshold = thresh,
-                                              min_samples = min_samples)
-      },
-      "hpgl" = {
-        filtered_counts <- hpgl_filter_counts(count_table, threshold = thresh,
-                                              min_samples = min_samples)
-      },
-      "pofa" = {
-        filtered_counts <- genefilter_pofa_counts(count_table, p = p, A = A)
-      },
-      "kofa" = {
-        filtered_counts <- genefilter_kofa_counts(count_table, k = k, A = A)
-      },
-      "cv" = {
-        filtered_counts <- genefilter_cv_counts(count_table, cv_min = cv_min,
-                                                cv_max = cv_max)
-      },
-      "rowmax" = {
-        filtered_counts <- rowmax_filter_counts(count_table, threshold = thresh)
-      },
-      "simple" = {
-        filtered_counts <- simple_filter_counts(count_table, threshold = thresh)
-      },
-      {
-        message("The requested filter did not match anything, defaulting to 'cbcb'.")
-        filtered_counts <- cbcb_filter_counts(count_table, threshold = thresh,
-                                              min_samples = min_samples, ...)
-      }
+  switch(
+    method,
+    "cbcb" = {
+      filtered_counts <- cbcb_filter_counts(count_table, threshold = thresh,
+                                            min_samples = min_samples)
+    },
+    "hpgl" = {
+      filtered_counts <- hpgl_filter_counts(count_table, threshold = thresh,
+                                            min_samples = min_samples)
+    },
+    "pofa" = {
+      filtered_counts <- genefilter_pofa_counts(count_table, p = p, A = A)
+    },
+    "kofa" = {
+      filtered_counts <- genefilter_kofa_counts(count_table, k = k, A = A)
+    },
+    "cv" = {
+      filtered_counts <- genefilter_cv_counts(count_table, cv_min = cv_min,
+                                              cv_max = cv_max)
+    },
+    "rowmax" = {
+      filtered_counts <- rowmax_filter_counts(count_table, threshold = thresh)
+    },
+    "simple" = {
+      filtered_counts <- simple_filter_counts(count_table, threshold = thresh)
+    },
+    {
+      message("The requested filter did not match anything, defaulting to 'cbcb'.")
+      filtered_counts <- cbcb_filter_counts(count_table, threshold = thresh,
+                                            min_samples = min_samples, ...)
+    }
   ) ## Ending the switch
   return(filtered_counts)
 }
@@ -111,8 +114,8 @@ cbcb_filter_counts <- function(count_table, threshold = 1, min_samples = 2, libs
     }
     count_table <- t(log2(t(qcounts + 0.5) / (libsize + 1) * 1e+06))
     retlist <- list(
-        "count_table" = count_table,
-        "libsize" = libsize)
+      "count_table" = count_table,
+      "libsize" = libsize)
     return(retlist)
   }
   ##cpms <- edgeR::cpm(count_table)
@@ -126,8 +129,8 @@ cbcb_filter_counts <- function(count_table, threshold = 1, min_samples = 2, libs
 
   libsize <- l2cpm[["libsize"]]
   counts <- list(
-      "count_table" = count_table,
-      "libsize" = libsize)
+    "count_table" = count_table,
+    "libsize" = libsize)
   return(counts)
 }
 
@@ -273,8 +276,8 @@ hpgl_filter_counts <- function(count_table, threshold = 2, min_samples = 2, libs
           num_after, " remaining).")
   libsize <- colSums(count_table)
   counts <- list(
-      "count_table" = count_table,
-      "libsize" = libsize)
+    "count_table" = count_table,
+    "libsize" = libsize)
   return(counts)
 }
 

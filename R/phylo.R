@@ -1,3 +1,8 @@
+## phylo.R: Simple phylogenomics-esque functions; these are mostly shortcuts to the ape package
+## and other tools to help generate quick, back of the hand, trees.
+
+#' @include 01_hpgltools.R
+
 #' Use ape to generate a distance based nj tree from fasta files.
 #'
 #' I was thinking that a standardized version of this might be useful
@@ -65,7 +70,6 @@ genomic_kmer_dist <- function(directory = "tree", root = NULL) {
 #' @param max Maximum number of sequences to examine.
 CDS_kmer_dist <- function(directory = "tree", root = NULL, kmer = 7, max = NULL) {
   files <- list.files(directory, pattern = "\\.fasta$|\\.fa$|\\.fsa$")
-  sequence_vectors <- list()
   sequence_set <- c()
   sequence_names <- c()
   for (f in files) {
@@ -108,6 +112,8 @@ CDS_kmer_dist <- function(directory = "tree", root = NULL, kmer = 7, max = NULL)
     ape::compute.brlen()
 
   retlist <- list(
+    "kmer_time" = kmer_time,
+    "phy_time" = phy_time,
     "dnd" = test_dnd,
     "phylo" = test_phylo,
     "phy" = test_phy)

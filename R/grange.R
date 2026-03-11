@@ -1,3 +1,5 @@
+## grange.R: Various functions to assist when working with ranged datatypes.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -85,7 +87,6 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
                            cores = NULL, extend = NULL) {
   norm_factor <- libsize_factor(se)
   metadata <- colData(se)
-  sample_ids <- rownames(metadata)
   coverage_gr <- NULL
   track_files <- colData(se)[[track_column]]
   names(track_files) <- rownames(metadata)
@@ -96,7 +97,8 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
     mesg("No 'region' specified; extracting coverage for an example range\n(<=100,000 bases, first annotated sequence)")
     if (format == "bam") {
       seqnames <- Rsamtools::scanBamHeader(track_files[1]) %>%
-        lapply(function(x) x$targets) %>% unname() %>%
+        lapply(function(x) x$targets) %>%
+        unname() %>%
         unlist()
       coverage_gr <- GenomicRanges::GRanges(seqnames = names(seqnames[1]),
                                             IRanges::IRanges(start = 1, end = min(1e+05, seqnames[1])))
@@ -135,7 +137,8 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
       } else {
         BiocParallel::register(BiocParallel::MulticoreParam(workers = cores), default = TRUE)
         track_list <- BiocParallel::bplapply(
-          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = ggcoverage_import_bw, coverage_gr, metadata)
+          track_files, BPPARAM = BiocParallel::MulticoreParam(),
+          FUN = ggcoverage_import_bw, coverage_gr, metadata)
       }
     }
   } else if (format == "bam") {
@@ -153,14 +156,16 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
                              bin_size)
       } else {
         track_list <- BiocParallel::bplapply(
-          track_files, BPPARAM = BiocParallel::MulticoreParam(), FUN = "ggcoverage" %:::% "single_nuc_cov",
+          track_files, BPPARAM = BiocParallel::MulticoreParam(),
+          FUN = "ggcoverage" %:::% "single_nuc_cov",
           bin_size)
       }
     } else {
       if (norm == "None") {
         message("Calculating coverage with GenomicAlignments when 'norm = None'")
         if (cores == 1) {
-          track_list <- lapply(track_files, "ggcoverage" %:::% "import_bam_ga", coverage_gr, bin_size)
+          track_list <- lapply(track_files,
+                               FUN = "ggcoverage" %:::% "import_bam_ga", coverage_gr, bin_size)
         } else {
           track_list <- BiocParallel::bplapply(
             track_files, BPPARAM = BiocParallel::MulticoreParam(),
@@ -173,8 +178,6 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
           if (bamcoverage.path == "") {
             stop("Can not find bamCoverage automatically, please specify 'bamcoverage.path'")
           }
-        } else {
-          bamcoverage.path <- bamcoverage.path
         }
         if (cores == 1) {
           bc_extra_parameters <- NULL

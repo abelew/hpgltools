@@ -105,14 +105,14 @@ plot_topgo_densities <- function(godatum, table) {
   for (id in rownames(table)) {
     message(id)
     tmp_file <- tmpmd5file(pattern = "topgodensity", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     plt <- hpgl_GroupDensity(godatum, id, ranks = TRUE, rm.one = FALSE)
     plot(plt)
     added_plot <- recordPlot()
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
     ret[[id]] <- added_plot
   }
   return(ret)
@@ -178,9 +178,9 @@ plot_ontpval <- function(df, ontology = "MF", fontsize = 14, plot_title = NULL,
     max_score <- max(df[[x_column]], na.rm = TRUE)
   }
 
-  break_list <- c(0, floor(1/4 * max_score),
-                  floor(1/2 * max_score),
-                  floor(3/4 * max_score),
+  break_list <- c(0, floor(0.25 * max_score),
+                  floor(0.5 * max_score),
+                  floor(0.75 * max_score),
                   max_score)
 
   pvalue_plot <- ggplot(df, aes(x = reorder_size(.data),
@@ -195,7 +195,7 @@ plot_ontpval <- function(df, ontology = "MF", fontsize = 14, plot_title = NULL,
     ggplot2::theme_bw(base_size = fontsize)
 
   if (!is.null(df[["score_string"]])) {
-    hjsut <- 1.2
+    hjust <- 1.2
     if (text_location == "right") {
       hjust <- 0.0
     } else if (text_location == "inside") {
@@ -365,7 +365,7 @@ plot_goseq_pval <- function(goterms, wrapped_width = 30, cutoff = 0.1, x_column 
       next
     }
     plotting <- goterms_complete[idx, ]
-    chosen_order = "score"
+    chosen_order <- "score"
     if (is.null(plotting[[order_by]])) {
       message("The ", order_by, " column is null, defaulting to score.")
       message("Possible columns are: ")
@@ -524,10 +524,7 @@ plot_gostats_pval <- function(gs_result, wrapped_width = 20, cutoff = 0.1,
     ont <- ont_overunder[1]
     overunder <- ont_overunder[2]
     plotting <- table_list[[name]]
-    pval_plot <- NULL
-    if (is.null(plotting)) {
-      pval_plot <- NULL
-    } else {
+    if (!is.null(plotting)) {
       plotting[["score"]] <- plotting[["ExpCount"]]
       not_null <- plotting[["Term"]] != "NULL"
       plotting <- plotting[not_null, ]
@@ -586,9 +583,9 @@ plot_gprofiler2_pval <- function(gp_result, wrapped_width = 30,
   cc_idx <- go_result[["source"]] == "GO:CC"
   gp_result[["CC"]] <- go_result[cc_idx, ]
 
-  kept_columns <- c("p_value", "term_size", "query_size",
-                    "intersection_size", "recall", "precision",
-                    "term_id", "term_name", "effective_domain_size")
+  ## kept_columns <- c("p_value", "term_size", "query_size",
+  ##                   "intersection_size", "recall", "precision",
+  ##                   "term_id", "term_name", "effective_domain_size")
   old_options <- options(scipen = 4)
 
   gp_rewrite_df <- function(plotting_df) {
@@ -638,7 +635,7 @@ plot_gprofiler2_pval <- function(gp_result, wrapped_width = 30,
     over_plots[[table]] <- plot
   }
 
-  new_options <- options(old_options)
+  options(old_options)
   return(over_plots)
 }
 
@@ -661,7 +658,7 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
                         score_limit = 0.01, overwrite = FALSE,
                         selector = "topDiffGenes", pval_column = "adj.P.Val") {
   go_db <- goseq[["go_db"]]
-  mapping <- make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
+  make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
   geneID2GO <- topGO::readMappings(file = goid_map)
   annotated_genes <- names(geneID2GO)
   de_genes <- goseq[["input"]]
@@ -681,8 +678,7 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
   } else {
     pvals <- as.vector(as.numeric(de_genes[[pval_column]]))
     names(pvals) <- rownames(de_genes)
-    tt <- try(sm(requireNamespace("topGO")), silent = TRUE)
-    tt <- try(sm(attachNamespace("topGO")), silent = TRUE)
+    try(sm(requireNamespace("topGO")), silent = TRUE)
     mf_GOdata <- sm(new(
       "topGOdata", description = "MF", ontology = "MF", allGenes = pvals,
       geneSel = get(selector), annot = topGO::annFUN.gene2GO, gene2GO = geneID2GO))
@@ -705,8 +701,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
   mf_included <- length(which(mf_nodes <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo_tree_mf", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   mf_tree_data <- try(sm(topGO::showSigOfNodes(
     mf_GOdata, mf_nodes, useInfo = "all",
     sigForAll = TRUE, firstSigNodes = mf_included,
@@ -719,8 +715,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
     mf_tree <- recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   ## Print the biological process tree
   bp_avail_nodes <- as.list(bp_GOdata@graph@nodes)
@@ -852,8 +848,8 @@ cluster_trees <- function(de_genes, cpdata, goid_map = "id2go.map", go_db = NULL
   mf_included <- length(which(mf_all_scores <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   mf_tree_data <- try(suppressWarnings(
     topGO::showSigOfNodes(mf_GOdata, mf_all_scores, useInfo = "all",
                           sigForAll = TRUE, firstSigNodes = floor(mf_included * 1.5),
@@ -864,8 +860,8 @@ cluster_trees <- function(de_genes, cpdata, goid_map = "id2go.map", go_db = NULL
     mf_tree <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   bp_included <- length(which(bp_all_scores <= score_limit))
 
@@ -926,8 +922,8 @@ single_topgo_tree <- function(tg, score_column = "fisher_mf", node_data = "fmf_g
   num_included <- length(sig_results)
   if (length(num_included) > 0) {
     tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     nodes <- try(sm(topGO::showSigOfNodes(
       tg[["godata"]][[score_column]],
       topGO::score(tg[["results"]][[score_column]]),
@@ -940,8 +936,8 @@ single_topgo_tree <- function(tg, score_column = "fisher_mf", node_data = "fmf_g
       tree_plot <- try(grDevices::recordPlot())
     }
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
   } else {
     tree_plot <- NULL
   }
@@ -1068,28 +1064,28 @@ topgo_trees <- function(tg, score_limit = 0.01, sigforall = TRUE,
   mf_weight_nodes <- mf_weight_tree <- NULL
   if (isTRUE(do_mf_weight_tree)) {
     mf_weight <- single_topgo_tree(tg, score_column = "weight_mf",
-                               node_data = "fmf_godata", score_limit = score_limit,
-                               sigforall = sigforall)
-    mf_weight_nodes <- mf_el[["nodes"]]
-    mf_weight_tree <- mf_el[["plot"]]
+                                   node_data = "fmf_godata", score_limit = score_limit,
+                                   sigforall = sigforall)
+    mf_weight_nodes <- mf_weight[["nodes"]]
+    mf_weight_tree <- mf_weight[["plot"]]
   }
 
   bp_weight_nodes <- bp_weight_tree <- NULL
   if (isTRUE(do_bp_weight_tree)) {
     bp_weight <- single_topgo_tree(tg, score_column = "weight_bp",
-                               node_data = "fbp_godata", score_limit = score_limit,
-                               sigforall = sigforall)
-    bp_weight_nodes <- bp_el[["nodes"]]
-    bp_weight_tree <- bp_el[["plot"]]
+                                   node_data = "fbp_godata", score_limit = score_limit,
+                                   sigforall = sigforall)
+    bp_weight_nodes <- bp_weight[["nodes"]]
+    bp_weight_tree <- bp_weight[["plot"]]
   }
 
   cc_weight_nodes <- cc_weight_tree <- NULL
   if (isTRUE(do_cc_weight_tree)) {
     cc_weight <- single_topgo_tree(tg, score_column = "weight_cc",
-                               node_data = "fcc_godata", score_limit = score_limit,
-                               sigforall = sigforall)
-    cc_weight_nodes <- cc_el[["nodes"]]
-    cc_weight_tree <- cc_el[["plot"]]
+                                   node_data = "fcc_godata", score_limit = score_limit,
+                                   sigforall = sigforall)
+    cc_weight_nodes <- cc_weight[["nodes"]]
+    cc_weight_tree <- cc_weight[["plot"]]
   }
 
   trees <- list(
@@ -1141,8 +1137,8 @@ topgo_trees <- function(tg, score_limit = 0.01, sigforall = TRUE,
 gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 0.01,
                           overwrite = FALSE, selector = "topDiffGenes",
                           pval_column = "adj.P.Val") {
-  filename <- make_id2gomap(goid_map = goid_map, go_db = gostats_result[["go_db"]],
-                            overwrite = overwrite)
+  make_id2gomap(goid_map = goid_map, go_db = gostats_result[["go_db"]],
+                overwrite = overwrite)
   geneID2GO <- topGO::readMappings(file = goid_map)
   annotated_genes <- names(geneID2GO)
   de_genes <- gostats_result[["input"]]
@@ -1191,8 +1187,8 @@ gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 
   mf_over_included <- length(which(mf_over_nodes <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   mf_over_tree_data <- try(suppressWarnings(
     topGO::showSigOfNodes(mf_GOdata, mf_over_nodes, useInfo = "all",
                           sigForAll = TRUE, firstSigNodes = mf_over_included,
@@ -1204,8 +1200,8 @@ gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 
     mf_over_tree <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   bp_avail_nodes <- as.list(bp_GOdata@graph@nodes)
   names(bp_avail_nodes) <- bp_GOdata@graph@nodes

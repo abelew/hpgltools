@@ -565,7 +565,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
       adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
-    batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
@@ -595,7 +594,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
       adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["count_table"]]
-    batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }
@@ -626,7 +624,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
       adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["batched_counts"]]
-    batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
     ## count_table <- do_batch(count_table, method = batch,
@@ -665,7 +662,6 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
       adjust_method = adjust_method)
     current_libsize <- batch_data[["libsize"]]
     count_table <- batch_data[["count_table"]]
-    batched_counts <- count_table
     batch_performed <- batch_data[["batch_performed"]]
     sv_df <- batch_data[["result"]][["result"]][["model_adjust"]]
   }

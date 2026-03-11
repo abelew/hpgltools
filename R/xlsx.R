@@ -83,7 +83,7 @@ init_xlsx <- function(excel = "excel/something.xlsx") {
   if (file.exists(excel)) {
     message("Deleting the file ", excel, " before writing the tables.")
     removed <- file.remove(excel)
-    if (!is.TRUE(removed)) {
+    if (!isTRUE(removed)) {
       warning("The excel file ", excel, " was not removed.")
     }
   }
@@ -363,13 +363,15 @@ setMethod(
         startCol = new_col, startRow = new_row,
         rowNames = rownames, colNames = TRUE))
     }
+    if ("try-error" %in% class(written)) {
+      warning("Unable to write the df to ", sheet, ".")
+    }
     written_row <- new_row + nrow(final_data)
     new_row <- written_row + 2
     ## Set the column lengths, hard set the first to 20,
     ## then try to set it to auto if the length is not too long.
     for (data_col in seq_len(ncol(final_data))) {
       ## Make an explicit check that the data is not null, which comes out here as character(0)
-      column_name <- colnames(final_data)[data_col]
       style_set <- NULL
       this_column <- final_data[[data_col]]
       test_column <- as.character(this_column)
@@ -403,12 +405,10 @@ setMethod(
       ## Keep in mind that if we are going to set the column widths
       ## and we set a start_col, then the actual column we will be changing is start_col + data_col.
       row_range <- seq(from = start_row + 1, to = written_row)
-      current_col <- start_col + data_col - 1  ## start_col is 1 indexed.
       this_col_num <- start_col + data_col
       if (is.null(column_width)) {
         ## I am not sure if I want to do anything here yet.
         ## mesg("Column widths already set, if you set them now there will be problems.")
-        funkytown <- NULL
       } else if (column_width == "heuristic") {
         if (data_col == 1) {
           openxlsx::setColWidths(wb = wb, sheet = sheet, cols = this_col_num, widths = 20)
@@ -423,28 +423,31 @@ setMethod(
       }
 
       if (isTRUE(test_float)) {
-        style_set <- openxlsx::addStyle(wb = wb, sheet = sheet, style = sig_fmt,
-                                        rows = row_range, cols = this_col_num)
+        style_set <- try(openxlsx::addStyle(wb = wb, sheet = sheet, style = sig_fmt,
+                                            rows = row_range, cols = this_col_num))
       }
       if (isTRUE(test_whole)) {
-        style_set <- openxlsx::addStyle(wb = wb, sheet = sheet, style = whole_fmt,
-                                        rows = row_range, cols = this_col_num)
+        style_set <- try(openxlsx::addStyle(wb = wb, sheet = sheet, style = whole_fmt,
+                                            rows = row_range, cols = this_col_num))
       }
       if (isTRUE(test_date)) {
-        style_set <- openxlsx::addStyle(wb = wb, sheet = sheet, style = date_fmt,
-                                        rows = row_range, cols = this_col_num)
+        style_set <- try(openxlsx::addStyle(wb = wb, sheet = sheet, style = date_fmt,
+                                            rows = row_range, cols = this_col_num))
       }
       if (isTRUE(test_pct)) {
-        style_set <- openxlsx::addStyle(wb = wb, sheet = sheet, style = pct_fmt,
-                                        rows = row_range, cols = this_col_num)
+        style_set <- try(openxlsx::addStyle(wb = wb, sheet = sheet, style = pct_fmt,
+                                            rows = row_range, cols = this_col_num))
       }
       if (isTRUE(test_large)) {
-        style_set <- openxlsx::addStyle(wb = wb, sheet = sheet, style = sci_fmt,
-                                        rows = row_range, cols = this_col_num)
+        style_set <- try(openxlsx::addStyle(wb = wb, sheet = sheet, style = sci_fmt,
+                                            rows = row_range, cols = this_col_num))
+      }
+      if ("try-error" %in% class(style_set)) {
+        warning("Unable to set the style in sheet: ", sheet, ".")
       }
     }
     end_col <- new_col + ncol(final_data) + 1
-    new_options <- options(old_options)
+    options(old_options)
     frozen <- NULL
     if (isTRUE(freeze_first_row) && isTRUE(freeze_first_column)) {
       frozen <- openxlsx::freezePane(wb, sheet, firstCol = TRUE, firstRow = TRUE)
@@ -586,7 +589,6 @@ setMethod(
     current_wb <- excel[["workbook"]]
     current_sheet <- excel[["sheet"]]
     current_row <- excel[["end_row"]]
-    current_col <- excel[["end_col"]]
     current_excel <- excel[["file"]]
     if (is.null(sheet)) {
       sheet <- current_sheet
@@ -672,7 +674,10 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
     high_quality <- file.path(savedir, glue("{plotname}.{fancy_type}"))
     if (!is.null(savedir)) {
       if (!file.exists(savedir)) {
-        created <- dir.create(savedir, recursive = TRUE)
+        created <- try(dir.create(savedir, recursive = TRUE))
+        if ("try-error" %in% class(created)) {
+          warning("Unable to create the directory: ", savedir, ".")
+        }
       }
     }
     if (fancy_type == "pdf") {
@@ -721,7 +726,7 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
   if (class(print_ret)[1] == "try-error") {
     print_ret <- try(suppressWarnings(plot(a_plot, ...)))
   }
-  plotted <- dev.off()
+  dev.off()
 
   ## Check that the worksheet exists and add the plot.
   wb_sheet <- check_xlsx_worksheet(wb, sheet)

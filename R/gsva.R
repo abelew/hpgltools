@@ -1,3 +1,5 @@
+## gsva.R: Functions to play with gene sets and variance analyses.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -16,12 +18,10 @@ NULL
 #' @seealso [AnnotationDbi]
 #' @export
 convert_ids <- function(ids, from = "ENSEMBL", to = "ENTREZID", orgdb = "org.Hs.eg.db") {
-  lib_result <- sm(requireNamespace(orgdb))
-  att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
-  new_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
-                                      keys = ids,
-                                      keytype = from,
-                                      columns = to))
+  sm(requireNamespace(orgdb))
+  sm(try(attachNamespace(orgdb), silent = TRUE))
+  new_ids <- sm(AnnotationDbi::select(
+    x = get0(orgdb), keys = ids, keytype = from, columns = to))
   new_idx <- complete.cases(new_ids)
   new_ids <- new_ids[new_idx, ]
   message("Before conversion: ", length(ids),
@@ -77,8 +77,8 @@ get_gsvadb_names <- function(sig_data, requests = NULL) {
 get_group_gsva_means <- function(gsva_scores, groups, keep_single = TRUE, method = "mean") {
   start_gsva_result <- assay(gsva_scores)
 
-  groupMeans <- data.frame(row.names = rownames(start_gsva_result))
-  groupInd <- list()
+  group_means <- data.frame(row.names = rownames(start_gsva_result))
+  group_index <- list()
   ## Added a little logic in case there are categories with <= 1 column.
   for (group in groups) {
     ## get columns for that group
@@ -87,24 +87,27 @@ get_group_gsva_means <- function(gsva_scores, groups, keep_single = TRUE, method
       next
     } else if (sum(ind) == 1) {
       if (isTRUE(keep_single)) {
-        groupMeans[[group]] <- as.data.frame(start_gsva_result[, ind])
-        colnames(groupMeans[[group]]) <- colnames(colData(gsva_scores))[ind]
+        group_means[[group]] <- as.data.frame(start_gsva_result[, ind])
+        colnames(group_means[[group]]) <- colnames(colData(gsva_scores))[ind]
       } else {
         next
       }
     } else {
       subset <- start_gsva_result[, ind]
       if (method == "mean") {
-        groupMeans[[group]] <- abs(rowMeans(subset))
+        group_means[[group]] <- abs(rowMeans(subset))
       } else if (method == "median") {
-        groupMeans[[group]] <- abs(Biobase::rowMedians(subset))
+        group_means[[group]] <- abs(Biobase::rowMedians(subset))
       } else {
         stop("I do not know this method: ", method, ".")
       }
     }
-    groupInd[[group]] <- ind
+    group_index[[group]] <- ind
   }
-  return(list("Means" = groupMeans, "Index" = groupInd))
+  retlist <- list("group_means" = group_means,
+                  "group_index" = group_index)
+  class(retlist) <- "hpgltools::get_group_gsva_means"
+  return(retlist)
 }
 
 #' Attempt to score the results from simple_gsva()
@@ -156,7 +159,8 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
 
   ## Combine gsva max(scores) with limma results
   ### get gsva within group means
-  groups <- levels(droplevels(as.factor(colData(gsva_se)[[factor_column]])))
+  ## FIXME: Once I am certain, delete the following line.
+  ## groups <- levels(droplevels(as.factor(colData(gsva_se)[[factor_column]])))
   gsva_score_means <- median_by_factor(data = gsva_se, fact = factor_column, fun = type)
   ## gsva_score_means <- get_group_gsva_means(gsva_scores, groups)
   num_den_string <- strsplit(x = names(gsva_limma[["all_tables"]]), split = "_vs_")
@@ -165,7 +169,8 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   annot <- rowData(gsva_se)
   meta <- colData(gsva_se)
   for (t in seq_along(gsva_limma[["all_tables"]])) {
-    table_name <- names(gsva_limma[["all_table"]])[t]
+    ## table_name <- names(gsva_limma[["all_table"]])[t]
+    ## message("Working on table: ", table_name, ".")
     table <- gsva_limma[["all_tables"]][[t]]
     contrast <- num_den_string[[t]]
     ## get means from gsva_score_means for each contrast
@@ -211,8 +216,8 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     jet_colors <- grDevices::colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
                                                 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
     tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     if (is.null(label_size)) {
       scored_ht <- heatmap.3(subset_eset, trace = "none", col = jet_colors,
                              margins = c(col_margin, row_margin))
@@ -223,8 +228,8 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     }
     scored_ht_plot <- grDevices::recordPlot()
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
     subset_order <- rev(scored_ht[["rowInd"]])
     subset_rownames <- rownames(subset_eset)[subset_order]
 
@@ -261,24 +266,24 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   likelihood_table <- likelihood_table[likelihood_table_idx, ]
 
   retlist <- list(
-      ## Everything provided by simple_gsva()
-      "input" = gsva_result,
-      ## The table from simple_gsva merged with the annotations.
-      "gsva_table" = gsva_table,
-      ## Heatmap of gsva result.
-      "raw_plot" = gl[["raw_plot"]],
-      ## The result from score_gsva_likelihoods, which compares condition vs. others.
-      "likelihood_table" = likelihood_table,
-      ## Corresponding plot from score_gsva_likelihoods
-      "score_plot" = gl[["likelihood_plot"]],
-      ## The subset of gsva scores deemed 'significant' by score_gsva_likelihoods.
-      "subset_table" = subset_table,
-      ## The corresponding plot for the subset.
-      "subset_plot" = scored_ht_plot,
-      "scores" = gl,
-      "score_pca" = gl[["pca"]][["plot"]],
-      "subset_se" = subset_eset,
-      "gsva_limma" = gsva_limma)
+    ## Everything provided by simple_gsva()
+    "input" = gsva_result,
+    ## The table from simple_gsva merged with the annotations.
+    "gsva_table" = gsva_table,
+    ## Heatmap of gsva result.
+    "raw_plot" = gl[["raw_plot"]],
+    ## The result from score_gsva_likelihoods, which compares condition vs. others.
+    "likelihood_table" = likelihood_table,
+    ## Corresponding plot from score_gsva_likelihoods
+    "score_plot" = gl[["likelihood_plot"]],
+    ## The subset of gsva scores deemed 'significant' by score_gsva_likelihoods.
+    "subset_table" = subset_table,
+    ## The corresponding plot for the subset.
+    "subset_plot" = scored_ht_plot,
+    "scores" = gl,
+    "score_pca" = gl[["pca"]][["plot"]],
+    "subset_se" = subset_eset,
+    "gsva_limma" = gsva_limma)
 
   if (!is.null(excel)) {
     retlist[["excel"]] <- write_gsva(retlist, excel)
@@ -324,7 +329,6 @@ intersect_signatures <- function(gsva_result, lst, freq_cutoff = 2,
   annot <- rowData(gsva_result)
   sig_genes <- list()
   gene_venn_lst <- list()
-  venn_names <- list()
   ## Skip the non-existant set of 00, thus 2:length()
   ## Top level loop iterates through the observed intersections/unions from Vennerable.
   for (i in seq(from = 2, to = length(sig_int))) {
@@ -371,13 +375,13 @@ intersect_signatures <- function(gsva_result, lst, freq_cutoff = 2,
   gene_int <- gene_venn@IntersectionSets
 
   retlst <- list(
-      "signature_venn" = sig_venn,
-      "signature_intersection" = sig_int,
-      "signature_venn_plot" = sig_plot,
-      "signature_genes" = sig_genes,
-      "gene_venn" = gene_venn,
-      "gene_intersection" = gene_int,
-      "gene_venn_plot" = gene_venn_plot)
+    "signature_venn" = sig_venn,
+    "signature_intersection" = sig_int,
+    "signature_venn_plot" = sig_plot,
+    "signature_genes" = sig_genes,
+    "gene_venn" = gene_venn,
+    "gene_intersection" = gene_int,
+    "gene_venn_plot" = gene_venn_plot)
   return(retlst)
 }
 
@@ -427,8 +431,8 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
   jet_colors <- grDevices::colorRampPalette(color_range)
   starting_ht <- NULL
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   if (is.null(label_size)) {
     starting_ht <- heatmap.3(values, trace = "none", col = jet_colors,
                              margins = c(col_margin, row_margin))
@@ -439,11 +443,12 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
   }
   starting_ht_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
   tests <- test_values <- against_values <- NULL
   choice <- NULL
-  if (is.null(score) & is.null(category) & is.null(sample) & is.null(factor)) {
+  if (is.null(score) && is.null(category) &&
+        is.null(sample) && is.null(factor)) {
     message("Nothing was requested, examining the first column scores: ",
             colnames(values)[1], ".")
     sample <- 1
@@ -519,15 +524,15 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
     colnames(result_df) <- fact_lvls
     heat_colors <- grDevices::colorRampPalette(c("white", "black"))
     tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     ht_result <- heatmap.3(as.matrix(result_df), trace = "none", col = heat_colors,
                            margins = c(col_margin, row_margin), Colv = FALSE,
                            dendrogram = "row", cexCol = label_size, cexRow = label_size)
     score_plot <- grDevices::recordPlot()
     dev.off()
-    removed <- suppressWarnings(file.remove(tmp_file))
-    removed <- unlink(dirname(tmp_file))
+    suppressWarnings(file.remove(tmp_file))
+    unlink(dirname(tmp_file))
     test_results <- result_df
   } else if (choice == "column") {
     test_results <- sapply(X = tests, FUN = cheesy_likelihood)
@@ -543,10 +548,12 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
   }
 
   retlist <- list(
-      "pca" = gsva_pca,
-      "raw_plot" = starting_ht_plot,
-      "likelihoods" = test_results,
-      "likelihood_plot" = score_plot)
+    "pca" = gsva_pca,
+    "starting_heatmap" = starting_ht,
+    "raw_plot" = starting_ht_plot,
+    "likelihoods" = test_results,
+    "result_heatmap" = ht_result,
+    "likelihood_plot" = score_plot)
   return(retlist)
 }
 
@@ -616,18 +623,18 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   ## work.
   se_annotation <- annotation(se)
   se_pattern <- grepl(pattern = "Fill me in", x = annotation(se))
-  if (length(se_annotation) == 0 | isTRUE(se_pattern)) {
+  if (length(se_annotation) == 0 || isTRUE(se_pattern)) {
     message("gsva requires the annotation field to be filled in. Setting it to orgdb given.")
     annotation(se) <- orgdb
   }
 
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
-  if (current_id != required_id | !is.integer(grep("ENSG", rownames(assay(se))))) {
+  if (current_id != required_id || !is.integer(grep("ENSG", rownames(assay(se))))) {
     message("Converting the rownames() of the expressionset to ", required_id, ".")
     if (id_source == "orgdb") {
       ##tt <- sm(library(orgdb, character.only = TRUE))
-      lib_result <- sm(requireNamespace(orgdb))
-      att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
+      sm(requireNamespace(orgdb))
+      sm(try(attachNamespace(orgdb), silent = TRUE))
       old_ids <- rownames(assay(se))
       new_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
                                           keys = old_ids,
@@ -666,8 +673,6 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     old_rownames <- new_ids[[current_id]]
     ## FIXME: My se [] implementation has a bug.
     assay_subset <- se[old_rownames]
-    sub_se <- assay_subset
-    ## sub_se <- subset_se(se, ids = old_rownames)
     converted_se <- assay_subset
     rownames(converted_se) <- new_rownames
     message("After conversion, the expressionset has ",
@@ -698,7 +703,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   gsva_result <- GSVA::gsva(gsva_params, verbose = verbose)
   gene_sets_df <- data.frame(row.names = names(signature_data))
   gene_sets <- c()
-  for (cat in seq_len(length(signature_data))) {
+  for (cat in seq_along(signature_data)) {
     genes <- toString(GSEABase::geneIds(signature_data[[cat]]))
     gene_sets <- c(gene_sets, genes)
   }
@@ -760,11 +765,11 @@ setMethod(
     se <- se
     se <- se[["expressionset"]]
     gsva_data <- simple_gsva(se = se, signatures = signatures, data_pkg = data_pkg,
-                               signature_category = signature_category, cores = cores,
-                               current_id = current_id, required_id = required_id,
-                               id_source = id_source, min_catsize = min_catsize,
-                               orgdb = orgdb, method = method, kcdf = kcdf, ranking = ranking,
-                               msig_db = msig_db, wanted_meta = wanted_meta, mx_diff = mx_diff,
+                             signature_category = signature_category, cores = cores,
+                             current_id = current_id, required_id = required_id,
+                             id_source = id_source, min_catsize = min_catsize,
+                             orgdb = orgdb, method = method, kcdf = kcdf, ranking = ranking,
+                             msig_db = msig_db, wanted_meta = wanted_meta, mx_diff = mx_diff,
                              verbose = verbose, id_type = id_type)
     gsva_result <- gsva_data[["gsva_result"]]
     signature_data <- gsva_data[["signature_data"]]
@@ -871,7 +876,7 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
   xcell_input[["hgnc_symbol"]] <- NULL
 
   xCell.data <- NULL
-  tt <- requireNamespace("xCell")
+  requireNamespace("xCell")
   data("xCell.data", package = "xCell")
   if (is.null(signatures)) {
     signatures <- xCell.data[["signatures"]]
@@ -897,8 +902,8 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
   jet_colors <- grDevices::colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
                                               "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   if (is.null(label_size)) {
     ht <- heatmap.3(xcell_result, trace = "none", col = jet_colors,
                     margins = c(col_margin, row_margin))
@@ -910,15 +915,15 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
   ht_plot <- grDevices::recordPlot()
   dev.off()
   ## sometimes the file does not get created.
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   sig_idx <- Biobase::rowMax(xcell_result) >= sig_cutoff
   sig_plot <- NULL
   sig_result <- NULL
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   if (sum(sig_idx) > 1) {
     sig_result <- as.matrix(xcell_result[sig_idx, ])
     if (is.null(label_size)) {
@@ -936,12 +941,13 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
   removed <- unlink(dirname(tmp_file))
 
   retlist <- list(
-      "xcell_input" = xcell_input,
-      "xcell_result" = xcell_result,
-      "signatures" = xCell.data[["signatures"]],
-      "heatmap" = ht_plot,
-      "sig_result" = sig_result,
-      "sig_plot" = sig_plot)
+    "xcell_input" = xcell_input,
+    "xcell_result" = xcell_result,
+    "signatures" = xCell.data[["signatures"]],
+    "heatmap" = ht_plot,
+    "heatmap_result" = ht,
+    "sig_result" = sig_result,
+    "sig_plot" = sig_plot)
   return(retlist)
 }
 
@@ -962,12 +968,12 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
   excel_basename <- xlsx[["basename"]]
 
   methods <- list(
-      ## Using the correct character results in a warning from R CMD check... what to do?
-      ## "gsva" = "Hänzelmann et al, 2013",
-      "gsva" = "Hanzelmann et al, 2013",
-      "ssgsea" = "Barbie et al, 2009",
-      "zscore" = "Lee et al, 2008",
-      "plage" = "Tomfohr et al, 2005")
+    ## Using the correct character results in a warning from R CMD check... what to do?
+    ## "gsva" = "Hänzelmann et al, 2013",
+    "gsva" = "Hanzelmann et al, 2013",
+    "ssgsea" = "Barbie et al, 2009",
+    "zscore" = "Lee et al, 2008",
+    "plage" = "Tomfohr et al, 2005")
 
   db_used <- retlist[["input"]][["signatures"]]
   if (class(db_used)[1] != "character") {
@@ -981,29 +987,31 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
 
   ## Write the legend.
   legend <- data.frame(rbind(
-      c("Signature database used:", db_used),
-      c("Database subset used:", retlist[["input"]][["signature_category"]]),
-      c("Required ID type:", retlist[["input"]][["required_id"]]),
-      c("Minimum category size:", retlist[["input"]][["min_catsize"]]),
-      c("GSVA method used:", method),
-      c("", ""),
-      c("Sheet 1: gsva_scores", "All scores as provided by gsva()."),
-      c("Sheet 2: score_gsva_likelihoods", "All likelihood scores calculated using pnorm() of the values."),
-      c("Sheet 3: factor_likelihoods", "Likelihood values for each experimental factor."),
-      c("Sheet 4: subset", "GSVA scores for the categories deemed 'significant' using sheet 2/3."),
-      c("Sheet 5 on:", "Limma scoring of differential signatures.")),
-      stringsAsFactors = FALSE)
+    c("Signature database used:", db_used),
+    c("Database subset used:", retlist[["input"]][["signature_category"]]),
+    c("Required ID type:", retlist[["input"]][["required_id"]]),
+    c("Minimum category size:", retlist[["input"]][["min_catsize"]]),
+    c("GSVA method used:", method),
+    c("", ""),
+    c("Sheet 1: gsva_scores", "All scores as provided by gsva()."),
+    c("Sheet 2: score_gsva_likelihoods", "All likelihood scores calculated using pnorm() of the values."),
+    c("Sheet 3: factor_likelihoods", "Likelihood values for each experimental factor."),
+    c("Sheet 4: subset", "GSVA scores for the categories deemed 'significant' using sheet 2/3."),
+    c("Sheet 5 on:", "Limma scoring of differential signatures.")),
+    stringsAsFactors = FALSE)
   colnames(legend) <- c("Term", "Definition")
   xls_result <- write_xlsx(
-      wb, data = legend, sheet = "legend", rownames = FALSE,
-      title = "Summary and sheets in this workbook.")
-  xl_result <- openxlsx::writeData(wb = wb, sheet = "legend", x = "PCA of categories vs sample type.",
-                                   startRow = 1, startCol = 8)
+    wb, data = legend, sheet = "legend", rownames = FALSE,
+    title = "Summary and sheets in this workbook.")
+  openxlsx::writeData(wb = wb, sheet = "legend", x = "PCA of categories vs sample type.",
+                      startRow = 1, startCol = 8)
   try_result <- xlsx_insert_png(retlist[["score_pca"]], wb = wb, sheet = "legend",
-                              start_row = 2, start_col = 8,
-                              width=(plot_dim * 3/2), height = plot_dim,
-                              plotname = "gsva_pca", savedir = excel_basename)
-
+                                start_row = 2, start_col = 8,
+                                width = (plot_dim * 3/2), height = plot_dim,
+                                plotname = "gsva_pca", savedir = excel_basename)
+  if ("try-error" %in% class(try_result)) {
+    warning("Unable to write plot to the legend.")
+  }
   ## Write the result from gsva()
   xls_result <- write_xlsx(data = retlist[["gsva_table"]], wb = wb, sheet = "gsva_scores")
   current_column <- xls_result[["end_col"]] + 2
@@ -1011,8 +1019,8 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
   plot_width <- 8
   plot_height <- 16
   try_result <- xlsx_insert_png(a_plot = retlist[["raw_plot"]], wb = wb, sheet = "gsva_scores",
-                              start_row = current_row, start_col = current_column,
-                              width = plot_width, height = plot_height)
+                                start_row = current_row, start_col = current_column,
+                                width = plot_width, height = plot_height)
 
   ## Write the likelihoods
   xls_result <- write_xlsx(data = retlist[["likelihood_table"]], wb = wb, sheet = "likelihood_scores")
@@ -1021,8 +1029,8 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
   plot_width <- 6
   plot_height <- 15
   try_result <- xlsx_insert_png(a_plot = retlist[["score_plot"]], wb = wb, sheet = "likelihood_scores",
-                              start_row = current_row, start_col = current_column,
-                              width = plot_width, height = plot_height)
+                                start_row = current_row, start_col = current_column,
+                                width = plot_width, height = plot_height)
 
   ## Write the subset
   xls_result <- write_xlsx(data = retlist[["subset_table"]], wb = wb, sheet = "subset_table")
@@ -1031,8 +1039,8 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
   plot_width <- 6
   plot_height <- 6
   try_result <- xlsx_insert_png(a_plot = retlist[["subset_plot"]], wb = wb, sheet = "subset_table",
-                              start_row = current_row, start_col = current_column,
-                              width = plot_width, height = plot_height)
+                                start_row = current_row, start_col = current_column,
+                                width = plot_width, height = plot_height)
 
   limma_tables <- retlist[["gsva_limma"]][["all_tables"]]
   table_names <- names(limma_tables)

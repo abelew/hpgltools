@@ -1,3 +1,8 @@
+## pcr.R: A series of functions which may help design PCR primers under various conditions.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Simplified TM calculator
 #'
 #' A quick and dirty TM calculator, taken from:
@@ -141,7 +146,7 @@ choose_sequence_regions <- function(long_variant_vector, max_primer_length = 45,
   for (i in seq_len(nrow(sequence_df))) {
     chr_name <- sequence_df[i, "chr"]
     super_start <- sequence_df[i, "fwd_superprimer_start"]
-    super_end <- sequence_df[i, "fwd_superprimer_end"]
+    ## super_end <- sequence_df[i, "fwd_superprimer_end"]
     max_end <- length(genome[[chr_name]])
     if (super_start < 1) {
       super_start <- 1
@@ -184,7 +189,7 @@ choose_sequence_regions <- function(long_variant_vector, max_primer_length = 45,
     rev_end <- sequence_df[i, "rev_superprimer_start"]
     rev_start <- sequence_df[i, "rev_superprimer_end"]
     if (rev_end > max_end) {
-      super_end <- max_end
+      ## super_end <- max_end
       sequence_df[i, "rev_note"] <- "ran over chromosome end."
     } else {
       rev_superprimer <- Biostrings::subseq(
@@ -261,6 +266,7 @@ find_subseq_target_temp <- function(sequence, target = 53,
     mesg("Final tm is: ", cheapo[["tm"]], " from sequence: ", sequence, ".")
     return(sequence)
   }
+  return(result)
 }
 
 #' Perform a series of tests of a putative primer.
@@ -702,7 +708,7 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   genome <- NULL
   if (!is.null(bsgenome)) {
     ## FIXME: Shouldn't use library()
-    library(bsgenome, character.only = TRUE)
+    requireNamespace(bsgenome, character.only = TRUE)
     genome <- get0(bsgenome)
   }
   seq_obj <- NULL
@@ -743,8 +749,13 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
     final_merged[i, ] <- final_entry
   }
   retlist <- list(
+    "bin_gr" = bin_gr,
+    "bin_cds_gr" = bin_cds_gr,
+    "bin_var_gr" = bin_var_gr,
+    "both_gr" = both_gr,
+    "variants_per_bin" = variants_per_bin,
     "primer_table" = final_merged)
-  class(retlist) <- "cds_variant_primers"
+  class(retlist) <- "hpgltools::snp_cds_primers"
   return(retlist)
 }
 
@@ -857,7 +868,8 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     colnames(snp_table) <- the_colname
   }
 
-  mesg("Started with ", start_rows, ", candidate snps, after cutoff there are ",       sum(interest_rows), " remaining.")
+  mesg("Started with ", start_rows, ", candidate snps, after cutoff there are ",
+       sum(interest_rows), " remaining.")
   position_table <- data.frame(row.names = rownames(snp_table))
   position_table[["chromosome"]] <- gsub(x = rownames(position_table),
                                          pattern = "chr_(.*)_pos_.*",
@@ -898,7 +910,7 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     chr <- chromosomes[ch]
     chr_idx <- position_table[["chromosome"]] == chr
     chr_data <- position_table[chr_idx, ]
-    chr_len = NULL
+    chr_len <- NULL
     if (is.null(genome)) {
       chromosome_df[chr, "length"] <- max(chr_data[["position"]])
       chr_len <- max(chr_data[["position"]])
@@ -917,7 +929,7 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     ## Stop scientific notation for this operation
     current_options <- options(scipen = 999)
     density_vector <- rep(0, ceiling(this_length / bin_width))
-    variant_vector <- rep('', ceiling(this_length / bin_width))
+    variant_vector <- rep("", ceiling(this_length / bin_width))
     density_name <- 0
     for (i in seq_along(density_vector)) {
       range_min <- density_name
@@ -1048,7 +1060,10 @@ write_density_primers <- function(density_primers, prefix = "pf",
   sequence_names <- glue("{prefix}{num_strings}_{name_strings}")
   names(string_set) <- sequence_names
   string_set <- Biostrings::DNAStringSet(x = string_set, use.names = TRUE)
-  written <- Biostrings::writeXStringSet(string_set, fasta, append = FALSE,
-                                         compress = FALSE, format = "fasta")
+  written <- try(Biostrings::writeXStringSet(string_set, fasta, append = FALSE,
+                                             compress = FALSE, format = "fasta"))
+  if ("try-error" %in% class(written)) {
+    warning("Could not write the output fasta file: ", fasta, ".")
+  }
   return(string_set)
 }

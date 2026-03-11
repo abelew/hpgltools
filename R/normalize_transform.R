@@ -1,4 +1,7 @@
-## normalize_transform.r: Change the scale of an expressionset, usually to log2.
+## normalize_transform.R: Change the scale of an expressionset, usually to log2.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Perform a simple transformation of a count table (log2)
 #'
@@ -29,42 +32,42 @@ transform_counts <- function(count_table, design = NULL, method = "raw",
     method <- arglist[["transform"]]
   }
   ## Short circuit this if we are going with raw data.
-  switchret <- switch(
-      method,
-      "raw" = {
-        libsize <- colSums(count_table)
-        counts <- list(count_table = count_table, libsize = libsize)
-        return(counts)
-      },
-      "round" = {
-        ## Also short-circuit it if we are asked to round the data.
-        count_table <- round(count_table)
-        less_than <- count_table < 0
-        count_table[less_than] <- 0
-        libsize <- colSums(count_table)
-        counts <- list(count_table = count_table, libsize = libsize)
-        return(counts)
-      },
-      "voom" = {
-        libsize <- colSums(count_table)
-        model_mtrx <- model.matrix(as.formula(model_fstring), data = as.data.frame(design))
+  switch(
+    method,
+    "raw" = {
+      libsize <- colSums(count_table)
+      counts <- list(count_table = count_table, libsize = libsize)
+      return(counts)
+    },
+    "round" = {
+      ## Also short-circuit it if we are asked to round the data.
+      count_table <- round(count_table)
+      less_than <- count_table < 0
+      count_table[less_than] <- 0
+      libsize <- colSums(count_table)
+      counts <- list(count_table = count_table, libsize = libsize)
+      return(counts)
+    },
+    "voom" = {
+      libsize <- colSums(count_table)
+      model_mtrx <- model.matrix(as.formula(model_fstring), data = as.data.frame(design))
+      voomed <- limma::voom(counts = count_table, design = model_mtrx)
+      counts <- list(count_table = voomed[["E"]], libsize = libsize)
+      return(counts)
+    },
+    "voomweight" = {
+      libsize <- colSums(count_table)
+      model_mtrx <- model.matrix(as.formula(model_fstring), data = as.data.frame(design))
+      voomed <- try(limma::voomWithQualityWeights(counts = count_table, design = model_mtrx))
+      if (class(voomed) == "try-error") {
+        warning("voomwithqualityweights failed.  Falling back to voom.")
         voomed <- limma::voom(counts = count_table, design = model_mtrx)
-        counts <- list(count_table = voomed[["E"]], libsize = libsize)
-        return(counts)
-      },
-      "voomweight" = {
-        libsize <- colSums(count_table)
-        model_mtrx <- model.matrix(as.formula(model_fstring), data = as.data.frame(design))
-        voomed <- try(limma::voomWithQualityWeights(counts = count_table, design = model_mtrx))
-        if (class(voomed) == "try-error") {
-          warning("voomwithqualityweights failed.  Falling back to voom.")
-          voomed <- limma::voom(counts = count_table, design = model_mtrx)
-        }
-        counts <- list(count_table = voomed[["E"]], libsize = libsize)
-        return(counts)
-      },
-      {
       }
+      counts <- list(count_table = voomed[["E"]], libsize = libsize)
+      return(counts)
+    },
+    {
+    }
   ) ## Ending the switch statement
 
   ## If we are performing a transformation, then the minimum value I want is 1
@@ -108,22 +111,19 @@ transform_counts <- function(count_table, design = NULL, method = "raw",
   ## As a final check, remove any NaNs produced due to some shenanigans.
   ## This logic was removed, which is causing some unintended consequences.
   ## We should consider further how to deal with this.
-  num_before <- nrow(count_table)
   nans <- is.nan(count_table)
   nans_sum <- sum(nans)
-  ##if (nans_sum > 0) {
-  ##message("Setting nan containing elements to 0.")
-  ##count_table[nans] <- 0
-  ##nans <- nans == 0
-  ##count_table <- count_table[!nans, ]
-  ##message(sprintf("Removing %d NaN containing rows (%d remaining).",
-  ##                num_before - nrow(count_table), nrow(count_table)))
-  ##}
+  if (nans_sum > 0) {
+    message("Setting nan containing elements to 0.")
+    count_table[nans] <- 0
+    nans <- nans == 0
+    count_table <- count_table[!nans, ]
+  }
 
   libsize <- colSums(count_table)
   counts <- list(
-      "count_table" = count_table,
-      "libsize" = libsize)
+    "count_table" = count_table,
+    "libsize" = libsize)
   return(counts)
 }
 

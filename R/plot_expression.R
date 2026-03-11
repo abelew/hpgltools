@@ -1,3 +1,6 @@
+## plot_expression.R: Various ways of looking at the expression levels of
+## individual and/or groups of genes.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -90,18 +93,23 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
     wb <- xlsx[["wb"]]
     excel_basename <- xlsx[["basename"]]
     new_row <- 1
-    new_col <- 1
     ## Set up a vector of images to clean up when finished.
     image_files <- c()
     ## Get the number of columns in the plot to define width:
     plot_width <- (length(plot_colors) * length(genes)) / 2
     plot_height <- 6
-    xls_result <- write_xlsx(data = start_df, wb = wb, start_row = new_row,
-                             rownames = FALSE, sheet = "raw", start_col = 1,
-                             title = "Raw reads.")
-    xls_result <- write_xlsx(data = norm_df, wb = wb, start_row = new_row,
-                             rownames = FALSE, sheet = "norm", start_col = 1,
-                             title = "Normalized reads.")
+    xls_result <- try(write_xlsx(data = start_df, wb = wb, start_row = new_row,
+                                 rownames = FALSE, sheet = "raw", start_col = 1,
+                                 title = "Raw reads."))
+    if ("try-error" %in% class(xls_result)) {
+      warning("Unable to write the raw reads.")
+    }
+    xls_result <- try(write_xlsx(data = norm_df, wb = wb, start_row = new_row,
+                                 rownames = FALSE, sheet = "norm", start_col = 1,
+                                 title = "Normalized reads."))
+    if ("try-error" %in% class(xls_result)) {
+      warning("Unable to write the normalized reads.")
+    }
     try_result <- xlsx_insert_png(plot, wb = wb, sheet = "norm_plot",
                                   width = plot_width, height = plot_height,
                                   start_col = 1, start_row = 1,
@@ -123,9 +131,12 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
       image_files <- c(image_files, try_result[["filename"]])
     }
     save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(save_result)) {
+      warning("Unable to save the xlsx file.")
+    }
     message("Saving to ", excel)
     for (img in image_files) {
-      removed <- try(suppressWarnings(file.remove(img)), silent = TRUE)
+      try(suppressWarnings(file.remove(img)), silent = TRUE)
     }
   }
   retlist <- list(

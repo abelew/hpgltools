@@ -3,6 +3,9 @@
 ## toolkit.  It is not necessarily as easy to use as I might prefer.  This seeks
 ## to fill in some corner case.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Run simple_clusterprofiler on every table from extract_significant_genes()
 #'
 #' Most of the options are taken from simple_cprofiler and passed directly down.
@@ -150,7 +153,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
-      slept <- Sys.sleep(10)
+      Sys.sleep(10)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       args <- list(
         "sig_genes" = down, "de_table" = table, "orgdb" = orgdb, "todo" = todo,
@@ -159,7 +162,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         "second_fc_column" = second_fc_column, "internal" = internal, "updown" = updown,
         "permutations" = permutations, "min_groupsize" = min_groupsize, "kegg_prefix" = kegg_prefix,
         "kegg_organism" = kegg_organism, "categories" = categories, "padj_type" = padj_type,
-        "excel" = chosen_up_xlsx, "organism" = organism,
+        "excel" = chosen_down_xlsx, "organism" = organism,
         "max_groupsize" = max_groupsize, "mesh_category" = mesh_category,
         "mesh_dbname" = mesh_dbname, "msigdb_category" = msigdb_category, "msig_db" = msig_db,
         "kegg_universe" = kegg_universe, "reactome_organism" = reactome_organism,
@@ -229,6 +232,9 @@ cp_go_enrich <- function(sig_gene_list, org, orgdb_to, level, universe_to, min_g
          " MF, ", nrow(ego_sig_bp_df),
          " BP, and ", nrow(ego_sig_cc_df), " CC over-represented hits.")
   retlist <- list(
+    "ggo_mf" = ggo_mf,
+    "ggo_bp" = ggo_bp,
+    "ggo_cc" = ggo_cc,
     "ego_all_mf" = ego_all_mf,
     "ego_all_bp" = ego_all_bp,
     "ego_all_cc" = ego_all_cc,
@@ -343,7 +349,7 @@ cp_kegg_gsea <- function(de_table_merged, kegg_universe, kegg_organism,
   kegg_all_intersect <- kegg_all_names %in% names(kegg_universe)
   mesg("Found ", sum(kegg_all_intersect),
        " matches between the gene list and kegg universe.")
-  all_names <- names(kegg_universe)
+  ## all_names <- names(kegg_universe)
   large_universe <- kegg_universe[intersect(kegg_all_names, names(kegg_universe))]
   kegg_all_ids <- unique(as.character(large_universe))
   kegg_all_ids <- gsub(pattern = glue("{kegg_organism}:"),
@@ -425,7 +431,8 @@ cp_react_enrich <- function(sig_gene_list, orgdb, universe_to,
                             max_groupsize = 500, padj_type = "BH",
                             pcutoff = 0.05) {
   reactome_all <- NULL
-  reacome_all_df <- reactome_sig_df <- data.frame()
+  reactome_all_df <- data.frame()
+  reactome_sig_df <- data.frame()
   mesg("Performing reactome over-representation analysis.")
   reactome_all <- try(ReactomePA::enrichPathway(
     gene = sig_gene_list, pvalueCutoff = pcutoff, readable = TRUE,
@@ -449,8 +456,9 @@ cp_react_enrich <- function(sig_gene_list, orgdb, universe_to,
 
 cp_react_gsea <- function(genelist, reactome_organism,
                           min_groupsize = 5, max_groupsize = 500, pcutoff = 0.05) {
-  gse_reactome <- NULL
-  gse_reactome_all_df <- gse_reactome_sig_df <- data.frame()
+  gse_all_reactome <- NULL
+  gse_reactome_all_df <- data.frame()
+  gse_reactome_sig_df <- data.frame()
   mesg("Performing reactome GSEA.")
   gse_all_reactome <- try(
     ReactomePA::gsePathway(geneList = genelist, organism = reactome_organism,
@@ -659,13 +667,16 @@ cp_msigdb_enrich <- function(sig_gene_list, signature_data = NULL, signature_df 
                              org = NULL, pcutoff = 0.05) {
   msigdb_all <- NULL
   msigdb_all_df <- msigdb_sig_df <- data.frame()
-  expected_term_type <- "ENTREZID"
-  current_term_type <- "ENTREZID"
-  if (current_term_type != expected_term_type) {
-    test_sig_df <- sm(try(clusterProfiler::bitr(
-      sig_gene_list, fromType = current_term_type, toType = expected_term_type, OrgDb = org),
-      silent = TRUE))
-  }
+
+  ## I think I was planning to switch IDs here but never finished the logic.
+  ## expected_term_type <- "ENTREZID"
+  ## current_term_type <- "ENTREZID"
+  ## if (current_term_type != expected_term_type) {
+  ##   test_sig_df <- sm(try(clusterProfiler::bitr(
+  ##     sig_gene_list, fromType = current_term_type, toType = expected_term_type, OrgDb = org),
+  ##     silent = TRUE))
+  ## }
+
   mesg("Starting msigDB over-representation analysis.")
   msigdb_all <- try(clusterProfiler::enricher(
     sig_gene_list, TERM2GENE = signature_df))
@@ -854,8 +865,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    sig_genes_namedf = NULL) {
   ## TODO: Separate out these various pieces of functionality to query
   ## stuff like kegg/reactome/etc into separate functions.
-  loaded <- sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
-  loaded <- sm(requireNamespace(package = "DOSE", quietly = TRUE))
+  sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
+  sm(requireNamespace(package = "DOSE", quietly = TRUE))
   org <- NULL
   ## Start off by figuring out what was given, an OrgDb or the name of one.
   ## S4ME!
@@ -887,8 +898,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   }
   sig_genenames <- rownames(sig_genes)
 
-  mapper_keys <- AnnotationDbi::keytypes(org)
-  universe_genes <- AnnotationDbi::keys(org)
+  ## mapper_keys <- AnnotationDbi::keytypes(org)
+  uniOBverse_genes <- AnnotationDbi::keys(org)
   all_genenames <- c()
   if (is.null(de_table)) {
     all_genenames <- universe_genes
@@ -899,7 +910,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   if (is.null(orgdb_from)) {
     mesg("Guessing appropriate keytype for the orgdb.")
     key_info <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genes, to = orgdb_to)
-    orgdb_sig_from <- key_info[["orgdb_sig_from"]]
+    ## orgdb_sig_from <- key_info[["orgdb_sig_from"]]
     de_table_namedf <- key_info[["gene_df"]]
     sig_genes_namedf <- key_info[["sig_df"]]
   } else if (orgdb_from == orgdb_to) {
@@ -1277,8 +1288,8 @@ cp_options <- function(species) {
 #' @export
 simple_cp_enricher <- function(sig_genes, de_table, db, current_id = "ENSEMBL",
                                needed_id = "SYMBOL", org = "org.Hs.eg.db") {
-  all_genenames <- rownames(de_table)
-  sig_genenames <- rownames(sig_genes)
+  ## all_genenames <- rownames(de_table)
+  ## sig_genenames <- rownames(sig_genes)
   if (current_id != needed_id) {
     test_genes <- clusterProfiler::bitr(rownames(sig_genes), fromType = current_id,
                                         toType = needed_id, OrgDb = org)

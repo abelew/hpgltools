@@ -1,3 +1,5 @@
+## sequence.R: Functions for examining and manipulating the sequences of a genome/transcriptome.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -59,20 +61,26 @@ gather_eupath_utrs_padding <- function(species_name = "Leishmania major", entry 
   bsgenome_name <- pkg_names[["bsgenome"]]
   orgdb_name <- pkg_names[["orgdb"]]
   if (!isTRUE(pkg_names[["bsgenome_installed"]])) {
-    genome_installedp <- EuPathDB::make_eupath_bsgenome(species = species_name, entry = entry,
-                                                        ...)
+    genome_installedp <- try(EuPathDB::make_eupath_bsgenome(species = species_name, entry = entry,
+                                                            ...))
+    if ("try-error" %in% class(genome_installedp)) {
+      warning("The genome: ", entry, " was unable to be installed.")
+    }
   }
   if (!isTRUE(pkg_names[["orgdb_installed"]])) {
-    orgdb_installedp <- EuPathDB::make_eupath_orgdb(entry = entry,
-                                                    ...)
+    orgdb_installedp <- try(EuPathDB::make_eupath_orgdb(entry = entry,
+                                                        ...))
+    if ("try-error" %in% orgdb_installedp) {
+      warning("The orgdb: ", entry, " was unable to be installed.")
+    }
   }
 
   ##lib_result <- sm(library(orgdb_name, character.only = TRUE))
-  lib_result <- sm(requireNamespace(orgdb_name))
-  att_result <- sm(try(attachNamespace(orgdb_name), silent = TRUE))
+  sm(requireNamespace(orgdb_name))
+  sm(try(attachNamespace(orgdb_name), silent = TRUE))
   ##lib_result <- sm(library(bsgenome_name, character.only = TRUE))
-  lib_result <- sm(requireNamespace(bsgenome_name))
-  att_result <- sm(try(attachNamespace(bsgenome_name), silent = TRUE))
+  sm(requireNamespace(bsgenome_name))
+  sm(try(attachNamespace(bsgenome_name), silent = TRUE))
   orgdb <- get0(orgdb_name)
   bsgenome <- get0(bsgenome_name)
   wanted_fields <- c("annot_gene_location_text", "annot_gene_name",
@@ -130,7 +138,6 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
                                 end_column = "end", strand_column = "strand",
                                 type_column = "annot_gene_type",
                                 gene_type = "protein coding", padding = c(80, 160), ...) {
-  arglist <- list(...)
   retlist <- list()
   if (!is.null(type_column)) {
     ## Pull the entries which are of the desired type.
@@ -444,14 +451,20 @@ gather_utrs_txdb <- function(bsgenome, fivep_utr = NULL, threep_utr = NULL,
 get_inter_txdb <- function(input, intron_gff = "introns.gff",
                            intergenic_gff = "intergenic.gff") {
   all_introns <- GenomicFeatures::intronicParts(input)
-  exported_introns <- rtracklayer::export.gff(all_introns, intron_gff, version = "3")
+  exported_introns <- try(rtracklayer::export.gff(all_introns, intron_gff, version = "3"))
+  if ("try-error" %in% class(exported_introns)) {
+    warning("Unable to write the introns to: ", intron_gff, ".")
+  }
 
   all_exons <- GenomicFeatures::exonsBy(input, "gene")
   exon_ranges <- range(all_exons)
   exon_unlist <- unlist(exon_ranges)
   intergenic <- GenomicRanges::gaps(exon_unlist)
   S4Vectors::mcols(intergenic)[["ID"]] <- seq_along(intergenic)
-  exported_intergenic <- rtracklayer::export.gff(intergenic, intergenic_gff, version = "3")
+  exported_intergenic <- try(rtracklayer::export.gff(intergenic, intergenic_gff, version = "3"))
+  if ("try-error" %in% exported_intergenic) {
+    warning("Unable to export the intergenic regions to: ", intergenic_gff, ".")
+  }
   retlist <- list(
     "introns" = all_introns,
     "intergenic" = intergenic)
@@ -575,7 +588,7 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
     key <- c("ID", "locus_tag")
   }
   if (is.null(gff)) {
-    entry_sequences <- Biostrings::getSeq(rawseq)
+    entry_sequences <- Biostrings::getSeq(fasta)
   } else {
     ## entries <- rtracklayer::import.gff3(gff, asRangedData = FALSE)
     entries <- rtracklayer::import.gff(gff)
@@ -585,7 +598,7 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
     names(type_entries) <- rownames(type_entries)
     ## Get the sequence from the genome for them.
 
-    entry_sequences <- Biostrings::getSeq(rawseq, type_entries)
+    entry_sequences <- Biostrings::getSeq(fasta, type_entries)
     tmp_entries <- as.data.frame(type_entries)
     ## Give them some sensible names
     for (k in key) {
@@ -618,6 +631,9 @@ setMethod(
   definition = function(fasta, gff = NULL, type = "gene", key = NULL) {
     if (grepl(x = fasta, pattern = "^BSgenome")) {
       loaded <- sm(try(requireNamespace(package = fasta, quietly = TRUE)))
+      if ("try-error" %in% class(loaded)) {
+        stop("Unable to load package: ", fasta, ".")
+      }
       rawseq <- get0(fasta)
     } else {
       rawseq <- Rsamtools::FaFile(fasta)
@@ -644,22 +660,14 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
                                      author = "Ashton Trey Belew <abelew@gmail.com>",
                                      url = "https://github.com/abelew/hpgltools", installp = TRUE) {
   if (!file.exists(build_dir)) {
-    created <- dir.create(build_dir, recursive = TRUE)
+    dir.create(build_dir, recursive = TRUE)
   }
   input <- Biostrings::readDNAStringSet(fasta)
   output_list <- list()
   sequence_names <- "c("
   message(" Writing chromosome files, this is slow for fragmented scaffolds.")
-  show_progress <- interactive() && is.null(getOption("knitr.in.progress"))
-  #if (isTRUE(show_progress)) {
-  #  bar <- utils::txtProgressBar(style = 3)
-  #}
   genome_prefix <- NULL
-  for (index in seq_len(length(input))) {
-   # if (isTRUE(show_progress)) {
-   #   pct_done <- index / length(input)
-   #   setTxtProgressBar(bar, pct_done)
-   # }
+  for (index in seq_along(input)) {
     chr <- names(input)[index]
     chr_name <- strsplit(chr, split = " ")[[1]][1]
     if (is.null(genome_prefix)) {
@@ -667,14 +675,14 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
     }
     ## chr_file <- file.path(bsgenome_dir, paste0(chr_name, ".fa"))
     chr_file <- file.path(build_dir, glue::glue("{chr_name}.fa"))
-    output <- Biostrings::writeXStringSet(input[index], chr_file, append = FALSE,
-                                          compress = FALSE, format = "fasta")
+    output <- try(Biostrings::writeXStringSet(input[index], chr_file, append = FALSE,
+                                              compress = FALSE, format = "fasta"))
+    if ("try-error" %in% class(output)) {
+      warning("Unable to write output fasta to: ", chr_file, ".")
+    }
     output_list[[chr_name]] <- chr_file
     sequence_names <- paste0(sequence_names, '"', chr_name, '", ')
   }
-  #if (isTRUE(show_progress)) {
-  #  close(bar)
-  #}
   message("Finished writing ", length(input), " contigs.")
   sequence_names <- gsub(pattern = ", $", replacement = ")", x = sequence_names)
 
@@ -717,6 +725,9 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
   ## way around that due to limitations of Biostrings, lets see.
   uniqueLetters <- Biostrings::uniqueLetters
   tt <- try(do.call("library", as.list("Biostrings")), silent = TRUE)
+  if ("try-error" %in% class(tt)) {
+    stop("Unable to load Biostrings, cannot create final package.")
+  }
   pkg_builder <- BSgenome::forgeBSgenomeDataPkg(description_file, replace = TRUE)
   if ("try-error" %in% class(pkg_builder)) {
     message("forgeBSgenomeDataPkg failed with error: ")
@@ -725,6 +736,7 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
     pkg_builder <- NULL
     return(NULL)
   }
+  rm(uniqueLetters)
 
   built <- NULL
   workedp <- ! "try-error" %in% class(pkg_builder)
@@ -766,7 +778,8 @@ write_cds_entries <- function(genome, annot, ids = NULL, output = "all_cds.fasta
   if (class(genome)[1] == "character") {
     genome <- Rsamtools::FaFile(genome)
   }
-  seq_obj <- Biostrings::getSeq(genome)
+  ## FIXME: I am not ready to delete this until I check that this function works as intended.
+  ## seq_obj <- Biostrings::getSeq(genome)
 
   na_idx <- is.na(annot[[strand_column]])
   annot[na_idx, strand_column] <- "undef"
@@ -803,8 +816,11 @@ write_cds_entries <- function(genome, annot, ids = NULL, output = "all_cds.fasta
   wanted_seqstrings <- Biostrings::getSeq(genome, wanted_ranges)
   names(wanted_seqstrings) <- wanted[[name_column]]
 
-  written <- Biostrings::writeXStringSet(wanted_seqstrings, output, append = FALSE,
-                                         compress = FALSE, format = "fasta")
+  written <- try(Biostrings::writeXStringSet(wanted_seqstrings, output, append = FALSE,
+                                             compress = FALSE, format = "fasta"))
+  if ("try-error" %in% class(written)) {
+    warning("Unable to write fasta entries to: ", output, ".")
+  }
 }
 
 ## EOF

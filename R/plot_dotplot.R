@@ -1,5 +1,7 @@
 ## plot_dotplot.r: Dotplots in various contexts, currently just smc/smd
 
+#' @include 01_hpgltools.R
+
 #' Make a dotplot of some categorised factors and a set of SVs (for other factors).
 #'
 #' This should make a quick df of the factors and surrogates and plot them.
@@ -214,8 +216,6 @@ plot_batchsv <- function(exp, svs, sv = 1, batch_column = "batch",
 #' }
 #' @export
 plot_pcfactor <- function(pc_df, exp, exp_factor = "condition", component = "PC1") {
-  meta <- colData(exp)
-  samplenames <- sampleNames(exp)
   my_colors <- get_colors(exp)
   minval <- min(pc_df[[component]])
   maxval <- max(pc_df[[component]])
@@ -300,7 +300,6 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
   prop_median <- matrixStats::rowMedians(properties)
   prop_spread <- stats::quantile(prop_median, p = c(1, 3) / 4)
   prop_iqr <- diff(prop_spread)
-  log_scale <- FALSE
   outer_limit <- NULL
   ylimit <- NULL
   type <- "unknown"
@@ -310,7 +309,6 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
     ylimit <- ylimit[[1]]
     type <- "correlation"
   } else {
-    log_scale <- TRUE
     outer_limit <- prop_spread[2] + (1.5 * prop_iqr)
     ylimit <- c(pmin(min(prop_median), outer_limit), max(prop_median))
     ylimit <- ylimit[[2]]
@@ -384,7 +382,7 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
                                     override.aes = list(size = 5, fill = "grey")),
                                   values = 21:25) +
       ggplot2::scale_x_continuous(labels = sm_df[["sample"]],
-                                  breaks = 1:nrow(sm_df),
+                                  breaks = seq_len(nrow(sm_df)),
                                   limits = c(1, nrow(sm_df))) +
       ggplot2::ylab(glue("Standard Median {method}")) +
       ggplot2::xlab("Sample") +
@@ -394,7 +392,6 @@ plot_sm <- function(data, design = NULL, colors = NULL, method = "pearson", plot
                      legend.position = legend_position,
                      axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
     ## Perhaps instead: hjust = 1.5, vjust = 0.5))
-
   } else {
     sm_plot <- ggplot(
       sm_df,

@@ -1,3 +1,8 @@
+## ontology_xlsx.R: Write out the various tables from the various enrichment/GSEA methods.
+
+#' @include 01_hpgltools.R
+TRUE
+
 #' Collect gene IDs from a table and make them readable.
 #'
 #' @param table Gene table from (initially) clusterProfiler.
@@ -57,7 +62,6 @@ gather_cp_genes <- function(table, mappings, new = "ORF", primary_key = 1) {
 gather_ontology_genes <- function(result, ontology = NULL,
                                   column = "over_represented_pvalue",
                                   pval = 0.1, include_all = FALSE, ...) {
-  arglist <- list(...)
   ontology <- toupper(ontology)
   categories <- NULL
   ## I should reorganize the results from goseq

@@ -1,4 +1,5 @@
-## plot_scatter.r: Various scatter plots
+## plot_point.R: Various point plots; usually scatter plots.
+## Oddly, I have a separate file for dots which maybe should be renamed to glyphs.
 
 #' Steal edgeR's plotBCV() and make it a ggplot2.
 #'
@@ -186,7 +187,6 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
                                 color_high = NULL, color_low = NULL, alpha = 0.4, ...) {
   ## At this time, one might expect arglist to contain
   ## z, p, fc, n and these will therefore be passed to get_sig_genes()
-  arglist <- list(...)
   df <- as.data.frame(df)
   if (isTRUE(color_high)) {
     color_high <- "#FF0000"
@@ -205,7 +205,6 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
     correlation <- NULL
     cor_value <- NULL
   }
-  df_columns <- colnames(df)
   if (is.null(xlab)) {
     xlab <- glue("{label_prefix} {xcol}")
   }
@@ -365,14 +364,15 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
 
   x_histogram <- plot_histogram(data.frame(df[[xcol]]), fillcolor = "lightblue", color = "blue")
   y_histogram <- plot_histogram(data.frame(df[[ycol]]), fillcolor = "pink", color = "red")
-  both_histogram <- plot_multihistogram(df[ , c(xcol, ycol)])
+  both_histogram <- plot_multihistogram(df[, c(xcol, ycol)])
   plots <- list(
     "data" = df,
     "scatter" = first_vs_second,
     "x_histogram" = x_histogram,
     "y_histogram" = y_histogram,
     "both_histogram" = both_histogram,
-    "correlation" = correlation,
+    "correlation" = correlation,  ## The full correlation return
+    "cor_value" = cor_value, ## just the number from [-1,1]
     "lm_model" = linear_model,
     "lm_summary" = linear_model_summary,
     "lm_weights" = linear_model_weights,
@@ -453,12 +453,13 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
                          plot_legend = FALSE, plot_title = NULL,
                          cutoff = 0.65, y_intercept = 0.8,
                          ...) {
-  arglist <- list(...)
-  if (y_intercept > 1) {
-    y_intercept <- 1
-  }
-  if (y_intercept < 0) {
-    y_intercept <- 0
+  if (!is.null(y_intercept)) {
+    if (y_intercept > 1) {
+      y_intercept <- 1
+    }
+    if (y_intercept < 0) {
+      y_intercept <- 0
+    }
   }
 
   condition <- design[["condition"]]
@@ -673,7 +674,6 @@ setMethod(
                         y_intercept = 0.8, ...) {
     mtrx <- as.matrix(assay(data))
     pd <- colData(data)
-    condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
                  exp_names = names, max_overlaps = max_overlaps,
@@ -708,7 +708,6 @@ setMethod(
                         y_intercept = 0.8, ...) {
     mtrx <- as.matrix(assay(data))
     pd <- colData(data)
-    condition <- pd[["condition"]]
     names <- pd[["samplenames"]]
     colors <- colors(data)
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
@@ -786,16 +785,15 @@ setMethod(
         a <- (first + second) / 2
 
         tmp_file <- tmpmd5file(pattern = "ma", fileext = ".png")
-        this_plot <- png(filename = tmp_file)
-        controlled <- dev.control("enable")
+        png(filename = tmp_file)
+        dev.control("enable")
         affy::ma.plot(A = a, M = m, plot.method = "smoothScatter",
                       show.statistics = TRUE, add.loess = TRUE)
         title(glue("MA of {firstname} vs {secondname}."))
         plot_list[[name]] <- grDevices::recordPlot()
         dev.off()
-        removed <- suppressWarnings(file.remove(tmp_file))
-        removed <- unlink(dirname(tmp_file))
-
+        suppressWarnings(file.remove(tmp_file))
+        unlink(dirname(tmp_file))
       }
     }
     return(plot_list)
