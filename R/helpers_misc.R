@@ -91,7 +91,7 @@ cordist <- function(data, cor_method = "pearson", dist_method = "euclidean",
   dist_matrix <- log1p(dist_matrix)
   dist_matrix <- 1 - (dist_matrix / max(dist_matrix))
 
-  if (cor_weight > 1 | cor_weight < 0) {
+  if (cor_weight > 1 || cor_weight < 0) {
     stop("Invalid correlation weight.")
   }
   dist_weight <- 1 - cor_weight
@@ -186,7 +186,7 @@ get_yyyymm_commit <- function(gitdir = "~/hpgltools", version = NULL,
 #'  are_genes <- rownames(are_test[ which(are_test$score > 0), ])
 #' }
 #' @export
-hpgl_arescore <- function(x, basal = 1, overlapping = 1.5, d1.3=0.75, d4.6=0.4,
+hpgl_arescore <- function(x, basal = 1, overlapping = 1.5, d1.3 = 0.75, d4.6 = 0.4,
                           d7.9=0.2, within.AU = 0.3, aub.min.length = 10, aub.p.to.start = 0.8,
                           aub.p.to.end = 0.55) {
   xtype <- match.arg(substr(class(x), 1, 3), c("DNA", "RNA"))
@@ -418,15 +418,18 @@ my_identifyAUBlocks <- function (x, min.length = 20, p.to.start = 0.8, p.to.end 
   test_seqtools <- "SeqTools" %in% installed.packages()
   if (!isTRUE(test_seqtools)) {
     message("Installing lianos/seqtools from github to get the find_au_start_end() C function.")
-    test <- devtools::install_github("lianos/seqtools/R/pkg")
+    test <- try(devtools::install_github("lianos/seqtools/R/pkg"))
+    if ("try-error" %in% class(test)) {
+      stop("Unable to install seqtools.")
+    }
   }
-  lib_result <- sm(requireNamespace("SeqTools"))
-  att_result <- sm(try(attachNamespace("SeqTools"), silent = TRUE))
+  sm(requireNamespace("SeqTools"))
+  sm(try(attachNamespace("SeqTools"), silent = TRUE))
   ## library(SeqTools)
   fun <- function(i) {
     one_seq <- x[[i]]
     au <- Biostrings::letterFrequencyInSlidingView(one_seq, min.length, AU, as.prob = TRUE)
-    if (is.null(au) | nrow(au) == 0) {
+    if (is.null(au) || nrow(au) == 0) {
       return(IRanges::IRanges())
     }
     au <- as.numeric(au)
@@ -499,8 +502,8 @@ renderme <- function(file, format = "html_document", overwrite = TRUE) {
   if (file.exists(new_tmpdir)) {
     if (isTRUE(overwrite)) {
       message("The TMPDIR: ", new_tmpdir, " exists, removing and recreating it.")
-      removed <- unlink(new_tmpdir, recursive = TRUE)
-      recreated <- dir.create(new_tmpdir)
+      unlink(new_tmpdir, recursive = TRUE)
+      dir.create(new_tmpdir)
     } else {
       message("The TMPDIR: ", new_tmpdir, " exists, leaving it alone.")
     }
@@ -517,7 +520,7 @@ renderme <- function(file, format = "html_document", overwrite = TRUE) {
   from <- file.path(outdir, glue::glue("{b}.{ex}"))
   to <- file.path(outdir, glue::glue("{rundate}_{b}.{ex}"))
   message("Moving ", from, " to\n", basename(to), ".")
-  final <- file.rename(from, to)
+  file.rename(from, to)
   return(ret)
 }
 
@@ -542,7 +545,7 @@ rex <- function(display = ":0") {
   }
   auth <- file.path(home, ".Xauthority")
   message("Setting display to: ", display)
-  result <- Sys.setenv("DISPLAY" = display, "XAUTHORITY" = auth)
+  Sys.setenv("DISPLAY" = display, "XAUTHORITY" = auth)
   X11(display = display)
   return(NULL)
 }
@@ -649,6 +652,7 @@ get_sam_tags <- function() {
 #' @returns vector of the meanings associated with the bitwise score.
 #' @export
 score_to_meaning <- function(score) {
+  score <- as.numeric(score)
   meanings <- c()
   if (score == 0) {
     return(meanings)
@@ -796,7 +800,7 @@ sillydist <- function(firstterm, secondterm, firstaxis = 0, secondaxis = 0) {
 #' @export
 sm <- function(...) {
   ret <- NULL
-  output <- capture.output(type = "output", {
+  capture.output(type = "output", {
     ret <- suppressWarnings(suppressMessages(...))
   })
   return(ret)
@@ -828,13 +832,14 @@ tmpmd5file <- function(pattern = "", suffix = "", digits = 6,
   new <- options(op)
   outdir <- tempdir()
   if (!file.exists(outdir)) {
-    created <- dir.create(outdir, recursive = TRUE)
+    dir.create(outdir, recursive = TRUE)
   }
   file_string <- paste0(pattern, body_string, suffix, fileext)
   file_path <- file.path(outdir, file_string)
   if (!is.null(starting_seed)) {
     .Random.seed <- starting_seed
   }
+  options(new)
   return(file_path)
 }
 
@@ -860,7 +865,7 @@ tempfile <- function(pattern = "file", tmpdir = tempdir(), fileext = "") {
   if (!is.null(starting_seed)) {
     ## I wonder if I need to specify the global environment here?
     ## Also, what does assign return? I have never considered that...
-    set <- assign(".Random.seed", starting_seed, envir = globalenv())
+    assign(".Random.seed", starting_seed, envir = globalenv())
     ## hmm, it seems like it should do something wacky like options()
   }
   return(result)

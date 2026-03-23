@@ -735,8 +735,6 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
 #' @export
 extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
                                    savefile = NULL, ...) {
-  arglist <- list(...)
-
   ## Add a little of the code from create_se to include some design
   ## information in the returned data structure.
 

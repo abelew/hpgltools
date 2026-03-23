@@ -1,5 +1,8 @@
 ## plot_misc.r:  Silly plots and plotting helpers.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Plot a picture, with hopefully useful options for most(any) format.
 #'
 #' This calls svg/png/postscript/etc according to the filename provided.

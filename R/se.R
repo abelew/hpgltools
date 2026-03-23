@@ -1545,11 +1545,11 @@ write_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "quant",
   ## Visualize distributions
   new_row <- new_row + plot_rows + 2
   new_col <- 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw data density plot.",
-                                      startRow = new_row, startCol = new_col)
+  openxlsx::writeData(wb, sheet = sheet, x = "Raw data density plot.",
+                      startRow = new_row, startCol = new_col)
   new_col <- new_col + plot_cols + 1
-  written_name <- openxlsx::writeData(wb, sheet = sheet, x = "Raw Boxplot.",
-                                      startRow = new_row, startCol = new_col)
+  openxlsx::writeData(wb, sheet = sheet, x = "Raw Boxplot.",
+                      startRow = new_row, startCol = new_col)
   new_col <- 1
   density_plot <- metrics[["density"]]
   new_row <- new_row + 1

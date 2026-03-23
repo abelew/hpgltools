@@ -23,8 +23,8 @@ NULL
 convert_gsc_ids <- function(gsc, orgdb = "org.Hs.eg.db", from_type = NULL, to_type = "ENTREZID") {
   message("Converting the rownames() of the expressionset to ", to_type, ".")
   ##tt <- sm(library(orgdb, character.only = TRUE))
-  lib_result <- sm(requireNamespace(orgdb))
-  att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
+  sm(requireNamespace(orgdb))
+  sm(try(attachNamespace(orgdb), silent = TRUE))
   orgdb <- get0(orgdb)
   gsc_lst <- as.list(gsc)
   new_gsc <- list()
@@ -60,29 +60,29 @@ convert_gsc_ids <- function(gsc, orgdb = "org.Hs.eg.db", from_type = NULL, to_ty
 #' @param type String name for the identifier in question.
 get_identifier <- function(type) {
   id_function <- GSEABase::NullIdentifier
-  switchret <- switch(
-      type,
-      "entrez" = {
-        id_function <- GSEABase::EntrezIdentifier
-      },
-      "symbol" = {
-        id_function <- GSEABase::SymbolIdentifier
-      },
-      "ensembl" = {
-        id_function <- GSEABase::ENSEMBLIdentifier
-      },
-      "uniprot" = {
-        id_function <- GSEABase::UniprotIdentifier
-      },
-      "refseq" = {
-        id_function <- GSEABase::RefseqIdentifier
-      },
-      "name" = {
-        id_function <- GSEABase::GenenameIdentifier
-      },
-      {
-        id_function <- GSEABase::NullIdentifier
-      })
+  switch(
+    type,
+    "entrez" = {
+      id_function <- GSEABase::EntrezIdentifier
+    },
+    "symbol" = {
+      id_function <- GSEABase::SymbolIdentifier
+    },
+    "ensembl" = {
+      id_function <- GSEABase::ENSEMBLIdentifier
+    },
+    "uniprot" = {
+      id_function <- GSEABase::UniprotIdentifier
+    },
+    "refseq" = {
+      id_function <- GSEABase::RefseqIdentifier
+    },
+    "name" = {
+      id_function <- GSEABase::GenenameIdentifier
+    },
+    {
+      id_function <- GSEABase::NullIdentifier
+    })
   return(id_function)
 }
 
@@ -107,10 +107,7 @@ all_enricher <- function(sig, gsc, according_to = "deseq", together = FALSE, plo
   input_up <- list()
   input_down <- list()
   source <- "significant"
-  xlsx_dir <- dirname(excel)
-  xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
   ## Check if this came from extract_significant_genes or extract_abundant_genes.
-  fc_col <- paste0(according_to, "_logfc")
   if (!is.null(sig[[according_to]][["ups"]])) {
     input_up <- sig[[according_to]][["ups"]]
     input_down <- sig[[according_to]][["downs"]]
@@ -156,13 +153,13 @@ all_enricher <- function(sig, gsc, according_to = "deseq", together = FALSE, plo
       }
     }
     if (up_elements > 0) {
-      chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
+      ## chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       ret[[retname_up]] <- enricher_gsc(up, gsc, orgdb)
     } else {
       ret[[retname_up]] <- NULL
     }
     if (down_elements > 0) {
-      chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
+      ## chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       ret[[retname_down]] <- enricher_gsc(down, gsc, orgdb)
     } else {
       ret[[retname_down]] <- NULL
@@ -203,9 +200,7 @@ enricher_msigdb <- function(genes, msig_db, signature_category = "C2", id_type =
 #' @export
 get_msigdb_metadata <- function(msig_db = "msigdb_v6.2.xml",
                                 wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID")) {
-  list_result <- list()
   all_data <- parse_msigdb(msig_db)
-
   ## all_data is my dataframe of xml annotations, lets extract the wanted columns before
   ## adding it to the gsva result expressionset.
   sub_data <- all_data
@@ -216,7 +211,6 @@ get_msigdb_metadata <- function(msig_db = "msigdb_v6.2.xml",
   } else if (class(wanted_meta)[1] == "character") {
     sub_data <- sub_data[, wanted_meta]
   }
-
   return(sub_data)
 }
 
@@ -242,7 +236,7 @@ parse_msigdb_sqlite <- function(filename) {
   db <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = filename)
   author_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM author")
   author_df <- RSQLite::dbFetch(author_query)
-  cleared <- RSQLite::dbClearResult(author_query)
+  RSQLite::dbClearResult(author_query)
   collection_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM collection")
   collection_df <- RSQLite::dbFetch(collection_query)
   cleared <- RSQLite::dbClearResult(collection_query)
@@ -255,12 +249,19 @@ parse_msigdb_sqlite <- function(filename) {
   detail_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM gene_set_details")
   detail_df <- RSQLite::dbFetch(detail_query)
   cleared <- RSQLite::dbClearResult(detail_query)
-  closed <- RSQLite::dbDisconnect(db)
+  RSQLite::dbDisconnect(db)
   combined <- merge(gs_df, detail_df, by.x = "id", by.y = "gene_set_id")
   combined <- merge(combined, pub_df, by = "id", all.x = TRUE)
   rownames(combined) <- combined[["standard_name"]]
   combined[["standard_name"]] <- NULL
-  return(combined)
+  retlist <- list(
+    "author_table" = author_df,
+    "collection_table" = collection_df,
+    "publication_table" = pub_df,
+    "gene_set_table" = gs_df,
+    "detail_table" = detail_df,
+    "combined" = combined)
+  return(retlist)
 }
 
 ## Unfortunately, as of ~ 2023 the xml provided by the MsigDB appears
@@ -272,13 +273,11 @@ parse_msigdb_sqlite <- function(filename) {
 #' @param filename input file.
 parse_msigdb_xml <- function(filename) {
   msig_result <- xml2::read_xml(x = filename)
-
   ##db_data <- rvest::xml_nodes(x = msig_result, xpath = "//MSIGDB")
-  db_data <- rvest::html_elements(x = msig_result, xpath = "//MSIGDB")
-  db_name <- rvest::html_attr(x = db_data, name = "NAME")
-  db_ver <- rvest::html_attr(x = db_data, name = "VERSION")
-  db_date <- rvest::html_attr(x = db_data, name = "BUILD_DATE")
-
+  ## db_data <- rvest::html_elements(x = msig_result, xpath = "//MSIGDB")
+  ## db_name <- rvest::html_attr(x = db_data, name = "NAME")
+  ## db_ver <- rvest::html_attr(x = db_data, name = "VERSION")
+  ## db_date <- rvest::html_attr(x = db_data, name = "BUILD_DATE")
   ##genesets <- rvest::xml_nodes(x = msig_result, "GENESET")
   genesets <- rvest::html_elements(x = msig_result, "GENESET")
   row_names <- rvest::html_attr(x = genesets, name = "STANDARD_NAME")
@@ -340,16 +339,16 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
     result <- RSQLite::fetch(sent)
     colnames(result) <- c("id", "category", "description", "genes")
     gmt_df <- result[, c("category", "description", "genes")]
-    cleared <- RSQLite::dbClearResult(sent)
-    closed <- RSQLite::dbDisconnect(db)
+    RSQLite::dbClearResult(sent)
+    RSQLite::dbDisconnect(db)
     ## We might want some logic to write out the result gmt files; something like this:
-    ##write.table(x = gmt_df, file = gmt_filename, sep = "\t", col.names = FALSE, row.names = FALSE)
+    try(write.table(x = gmt_df, file = gmt_filename, sep = "\t", col.names = FALSE, row.names = FALSE))
     ## Apparently id_function() doesn't exist, and BroadCollection() only has the human stuff.
     gsl <- list()
     for (set in seq_len(nrow(gmt_df))) {
       cat <- gmt_df[set, "category"]
       desc <- gmt_df[set, "description"]
-      genes <- strsplit(x = gmt_df[set, "genes"], ' ')[[1]]
+      genes <- strsplit(x = gmt_df[set, "genes"], " ")[[1]]
       ## TODO: Other slots I should fill in when possible: geneIdType, colectionType,
       ## longDescription, organism, pubMedIds, urls, contributor, version
       gsl[[cat]] <- GSEABase::GeneSet(setName = cat, geneIds = genes, shortDescription = desc)
@@ -360,10 +359,13 @@ load_gmt_signatures <- function(signatures = "c2BroadSets", data_pkg = "GSVAdata
     types <- sapply(gsc, function(elt) GSEABase::bcCategory(GSEABase::collectionType(elt)))
     sig_data <- gsc[types == signature_category]
   } else if (class(signatures)[1] == "character") {
-    lib_result <- sm(requireNamespace(data_pkg))
-    att_result <- sm(try(attachNamespace(data_pkg), silent = TRUE))
+    sm(requireNamespace(data_pkg))
+    sm(try(attachNamespace(data_pkg), silent = TRUE))
     lst <- list("list" = signatures, "package" = data_pkg)
-    test <- do.call("data", as.list(signatures, lst))
+    test <- try(do.call("data", as.list(signatures, lst)))
+    if ("try-error" %in% class(test)) {
+      warning("Unable to load the data for ", data_pkg, ".")
+    }
     sig_data <- get0(signatures)
   } else if (class(signatures)[1] != "GeneSetCollection") {
     stop("The data must be a GeneSetCollection.")
@@ -386,7 +388,7 @@ load_msig_metadata <- function(db = "reference/msigdb_v2024.1.Hs.db") {
   gs_query <- "SELECT * FROM gene_set;"
   sent <- RSQLite::dbSendQuery(conn = opened, gs_query)
   gene_sets <- RSQLite::fetch(sent)
-  cleared <- RSQLite::dbClearResult(sent)
+  RSQLite::dbClearResult(sent)
   gsd_query <- "SELECT * FROM gene_set_details;"
   sent <- RSQLite::dbSendQuery(conn = opened, gsd_query)
   gene_set_details <- RSQLite::fetch(sent)
@@ -397,7 +399,7 @@ load_msig_metadata <- function(db = "reference/msigdb_v2024.1.Hs.db") {
   cleared <- RSQLite::dbClearResult(sent)
   merged <- merge(gene_sets, gene_set_details, by.x = "id", by.y = "gene_set_id", all.x = TRUE)
   merged <- merge(merged, publications, by.x = "publication_id", by.y = "id", all.x = TRUE)
-  closed <- RSQLite::dbDisconnect(opened)
+  RSQLite::dbDisconnect(opened)
   return(merged)
 }
 
@@ -433,9 +435,8 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
                               required_id = "ENTREZID", min_gmt_genes = 10) {
   first <- NULL
   second <- NULL
-  do_first <- TRUE
   do_second <- TRUE
-  if (is.null(current_id) | is.null(required_id)) {
+  if (is.null(current_id) || is.null(required_id)) {
     first <- first_ids
     current_id <- ""
     second <- second_ids
@@ -447,21 +448,17 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
   } else {
     message("Converting the rownames() of the expressionset to ENTREZID.")
     ## tt <- sm(try(do.call("library", as.list(orgdb)), silent = TRUE))
-    lib_result <- sm(requireNamespace(annotation_name))
-
-    att_result <- sm(try(attachNamespace(annotation_name), silent = TRUE))
-    first_ids <- sm(AnnotationDbi::select(x = get0(annotation_name),
-                                          keys = first_ids,
-                                          keytype = current_id,
-                                          columns = c(required_id)))
-
+    sm(requireNamespace(annotation_name))
+    sm(try(attachNamespace(annotation_name), silent = TRUE))
+    first_ids <- sm(AnnotationDbi::select(
+      x = get0(annotation_name), keys = first_ids, keytype = current_id, columns = c(required_id)))
     first_idx <- complete.cases(first_ids)
     if (sum(first_idx) == 0) {
       do_first <- FALSE
     } else {
-      if(!all(first_idx)) {
+      if (!all(first_idx)) {
         message(sum(first_idx) == FALSE,
-                " ENSEMBL ID's didn't have a matching ENTEREZ ID in this database from first list of IDs given. Dropping them now.")
+                " ENSEMBL ID's didn't have a matching ENTEREZ ID in this database.")
       }
       first_ids <- first_ids[first_idx, ]
       first <- first_ids[[required_id]]
@@ -476,8 +473,9 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
       if (sum(second_idx) == 0) {
         do_second <- FALSE
       } else {
-        if(!all(second_idx)) {
-          message(sum(second_idx == FALSE), " ENSEMBL ID's didn't have a matching ENTEREZ ID in this database from second list of IDs given. Dropping them now.")
+        if (!all(second_idx)) {
+          message(sum(second_idx == FALSE),
+                  " ENSEMBL ID's didn't have a matching ENTEREZ ID in this database.")
         }
         second_ids <- second_ids[second_idx, ]
         second <- second_ids[[required_id]]
@@ -518,9 +516,9 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
     if (!is.null(organism)) {
       first_args[["organism"]] <- organism
     }
-    required <- requireNamespace("GSEABase")
-    loaded <- loadNamespace("GSEABase")
-    loaded <- try(attachNamespace("GSEABase"), silent = TRUE)
+    requireNamespace("GSEABase")
+    loadNamespace("GSEABase")
+    try(attachNamespace("GSEABase"), silent = TRUE)
     fst_gsc <- do.call("GeneSet", first_args)
   } else {
     message("There are: ", length(included_first), " genes in the first set.")
@@ -532,7 +530,7 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
     if (is.null(phenotype_name)) {
       phenotype_name <- "unknown"
     }
-    if (is.na(pair_names[2]) & pair_names[1] == "up") {
+    if (is.na(pair_names[2]) && pair_names[1] == "up") {
       message("Setting the second pair_names to 'down'.")
       ## Then we can assume it is down.
       pair_names <- c("up", "down")
@@ -543,15 +541,15 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
     both <- rbind(fst, sec)
     color_name <- toupper(glue("{set_prefix}_{phenotype_name}"))
     second_args <- list("type" = identifier(),
-                     "setName" = sec_name,
-                     "geneIds" = as.character(rownames(sec)))
+                        "setName" = sec_name,
+                        "geneIds" = as.character(rownames(sec)))
     colored_args <- list(
-        "type" = identifier(),
-        "setName" = color_name,
-        "geneIds" = rownames(both),
-        "phenotype" = phenotype_name,
-        "geneColor" = as.factor(both[["direction"]]),
-        "phenotypeColor" = as.factor(both[["phenotype"]]))
+      "type" = identifier(),
+      "setName" = color_name,
+      "geneIds" = rownames(both),
+      "phenotype" = phenotype_name,
+      "geneColor" = as.factor(both[["direction"]]),
+      "phenotypeColor" = as.factor(both[["phenotype"]]))
     if (!is.null(organism)) {
       second_args[["organism"]] <- organism
       colored_args[["organism"]] <- organism
@@ -638,9 +636,8 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
 
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
   ## tt <- sm(library(annotation_name, character.only = TRUE))
-  lib_result <- sm(requireNamespace(annotation_name))
-  att_result <- sm(try(attachNamespace(annotation_name), silent = TRUE))
-
+  sm(requireNamespace(annotation_name))
+  sm(try(attachNamespace(annotation_name), silent = TRUE))
   ## Check that the current_id and required_id are in the orgdb.
   pkg <- get0(annotation_name)
   available <- AnnotationDbi::columns(pkg)
@@ -733,9 +730,9 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
     ## Choose the Identifier for the colorsets.  For the moment just make it either entrez or null.
     ## Perhaps this logic should be added to get_identifier()?
     identifier <- GSEABase::NullIdentifier()
-    if (grepl(x=tolower(required_id), pattern="entrez")) {
+    if (grepl(x = tolower(required_id), pattern = "entrez")) {
       identifier <- GSEABase::EntrezIdentifier()
-    } else if (grepl(x=tolower(required_id), pattern="ensemb")) {
+    } else if (grepl(x = tolower(required_id), pattern = "ensemb")) {
       identifier <- GSEABase::ENSEMBLIdentifier()
     }
 
@@ -748,12 +745,12 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
       colored_gsc <- NULL
     } else {
       colored_gsc <- GSEABase::GeneColorSet(
-                                   identifier,
-                                   setName = color_set_name,
-                                   geneIds = as.character(both[[required_id]]),
-                                   phenotype = phenotype_name,
-                                   geneColor = as.factor(both[["direction"]]),
-                                   phenotypeColor = as.factor(both[["phenotype"]]))
+        identifier,
+        setName = color_set_name,
+        geneIds = as.character(both[[required_id]]),
+        phenotype = phenotype_name,
+        geneColor = as.factor(both[["direction"]]),
+        phenotypeColor = as.factor(both[["phenotype"]]))
       colored_lst[[name]] <- colored_gsc
     }
 
@@ -764,9 +761,9 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
       up_gsc <- NULL
     } else {
       up_gsc <- GSEABase::GeneSet(
-                              identifier,
-                              setName = up_name,
-                              geneIds = as.character(up[[required_id]]))
+        identifier,
+        setName = up_name,
+        geneIds = as.character(up[[required_id]]))
       up_lst[[name]] <- up_gsc
     }
 
@@ -777,9 +774,9 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
       if (!is.null(pair_names[2])) {
         down_name <- toupper(glue("{set_prefix}_{pair_names[2]}"))
         down_gsc <- GSEABase::GeneSet(
-                                  identifier,
-                                  setName = down_name,
-                                  geneIds = as.character(down[[required_id]]))
+          identifier,
+          setName = down_name,
+          geneIds = as.character(down[[required_id]]))
         down_lst[[name]] <- down_gsc
         message("Created down_gsc")
       }
@@ -788,14 +785,14 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
 
   message("Got to retlist")
   retlst <- list(
-      "colored" = colored_lst,
-      "up" = up_lst,
-      "down" = down_lst)
+    "colored" = colored_lst,
+    "up" = up_lst,
+    "down" = down_lst)
   return(retlst)
 }
 
-make_gsc_from_significant <- function(significant, according_to = "deseq", annotation_name = "org.Hs.eg.db",
-                                      category_name = "infection",
+make_gsc_from_significant <- function(significant, according_to = "deseq",
+                                      annotation_name = "org.Hs.eg.db", category_name = "infection",
                                       phenotype_name = "parasite", set_name = "elsayed_macrophage",
                                       color = TRUE, current_id = "ENSEMBL", required_id = "ENTREZID",
                                       min_gmt_genes = 10, ...) {
@@ -809,15 +806,15 @@ make_gsc_from_significant <- function(significant, according_to = "deseq", annot
   downs <- significant[[according_to]][["downs"]]
 
   set_prefix <- glue("{set_name}_{category_name}")
-  color_set_name <- toupper(glue("{set_prefix}_{phenotype_name}"))
+  ## color_set_name <- toupper(glue("{set_prefix}_{phenotype_name}"))
   up_name <- toupper(glue("{set_prefix}_up"))
   down_name <- toupper(glue("{set_prefix}_down"))
 
   ## Choose the Identifier for the colorsets.  For the moment just make it either entrez or null.
   identifier <- GSEABase::NullIdentifier()
-  if (grepl(x=tolower(required_id), pattern="entrez")) {
+  if (grepl(x = tolower(required_id), pattern = "entrez")) {
     identifier <- GSEABase::EntrezIdentifier()
-  } else if (grepl(x=tolower(required_id), pattern="ensemb")) {
+  } else if (grepl(x = tolower(required_id), pattern = "ensembl")) {
     identifier <- GSEABase::ENSEMBLIdentifier()
   }
 
@@ -842,12 +839,12 @@ make_gsc_from_significant <- function(significant, according_to = "deseq", annot
     both_ids[[contrast]] <- as.factor(both_factor_values)
 
     up_gscs[[contrast]] <- down_gscs[[contrast]] <- both_gscs[[contrast]] <- NULL
-    if (!is.null(up_ids[[contrast]]) & length(up_ids[[contrast]]) >= min_gmt_genes) {
+    if (!is.null(up_ids[[contrast]]) && length(up_ids[[contrast]]) >= min_gmt_genes) {
       up_name <- glue("{contrast}_up")
       up_gscs[[contrast]] <- GSEABase::GeneSet(identifier, setName = up_name,
                                                geneIds = as.character(up_ids[[contrast]]))
     }
-    if (!is.null(down_ids[[contrast]]) & length(up_ids[[contrast]]) >= min_gmt_genes) {
+    if (!is.null(down_ids[[contrast]]) && length(up_ids[[contrast]]) >= min_gmt_genes) {
       down_name <- glue("{contrast}_down")
       down_gscs[[contrast]] <- GSEABase::GeneSet(identifier, setName = down_name,
                                                  geneIds = as.character(down_ids[[contrast]]))
@@ -867,23 +864,22 @@ make_gsc_from_significant <- function(significant, according_to = "deseq", annot
       if (length(both_ids[[contrast]]) >= min_gmt_genes) {
         both_names <- names(both_ids[[contrast]])
         both_gscs[[contrast]] <- GSEABase::GeneColorSet(
-                                               identifier,
-                                               setName = both_name,
-                                               geneIds = as.character(both_names),
-                                               phenotype = phenotype_name,
-                                               geneColor = both_ids[[contrast]])
+          identifier,
+          setName = both_name,
+          geneIds = as.character(both_names),
+          phenotype = phenotype_name,
+          geneColor = both_ids[[contrast]])
       }
     }
   } ## End looking at every contrast.
   retlist <- list(
-      "ups" = up_gscs,
-      "downs" = down_gscs,
-      "both" = both_gscs)
+    "ups" = up_gscs,
+    "downs" = down_gscs,
+    "both" = both_gscs)
   return(retlist)
 }
 
 collect_gsc_ids_from_df <- function(df, orgdb, current_id, required_id) {
-  ret_gsc <- NULL
   if (nrow(df) == 0) {
     return(NULL)
   }
@@ -893,8 +889,8 @@ collect_gsc_ids_from_df <- function(df, orgdb, current_id, required_id) {
 
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
   ## tt <- sm(library(orgdb, character.only = TRUE))
-  lib_result <- sm(requireNamespace(orgdb))
-  att_result <- sm(try(attachNamespace(orgdb), silent = TRUE))
+  sm(requireNamespace(orgdb))
+  sm(try(attachNamespace(orgdb), silent = TRUE))
 
   ## Check that the current_id and required_id are in the orgdb.
   pkg <- get0(orgdb)
@@ -916,10 +912,8 @@ collect_gsc_ids_from_df <- function(df, orgdb, current_id, required_id) {
   }
 
   mesg("Converting the rownames() of the df to ", required_id, ".")
-  req_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
-                                      keys = rownames(df),
-                                      keytype = current_id,
-                                      columns = c(required_id)))
+  req_ids <- sm(AnnotationDbi::select(x = get0(orgdb), keys = rownames(df),
+                                      keytype = current_id, columns = c(required_id)))
   idx <- complete.cases(req_ids)
   req_ids <- req_ids[idx, required_id]
   return(req_ids)
@@ -951,8 +945,7 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
                                    category_name = "infection", phenotype_name = NULL,
                                    pair_names = "high", current_id = "ENSEMBL",
                                    required_id = "ENTREZID", ...) {
-  highs <- list()
-  lows <- list()
+  ## FIXME: Dispatch this.
   if (class(pairwise)[1] == "data.frame") {
     highs <- pairwise
   } else if (class(pairwise)[1] == "all_pairwise") {
@@ -960,15 +953,15 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
     combined <- sm(combine_de_tables(pairwise, ...))
     message("Invoking extract_significant_genes().")
     highs <- sm(extract_abundant_genes(
-        combined, according_to = according_to, ...)[[according_to]])
+      combined, according_to = according_to, ...)[[according_to]])
     lows <- sm(extract_abundant_genes(
-        combined, according_to = according_to, least = TRUE, ...)[[according_to]])
+      combined, according_to = according_to, least = TRUE, ...)[[according_to]])
   } else if (class(pairwise)[1] == "combined_de") {
     message("Invoking extract_significant_genes().")
     highs <- sm(extract_abundant_genes(
-        pairwise, according_to = according_to, ...)[[according_to]])
+      pairwise, according_to = according_to, ...)[[according_to]])
     lows <- sm(extract_abundant_genes(
-        pairwise, according_to = according_to, least = TRUE, ...)[[according_to]])
+      pairwise, according_to = according_to, least = TRUE, ...)[[according_to]])
   } else if (class(pairwise)[1] == "character") {
     message("Invoking make_gsc_from_ids().")
     ret <- make_gsc_from_ids(pairwise, annotation_name = annotation_name,
@@ -982,8 +975,8 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
 
   ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
   ## tt <- sm(library(annotation_name, character.only = TRUE))
-  lib_result <- sm(requireNamespace(annotation_name))
-  att_result <- sm(try(attachNamespace(annotation_name), silent = TRUE))
+  sm(requireNamespace(annotation_name))
+  sm(try(attachNamespace(annotation_name), silent = TRUE))
   high_lst <- list()
   low_lst <- list()
   colored_lst <- list()
@@ -1003,18 +996,14 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
       low[[required_id]] <- rownames(low)
     } else {
       message("Converting the rownames() of the expressionset to ENTREZID.")
-      high_ids <- sm(AnnotationDbi::select(x = get0(annotation_name),
-                                           keys = high_ids,
-                                           keytype = current_id,
-                                           columns = c(required_id)))
+      high_ids <- sm(AnnotationDbi::select(
+        x = get0(annotation_name), keys = high_ids, keytype = current_id, columns = c(required_id)))
       high_idx <- complete.cases(high_ids)
       high_ids <- high_ids[high_idx, ]
       high <- merge(high, high_ids, by.x = "row.names", by.y = current_id)
       if (!is.null(low_ids)) {
-        low_ids <- sm(AnnotationDbi::select(x = get0(annotation_name),
-                                            keys = low_ids,
-                                            keytype = current_id,
-                                            columns = c(required_id)))
+        low_ids <- sm(AnnotationDbi::select(
+          x = get0(annotation_name), keys = low_ids, keytype = current_id, columns = c(required_id)))
         low_idx <- complete.cases(low_ids)
         low_ids <- low_ids[low_idx, ]
         low <- merge(low, low_ids, by.x = "row.names", by.y = current_id)
@@ -1059,34 +1048,34 @@ make_gsc_from_abundant <- function(pairwise, according_to = "deseq", annotation_
     color_set_name <- toupper(glue("{set_prefix}_{phenotype_name}"))
     high_name <- toupper(glue("{set_prefix}_{pair_names[1]}"))
     colored_gsc <- GSEABase::GeneColorSet(
-                                 GSEABase::EntrezIdentifier(),
-                                 setName = color_set_name,
-                                 geneIds = as.character(both[[required_id]]),
-                                 phenotype = phenotype_name,
-                                 geneColor = as.factor(both[["direction"]]),
-                                 phenotypeColor = as.factor(both[["phenotype"]]))
+      GSEABase::EntrezIdentifier(),
+      setName = color_set_name,
+      geneIds = as.character(both[[required_id]]),
+      phenotype = phenotype_name,
+      geneColor = as.factor(both[["direction"]]),
+      phenotypeColor = as.factor(both[["phenotype"]]))
     colored_lst[[name]] <- colored_gsc
     high_gsc <- GSEABase::GeneSet(
-                              GSEABase::EntrezIdentifier(),
-                              setName = high_name,
-                              geneIds = as.character(high[[required_id]]))
+      GSEABase::EntrezIdentifier(),
+      setName = high_name,
+      geneIds = as.character(high[[required_id]]))
     high_lst[[name]] <- high_gsc
     low_gsc <- NULL
     low_lst[[name]] <- low_gsc
     if (!is.null(pair_names[2])) {
       low_name <- toupper(glue("{set_prefix}_{pair_names[2]}"))
       low_gsc <- GSEABase::GeneSet(
-                               GSEABase::EntrezIdentifier(),
-                               setName = low_name,
-                               geneIds = as.character(low[[required_id]]))
+        GSEABase::EntrezIdentifier(),
+        setName = low_name,
+        geneIds = as.character(low[[required_id]]))
       low_lst[[name]] <- low_gsc
     }
   } ## End of the for loop.
 
   retlst <- list(
-      "colored" = colored_lst,
-      "high" = high_lst,
-      "low" = low_lst)
+    "colored" = colored_lst,
+    "high" = high_lst,
+    "low" = low_lst)
   return(retlst)
 }
 

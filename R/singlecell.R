@@ -597,7 +597,7 @@ plot_seurat_scatter <- function(scd, set = NULL) {
       "count_vs_mito" = c("nCount_RNA", "pct_mito"))
   }
 
-  for (p in seq_len(length(set))) {
+  for (p in seq_along(set)) {
     name <- names(set)[p]
     xy <- set[[p]]
     x_column <- xy[1]

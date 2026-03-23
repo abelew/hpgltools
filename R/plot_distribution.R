@@ -1,6 +1,14 @@
 ## plot_distribution.r: A few plots to describe data distributions
 ## Currently this includes boxplots, density plots, and qq plots.
 
+#' @include 01_hpgltools.R
+NULL
+
+#' Create a df out of the results of summary().
+#'
+#' @param df Input dataframe.
+#' @param iqr_multiplier Range for outlier detection.
+#' @return a dataframe!
 make_summary_df <- function(df, iqr_multiplier = 1.5) {
   df <- as.data.frame(df)
   summary_df <- data.frame(row.names = c("min", "q1", "median", "mean", "q3",
@@ -888,8 +896,6 @@ plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
 
   if (!is.null(sample_names) && class(sample_names) == "character") {
     if (length(sample_names) == 1) {
-      colnames(newdf) <- make.names(design[[sample_names]], unique = TRUE)
-    } else {
       colnames(newdf) <- sample_names
     }
     colnames(newdf)[ncol(newdf)] <- "rank"

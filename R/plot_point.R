@@ -1,6 +1,9 @@
 ## plot_point.R: Various point plots; usually scatter plots.
 ## Oddly, I have a separate file for dots which maybe should be renamed to glyphs.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Steal edgeR's plotBCV() and make it a ggplot2.
 #'
 #' This was written primarily to understand what that function is doing in edgeR.

@@ -430,7 +430,7 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
   rec_plot <- grDevices::recordPlot()
   dev.off()
   suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  unlink(dirname(tmp_file))
 
   retlist <- list(
     "annotations" = myannot,
@@ -504,7 +504,7 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   sample_heatmap_plot <- grDevices::recordPlot()
   dev.off()
   suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  unlink(dirname(tmp_file))
   return(sample_heatmap_plot)
 }
 setGeneric("plot_sample_heatmap")

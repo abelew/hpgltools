@@ -45,6 +45,10 @@ compare_pc_sv <- function(exp, norm = NULL, transform = "log2", convert = "cpm",
                       color = .data[["condition"]], size = 5,
                       fill = .data[["condition"]], shape = .data[["batch"]])) +
     ggplot2::geom_point()
+  retlist <- list(
+    "plot" = pc_df,
+    "pcs_svs" = combined_df)
+  return(retlist)
 }
 
 #' Collect the r^2 values from a linear model fitting between a singular
@@ -96,7 +100,6 @@ factor_rsquared <- function(datum, fact, type = "factor") {
 #' @return Data frame of rsquared values and cumulative sums.
 get_res <- function(svd_result, design, factors = c("condition", "batch"),
                     res_slot = "v", var_slot = "d") {
-  retlst <- list()
   vars <- svd_result[[var_slot]]
   rsquared_column <- round((vars ^ 2) / sum(vars ^ 2) * 100, 2)
   cumulative_sum_column <- cumsum(rsquared_column)
@@ -188,8 +191,7 @@ pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
   pc_meta <- merge(meta, pc_df, by = "row.names")
   rownames(pc_meta) <- pc_meta[["Row.names"]]
   pc_meta[["Row.names"]] <- NULL
-  retlist <- list(
-    "pc_meta"= pc_meta)
+  retlist <- list("pc_meta" = pc_meta)
 
   pc_vector <- seq_len(num_pcs)
   fvalues_by_fact <- data.frame(row.names = paste0("PC", pc_vector))
@@ -266,7 +268,6 @@ pc_fstatistics <- function(exp, pc_df = NULL, num_pcs = 10,
 pca_information <- function(exp, factors = c("condition", "batch"), colors_chosen = NULL,
                             input_design = NULL, num_components = NULL, input_state = NULL,
                             plot_pcas = FALSE, ...) {
-  arglist <- list(...)
   ## Start out with some sanity tests
   ## Make sure colors get chosen.
 
@@ -387,10 +388,11 @@ pca_information <- function(exp, factors = c("condition", "batch"), colors_chose
       },
       error = function(cond) {
         message("The correlation failed for ", fact, " and ", pc_name, ".")
-        cor_test <- 0
+        return(0)
       },
       warning = function(cond) {
         message("The standard deviation was 0 for ", fact, " and ", pc_name, ".")
+        return(0)
       },
       finally = {
       }) ## End of the tryCatch
@@ -414,16 +416,16 @@ pca_information <- function(exp, factors = c("condition", "batch"), colors_chose
   cor_df <- cor_df[complete.cases(cor_df), ]
 
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   pc_factor_corheat <- try(heatmap.3(as.matrix(cor_df), scale = "none", trace = "none",
                                      linewidth = 0.5, keysize = 2, margins = c(8, 8),
                                      col = silly_colors, dendrogram = "none", Rowv = FALSE,
                                      Colv = FALSE, main = "cor(factor, PC)"))
   pc_factor_corheat <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
 
   anova_f_colors <- grDevices::colorRampPalette(c("blue", "black", "red"))(100)
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
@@ -455,13 +457,12 @@ pca_information <- function(exp, factors = c("condition", "batch"), colors_chose
   ## The messed up part is that I did not notice this for multiple years.
   neglog_p <- -1 * log(as.matrix(anova_p) + 0.00001)
   anova_neglogp_colors <- grDevices::colorRampPalette(c("blue", "white", "red"))(100)
-
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
   anova_neglogp_heat <- try(heatmap.3(as.matrix(neglog_p), scale = "none", trace = "none",
                                       linewidth = 0.5, keysize = 2, margins = c(8, 8),
-                                      col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
+                                      col = anova_neglogp_colors, dendrogram = "none", Rowv = FALSE,
                                       Colv = FALSE, main = "-log(anova_p values)"))
   anova_neglogp_heat <- grDevices::recordPlot()
   dev.off()
@@ -503,14 +504,13 @@ setGeneric("pca_information")
 setMethod(
   "pca_information", signature = signature(exp = "data.frame"),
   definition = function(exp, factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
-                        plot_pcas = FALSE, ...) {
+                        colors_chosen = NULL, input_design = NULL, num_components = NULL,
+                        input_state = NULL, plot_pcas = FALSE, ...) {
     input <- as.matrix(exp)
     input_state <- NULL
-    pca_information(input, input_design = input_design, input_state = input_state,
-                    factors = factors, colors_chosen = colors_chosen,
-                    num_components = num_components,
-                    plot_pcas = plot_pcas)
+    pca_information(input, factors = factors, colors_chosen = colors_chosen,
+                    input_design = input_design, num_components = num_components,
+                    input_state = input_state, plot_pcas = plot_pcas, ...)
   })
 
 #' If pca_information is run on an expressionset, everything except
@@ -521,15 +521,13 @@ setMethod(
 setMethod(
   "pca_information", signature = signature(exp = "ExpressionSet"),
   definition = function(exp, factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
-                        plot_pcas = FALSE, ...) {
-    colors_chosen <- get_colors(exp)
-    input_state <- state(exp)
-    input <- assay(exp)
-    pca_information(input, input_design = input_design, input_state = input_state,
-                    factors = factors, colors_chosen = colors_chosen,
-                    num_components = num_components,
-                    plot_pcas = plot_pcas)
+                        colors_chosen = NULL, input_design = NULL, num_components = NULL,
+                        input_state = NULL, plot_pcas = FALSE, ...) {
+    input_design <- pData(exp)
+    input <- exprs(exp)
+    pca_information(input, factors = factors, colors_chosen = colors_chosen,
+                    input_design = input_design, num_components = num_components,
+                    input_state = input_state, plot_pcas = plot_pcas, ...)
   })
 
 #' If pca_information is run on an expressionset, everything except
@@ -540,16 +538,15 @@ setMethod(
 setMethod(
   "pca_information", signature = signature(exp = "SummarizedExperiment"),
   definition = function(exp, factors = c("condition", "batch"),
-                        colors_chosen = NULL, num_components = NULL,
-                        plot_pcas = FALSE, ...) {
+                        colors_chosen = NULL, input_design = NULL, num_components = NULL,
+                        input_state = NULL, plot_pcas = FALSE, ...) {
     colors_chosen <- get_colors(exp)
     input_design <- colData(exp)
     input_state <- state(exp)
     input <- assay(exp)
-    pca_information(input, input_design = input_design, input_state = input_state,
-                    factors = factors, colors_chosen = colors_chosen,
-                    num_components = num_components,
-                    plot_pcas = plot_pcas)
+    pca_information(input, factors = factors, colors_chosen = colors_chosen,
+                    input_design = input_design, num_components = num_components,
+                    input_state = input_state, plot_pcas = plot_pcas, ...)
   })
 
 #' Get the highest/lowest scoring genes for every principle component.
@@ -591,14 +588,14 @@ pca_highscores <- function(input, n = 20, cor = TRUE, vs = "means", logged = TRU
   }
 
   tmp_file <- tmpmd5file(pattern = "princomp", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   another_pca <- try(princomp(x = data, cor = cor))
   plot(another_pca)
   pca_hist <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
   tmp_file <- tmpmd5file(pattern = "biplot", fileext = ".png")
   this_plot <- png(filename = tmp_file)
   controlled <- dev.control("enable")
@@ -657,16 +654,14 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
   z_axis <- glue::glue("pc_{components[3]}")
   table <- pc_result[["table"]]
   color_levels <- levels(as.factor(table[["colors"]]))
-  silly_plot <- plotly::plot_ly(table,
-                                x = as.formula(glue::glue("~{x_axis}")),
-                                y = as.formula(glue::glue("~{y_axis}")),
-                                z = as.formula(glue::glue("~{z_axis}")),
-                                color = as.formula("~condition"), colors = color_levels,
-                                stroke = I("black"),
-                                text=~paste0("sample: ", sampleid, "condition: ", condition, " batch: ", batch)) %>%
+  silly_plot <- plotly::plot_ly(
+    table, x = as.formula(glue::glue("~{x_axis}")), y = as.formula(glue::glue("~{y_axis}")),
+    z = as.formula(glue::glue("~{z_axis}")), color = as.formula("~condition"), colors = color_levels,
+    stroke = I("black"),
+    text = ~paste0("sample: ", sampleid, "condition: ", condition, " batch: ", batch)) %>%
     plotly::add_markers() %>%
     plotly::layout(title = pc_result[["plot"]][["labels"]][["title"]])
-  widget <- htmlwidgets::saveWidget(
+  htmlwidgets::saveWidget(
     plotly::as_widget(silly_plot), file = file, selfcontained = TRUE)
   retlist <- list(
     "plot" = silly_plot,
@@ -726,9 +721,6 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   if (batch_column[1] != "batch") {
     message("Using ", batch_column, " as the batch column in the experimental design.")
   }
-  if (!is.null(arglist[["base_size"]])) {
-    base_size <- arglist[["base_size"]]
-  }
 
   ## The following if() series is used to check the type of data provided and
   ## extract the available metadata from it.  Since I commonly use my
@@ -774,7 +766,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     design[["condition"]] <- as.numeric(design[["plot_labels"]])
     colnames(design) <- c("name", "batch", "condition")
     design <- design[, c("name", "condition", "batch")]
-    plot_names <- design[["name"]]
+    ## plot_names <- design[["name"]]
   }
 
   ## Different folks like different labels.  I prefer hpglxxxx, but others have asked for
@@ -810,13 +802,13 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
       droplevels()
   }
 
-  included_conditions <- factor()
-  if (class(design[[cond_column]])[1] != "factor") {
-    included_conditions <- as.factor(as.character(design[[cond_column]]))
-  } else {
-    included_conditions <- design[[cond_column]] %>%
-      droplevels()
-  }
+  ## included_conditions <- factor()
+  ## if (class(design[[cond_column]])[1] != "factor") {
+  ##   included_conditions <- as.factor(as.character(design[[cond_column]]))
+  ## } else {
+  ##   included_conditions <- design[[cond_column]] %>%
+  ##     droplevels()
+  ## }
 
   ## Expected things to retrieve from any dimension reduction method.
   x_label <- NULL
@@ -824,9 +816,9 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   residual_df <- NULL
   prop_lst <- NULL
   svd_result <- NULL
-  pc_summary <- NULL
+  ## pc_summary <- NULL
 
-  switchret <- switch(
+  switch(
     pc_method,
     "fast_svd" = {
       svd_result <- corpcor::fast.svd(mtrx - rowMeans(mtrx))
@@ -845,7 +837,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
       y_label <- sprintf("%s: %.2f%% variance", y_name, prop_lst[y_pc])
     },
     "tsne" = {
-      plotting_indexes <- 1:nrow(mtrx)
+      plotting_indexes <- seq_len(nrow(mtrx))
       if (is.null(arglist[["chosen_features"]])) {
         variances <- matrixStats::rowVars(as.matrix(mtrx))
         if (!is.null(arglist[["number_features"]])) {
@@ -910,7 +902,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
       rownames(pc_table) <- rownames(design)
       colnames(pc_table) <- glue::glue("PC{1:ncol(pc_table)}")
       ##pc_table <- pc_table[, 1:components]
-      pos_sing <- svd_result[["costs"]]
+      ## pos_sing <- svd_result[["costs"]]
       x_name <- glue::glue("Factor{x_pc}")
       y_name <- glue::glue("Factor{y_pc}")
 
@@ -1056,8 +1048,8 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
         message("Trying again with 1/2 the PCs.")
         num_pc <- floor(num_pc / 2)
         pca_result <- pcaMethods::pca(ready, method = pc_method, nPcs = num_pc, scale = scale,
-          center = center, completeObs = completeObs,
-          subset = subset, cv = cv)
+                                      center = center, completeObs = completeObs,
+                                      subset = subset, cv = cv)
       }
       ## This is mostly guessing on my part.
       svd_result <- list(
@@ -1295,10 +1287,10 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
         !is.null(arglist[["filter"]]) || !is.null(arglist[["norm"]]) ||
           !is.null(arglist[["batch"]])) {
     data <- normalize(data, transform = arglist[["transform"]],
-                           convert = arglist[["convert"]],
-                           filter = arglist[["filter"]],
-                           batch = arglist[["batch"]],
-                           norm = arglist[["norm"]])
+                      convert = arglist[["convert"]],
+                      filter = arglist[["filter"]],
+                      batch = arglist[["batch"]],
+                      norm = arglist[["norm"]])
   }
 
   ## The following if() series is used to check the type of data provided and
@@ -1364,7 +1356,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
     design[["condition"]] <- as.numeric(design[["plot_labels"]])
     colnames(design) <- c("name", "batch", "condition")
     design <- design[, c("name", "condition", "batch")]
-    plot_names <- design[["name"]]
+    ## plot_names <- design[["name"]]
   }
 
   ## Different folks like different labels.  I prefer hpglxxxx, but others have asked for
@@ -1394,8 +1386,8 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 
   ## Pull out the batches and conditions used in this plot.
   ## Probably could have just used xxx[stuff, drop = TRUE]
-  included_batches <- as.factor(as.character(design[[batch_column]]))
-  included_conditions <- as.factor(as.character(design[[cond_column]]))
+  ## included_batches <- as.factor(as.character(design[[batch_column]]))
+  ## included_conditions <- as.factor(as.character(design[[cond_column]]))
 
   ## Expected things to retrieve from any dimension reduction method.
   x_label <- NULL
@@ -1403,9 +1395,8 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
   residual_df <- NULL
   prop_lst <- NULL
   svd_result <- NULL
-  pc_summary <- NULL
 
-  switchret <- switch(
+  switch(
     pc_method,
     "fast_svd" = {
       svd_result <- corpcor::fast.svd(mtrx - rowMeans(mtrx))
@@ -1429,7 +1420,7 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
       y_label <- sprintf("%s: %.2f%% variance", y_name, prop_lst[y_pc])
     },
     "tsne" = {
-      plotting_indexes <- 1:nrow(mtrx)
+      plotting_indexes <- seq_len(nrow(mtrx))
       if (is.null(arglist[["chosen_features"]])) {
         variances <- matrixStats::rowVars(as.matrix(mtrx))
         if (!is.null(arglist[["number_features"]])) {
@@ -1494,7 +1485,6 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
       rownames(pc_table) <- rownames(plotting_data)
       colnames(pc_table) <- glue::glue("PC{1:ncol(pc_table)}")
       ##pc_table <- pc_table[, 1:components]
-      pos_sing <- svd_result[["costs"]]
       x_name <- glue::glue("Factor{x_pc}")
       y_name <- glue::glue("Factor{y_pc}")
 
@@ -1524,8 +1514,8 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
       y_name <- glue::glue("Factor{y_pc}")
       x_label <- x_name
       y_label <- y_name
-      included_batch <- as.factor(as.character(design[[batch_column]]))
-      included_conditions <- as.factor(as.character(design[[cond_column]]))
+      ## included_batch <- as.factor(as.character(design[[batch_column]]))
+      ## included_conditions <- as.factor(as.character(design[[cond_column]]))
     },
     "fast_ica" = {
       ## Fill in the defaults from the ica package.
@@ -1744,7 +1734,6 @@ plot_pca_genes <- function(data, design = NULL, plot_colors = NULL, plot_title =
 #' @export
 plot_pcload <- function(input, genes = 40, desired_pc = 1, which_scores = "high",
                         ...) {
-  arglist <- list(...)
   scores <- pca_highscores(input, n = genes)
 
   desired <- data.frame()
@@ -1894,8 +1883,6 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
     }
   }
 
-  minimum_size <- 2
-  maximum_size <- 2
   if (!is.null(size_column)) {
     maximum_size <- max(levels(pca_data[["size"]]))
   }
@@ -1981,8 +1968,8 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
         guide = ggplot2::guide_legend(override.aes = list(size = plot_size, fill = "grey")),
         values = 21:25) +
       ggplot2::scale_size_manual(name = size_column,
-        labels = levels(pca_data[[size_column]]),
-        values = as.numeric(levels(pca_data[["size"]])))
+                                 labels = levels(pca_data[[size_column]]),
+                                 values = as.numeric(levels(pca_data[["size"]])))
   } else if (!is.null(size_column) && num_batches > 5) {
     pca_plot <- pca_plot +
       ggplot2::geom_point(alpha = plot_alpha,
@@ -2161,14 +2148,13 @@ u_plot <- function(plotted_us) {
   mesg("More shallow curves in these plots suggest more genes in this principle component.")
 
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   plot(plotted_us)
   u_plot <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
-
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
   return(u_plot)
 }
 

@@ -346,7 +346,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     }
 
     design_result <- write_sample_design(wb, apr)
-
     mesg("Writing ", excel, ".")
     save_result <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
     if (class(save_result)[1] == "try-error") {
@@ -366,6 +365,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     "kept" = extracted[["kept"]],
     "model_used" = model_used,
     "model_fstrings" = model_fstrings,
+    "design_result" = design_result,
     "de_summary" = extracted[["summaries"]])
   class(ret) <- c("combined_de", "list")
 
@@ -377,12 +377,12 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
       tmp[["plots"]] <- NULL
       tmp[["input"]] <- NULL
     }
-    assigned <- assign(varname, tmp)
-    removed <- rm(list = "tmp")
+    assign(varname, tmp)
+    rm(list = "tmp")
     ## When saving a rda of the combined tables, it is less likely that one wants a copy of the
     ## entire differential expression analysis produced by all_pairwise().
     mesg("Saving de result as ", varname, " to ", rda, ".")
-    saved <- save(list = varname, file = rda, compress = "xz")
+    save(list = varname, file = rda, compress = "xz")
     removed <- rm(varname)
   }
   ## Cleanup the saved image files.
@@ -391,8 +391,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     removed <- try(suppressWarnings(file.remove(img)), silent = TRUE)
     image_dir <- dirname(img)
   }
-  nodir <- try(unlink(image_dir), silent = TRUE)
-
+  try(unlink(image_dir), silent = TRUE)
   return(ret)
 }
 
@@ -447,7 +446,6 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
                                     adjp = TRUE, do_inverse = FALSE, invert_colors = FALSE,
                                     z = 1.5, alpha = 0.4, z_lines = FALSE,
                                     label = 10, label_column = "hgnc_symbol") {
-  combined_data <- combined[["data"]]
   plots <- list()
   types <- c()
   for (i in seq_along(plot_inputs)) {
@@ -478,7 +476,6 @@ combine_extracted_plots <- function(name, combined, denominator, numerator, plot
     }
 
     ## The invert parameter only flips the volcano x-axis
-    ma_vol_cof <- list()
     ma_vol_coef <- try(extract_de_plots(
       plot_inputs, combined, type = type,
       invert = FALSE, invert_colors = invert_colors,
@@ -598,7 +595,8 @@ check_single_de_table <- function(pairwise, table_name, wanted_numerator,
 #' @param adjp Used adjusted pvalues when defining 'significant.?
 #' @param padj_type Perform this type of pvalue adjustment.
 #' @param annot_df Include these annotations in the result tables.
-#' @param excludes When provided as a list, remove any rows with values in the column defined by the list names, otherwise exclude rownames.
+#' @param excludes When provided as a list, remove any rows with values in the column
+#'  defined by the list names, otherwise exclude rownames.
 #' @param lfc_cutoff Use this value for a log2FC significance cutoff.
 #' @param p_cutoff Use this value for a(n adjusted) pvalue
 #'  significance cutoff.
@@ -852,7 +850,6 @@ Defaulting to fdr.")
   }
 
   ## Make the initial data structure
-  wanted <- names(datalst)[[1]]
   num_stats <- length(statslst)
   num_data <- length(datalst)
   if (num_data == 1) {
@@ -1067,14 +1064,6 @@ Defaulting to fdr.")
   if (entry[[1]][["data_orientation"]] == "reverse") {
     summary_table_name <- glue("{summary_table_name}-inverted")
   }
-  limma_p_column <- "limma_adjp"
-  deseq_p_column <- "deseq_adjp"
-  edger_p_column <- "edger_adjp"
-  if (!isTRUE(adjp)) {
-    limma_p_column <- "limma_p"
-    deseq_p_column <- "deseq_p"
-    edger_p_column <- "edger_p"
-  }
   summary_lst <- summarize_combined(comb, up_fc, down_fc, p_cutoff)
   summary_lst[["table"]] <- summary_table_name
   ret <- list(
@@ -1131,7 +1120,6 @@ map_keepers <- function(keepers, table_names, datum) {
   }
   numerators <- denominators <- c()
 
-  contrast_list <- names(keepers)
   for (a in seq_along(names(keepers))) {
     name <- names(keepers)[a]
     ## Initially, set same_string to the name of the table, then if there is a
@@ -1155,7 +1143,6 @@ map_keepers <- function(keepers, table_names, datum) {
       }
     }
 
-    method_list <- list()
     for (m in seq_along(names(table_names))) {
       method <- names(table_names)[m]
       method_names <- table_names[[method]]
@@ -1185,7 +1172,6 @@ map_keepers <- function(keepers, table_names, datum) {
            ": ", keeper_table_map[[method]][[name]][["data_orientation"]], " ",
            keeper_table_map[[method]][[name]][["string"]], ".")
       ## Let us check that the individual pairwise contrasts have the same tables in the same order.
-      individual_tables <- list()
       if (is.null(datum[[method]])) {
         message("The ", method, " slot of datum is missing.")
       } else {
@@ -1379,7 +1365,6 @@ extract_keepers <- function(extracted, keepers, table_names,
 
   numerators <- list()
   denominators <- list()
-  mapped <- length(rekeyed_map)
   for (en in seq_along(rekeyed_map)) {
     entry <- rekeyed_map[[en]]
     entry_name <- names(rekeyed_map)[en]
@@ -1473,7 +1458,6 @@ setMethod(
                         scale_p = FALSE) {
     if (keepers[1] == "all") {
       new_keepers <- list()
-      numerators <- denominators <- c()
       ## Note, I changed table_names to be sorted by method.  I can
       ## either iterate over every method, take the union of all, or
       ## arbitrarily choose a method...
@@ -1534,14 +1518,11 @@ setMethod(
 extract_abundant_genes <- function(pairwise, according_to = "deseq", n = 100,
                                    z = NULL, unique = FALSE,
                                    excel = "excel/abundant_genes.xlsx", ...) {
-  arglist <- list(...)
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
-  excel_basename <- xlsx[["basename"]]
   abundant_lists <- list()
   final_list <- list()
 
-  data <- NULL
   if (according_to[[1]] == "all") {
     according_to <- c("limma", "deseq", "edger", "basic")
   }
@@ -1623,6 +1604,9 @@ extract_abundant_genes <- function(pairwise, according_to = "deseq", n = 100,
 
   if (class(excel)[1] == "character") {
     excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+    if ("try-error" %in% class(excel_ret)) {
+      warning("Unable to save the workbook: ", excel, ".")
+    }
   }
   ret <- list(
     "with_annotations" = final_list,
@@ -1691,7 +1675,6 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
                                       current_id = "ENSEMBL",
                                       comparison = "orequal", required_id = "ENTREZID",
                                       min_gmt_genes = 10, ...) {
-  arglist <- list(...)
   image_files <- c()  ## For cleaning up tmp image files after saving the xlsx file.
 
   if (is.null(lfc_cutoffs)) {
@@ -1716,7 +1699,6 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   num_tables <- 0
   table_names <- NULL
   all_tables <- NULL
-  table_mappings <- NULL
   if (class(combined)[1] == "data.frame") {
     ## Then this is just a data frame.
     all_tables[["all"]] <- combined
@@ -1768,7 +1750,6 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   trimmed_down <- list()
   up_titles <- list()
   down_titles <- list()
-  sig_list <- list()
   title_append <- ""
   if (!is.null(lfc)) {
     title_append <- glue("{title_append} |log2fc| >= {lfc}")
@@ -1792,11 +1773,9 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
 
   if ("character" %in% class(excel)) {
     written <- write_sig_legend(wb)
-    xls_result <- written[["xls_result"]]
   }
 
   ret <- list()
-  sheet_count <- 0
   according_kept <- according_to
   chosen_columns <- list()
   ## Iterate over the according_to entries to see if there are valid p-value and logfc columns
@@ -1811,7 +1790,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
     skip <- TRUE
     if (test_fc_param %in% colnames(combined[["data"]][[1]])) {
       chosen_columns[[according]][["fc"]] <- test_fc_param
-      if (test_p_param %in% colnames(combined[["data"]][[1]])) {
+      if (test_p_column %in% colnames(combined[["data"]][[1]])) {
         skip <- FALSE
         chosen_columns[[according]][["p"]] <- test_p_param
       }

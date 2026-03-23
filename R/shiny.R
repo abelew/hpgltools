@@ -2,6 +2,9 @@
 ## I got it in my head to try to make a set of shiny widgets for common tasks.
 ## I promptly forgot about it.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' make a slideable threshold for cutting off significant genes in a DE table.
 #'
 #' @param de_table Table of DE results.

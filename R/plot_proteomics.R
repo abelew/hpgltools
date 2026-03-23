@@ -1,3 +1,9 @@
+## plot_proteomics.R: Various plotting functions which seem to help diagnose problems in
+## DIA-SWATH or DDA datasets.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Plot mzXML peak intensities with respect to m/z.
 #'
 #' I want to have a pretty plot of peak intensities and m/z.  The plot provided

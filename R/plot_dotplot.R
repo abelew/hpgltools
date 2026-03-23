@@ -1,6 +1,7 @@
 ## plot_dotplot.r: Dotplots in various contexts, currently just smc/smd
 
 #' @include 01_hpgltools.R
+NULL
 
 #' Make a dotplot of some categorised factors and a set of SVs (for other factors).
 #'

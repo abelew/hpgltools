@@ -2404,7 +2404,7 @@ setGeneric("plot_meta_sankey")
 #'  sankey.
 #' @param ... Other args to match the generic.
 #' @export
-print.meta_sankey <- function(x, ...) {
+`print.hpgltools::meta_sankey` <- function(x, ...) {
   summary_string <- glue("A sankey plot describing the metadata of {nrow(x[['design']])} samples,
 including {length(x[['observed_nodes']])} out of {length(x[['permutations']])} nodes \\
 and traversing metadata factors:

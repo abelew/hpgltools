@@ -271,6 +271,9 @@ cp_go_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5, pcutoff = 0.0
 }
 
 cp_kegg_organism <- function(organism, orgdb, kegg_organism = NULL) {
+  if ("character" == class(orgdb)) {
+    orgdb <- get0(orgdb)
+  }
   if (is.null(kegg_organism)) {
     org_meta <- AnnotationDbi::metadata(orgdb)
     org_row <- org_meta[["name"]] == "ORGANISM"
@@ -898,11 +901,11 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   }
   sig_genenames <- rownames(sig_genes)
 
-  ## mapper_keys <- AnnotationDbi::keytypes(org)
-  uniOBverse_genes <- AnnotationDbi::keys(org)
+  mapper_keys <- AnnotationDbi::keytypes(org)
+  org_keys <- AnnotationDbi::keys(org)
   all_genenames <- c()
   if (is.null(de_table)) {
-    all_genenames <- universe_genes
+    all_genenames <- org_keys
   } else {
     all_genenames <- rownames(de_table)
   }
@@ -953,7 +956,8 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   sig_gene_drop <- !is.na(sig_gene_list)
   sig_gene_list <- sig_gene_list[sig_gene_drop]
   if (is.null(sig_gene_list)) {
-    stop("No genes were found between the significant genes and the universe.")
+    warning("No genes were found between the significant genes and the universe.")
+    return(NULL)
   }
 
   ## A final sanity test to see if it is possible to do GSE analyses
