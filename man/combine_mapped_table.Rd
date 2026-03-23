@@ -33,7 +33,8 @@ with the actual data.}
 
 \item{annot_df}{Include these annotations in the result tables.}
 
-\item{excludes}{When provided as a list, remove any rows with values in the column defined by the list names, otherwise exclude rownames.}
+\item{excludes}{When provided as a list, remove any rows with values in the column
+defined by the list names, otherwise exclude rownames.}
 
 \item{lfc_cutoff}{Use this value for a log2FC significance cutoff.}
 

@@ -16,7 +16,8 @@ The assembly pipeline I wrote for which this was written does the following:
 1.  Trimomatic (the assemblies I was doing were miseq phage).
 2.  Fastqc the trimmed reads.
 3.  Racer to correct sequencer-based errors.
-4.  Perform an initial classification with kraken vs. the standard database. (thus if there is contamination we can pick it up)
+4.  Perform an initial classification with kraken vs. the standard database.
+    (thus if there is contamination we can pick it up)
 5.  Use kraken to make a hypotehtical host for the phage and filter it.
 6.  Classify the remaining sequence with kraken vs a viral database.
 7.  Generate an initial assembly via unicycler.
@@ -24,13 +25,16 @@ The assembly pipeline I wrote for which this was written does the following:
 9.  Use Blast to search the ICTV for likely taxonomy.
 10. Count ORFs to define the +/- strands.
 11. Use Phageterm to define the DTRs and/or reorient the genome.
-12. Perform a taxonomy search on the assembled genome via phastaf (thus we can see if it is segmented or multiple genomes).
+12. Perform a taxonomy search on the assembled genome via phastaf
+    (thus we can see if it is segmented or multiple genomes).
 13. Calculate coverage on a per-nucleotide basis.
 14. Search for likely terminases, and reorient the genome if phageterm (#11) failed.
 15. Create an initial annotation genbank file via prokka.
 16. Supplement the prokka ORFs via a trained prodigal run.
 17. Supplement them again via a promiscuous run of glimmer.
-18. Use phanotate as the arbiter of 'correct' phage ORFs. (e.g. the ORFs from #15-17 will only be used if they agree with and/or do not interfere with these).
+18. Use phanotate as the arbiter of 'correct' phage ORFs.
+    (e.g. the ORFs from #15-17 will only be used if they agree with
+     and/or do not interfere with these).
 19. Merge the results from #15-18 into a single set of ORFs/genbank.
 20. Calculate the assembly kmer content via jellyfish.
 21. Look for t(m)RNAs via aragorn.

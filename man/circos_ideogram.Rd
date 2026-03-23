@@ -22,6 +22,7 @@ circos_ideogram(
   fill_alpha = 0,
   radius = "0.85",
   radius_padding = "0.05",
+  show_label = FALSE,
   label_size = "36",
   band_stroke_thickness = "2"
 )

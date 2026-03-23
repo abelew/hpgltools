@@ -1410,7 +1410,7 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
   karyotype_dir <- file.path(conf_dir, "karyotypes")
   if (!file.exists(karyotype_dir)) {
     mesg("The karyotype directory does not exist, creating: ", karyotype_dir)
-    created <- suppressWarnings(dir.create(karyotype_dir, recursive = TRUE))
+    suppressWarnings(dir.create(karyotype_dir, recursive = TRUE))
   }
   ideogram_dir <- file.path(conf_dir, "ideograms")
   if (!file.exists(ideogram_dir)) {
@@ -1872,7 +1872,7 @@ check_circos <- function(object) {
   }
 
   if (!file.exists(conf_dir)) {
-    msg <- message("The circos directory does not exist, creating: ", conf_dir)
+    mesg("The circos directory does not exist, creating: ", conf_dir)
     created <- dir.create(conf_dir, recursive = TRUE)
     if (isFALSE(created)) {
       ret <- c(ret, conf_dir)
