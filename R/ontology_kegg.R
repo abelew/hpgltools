@@ -1,3 +1,8 @@
+## ontology_kegg.R: Helpers for working with pathview/KEGGREST/etc
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Print some data onto KEGG pathways.
 #'
 #' KEGGREST and pathview provide neat functions for coloring molecular pathways

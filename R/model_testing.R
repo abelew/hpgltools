@@ -92,7 +92,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
     new_column <- written[["end_col"]] + 2
     try_result <- xlsx_insert_png(
       a_plot = forest, wb = wb, start_col = new_column, sheet = "lm_summary")
-    if ("try-error" %in% class(try-result)) {
+    if ("try-error" %in% class(try_result)) {
       warning("Unable to insert the lm_summary plot.")
     }
     written <- write_xlsx(data = meta, wb = wb, sheet = "input")
@@ -656,7 +656,7 @@ test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
     } ## End for loop
   } else {
     for (factor in factors) {
-      matrix_goal <- design[, goal]
+      ## matrix_goal <- design[, goal]
       matrix_factor <- design[, factor]
       matrix_all_formula <- as.formula(glue("~ {goal} + {factor}"))
       matrix_test <- model.matrix(matrix_all_formula, data = design)

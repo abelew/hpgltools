@@ -1,5 +1,7 @@
+## classify.R: Some functions to help with classification
 
-## Some functions to help with classification
+#' @include 01_hpgltools.R
+NULL
 
 #' Rerun a model generator and classifier on a training/testing set multiple times.
 #'
@@ -48,7 +50,6 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
     formula_string <- "outcome ~ ."
   }
 
-  train_method <- NULL
   if (sampler == "cv") {
     sampling_method <- caret::trainControl(method = "cv", number = sample_number)
     parameter_lst[["return_resample"]] <- "unused"
@@ -122,17 +123,20 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
   all_results <- list()
   test_eval_df <- data.frame()
   train_eval_df <- data.frame()
+  train_indices <- list()
+  test_indices <- list()
+  train_outcomes <- list()
+  test_outcomes <- list()
   for (d in seq_len(sample_number)) {
     message("Working on iteration: ", d, ".")
     ## This might require .packages = c("hpgltools" ...)
     train_all <- partitions[["trainers"]][[d]]
     train_df <- partitions[["trainers_stripped"]][[d]]
-    train_idx <- partitions[["train_idx"]][[d]]
-    train_outcomes <- partitions[["trainer_outcomes"]][[d]]
+    train_indices[[d]] <- partitions[["train_idx"]][[d]]
+    train_outcomes[[d]] <- partitions[["trainer_outcomes"]][[d]]
     test_df <- partitions[["testers"]][[d]]
-    test_idx <- partitions[["test_idx"]][[d]]
-    test_outcomes <- partitions[["tester_outcomes"]][[d]]
-
+    test_indices[[d]] <- partitions[["test_idx"]][[d]]
+    test_outcomes[[d]] <- partitions[["tester_outcomes"]][[d]]
     all_train_args <- list(
       "form" = as.formula("outcome ~ ."),
       "data" = train_all,
@@ -166,6 +170,8 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
 
   train_eval_df <- data.frame()
   test_eval_df <- data.frame()
+  train_rocs <- list()
+  test_rocs <- list()
   for (i in seq_along(all_results)) {
     train_eval <- all_results[[i]][["trained_eval"]]
     train_confused <- train_eval[["confusion_mtrx"]]
@@ -178,7 +184,7 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
     false_positive <- train_confused[["table"]][1, 2]
     ## reference is cure and prediction is fail.
     false_negative <- train_confused[["table"]][2, 1]
-    train_roc <- train_eval[["roc"]]
+    train_rocs[[i]] <- train_eval[["roc"]]
     truefalse <- c(true_positive, true_negative, false_positive, false_negative)
     names(truefalse) <- c("true_positive", "true_negative", "false_positive", "false_negative")
     train_numbers <- c(truefalse, train_confused[["overall"]], train_confused[["byClass"]])
@@ -199,7 +205,7 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
     false_positive <- test_confused[["table"]][1, 2]
     ## reference is cure and prediction is fail.
     false_negative <- test_confused[["table"]][2, 1]
-    test_roc <- test_eval[["roc"]]
+    test_rocs[[i]] <- test_eval[["roc"]]
     truefalse <- c(true_positive, true_negative, false_positive, false_negative)
     names(truefalse) <- c("true_positive", "true_negative", "false_positive", "false_negative")
     test_numbers <- c(truefalse, test_confused[["overall"]], test_confused[["byClass"]])
@@ -214,9 +220,17 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
   colnames(parameter_df) <- c("Parameters Used")
   retlist <- list(
     "parameters" = parameter_df,
+    "sampling_method" = sampler,
+    "train_method" = method,
     "train_eval_summary" = train_eval_df,
     "test_eval_summary" = test_eval_df,
     "all_results" = all_results,
+    "train_indices" = train_indices,
+    "train_outcomes" = train_outcomes,
+    "test_indices" = test_indices,
+    "test_outcomes" = test_outcomes,
+    "train_rocs" = train_rocs,
+    "test_rocs" = test_rocs,
     "tuner" = tuner)
   class(retlist) <- "classified_n_times"
   return(retlist)
@@ -388,15 +402,15 @@ generate_nn_groups <- function(mtrx, resolution = 1, k = 10, type = "snn",
 #' @param type Use the training or testing data?
 #' @export
 self_evaluate_model <- function(predictions, datasets, which_partition = 1, type = "train") {
-  stripped <- data.frame()
+  ##stripped <- data.frame()
   idx <- numeric()
   outcomes <- factor()
   if (type == "train") {
-    stripped <- datasets[["trainers_stripped"]][[which_partition]]
+    ## stripped <- datasets[["trainers_stripped"]][[which_partition]]
     idx <- datasets[["train_idx"]][[which_partition]]
     outcomes <- datasets[["trainer_outcomes"]][[which_partition]]
   } else {
-    stripped <- datasets[["testers_stripped"]][[which_partition]]
+    ## stripped <- datasets[["testers_stripped"]][[which_partition]]
     idx <- datasets[["test_idx"]][[which_partition]]
     outcomes <- datasets[["tester_outcomes"]][[which_partition]]
   }
@@ -444,6 +458,8 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
   roc_record <- grDevices::recordPlot(roc_plot)
   auc <- pROC::auc(roc)
   retlist <- list(
+    "predict_type" = predict_type,
+    "idx" = idx,
     "self_test" = self_test,
     "self_summary" = self_summary,
     "wrong_samples" = wrong_samples,
@@ -485,7 +501,6 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
   if (is.null(name)) {
     name <- result[["parameters"]]["method_used", 1]
   }
-  new_worksheet <- TRUE
   wb <- NULL
   ## FIXME: multidispatch
   if ("character" %in% class(excel)) {
@@ -493,9 +508,7 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
     wb <- xlsx[["wb"]]
   } else if (class(excel)[1] == "initialized_xlsx") {
     wb <- xlsx[["wb"]]
-    new_worksheet <- FALSE
   } else if (class(excel)[1] == "Workbook") {
-    new_worksheet <- FALSE
     wb <- excel
   } else {
     stop("I do not understand this object.")
@@ -566,17 +579,16 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
     colnames(test_values) <- test_names
     rownames(test_values) <- paste0("test_results iteration ", i)
     header_string <- paste0("Iteration ", i, ", train and test results.")
-    xls_result <- openxlsx::writeData(
-      wb = wb, sheet = name, x = header_string,
-      startRow = result_row, startCol = 1)
+    openxlsx::writeData(
+      wb = wb, sheet = name, x = header_string, startRow = result_row, startCol = 1)
     result_row <- result_row + 1
-    train_values_written <- write_xlsx(data = train_values, start_col = 1, data_table = FALSE,
-                                       freeze_first_row = FALSE, freeze_first_column = FALSE,
-                                       title = NULL, start_row = result_row, wb = wb, sheet = name)
+    write_xlsx(data = train_values, start_col = 1, data_table = FALSE,
+               freeze_first_row = FALSE, freeze_first_column = FALSE,
+               title = NULL, start_row = result_row, wb = wb, sheet = name)
     result_row <- result_row + 2
-    test_values_written <- write_xlsx(data = test_values, start_col = 1, data_table = FALSE,
-                                      freeze_first_row = FALSE, freeze_first_column = FALSE,
-                                      title = NULL, start_row = result_row, wb = wb, sheet = name)
+    write_xlsx(data = test_values, start_col = 1, data_table = FALSE,
+               freeze_first_row = FALSE, freeze_first_column = FALSE,
+               title = NULL, start_row = result_row, wb = wb, sheet = name)
     result_row <- result_row + 2
     train_roc <- result[["all_results"]][[i]][["trained_eval"]][["roc"]]
     if (i == 1) {
@@ -602,14 +614,14 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
   xls_result <- openxlsx::writeData(
     wb = wb, sheet = name, x = "Training ROC",
     startRow = 1, startCol = summary_written[["end_col"]] + 2)
-  trained_plotted <- xlsx_insert_png(
+  xlsx_insert_png(
     a_plot = trained_roc_plot, wb = wb,
     sheet = name, width = 6, height = 6,
     start_row = 2, start_col = summary_written[["end_col"]] + 2)
-  xls_result <- openxlsx::writeData(
+  openxlsx::writeData(
     wb = wb, sheet = name, x = "Testing ROC",
     startRow = 29, startCol = summary_written[["end_col"]] + 2)
-  tested_plotted <- xlsx_insert_png(
+  xlsx_insert_png(
     a_plot = tested_roc_plot, wb = wb,
     sheet = name, width = 6, height = 6,
     start_row = 30, start_col = summary_written[["end_col"]] + 2)
@@ -621,3 +633,5 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
   class(retlist) <- "ml_summary_written"
   return(retlist)
 }
+
+## EOF

@@ -65,7 +65,7 @@ hpgl_voomweighted <- function(data, fun_model, libsize = NULL, normalize.method 
       message("Unable to open the temporary plot: ", tmp_file, ".")
     } else {
       dev.control("enable")
-      barplot(aw, names = 1:length(aw), main = "Sample-specific weights",
+      barplot(aw, names = seq_along(aw), main = "Sample-specific weights",
               ylab = "Weight", xlab = "Sample", col = col)
       abline(h = 1, col = 2, lty = 2)
       voom_barplot <- grDevices::recordPlot()
@@ -120,7 +120,6 @@ hpgl_voomweighted <- function(data, fun_model, libsize = NULL, normalize.method 
 hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
                       normalize.method = "none", span = 0.5,
                       stupid = FALSE, logged = FALSE, converted = FALSE, ...) {
-  arglist <- list(...)
   ## Going to attempt to as closely as possible dovetail the original implementation.
   ## I think at this point, my implementation is the same as the original with the exception
   ## of a couple of tests to check that the data is not fubar and I think my plot is prettier.
@@ -129,8 +128,7 @@ hpgl_voom <- function(dataframe, model = NULL, libsize = NULL,
   if (is(counts, "DGEList")) {
     out[["genes"]] <- counts[["genes"]]
     out[["targets"]] <- counts[["samples"]]
-    if (is.null(model) &
-          diff(range(as.numeric(counts[["sample"]][["group"]]))) > 0) {
+    if (is.null(model) && diff(range(as.numeric(counts[["sample"]][["group"]]))) > 0) {
       model <- model.matrix(~group, data = counts[["samples"]])
     }
     if (is.null(libsize)) {
@@ -388,9 +386,7 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                                       model_svs = model_svs,
                                       num_surrogates = num_surrogates,
                                       ...)
-    estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
-    null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
     design <- colData(model_params[["modified_input"]])
   }
@@ -425,8 +421,8 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     mesg("Limma step 1/5: running limma::voomWithQualityWeights(), ",
          "switch with the argument 'which_voom'.")
     tmp_file <- tmpmd5file(pattern = "voom", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     voom_result <- try(limma::voomWithQualityWeights(
       counts = count_mtrx, design = model_mtrx, lib.size = libsize,
       normalize.method = voom_norm, plot = TRUE, span = 0.5,
@@ -439,8 +435,8 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
         normalize.method = voom_norm, span = 0.5, plot = TRUE, save.plot = TRUE)
     }
     voom_plot <- grDevices::recordPlot()
-    plotted <- dev.off()
-    removed <- file.remove(tmp_file)
+    dev.off()
+    file.remove(tmp_file)
   } else if (which_voom == "limma") {
     mesg("Limma step 1/5: running limma::voom(), switch with the argument 'which_voom'.")
     mesg("Using normalize.method = ", voom_norm, " for voom.")

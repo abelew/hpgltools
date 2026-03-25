@@ -1,3 +1,8 @@
+## ontology_shared.R: Some functions which cross methods between goseq->topgo.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Perform a simple_ontology() on some random data.
 #'
 #' At the very least, the result should be less significant than the actual data!
@@ -710,7 +715,6 @@ limma_pairwise(), edger_pairwise(), or deseq_pairwise().")
 subset_ontology_search <- function(changed_counts, doplot = TRUE, do_goseq = TRUE,
                                    do_cluster = TRUE, do_topgo = TRUE, do_gostats = TRUE,
                                    do_gprofiler = TRUE, according_to = "limma", ...) {
-  arglist <- list(...)
   up_list <- NULL
   down_list <- NULL
   if (!is.null(changed_counts[["ups"]])) {

@@ -119,7 +119,6 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
   }
   compressed <- FALSE
   newfile <- NULL
-  original <- gff
   ext <- "gz"
   fun <- gzfile
   if (grepl(pattern = "\\.[x|g]z$", x = gff)) {
@@ -129,8 +128,8 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
     if (grepl(x = ext, pattern = "^x")) {
       fun <- xzfile
     }
-    uncomp <- R.utils::decompressFile(filename = gff, destname = newfile, ext = ext,
-                                      FUN = fun, remove = FALSE)
+    R.utils::decompressFile(filename = gff, destname = newfile, ext = ext,
+                            FUN = fun, remove = FALSE)
     gff <- newfile
   }
 
@@ -180,11 +179,7 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
       warning("Attempting to create a dataframe with ", id_col, " and ",
               second_id_col, " both failed.")
       return(NULL)
-    } else {
-      annot <- annotations
     }
-  } else {
-    annot <- annotations
   }
 
   ret <- NULL
@@ -226,7 +221,7 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
     }
   }
   if (isTRUE(compressed)) {
-    removed <- file.remove(gff)
+    file.remove(gff)
   }
 
   return(ret)
@@ -289,7 +284,7 @@ merge_gff_children <- function(gff, grandparent = "gene", parent = "mRNA",
 #' @export
 sum_exon_widths <- function(data = NULL, gff = NULL, annotdf = NULL,
                             parent = "Parent", child = "row.names") {
-  if (is.null(annotdf) & is.null(gff)) {
+  if (is.null(annotdf) && is.null(gff)) {
     stop("I need either a df with parents, children, and widths; or a gff filename.")
   } else if (is.null(annotdf)) {
     annotdf <- load_gff_annotations(gff)

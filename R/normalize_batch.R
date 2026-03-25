@@ -110,7 +110,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
   ## fctrs <- get_formula_factors(model_fstring)
   ## contrast_fctr <- fctrs[["factors"]][1]
   conditional_formula <- as.formula(model_fstring)
-  conditional_model <- model.matrix(conditional_formula, data = my_design)
+  ## conditional_model <- model.matrix(conditional_formula, data = my_design)
   ## I do not think I need to create a null model any longer, that is the responsibility
   ## of the downstream function given the fstring.
   ## Ergo: FIXME, remove this if {} once I am certain I do not need null_model.
@@ -949,8 +949,6 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
 
   surrogate_result <- NULL
   model_adjust <- NULL
-  adjusted_counts <- NULL
-  type_color <- NULL
   source_counts <- NULL
   new_counts <- NULL
   matrx_scale <- "linear"
@@ -1018,7 +1016,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
       warning("isva, in my estimation, performs incredibly poorly, or I misread the documentation.")
       type_color <- "darkgreen"
       condition_vector <- as.numeric(conditions)
-      batch_vector <- as.numeric(batches)
+      ## batch_vector <- as.numeric(batches)
 
       confounder_lst <- list()
       if (is.null(confounders)) {
@@ -1245,6 +1243,7 @@ all_adjusters <- function(input, design = NULL, estimate_type = "sva", batch1 = 
   }
 
   ret <- list(
+    "input_scale" = input_scale,
     "surrogate_result" = surrogate_result,
     "null_model" = null_model,
     "model_adjust" = model_adjust,
@@ -1448,7 +1447,7 @@ batch_counts <- function(count_table, method = TRUE, design = NULL, batch1 = "ba
 cbcb_batch <- function(normalized_counts, model,
                        conditional_model = NULL,
                        batch_model = NULL,
-                       batch1="batch", condition = "condition",
+                       batch1 = "batch", condition = "condition",
                        matrix_scale = "linear", return_scale = "linear",
                        method = "subtract") {
   batch_idx <- grep(pattern = batch1, x = colnames(model))
@@ -1467,13 +1466,13 @@ cbcb_batch <- function(normalized_counts, model,
     stop("I do not understand the scale: ", matrix_scale, ".")
   }
   normal_voom <- limma::voom(normalized_counts, design = model, plot = FALSE)
-  cond_voom <- limma::voom(normalized_counts, design = conditional_model, plot = FALSE)
+  ## cond_voom <- limma::voom(normalized_counts, design = conditional_model, plot = FALSE)
   batch_voom <- limma::voom(normalized_counts, design = batch_model, plot = FALSE)
   if (method == "subtract") {
     modified_fit <- limma::lmFit(batch_voom)
     new_data <- stats::residuals(modified_fit, batch_voom)
   } else if (method == "add") {
-    fit <- limma::lmFit(normal_voom)
+    ## fit <- limma::lmFit(normal_voom)
     ## I got confusered here, this might be incorrect.
     ##new_data <- tcrossprod(normal_voom[["coefficient"]], cond_modified_model) +
     ##  stats::residuals(normal_voom, normalized_counts)
@@ -1491,7 +1490,6 @@ cbcb_batch <- function(normalized_counts, model,
   }
   return(new_data)
 }
-
 
 #' Attempt to compare the results from the various batch/sv methods.
 #'
@@ -1553,7 +1551,7 @@ compare_batches <- function(exp = NULL, methods = NULL) {
   }
   ## fun <- corrplot::corrplot(cor(combined), method = "ellipse", type = "lower", tl.pos = "d")
   ## tt <- cor(combined)
-  something <- plot_disheat(combined)
+  plot_disheat(combined)
 }
 
 #' Perform a comparison of the surrogate estimators demonstrated by Jeff Leek.
@@ -1586,7 +1584,6 @@ compare_batches <- function(exp = NULL, methods = NULL) {
 compare_surrogate_estimates <- function(exp, extra_factors = NULL,
                                         filter_it = TRUE, filter_type = TRUE,
                                         do_catplots = FALSE, num_surrogates = "be", ...) {
-  arglist <- list(...)
   design <- colData(exp)
   do_batch <- TRUE
   if (length(levels(design[["batch"]])) == 1) {
@@ -1685,8 +1682,7 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
   ret_plot <- grDevices::recordPlot()
   sample_correlations <- cor(first_samples)
   corrplot::corrplot(sample_correlations, method = "ellipse", type = "upper", tl.pos = "d")
-  sample_dist <- plot_disheat(first_samples)
-
+  plot_disheat(first_samples)
   sample_corplot <- grDevices::recordPlot()
   adjustments <- c("+ batch_adjustments$batch", "+ batch_adjustments$pca",
                    "+ batch_adjustments$sva_sup", "+ batch_adjustments$sva_unsup",
@@ -1735,7 +1731,6 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
       modified_fit <- limma::eBayes(limma_fit)
       tstats[[adjust_name]] <- modified_fit[["t"]]
       ##names(tstats[[counter]]) <- as.character(1:dim(data)[1])
-      catplot_together <- NULL
       if (isTRUE(do_catplots)) {
         if (isTRUE("ffpe" %in% .packages(all.available = TRUE))) {
           catplots[[adjust_name]] <- ffpe::CATplot(
@@ -1774,7 +1769,7 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
   } else {
     cat_plot <- NULL
   }
-
+  par(oldpar)
   ret <- list(
     "pca_adjust" = pca_adjust,
     "sva_supervised_adjust" = sva_supervised,
@@ -1814,7 +1809,6 @@ compare_surrogate_estimates <- function(exp, extra_factors = NULL,
 counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = "ruv",
                                    model_fstring = "~ 0 + condition + batch",
                                    matrix_scale = "linear", return_scale = "linear", ...) {
-  arglist <- list(...)
   data_mtrx <- NULL
   my_design <- NULL
   conditions <- NULL
@@ -1832,13 +1826,13 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
   condition_column <- fctrs[["factors"]][1]
   batch_column <- fctrs[["factors"]][2]
   conditions <- droplevels(as.factor(my_design[[condition_column]]))
-  conditions_table <- table(conditions)
-  condition_levels <- levels(conditions)
+  ## conditions_table <- table(conditions)
+  ## condition_levels <- levels(conditions)
   condition_fstring <- glue("~ {condition_column}")
   conditional_model <- model.matrix(as.formula(condition_fstring),
                                     data = my_design)
 
-  batches_table <- NULL
+  ## batches_table <- NULL
   batches <- NULL
   batch_fstring <- ""
   batch_model <- NULL
@@ -1854,14 +1848,14 @@ counts_from_surrogates <- function(data, adjust = NULL, design = NULL, method = 
   ## Explicitly append columns of the adjust matrix to the conditional model.
   ## In the previous code, this was: 'X <- cbind(conditional_model, sva$sv)'
   ## new_model <- cbind(conditional_model, adjust)
-  new_colnames <- colnames(conditional_model)
+  ## new_colnames <- colnames(conditional_model)
   if (is.null(adjust)) {
     message("No adjust was provided, leaving the data alone.")
     adjust <- data.frame(row.names = rownames(my_design))
     adjust[["SV1"]] <- 1
   }
   adjust_mtrx <- as.matrix(adjust)
-  switchret <- switch(
+  switch(
     method,
     "cbcb_add" = {
       ## we also have conditional_model which may make this easier
@@ -2136,14 +2130,13 @@ sv_fstatistics <- function(exp, num_surrogates = NULL,
   if (is.null(sv_df)) {
     sv_df <- svs_exp[["sv_df"]]
   }
-  pre_assay <- assay(exp)
   meta <- colData(exp)
   sv_meta <- merge(meta, sv_df, by = "row.names")
   rownames(sv_meta) <- sv_meta[["Row.names"]]
   sv_meta[["Row.names"]] <- NULL
   retlist <- list(
     "sv_exp" = svs_exp,
-    "sv_meta"= sv_meta)
+    "sv_meta" = sv_meta)
 
   sv_vector <- seq_len(ncol(sv_df))
   fvalues_by_fact <- data.frame(row.names = paste0("SV", sv_vector))
@@ -2176,7 +2169,7 @@ sv_fstatistics <- function(exp, num_surrogates = NULL,
 #' @export
 svpc_fstats <- function(exp, ...) {
   the_state <- state(exp)
-  if (exp[["state"]][["transform"]] == "raw") {
+  if (the_state[["transform"]] == "raw") {
     message("The input appears raw, performing default normalization.")
     pre_norm <- normalize(exp, transform = "log2", convert = "cpm",
                           filter = TRUE)
@@ -2205,12 +2198,6 @@ svpc_fstats <- function(exp, ...) {
 write_svpc_fstats <- function(input, excel = "excel/svpc_fstats.xlsx") {
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
-  excel_basename <- xlsx[["basename"]]
-  do_excel <- TRUE
-  if (is.null(wb)) {
-    do_excel <- FALSE
-  }
-
   pref <- input[["pre_f"]]
   svf <- input[["sv_f"]]
   postf <- input[["post_f"]]
@@ -2226,24 +2213,24 @@ write_svpc_fstats <- function(input, excel = "excel/svpc_fstats.xlsx") {
   rownames(postp) <- paste0("PostPC", seq_len(nrow(postp)))
   allp <- rbind(prep, svp, postp)
 
-  fun_plot <- heatmap.3(as.matrix(allp), dendrogram = "none",
-                        scale = "none", trace = "none",
-                        Colv = FALSE, Rowv = FALSE)
+  heatmap.3(as.matrix(allp), dendrogram = "none",
+            scale = "none", trace = "none",
+            Colv = FALSE, Rowv = FALSE)
   image <- grDevices::recordPlot()
 
-  xlsx_result <- write_xlsx(data = allf, sheet = "Fvalues",
-                            title = "SVA and PC analysis, F-values")
-  xlsx_result <- write_xlsx(data = allp, sheet = "Pvalues",
-                            title = "SVA and PC analysis, P-values")
+  write_xlsx(data = allf, sheet = "Fvalues",
+             title = "SVA and PC analysis, F-values")
+  write_xlsx(data = allp, sheet = "Pvalues",
+             title = "SVA and PC analysis, P-values")
   try_result <- xlsx_insert_png(
     a_plot = image, wb = wb, sheet = "Pvalues", start_col = ncol(allp) + 2)
-  image_files = c()
+  image_files <- c()
   if (! "try-error" %in% class(try_result)) {
     image_files = try_result[["filename"]]
   }
 
-  excel_ret <- try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
-  removed <- try(suppressWarnings(file.remove(image_files)), silent = TRUE)
+  try(openxlsx::saveWorkbook(wb, excel, overwrite = TRUE))
+  try(suppressWarnings(file.remove(image_files)), silent = TRUE)
   retlist <- list(
     "allf" = allf,
     "allp" = allp)

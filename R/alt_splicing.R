@@ -1,13 +1,16 @@
-## A group of functions to examine the results from alternative splicing
+## alt_splicing.R: A group of functions to examine the results from alternative splicing
 ## methods. The hope is to remove some corner cases from tools like
 ## suppa/miso/etc and somewhat standardize the resulting outputs.
+
+#' @include 01_hpgltools.R
+NULL
 
 gather_suppa_files <- function(file_prefix = NULL, numerator = "d15", denominator = "d10") {
   type_suffixes <- c("A3", "A5", "AF", "AL", "RI", "MX", "SE")
   if (is.null(file_prefix)) {
     file_prefix <- file.path("outputs", "90suppa_mm38_100_time")
   }
-  comparison_prefix <- glue("{numerator}_{denominator}");
+  comparison_prefix <- glue("{numerator}_{denominator}")
   dpsi_prefix <- file.path(file_prefix, "diff")
   tpm_prefix <- file.path(file_prefix, "tpm")
   event_prefix <- file.path(file_prefix, "events")
@@ -33,6 +36,7 @@ gather_suppa_files <- function(file_prefix = NULL, numerator = "d15", denominato
   retlist <- list(
     "tx_dpsi" = tx_dpsi_file,
     "tx_events" = tx_events_file,
+    "all_tpm" = tpm_files,
     "tx_psi" = tx_psi_file,
     "tx_tpm" = tx_tpm_file,
     "type_dpsi" = type_dpsi_files,
@@ -44,7 +48,6 @@ gather_suppa_files <- function(file_prefix = NULL, numerator = "d15", denominato
 }
 
 gather_rmats_files <- function(file_prefix = NULL, numerator = "t4h", denominator = "no") {
-  type_suffixes <- c("A3", "A5", "AF", "AL", "RI", "MX", "SE")
   if (is.null(file_prefix)) {
     file_prefix <- file.path("outputs", "90rmats_hg38_111_infect_state")
   }
@@ -415,10 +418,10 @@ write_suppa_table <- function(table, annotations = NULL, by_table = "gene_name",
                               by_annot = "ensembl_gene_id",
                               columns = "default", excel = "excel/suppa_table.xlsx") {
 
-  default_columns <- c("event", "dpsi", "pvalue", "adjp", "avglogtpm", "category",
-                       "coordinates", "alternative_transcripts", "total_transcripts",
-                       "denominator1", "denominator2", "denominator3", "numerator1",
-                       "numerator2", "numerator3", "numerator4", "numerator5", "numerator6")
+  ## default_columns <- c("event", "dpsi", "pvalue", "adjp", "avglogtpm", "category",
+  ##                      "coordinates", "alternative_transcripts", "total_transcripts",
+  ##                      "denominator1", "denominator2", "denominator3", "numerator1",
+  ##                      "numerator2", "numerator3", "numerator4", "numerator5", "numerator6")
   full_table <- data.frame()
   if (is.null(annotations)) {
     full_table <- data.table::as.data.table(table)
@@ -431,7 +434,7 @@ write_suppa_table <- function(table, annotations = NULL, by_table = "gene_name",
 
   xls_data <- as.data.frame(full_table)
   ## Now coerce numeric columns
-  xlsx_result <- write_xlsx(data = xls_data, excel = excel)
+  write_xlsx(data = xls_data, excel = excel)
   return(xls_data)
 }
 
@@ -470,7 +473,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   if (class(se) == "character") {
     se_data <- read.table(se, header = TRUE)
     mesg(se, " has ", nrow(se_data), " rows.")
-  } else if (class(se) == "data.frame" | class(se) == "NULL") {
+  } else if (class(se) == "data.frame" || class(se) == "NULL") {
     se_data <- se_data
   } else {
     stop("I only understand filenames and data frames, your psi are neither.")
@@ -560,7 +563,7 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   all_data[["id"]] <- seq_len(nrow(all_data))
   ## Adding stub variables to make dplyr/tidyr NSE operations not throw warnings
   ## when running R CMD check
-  l1a <- l1b <- l2a <- l2b <- id <- l1mean <- l2mean <- NULL
+  id <- NULL
   mesg("Getting numerator/denominator mean values, this is slow.")
   plotting_data <- all_data %>%
     group_by(id) %>%

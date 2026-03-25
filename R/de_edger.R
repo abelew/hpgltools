@@ -67,7 +67,13 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 
   mesg("Starting edgeR pairwise comparisons.")
   input <- sanitize_se(input, keep_underscore = keep_underscore)
+  ## TODO: I do not think this input_data is being used.  That is not necessarily a problem,
+  ## the primary purpose of choose_dataset is to give a warning to the user,
+  ## but since we went to the trouble of calling it, perhaps we should use the result?
   input_data <- choose_binom_dataset(input, force = force)
+  if ("try-error" %in% class(input_data)) {
+    stop("This is a stub until I decide what I want to do with choose_dataset().")
+  }
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)

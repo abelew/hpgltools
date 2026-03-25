@@ -482,7 +482,7 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
     return(likelihood)
   }
 
-  results <- test_results <- against_results <- t_vs_a_results <- score_plot <- NULL
+  result_df <- test_results <- against_results <- t_vs_a_results <- score_plot <- NULL
   if (choice == "against") {
     message("Testing each factor against the others.")
     fact_lvls <- levels(as.factor(design[[factor_column]]))
@@ -937,7 +937,7 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
     sig_plot <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
   removed <- unlink(dirname(tmp_file))
 
   retlist <- list(
@@ -1007,7 +1007,7 @@ write_gsva <- function(retlist, excel, plot_dim = 6) {
                       startRow = 1, startCol = 8)
   try_result <- xlsx_insert_png(retlist[["score_pca"]], wb = wb, sheet = "legend",
                                 start_row = 2, start_col = 8,
-                                width = (plot_dim * 3/2), height = plot_dim,
+                                width = plot_dim * 1.5, height = plot_dim,
                                 plotname = "gsva_pca", savedir = excel_basename)
   if ("try-error" %in% class(try_result)) {
     warning("Unable to write plot to the legend.")

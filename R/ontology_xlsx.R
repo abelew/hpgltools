@@ -203,9 +203,6 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                           ...) {
   arglist <- list(...)
   image_list <- c()
-  if (!is.null(arglist[["table_style"]])) {
-    table_style <- arglist[["table_style"]]
-  }
   excel_basename <- NULL
   wb <- NULL
   if ("character" %in% class(excel)) {
@@ -217,8 +214,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     wb <- excel
   }
 
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
-                               textDecoration = "bold", border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                        textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
     mesg("Writing a sheet containing the legend.")
@@ -235,9 +232,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
       c("Look right", " for more plots!")
     ))
     colnames(legend) <- c("column name", "column definition")
-    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
-                             title = "Columns used in the following tables.")
-    summary_row <- nrow(legend) + 5
+    write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+               title = "Columns used in the following tables.")
     summary_df <- rbind.data.frame(
       c("Queried BP ontologies", nrow(cp_result[["go_data"]][["BP_all"]])),
       c("Significant BP ontologies", nrow(cp_result[["go_data"]][["BP_sig"]])),
@@ -320,7 +316,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     skip_kegg <- TRUE
   }
   if (isFALSE(skip_kegg)) {
-    cp_kegg_genes <- gather_cp_genes(cp_kegg,cp_result[["all_mappings"]],
+    cp_kegg_genes <- gather_cp_genes(cp_kegg, cp_result[["all_mappings"]],
                                      new = new, primary_key = primary_key)
     cp_kegg[["named_genes"]] <- cp_kegg_genes
     kegg_idx <- order(cp_kegg[[order_by]], decreasing = decreasing)
@@ -388,8 +384,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     new_row <- 1
     mesg("Writing the BP data.")
     sheet <- "BP"
-    dfwrite <- write_xlsx(data = cp_bp, wb = wb, sheet = sheet,
-                          title = "BP REsults from cp.", start_row = new_row)
+    write_xlsx(data = cp_bp, wb = wb, sheet = sheet,
+               title = "BP REsults from cp.", start_row = new_row)
     bp_plots <- list()
     if (!is.null(cp_result[["go_data"]][["BP_enrich"]])) {
       bp_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["BP_enrich"]]))
@@ -410,10 +406,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
       image_list <- c(image_list, plot_try[["filename"]])
     }
     new_row <- new_row + nrow(cp_bp) + 2
-    width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
-                     silent = TRUE)
-    width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
-                     silent = TRUE)
+    try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
+        silent = TRUE)
+    try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
+        silent = TRUE)
   } ## End checking skip_bp
 
   if (isFALSE(skip_mf)) {
@@ -663,7 +659,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
   mesg("Finished writing excel file.")
   for (img in image_list) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   class(res) <- "written_clusterprofiler"
   return(res)
@@ -689,9 +685,6 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
                                 ...) {
   arglist <- list(...)
   image_list <- c()
-  if (!is.null(arglist[["table_style"]])) {
-    table_style <- arglist[["table_style"]]
-  }
   excel_basename <- NULL
   wb <- NULL
   if ("character" %in% class(excel)) {
@@ -708,8 +701,8 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
     return(NULL)
   }
   enrich_plots <- plot_enrichresult(enricher_result)
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
-                               textDecoration = "bold", border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                        textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
     mesg("Writing a sheet containing the legend.")
@@ -726,9 +719,8 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
       c("Look right", " for more plots!")
     ))
     colnames(legend) <- c("column name", "column definition")
-    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
-                             title = "Columns used in the following tables.")
-    summary_row <- nrow(legend) + 5
+    write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+               title = "Columns used in the following tables.")
     summary_df <- data.frame(rbind(
       c("Significant gene sets", nrow(enrich_df))))
     colnames(summary_df) <- c("Ontology type", "Number found")
@@ -738,8 +730,8 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
     new_row <- 1
     mesg("Writing enricher data.")
     sheet <- "enrich"
-    dfwrite <- write_xlsx(data = enrich_df, wb = wb, sheet = sheet,
-                          title = "Enrichment REsults.", start_row = new_row)
+    write_xlsx(data = enrich_df, wb = wb, sheet = sheet,
+               title = "Enrichment REsults.", start_row = new_row)
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
       a_plot <- enrich_plots[["dot"]]
@@ -758,23 +750,17 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
         image_list <- c(image_list, plot_try[["filename"]])
       }
     }
-    width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
-                     silent = TRUE)
+    try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
+        silent = TRUE)
   }
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
   mesg("Finished writing excel file.")
   for (img in image_list) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   class(res) <- "written_enricher"
   return(res)
 }
-
-
-
-
-
-
 
 #' Make a pretty table of goseq data in excel.
 #'
@@ -800,17 +786,14 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
                              add_plots = TRUE, height = 15, width = 10, decreasing = FALSE, ...) {
   arglist <- list(...)
   image_files <- c()
-  if (!is.null(arglist[["table_style"]])) {
-    table_style <- arglist[["table_style"]]
-  }
   excel_basename <- NULL
   if (is.null(wb)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
     excel_basename <<- xlsx[["basename"]]
   }
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
-                               border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
+                        border = "Bottom", fontSize = "30")
   pval_column <- "limma_adjp"
   if (!is.null(arglist[["pval_column"]])) {
     pval_column <- arglist[["pval_column"]]
@@ -830,8 +813,8 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
       c("Num. in cat", "The number of genes in column 'G'.")
     ))
     colnames(legend) <- c("column name", "column definition")
-    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
-                             title = "Columns used in the following tables.")
+    write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+               title = "Columns used in the following tables.")
     summary_row <- nrow(legend) + 5
     summary_df <- data.frame(rbind(
       c("Queried BP ontologies", nrow(goseq_result[["bp_subset"]])),
@@ -845,8 +828,8 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
                              title = "Summary of the goseq search.", start_row = 1, start_col = 4)
     if (isTRUE(add_plots)) {
       printme <- "Histogram of observed ontology (adjusted) p-values by goseq."
-      xl_result <- openxlsx::writeData(wb, "legend", x = printme,
-                                       startRow = summary_row - 1, startCol = 1)
+      openxlsx::writeData(wb, "legend", x = printme,
+                          startRow = summary_row - 1, startCol = 1)
       plot_try <- xlsx_insert_png(goseq_result[["pvalue_histogram"]], wb = wb, sheet = "legend",
                                   start_col = 1, start_row = summary_row, plotname = "p_histogram",
                                   savedir = excel_basename)
@@ -907,8 +890,8 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
     new_row <- 1
     mesg("Writing the ", ont, " data.")
     ## Added the suppresswarnings in case a category has too many genes to be written without complaint.
-    written <- suppressWarnings(write_xlsx(data = categories, wb = wb, sheet = ont,
-                                           title = glue("{ont} Results from goseq.")))
+    suppressWarnings(write_xlsx(data = categories, wb = wb, sheet = ont,
+                                title = glue("{ont} Results from goseq.")))
 
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
@@ -931,15 +914,15 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
       }
     }
     new_row <- new_row + nrow(categories) + 2
-    widths <- openxlsx::setColWidths(wb, sheet = ont, cols = 2:9, widths = "auto")
-    widths <- openxlsx::setColWidths(wb, sheet = ont, cols = 6:7, widths = 30)
+    openxlsx::setColWidths(wb, sheet = ont, cols = 2:9, widths = "auto")
+    openxlsx::setColWidths(wb, sheet = ont, cols = 6:7, widths = 30)
     table_list[[ont]] <- categories
   } ## End of the for loop
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
   mesg("Finished writing excel file.")
   for (img in image_files) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   class(res) <- "written_goseq"
   return(res)
@@ -967,9 +950,6 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
                                height = 15, width = 10, decreasing = FALSE, ...) {
   arglist <- list(...)
   image_files <- c()
-  if (!is.null(arglist[["table_style"]])) {
-    table_style <- arglist[["table_style"]]
-  }
   excel_basename <- "gostats_excel"
   wb <- NULL
   if ("character" %in% class(excel)) {
@@ -979,8 +959,8 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
   } else {
     wb <- excel
   }
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
-                               border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
+                        border = "Bottom", fontSize = "30")
   pval_column <- "limma_adjp"
   if (!is.null(arglist[["pval_column"]])) {
     pval_column <- arglist[["pval_column"]]
@@ -1000,8 +980,8 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
       c("Num. in cat", "The number of genes in column 'G'.")
     ))
     colnames(legend) <- c("column name", "column definition")
-    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
-                             title = "Columns used in the following tables.")
+    write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+               title = "Columns used in the following tables.")
     summary_row <- nrow(legend) + 5
     summary_df <- data.frame(rbind(
       c("Queried BP ontologies", nrow(gostats_result[["tables"]][["bp_subset"]])),
@@ -1015,8 +995,8 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
                              title = "Summary of the gostats search.", start_row = 1, start_col = 4)
     if (isTRUE(add_plots)) {
       printme <- "Histogram of observed ontology (adjusted) p-values by gostats."
-      xl_result <- openxlsx::writeData(wb, "legend", x = printme,
-                                       startRow = summary_row - 1, startCol = 1)
+      openxlsx::writeData(wb, "legend", x = printme,
+                          startRow = summary_row - 1, startCol = 1)
       plot_try <- xlsx_insert_png(gostats_result[["pvalue_histogram"]], wb = wb, sheet = "legend",
                                   start_col = 1, start_row = summary_row, plotname = "p_histogram",
                                   savedir = excel_basename)
@@ -1062,7 +1042,7 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
     ## Now write the data
     new_row <- 1
     mesg("Writing the ", ont, " data.")
-    dfwrite <- write_xlsx(data = categories, wb = wb, sheet = ont, title = glue("{ont} Results from gostats."))
+    write_xlsx(data = categories, wb = wb, sheet = ont, title = glue("{ont} Results from gostats."))
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
       plot_name <- glue("{tolower(ont)}p_plot_over")
@@ -1092,7 +1072,7 @@ write_gostats_data <- function(gostats_result, excel = "excel/gostats.xlsx",
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
   mesg("Finished writing excel file.")
   for (img in image_files) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   class(res) <- "written_gostats"
   return(res)
@@ -1122,14 +1102,14 @@ sig_ontologies <- function(significant_result,
   name_lst <- names(up_lst)
   up_ret <- list()
   down_ret <- list()
-  for (c in 1:length(name_lst)) {
+  for (c in seq_along(name_lst)) {
     name <- name_lst[[c]]
     up_name <- glue("{excel_prefix}_up_{name}_{search_by}_{type}{excel_suffix}")
     down_name <- glue("{excel_prefix}_down_{name}_{search_by}_{type}{excel_suffix}")
     up_table <- up_lst[[c]]
     down_table <- down_lst[[c]]
     chosen_column <- glue("{search_by}_logfc")
-    switchret <- switch(
+    switch(
       type,
       "goseq" = {
         up_ret[[name]] <- try(simple_goseq(
@@ -1196,27 +1176,25 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                                  order_by = "recall", add_plots = TRUE, height = 15,
                                  width = 10, decreasing = FALSE, ...) {
   ## FIXME: This function is dumb, split out the logic and simplify it.
-  arglist <- list(...)
   image_files <- c()
-
   excel_basename <- NULL
   if (is.null(wb)) {
     xlsx <- init_xlsx(excel)
     wb <- xlsx[["wb"]]
     excel_basename <- xlsx[["basename"]]
   }
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
-                               textDecoration = "bold", border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                        textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   ## Write a sheet containing the input set of genes so we can track
   ## what happened from beginning to end.
   input_df <- as.data.frame(gprofiler_result[["input"]])
-  dfwrite <- write_xlsx(data = input_df, wb = wb, sheet = "input",
-                        title = glue("Input genes."))
+  write_xlsx(data = input_df, wb = wb, sheet = "input",
+             title = glue("Input genes."))
 
   types <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
              "MIRNA", "HPA", "CORUM", "HP")
-  for(t in seq_along(types)) {
+  for (t in seq_along(types)) {
     type <- types[t]
     if (is.null(gprofiler_result[[type]])) {
       next
@@ -1234,7 +1212,6 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
                           start_row = new_row)
     if (isTRUE(add_plots)) {
       new_plot_col <- ncol(datum)
-      new_plot_row <- 70
       a_plot <- gprofiler_result[["pvalue_plots"]][[type]]
       plot_name <- paste0(type, "_plot")
       plot_try <- xlsx_insert_png(
@@ -1276,7 +1253,7 @@ write_gprofiler_data <- function(gprofiler_result, wb = NULL,
   }
   mesg("Finished writing excel file.")
   for (img in image_files) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   class(excel_ret) <- "written_gprofiler"
   return(excel_ret)
@@ -1329,15 +1306,9 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
     wb <- xlsx[["wb"]]
     excel_basename <- xlsx[["basename"]]
   }
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
-                               border = "Bottom", fontSize = "30")
-  pval_column <- "limma_adjp"
-  if (!is.null(arglist[["pval_column"]])) {
-    pval_column <- arglist[["pval_column"]]
-  }
-
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
+                        border = "Bottom", fontSize = "30")
   table_list <- topgo_result[["tables"]]
-  result_list <- topgo_result[["results"]]
   trees <- NULL
   if (!is.null(wb)) {
     mesg("Writing a sheet containing the legend.")
@@ -1353,8 +1324,8 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
       c("Num. in cat", "The number of genes in column 'G'.")
     )
     colnames(legend) <- c("column name", "column definition")
-    xls_result <- write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
-                             title = "Columns used in the following tables.")
+    write_xlsx(wb, data = legend, sheet = "legend", rownames = FALSE,
+               title = "Columns used in the following tables.")
     summary_row <- nrow(legend) + 5
     summary_df <- rbind.data.frame(
       c("Queried BP ontologies", nrow(table_list[["bp_subset"]])),
@@ -1368,8 +1339,8 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
                              title = "Summary of the topgo search.", start_row = 1, start_col = 4)
     if (isTRUE(add_plots)) {
       printme <- "Histogram of observed ontology p-values by topgo."
-      xl_result <- openxlsx::writeData(wb, "legend", x = printme,
-                                       startRow = summary_row - 1, startCol = 1)
+      openxlsx::writeData(wb, "legend", x = printme,
+                          startRow = summary_row - 1, startCol = 1)
       plot_try <- sm(xlsx_insert_png(topgo_result[["pvalue_histograms"]][["fisher"]],
                                      wb = wb, sheet = "legend", start_col = 1,
                                      start_row = summary_row, plotname = "fisher_histogram",
@@ -1424,9 +1395,9 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
     ## Now write the data.
     mesg("Writing the ", ont, " data.")
     new_row <- 1
-    dfwrite <- write_xlsx(data = categories, wb = wb, sheet = ont,
-                          title = glue("{ont} Results from topgo."),
-                          start_row = new_row)
+    write_xlsx(data = categories, wb = wb, sheet = ont,
+               title = glue("{ont} Results from topgo."),
+               start_row = new_row)
     p_plot_name <- glue("{tolower(ont)}p_plot_over")
     tree_plot_name <- glue("{ont}_over")
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
@@ -1461,7 +1432,7 @@ write_topgo_data <- function(topgo_result, excel = "excel/topgo.xlsx", wb = NULL
   mesg("Finished writing excel file.")
   for (img in image_files) {
     if (file.exists(img)) {
-      removed <- file.remove(img)
+      file.remove(img)
     } else {
       mesg("The file ", img,
            " does not exist, there is likely a missing image in the xlsx document.")
@@ -1501,9 +1472,6 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
                                     add_plots = TRUE, ...) {
   arglist <- list(...)
   image_files <- c()
-  if (!is.null(arglist[["table_style"]])) {
-    table_style <- arglist[["table_style"]]
-  }
   xlsx <- init_xlsx(outfile)
   wb <- xlsx[["wb"]]
   excel_basename <- xlsx[["basename"]]
@@ -1511,10 +1479,6 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
   suffix <- ".xlsx"
   outfile <- gsub(pattern = "\\.xlsx", replacement = "", x = outfile, perl = TRUE)
   outfile <- gsub(pattern = "\\.xls", replacement = "", x = outfile, perl = TRUE)
-
-  types_list <- c("up_goseq", "down_goseq", "up_cluster", "down_cluster",
-                  "up_topgo", "down_topgo", "up_gostats", "down_gostats",
-                  "up_gprofiler", "down_gprofiler")
   ## names_list doesn't exist at this point, I losted it
   ## It is buried not very deep in kept_ontology I think
   names_list <- names(kept_ontology[["up_goseq"]])
@@ -1676,8 +1640,8 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
       }
     } ## End MF/BP/CC loop
 
-    hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
-                                 border = "Bottom", fontSize = "30")
+    openxlsx::createStyle(fontColour = "#000000", halign = "LEFT", textDecoration = "bold",
+                          border = "Bottom", fontSize = "30")
     ## This stanza will be repeated so I am just incrementing the new_row
 
     ## Write goseq data
@@ -1686,9 +1650,9 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
 
     ## Write goseq BP data
     if (!is.null(up_stuff[["goseq_bp"]])) {
-      dfwrite <- write_xlsx(data = up_stuff[["goseq_bp"]], wb = wb, sheet = sheet,
-                            title = glue("BP Results from {sheet}."),
-                            start_row = new_row)
+      write_xlsx(data = up_stuff[["goseq_bp"]], wb = wb, sheet = sheet,
+                 title = glue("BP Results from {sheet}."),
+                 start_row = new_row)
       ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
       if (isTRUE(add_plots)) {
         a_plot <- kept_ontology[["up_goseq"]][[name]][["pvalue_plots"]][["bpp_plot_over"]]
@@ -2298,7 +2262,7 @@ write_subset_ontologies <- function(kept_ontology, outfile = "excel/subset_go", 
     res <- openxlsx::saveWorkbook(wb, down_filename, overwrite = TRUE)
   }  ## End of name_list
   for (img in image_files) {
-    removed <- file.remove(img)
+    file.remove(img)
   }
   return(res)
 }
@@ -2444,15 +2408,15 @@ write_go_xls <- function(goseq, cluster, topgo, gostats, gprofiler,
               "gostats_bp" = gostats_bp,
               "gostats_cc" = gostats_cc)
   wb <- openxlsx::createWorkbook(creator = "atb")
-  hs1 <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
-                               textDecoration = "bold", border = "Bottom", fontSize = "30")
+  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                        textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   ## This stanza will be repeated so I am just incrementing the new_row
   new_row <- 1
   sheet <- "goseq"
-  dfwrite <- write_xlsx(data = lst[["goseq_mf"]], wb = wb, sheet = sheet,
-                        title = glue("MF Results from {sheet}."),
-                        start_row = new_row)
+  write_xlsx(data = lst[["goseq_mf"]], wb = wb, sheet = sheet,
+             title = glue("MF Results from {sheet}."),
+             start_row = new_row)
   new_row <- new_row + nrow(lst[["goseq_mf"]]) + 2
   dfwrite <- write_xlsx(data = lst[["goseq_cc"]], wb = wb, sheet = sheet,
                         title = glue("CC Results from {sheet}."),

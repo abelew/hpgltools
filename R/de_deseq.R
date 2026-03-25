@@ -3,6 +3,9 @@
 ## This seeks to simplify these invocations and ensure that it will work under
 ## most likely use-case scenarios.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Bring together some of the likelihood ratio test analyses.
 #'
 #' This function hopes to wrap up some of the ideas/methods for LRT.

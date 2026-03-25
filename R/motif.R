@@ -1,5 +1,8 @@
 ## motif.r: Try running some motif finding/analysis tools.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' run the rGADEM suite
 #'
 #' This should provide a set of rGADEM results given an input file of sequences

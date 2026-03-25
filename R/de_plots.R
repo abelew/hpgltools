@@ -1,5 +1,8 @@
 ## de_plots.r: A series of plots which are in theory DE method agnostic.
 
+#' @include 01_hpgltools.R
+NULL
+
 ## FIXME: This has both p_type and adjp parameters, which is redundantredundant.
 #' Make a MA plot of some limma output with pretty colors and shapes.
 #'
@@ -350,18 +353,18 @@ de_venn <- function(table, adjp = FALSE, p = 0.05, lfc = 0, ...) {
   up_venn <- Vennerable::Venn(Sets = up_venn_lst)
   down_venn <- Vennerable::Venn(Sets = down_venn_lst)
   tmp_file <- tmpmd5file(pattern = "venn", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  up_res <- Vennerable::plot(up_venn, doWeights = FALSE)
+  png(filename = tmp_file)
+  dev.control("enable")
+  Vennerable::plot(up_venn, doWeights = FALSE)
   up_venn_noweight <- grDevices::recordPlot()
   dev.off()
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
-  down_res <- Vennerable::plot(down_venn, doWeights = FALSE)
+   png(filename = tmp_file)
+  dev.control("enable")
+  Vennerable::plot(down_venn, doWeights = FALSE)
   down_venn_noweight <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
 
   retlist <- list(
     "up_venn" = up_venn,
@@ -423,7 +426,6 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       ret[["invert"]] <- TRUE
     }
     wanted_table <- wanted_tablename
-    input <- data[["input"]]
   } else if ("combined_table" %in% class(data)) {
     table_source <- "combined_table"
   } else if (class(data)[1] == "all_pairwise") {
@@ -674,7 +676,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
 #' @return Multihistogram of the result.
 #' @seealso [plot_histogram()]
 plot_de_pvals <- function(combined_data, type = "limma", p_type = "both", columns = NULL, ...) {
-  if (is.null(type) & is.null(columns)) {
+  if (is.null(type) && is.null(columns)) {
     stop("Some columns are required to extract p-values.")
   }
   if (p_type == "all") {
@@ -750,8 +752,6 @@ plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebs
       }
     }
   }
-  num_genes <- nrow(table)
-  neutral_fc <- 0.0
   min_p <- 0.0
   max_p <- 1.0
   up_increments <- max_fc / bins
@@ -826,7 +826,7 @@ plot_num_siggenes <- function(table, methods = c("limma", "edger", "deseq", "ebs
     ggplot2::geom_line() +
     ggplot2::scale_fill_brewer(palette = "Set1") +
     ggplot2::scale_color_brewer(palette = "Set1") +
-    ggplot2::geom_vline(xintercept=-1.0, colour = "red") +
+    ggplot2::geom_vline(xintercept = -1.0, colour = "red") +
     ggplot2::theme_bw(base_size = base_size)
 
   pup_plot <- ggplot(data = pup_nums,
@@ -1027,7 +1027,7 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
   }
   plt <- plt +
     ggplot2::geom_hline(yintercept = c((logfc * -1.0), logfc),
-                        color = "red", size=(size / 3)) +
+                        color = "red", size = (size / 3)) +
     ggplot2::geom_point(stat = "identity", size = size, alpha = alpha, stroke = stroke)
   if (isTRUE(label_numbers)) {
     plt <- plt +
@@ -1079,7 +1079,6 @@ plot_ma_condition_de <- function(input, table_name, expr_col = "logCPM",
     } else if (is.character(label)) {
       sig_idx <- df[["label"]] %in% label
       mesg("Found ", sum(sig_idx), " of the labeled genes.")
-      num_labels <- sum(sig_idx)
       df_subset <- df[sig_idx, ]
     } else {
       stop("I do not understand this set of IDs to label.")
@@ -1181,7 +1180,6 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       size = 2, invert = FALSE, label = NULL, label_type = "text",
                                       label_column = "hgnc_symbol", label_size = 6,
                                       nudge_x = 0, nudge_y = 0, ...) {
-  arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(pval)
 
@@ -1459,10 +1457,10 @@ rank_order_scatter <- function(first, second = NULL, first_type = "limma",
                     x = .data[["x"]], y = .data[["y"]], label = .data[["label"]])) +
     ggplot2::geom_point(size = 1, alpha = alpha) +
     ggplot2::scale_color_manual(name = "state",
-                                values = c("both"=both_color,
-                                           "first"=first_color,
-                                           "second"=second_color,
-                                           "neither"=no_color)) +
+                                values = c("both" = both_color,
+                                           "first" = first_color,
+                                           "second" = second_color,
+                                           "neither" = no_color)) +
     ggplot2::geom_smooth(method = "loess", color = "lightblue") +
     ggplot2::ylab(glue("Rank order of {second_table_colname}")) +
     ggplot2::xlab(glue("Rank order of {first_table_colname}")) +
@@ -1515,7 +1513,6 @@ rank_order_scatter <- function(first, second = NULL, first_type = "limma",
 significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FALSE,
                                  p = 0.05, z = NULL, p_type = "adj",
                                  according_to = "all", order = NULL, maximum = NULL, ...) {
-  arglist <- list(...)
   sig_lists_up <- list(
     "limma" = list(),
     "edger" = list(),
@@ -1651,11 +1648,11 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
       up_all[[type]][[table_name]] <- up_all[[type]][[table_name]] -
         up_mid[[type]][[table_name]] -
         up_max[[type]][[table_name]]
-      up_terminal <- up_all[[type]][[table_name]] +
-        up_mid[[type]][[table_name]] +
-        up_max[[type]][[table_name]]
-      up_middle <- up_terminal - up_max[[type]][[table_name]]
-      up_min <- up_terminal - up_mid[[type]][[table_name]]
+      ## up_terminal <- up_all[[type]][[table_name]] +
+      ##   up_mid[[type]][[table_name]] +
+      ##   up_max[[type]][[table_name]]
+      ## up_middle <- up_terminal - up_max[[type]][[table_name]]
+      ## up_min <- up_terminal - up_mid[[type]][[table_name]]
       ## Now repeat for the set of down genes.
       everything_down <- sig_lists_down[[type]][[papa_bear]][[table_name]] ## > 0 lfc
       mid_down <- sig_lists_down[[type]][[mama_bear]][[table_name]] ## > 1 lfc
@@ -1668,11 +1665,11 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
       down_all[[type]][[table_name]] <- down_all[[type]][[table_name]] -
         down_mid[[type]][[table_name]] -
         down_max[[type]][[table_name]]
-      down_terminal <- down_all[[type]][[table_name]] +
-        down_mid[[type]][[table_name]] +
-        down_max[[type]][[table_name]]
-      down_middle <- down_terminal - down_max[[type]][[table_name]]
-      down_min <- down_terminal - down_mid[[type]][[table_name]]
+      ## down_terminal <- down_all[[type]][[table_name]] +
+      ##   down_mid[[type]][[table_name]] +
+      ##   down_max[[type]][[table_name]]
+      ## down_middle <- down_terminal - down_max[[type]][[table_name]]
+      ## down_min <- down_terminal - down_mid[[type]][[table_name]]
     } ## End for 1:table_length
 
     ## Prepare the tables for plotting.
@@ -1712,19 +1709,19 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
     "ups" = uplist,
     "downs" = downlist,
     "limma_up_table" = tables_up[["limma"]],
-    "limma_down_table"= tables_down[["limma"]],
+    "limma_down_table" = tables_down[["limma"]],
     "limma" = plots[["limma"]],
     "deseq_up_table" = tables_up[["deseq"]],
-    "deseq_down_table"= tables_down[["deseq"]],
+    "deseq_down_table" = tables_down[["deseq"]],
     "deseq" = plots[["deseq"]],
     "edger_up_table" = tables_up[["edger"]],
-    "edger_down_table"= tables_down[["edger"]],
+    "edger_down_table" = tables_down[["edger"]],
     "edger" = plots[["edger"]],
     "ebseq_up_table" = tables_up[["ebseq"]],
-    "ebseq_down_table"= tables_down[["ebseq"]],
+    "ebseq_down_table" = tables_down[["ebseq"]],
     "ebseq" = plots[["ebseq"]],
     "basic_up_table" = tables_up[["basic"]],
-    "basic_down_table"= tables_down[["basic"]],
+    "basic_down_table" = tables_down[["basic"]],
     "basic" = plots[["basic"]]
   )
   return(retlist)
@@ -1765,7 +1762,7 @@ overlap_groups <- function(input, sort = TRUE) {
     }))
     data[is.na(data)] <- as.integer(0)
     data[data != 0] <- as.integer(1)
-    data <- data.frame(matrix(data, ncol = length(input), byrow = F))
+    data <- data.frame(matrix(data, ncol = length(input), byrow = FALSE))
     data <- data[which(rowSums(data) != 0), ]
     names(data) <- names(input)
     # ... Except now it conserves your original value names!

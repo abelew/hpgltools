@@ -3,6 +3,9 @@
 ## because is more sparse than I would like, and mostly because the IDs map
 ## nonsensically.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Use pathfindR to get a dataframe of KEGG IDs.
 #'
 #' The various KEGG conversion methods from KEGGREST appear to only work
@@ -24,7 +27,7 @@ make_kegg_df <- function(org_code) {
     tmpdf[["path"]] <- colnames(tmpdf)[1]
     annotdf <- as.data.frame(annot[p])
     colnames(annotdf) <- c("annotation")
-    tmpdf <- merge(tmpdf, annotdf, by.x = "path", by.y="row.names")
+    tmpdf <- merge(tmpdf, annotdf, by.x = "path", by.y = "row.names")
     colnames(tmpdf) <- c("path", "ID", "annotation")
     pathdf <- rbind(pathdf, tmpdf)
   }
@@ -100,7 +103,7 @@ load_kegg_annotations <- function(species = "coli", abbreviation = NULL, flatten
   if (!is.null(abbreviation)) {
     species <- NULL
   }
-  if (is.null(abbreviation) & is.null(species)) {
+  if (is.null(abbreviation) && is.null(species)) {
     stop("This requires either a species or 3 letter kegg id.")
   } else if (!is.null(abbreviation)) {
     chosen <- abbreviation

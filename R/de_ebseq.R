@@ -5,6 +5,9 @@
 ## families use various statistical models.  In contrast, EBSeq uses prior
 ## probabilities and sampling to gather its values for each gene.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Set up model matrices contrasts and do pairwise comparisons of all conditions
 #' using EBSeq.
 #'
@@ -46,8 +49,6 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
                            target_fdr = 0.05, method = "pairwise_subset",
                            norm = "median", force = FALSE, keep_underscore = TRUE,
                            ...) {
-  arglist <- list(...)
-
   mesg("Starting EBSeq pairwise comparisons.")
   current <- state(input)
   filteredp <- current[["filter"]]
@@ -59,10 +60,9 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
   factors <- fctrs[["factors"]]
   condition_column <- factors[1]
   input <- sanitize_se(input, keep_underscore = keep_underscore, factors = factors)
-  input_data <- choose_binom_dataset(input, force = force)
+  ## input_data <- choose_binom_dataset(input, force = force)
   design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
-  data <- as.matrix(input_data[["data"]])
   condition_table <- table(conditions)
   condition_levels <- levels(conditions)
   numerators <- denominators <- contrasts_performed <- c()
@@ -78,7 +78,6 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
     contrasts_performed <- result[["contrasts_performed"]]
   } else {
     mesg("Starting single EBSeq invocation.")
-    multi <- FALSE
     if (length(condition_levels) < 2) {
       stop("You have fewer than 2 conditions.")
     } else if (length(condition_levels) == 2) {
@@ -154,10 +153,6 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
-  data <- assay(input)
-  condition_table <- table(conditions)
-  condition_levels <- levels(conditions)
-
   model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
   apc <- make_pairwise_contrasts(model_mtrx, conditions, do_identities = FALSE,
                                  do_extras = FALSE, keepers = keepers,
@@ -299,6 +294,7 @@ ebseq_few <- function(data, conditions, model_fstring = "~ 0 + condition + batch
       "all_tables" = table_lst,
       "conditions" = conditions,
       "denominator" = denominator,
+      "posteriors" = posteriors,  ## I need to figure out what I want to do with this.
       "method" = "ebseq",
       "numerator" = numerator)
   return(retlst)
@@ -387,7 +383,7 @@ ebseq_two <- function(pair_data, conditions,
   eb_direction <- fold_changes[["Direction"]]
   eb_numerator <- gsub(pattern = "^(.*) Over (.*)$", replacement = "\\1", x = eb_direction)
   eb_denominator <- gsub(pattern = "^(.*) Over (.*)$", replacement = "\\2", x = eb_direction)
-  if (! eb_numerator == denominator) {
+  if (! eb_numerator == eb_denominator) {
     table[["ebseq_FC"]] <- 1 / table[["ebseq_FC"]]
     table[["logFC"]] <- -1 * table[["logFC"]]
     table[["ebseq_postfc"]] <- 1 / table[["ebseq_postfc"]]

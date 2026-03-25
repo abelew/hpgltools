@@ -481,7 +481,7 @@ plot_multiplot <- function(plots, file, cols = NULL, layout = NULL) {
                      ncol = cols, nrow = ceiling(num_plots / cols))
   }
 
-  if (num_plots==1) {
+  if (num_plots == 1) {
     print(plots[[1]])
   } else {
     ## Set up the page

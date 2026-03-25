@@ -2,6 +2,7 @@
 ## and other tools to help generate quick, back of the hand, trees.
 
 #' @include 01_hpgltools.R
+NULL
 
 #' Use ape to generate a distance based nj tree from fasta files.
 #'

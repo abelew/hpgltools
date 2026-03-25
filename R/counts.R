@@ -1,3 +1,5 @@
+## counts.R: Functions to help deal with matrices of expression data.
+
 #' @include 01_hpgltools.R
 NULL
 
@@ -85,7 +87,6 @@ setMethod(
     design <- colData(se)
     message("The original SE has ", nrow(design), " samples.")
     replicates <- levels(as.factor(design[[column]]))
-    final_se <- se
     final_data <- NULL
     final_design <- NULL
     column_names <- list()
@@ -159,7 +160,6 @@ read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE
                         suffix = NULL, countdir = NULL, tx_gene_map = NULL,
                         file_type = NULL, ignore_tx_version = TRUE, ...) {
   ## load first sample
-  arglist <- list(...)
   retlist <- list()
   ## Add an optional directory if I don't feel like specifying in the sample sheet.
   if (!is.null(countdir)) {
@@ -179,8 +179,6 @@ read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE
   retlist[["kept_ids"]] <- ids
   retlist[["kept_files"]] <- files
   ## lower_filenames <- files
-  dirs <- dirname(files)
-
   count_table <- NULL
   for (f in seq_along(files)) {
     ## Get rid of any lurking spaces
@@ -243,13 +241,15 @@ If this is not correctly performed, very few genes will be observed")
     import <- NULL
     import_scaled <- NULL
     if (is.null(tx_gene_map)) {
-      warning("Check that these count column names are correct, it may be the case that tximport failed and we need to set the colnames as per salmon.")
+      warning("Check that these count column names are correct, it may be the case that \\
+tximport failed and we need to set the colnames as per salmon.")
       import <- sm(tximport::tximport(files = files, type = "kallisto", txOut = txout))
       import_scaled <- sm(tximport::tximport(
         files = files, type = "kallisto",
         txOut = txout, countsFromAbundance = "lengthScaledTPM"))
     } else {
-      warning("Check that these count column names are correct, it may be the case that tximport failed and we need to set the colnames as per salmon.")
+      warning("Check that these count column names are correct, \\
+it may be the case that tximport failed and we need to set the colnames as per salmon.")
       import <- sm(tximport::tximport(
         files = files, type = "kallisto", tx2gene = tx_gene_map, txOut = txout))
       import_scaled <- sm(tximport::tximport(
@@ -268,7 +268,8 @@ If this is not correctly performed, very few genes will be observed")
     import <- NULL
     import_scaled <- NULL
     if (is.null(tx_gene_map)) {
-      warning("Check that these count column names are correct, it may be the case that tximport failed and we need to set the colnames as per salmon.")
+      warning("Check that these count column names are correct, \\
+it may be the case that tximport failed and we need to set the colnames as per salmon.")
       import <- tximport::tximport(files = files, type = "rsem", txOut = txout)
       import_scaled <- tximport::tximport(files = files, type = "rsem",
                                           txOut = txout, countsFromAbundance = "lengthScaledTPM")

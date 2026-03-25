@@ -118,11 +118,6 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     }
   }
 
-  sankey <- NULL
-  if (num_factors > 1) {
-    sankey <- plot_meta_sankey(meta, factors = factors)
-  }
-
   if (!is.null(filter) && class(filter)[1] != "function") {
     mesg("This will pre-filter the input data using normalize's: ",
          filter, " argument.")
@@ -136,10 +131,8 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
                                  null_fstring = null_fstring,
                                  model_svs = model_svs,
                                  num_surrogates = num_surrogates,
-                                 ... )
-    estimate_type <- model_svs
+                                 ...)
     model_svs <- model_params[["model_adjust"]]
-    null_model <- model_params[["null_model"]]
     model_fstring <- model_params[["appended_fstring"]]
     input <- model_params[["modified_input"]]
   }
@@ -416,7 +409,7 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
   ## concordance of DE analysis, we used k =500 except where otherwise
   ## noted, but found our results were insensitive to the
   sumint <- sum(intersections)
-  norm <- (topn * (topn + 1)) /2
+  norm <- (topn * (topn + 1)) / 2
   aucc <- sumint / norm
 
   intersection_df <- data.frame(x = 1:topn, y = intersections)
@@ -580,7 +573,6 @@ sva_modify_pvalues <- function(results) {
       results[["edger"]][["all_tables"]][[name]][["FDR"]] <- reordered_adjp
 
       ## Ibid.
-      deseq_table_order <- rownames(results[["deseq"]][["all_tables"]][[name]])
       tmpdt <- data.table::data.table(
         results[["deseq"]][["all_tables"]][[name]][["P.Value"]])
       tmpdt[["rownames"]] <- rownames(results[["deseq"]][["all_tables"]][[name]])
@@ -763,7 +755,6 @@ choose_limma_dataset <- function(input, force = FALSE, which_voom = "limma", ...
 
   cond <- conditions(input)
   batch <- batches(input)
-  sizes <- libsize(input)
   data <- as.data.frame(assay(input))
   the_state <- state(input)
   tran_state <- the_state[["transform"]]
@@ -970,8 +961,7 @@ compare_de_results <- function(first, second, cor_method = "pearson",
   if (! "try-error" %in% class(adjp_heatmap)) {
     adjp_heat <- recordPlot()
   }
-  new <- par(original)
-
+  par(original)
   retlist <- list(
     "result" = result,
     "logfc" = logfc_result,
@@ -1205,7 +1195,7 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
                                         col = heat_colors, dendrogram = "none",
                                         Rowv = FALSE, Colv = FALSE,
                                         main = "Compare DE tools"), silent = TRUE)
-    new <- par(original)
+    par(original)
     if (! "try-error" %in% class(comparison_heatmap)) {
       heat <- recordPlot()
     }
@@ -1235,7 +1225,6 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
 #' }
 #' @export
 compare_logfc_plots <- function(combined_tables) {
-  plots <- list()
   data <- NULL
   if (!is.null(combined_tables[["data"]])) {
     data <- combined_tables[["data"]]
@@ -1309,7 +1298,6 @@ compare_logfc_plots <- function(combined_tables) {
 compare_significant_contrasts <- function(sig_tables, second_sig_tables = NULL,
                                           compare_by = "deseq", weights = FALSE,
                                           contrasts = c(1, 2, 3)) {
-  retlist <- NULL
   contrast_names <- names(sig_tables[[compare_by]][["ups"]])
   for (i in seq_along(contrasts)) {
     contr <- contrasts[i]
@@ -1391,14 +1379,14 @@ disjunct_pvalues <- function(contrast_fit, cellmeans_fit, conj_contrasts, disj_c
   stat <- BiocGenerics::pmin(abs(contrast_fit[["t"]][, conj_contrasts]))
   pval <- BiocGenerics::pmax(contrast_fit[["p.value"]][, conj_contrasts])
 
-  adj.pval <- p.adjust(pval, method = "BH")
+  adj_pval <- p.adjust(pval, method = "BH")
   fcs <- as.data.frame(contrast_fit[["coef"]][, conj_contrasts])
   names(fcs) <- paste("logFC", names(fcs), sep = ":")
   conj_pvals <- as.data.frame(
     apply(contrast_fit[["p.value"]][, conj_contrasts], 2, p.adjust, method = "BH"))
   names(conj_pvals) <- paste("adj.P.Val", names(conj_pvals), sep = ":")
   conj_table <- data.frame("ID" = rownames(contrast_fit), stringsAsFactors = FALSE)
-  conj_table <- cbind(conj_table, fcs, conj_pvals, stat = stat, adj.P.Value = adj.pval)
+  conj_table <- cbind(conj_table, fcs, conj_pvals, stat = stat, adj.P.Value = adj_pval)
   names(conj_table)[seq(2 + 2 * length(conj_contrasts), ncol(conj_table))] <- paste(
     c("stat", "adj.P.Value"), paste(conj_contrasts, collapse = ":"), sep = ":")
 
@@ -1954,7 +1942,6 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
                                     do_identities = FALSE, do_extras = TRUE, do_pairwise = TRUE,
                                     keepers = NULL, extra_contrasts = NULL,
                                     keep_underscore = TRUE, ...) {
-  arglist <- list(...)
   possible_names <- colnames(model)
   match <- paste0("^", contrast_factor)
   relevant_idx <- grepl(x = possible_names, pattern = match)
@@ -2021,7 +2008,6 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
     }
   } else {
     for (k in seq_along(keepers)) {
-      keeper_name <- names(keepers)[k]
       keeper_value <- keepers[[k]]
       n_name <- keeper_value[1]
       n_string <- paste0(contrast_factor, n_name)
@@ -2293,7 +2279,6 @@ semantic_copynumber_filter <- function(input, max_copies = 2, use_files = FALSE,
     }  ## End using empirically defined groups of multi-gene families.
 
     ## Now remove genes by name.
-    kept_list <- new_table <- NULL
     for (string in semantic) {
       pre_remove_size <- nrow(tab)
       idx <- NULL
@@ -2377,7 +2362,7 @@ subtract_de_results <- function(first_table, second_table,
   p_vector <- mapply(max, comparison[[2]], comparison[[4]])
   comparison[[p_name]] <- p_vector
   if (!is.null(excel)) {
-    written <- write_xlsx(data = comparison, excel = excel)
+    write_xlsx(data = comparison, excel = excel)
   }
   return(comparison)
 }

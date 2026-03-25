@@ -1,3 +1,7 @@
+## ontology_topgo.R: Helpers for using topGO without getting frustrated by its various options.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Coerce a df of gene IDs and GO categories to the topGO list
 #'

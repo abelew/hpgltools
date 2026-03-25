@@ -42,10 +42,10 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
                                    fields = NULL, sum_exon_widths = FALSE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_loaded <- do.call("library", args = list("package" = "Homo.sapiens", "character.only" = TRUE))
+    do.call("library", args = list("package" = "Homo.sapiens", "character.only" = TRUE))
     orgdb <- get0("Homo.sapiens")
   } else if (class(orgdb) == "character") {
-    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    do.call("library", list("package" = orgdb, "character.only" = TRUE))
     orgdb <- get0(orgdb)
   }
   keytype <- toupper(keytype)
@@ -222,13 +222,13 @@ load_orgdb_go <- function(orgdb = NULL, gene_ids = NULL, keytype = "ensembl",
                           ## columns = "go", rbind = TRUE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_loaded <- do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
+    do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
     orgdb <- get0("Homo.sapiens")
   } else if ("character" %in% class(orgdb)) {
-    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    do.call("library", list("package" = orgdb, "character.only" = TRUE))
     orgdb <- get0(orgdb)
   }
-  tt <- sm(requireNamespace("GO.db"))
+  sm(requireNamespace("GO.db"))
   keytype <- toupper(keytype)
   columns <- toupper(columns)
   if (isTRUE(guess_columns)) {
@@ -254,7 +254,7 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
   }
   if (class(orgdb)[[1]] == "OrganismDb") {
     message("This is an organismdbi, that should be ok.")
-  } else if (class(orgdb)[[1]] == "OrgDb" | class(orgdb)[[1]] == "orgdb") {
+  } else if (class(orgdb)[[1]] == "OrgDb" || class(orgdb)[[1]] == "orgdb") {
     message("This is an orgdb, good.")
   } else {
     stop("This requires either an organismdbi or orgdb instance, not ", class(orgdb)[[1]])
@@ -317,13 +317,13 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
 load_txdb_annotations <- function(txdb = NULL, gene_ids = NULL, types = c("tx", "exon", "cds")) {
   if (is.null(txdb)) {
     message("Assuming Homo.sapiens.")
-    tx_loaded <- do.call("library", args = list("package" = "TxDb.Hsapiens.UCSC.hg19.knownGene", "character.only" = TRUE))
+    do.call("library", args = list("package" = "TxDb.Hsapiens.UCSC.hg19.knownGene", "character.only" = TRUE))
     txdb <- get0("TxDb.Hsapiens.UCSC.hg19.knownGene")
   } else if (class(txdb) == "character") {
-    tx_loaded <- do.call("library", list("package" = txdb, "character.only" = TRUE))
+    do.call("library", list("package" = txdb, "character.only" = TRUE))
     txdb <- get0(txdb)
   }
-  possible_keytypes <- AnnotationDbi::keytypes(txdb)
+  ## possible_keytypes <- AnnotationDbi::keytypes(txdb)
   possible_columns <- AnnotationDbi::columns(txdb)
   retlist <- list()
   gene_ids <- try(AnnotationDbi::keys(txdb, keytype = "GENEID"))
@@ -331,8 +331,8 @@ load_txdb_annotations <- function(txdb = NULL, gene_ids = NULL, types = c("tx", 
   for (type in types) {
     type <- toupper(type)
     retlist[[type]] <- data.frame()
-    keytype <- paste0(type, "ID")
-    type_ids <- AnnotationDbi::keys(txdb, keytype = keytype)
+    ## keytype <- paste0(type, "ID")
+    ## type_ids <- AnnotationDbi::keys(txdb, keytype = keytype)
     wanted_idx <- grepl(pattern = glue("^{type}"), x = possible_columns)
     wanted_columns <- possible_columns[wanted_idx]
     type_info <- try(AnnotationDbi::select(
@@ -446,12 +446,14 @@ extract_eupath_orthologs <- function(db, master = "GID", query_species = NULL,
   for (sp in query_species) {
     if (sp %in% all_orthos[[org_column]]) {
       message("Found species: ", sp)
+      found_species <- found_species + 1
     } else {
       message("Did not find species: ", sp)
     }
   }
   kept_orthos_idx <- all_orthos[[org_column]] %in% query_species
   kept_orthos <- all_orthos[kept_orthos_idx, ]
+  mesg("There are ", found_species, " members in this orthogroup.")
   ## The following is not possible if we used the orthologslite table.
   ## In fact, the orthologslite table is (I am realizing) quite a disappointment.
   ## I might remove that query and just force the much slower orthologs table as it
@@ -462,15 +464,14 @@ extract_eupath_orthologs <- function(db, master = "GID", query_species = NULL,
     colnames(kept_orthos) <- c(master, "ORTHOLOGS_ID", "ORTHOLOGS_GROUP", "ORTHOLOGS_SPECIES",
                                "ORTHOLOGS_NAME", "ORTHOLOGS_COUNT")
     kept_orthos[["ORTHOLOGS_COUNT"]] <- as.integer(kept_orthos[["ORTHOLOGS_COUNT"]])
-    GID <- NULL
     kept_orthos_dt <- data.table::as.data.table(kept_orthos) %>%
-      dplyr::group_by(GID) %>%
-      dplyr::add_count(GID)
+      dplyr::group_by(!!sym("GID")) %>%
+      dplyr::add_count(!!sym("GID"))
     colnames(kept_orthos_dt) <- c(master, "ORTHOLOGS_ID", "ORTHOLOGS_GROUP",
                                   "ORTHOLOGS_SPECIES", "ORTHOLOGS_NAME", "ORTHOLOGS_COUNT",
                                   "QUERIES_IN_GROUP")
     kept_orthos_dt[["ORTHOLOGS_REPRESENTATION"]] <- kept_orthos_dt[["ORTHOLOGS_COUNT"]] / num_possible
-    num_queries <- length(query_species)
+    ## num_queries <- length(query_species)
   }
   return(kept_orthos_dt)
 }
@@ -495,10 +496,10 @@ map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl",
                           keytype = "geneid") {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    org_loaded <- do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
+    do.call("library", list("package" = "Homo.sapiens", "character.only" = TRUE))
     orgdb <- get0("Homo.sapiens")
   } else if ("character" %in% class(orgdb)) {
-    org_loaded <- do.call("library", list("package" = orgdb, "character.only" = TRUE))
+    do.call("library", list("package" = orgdb, "character.only" = TRUE))
     orgdb <- get0(orgdb)
   }
   mapto <- toupper(mapto)
@@ -523,8 +524,9 @@ map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl",
     } else if ("ENSEMBLID" %in% avail_keytypes) {
       keytype <- "ENSEMBLID"
       message("Using ensemblid as the master key.")
-    } else
+    } else {
       stop("Could not think of a usable master key.")
+    }
   }
 
   ## If no gene ids were chosen, grab them all.
@@ -554,10 +556,10 @@ map_orgdb_ids <- function(orgdb, gene_ids = NULL, mapto = "ensembl",
 guess_orgdb_keytype <- function(ids, orgdb = NULL, verbose = FALSE) {
   if (is.null(orgdb)) {
     message("Assuming Homo.sapiens.")
-    lib <- do.call(what = "library", args = list("package" = "Homo.sapiens", "character.only" = TRUE))
+    do.call(what = "library", args = list("package" = "Homo.sapiens", "character.only" = TRUE))
     orgdb <- get0("Homo.sapiens")
   } else if ("character" %in% class(orgdb)) {
-    lib <- do.call(what = "library", args = list("package" = orgdb, "character.only" = TRUE))
+    do.call(what = "library", args = list("package" = orgdb, "character.only" = TRUE))
     orgdb <- get0(orgdb)
   }
   found_ids <- 0
@@ -633,14 +635,14 @@ map_species_orgdb <- function(species, genus = NULL) {
 #' @export
 orgdb_from_ah <- function(ahid = NULL, title = NULL, species = NULL, type = "OrgDb") {
   ## Other available types:
-  tt <- sm(loadNamespace("AnnotationHub"))
+  sm(loadNamespace("AnnotationHub"))
   ah <- sm(AnnotationHub::AnnotationHub())
   message("Available types: \n", toString(levels(as.factor(ah$rdataclass))))
 
   if (!is.null(type)) {
     ah <- AnnotationHub::query(x = ah, pattern = type)
   }
-  if (is.null(title) & is.null(species) & is.null(ahid)) {
+  if (is.null(title) && is.null(species) && is.null(ahid)) {
     message("Going to attempt to find a human database.  I hope this is what you want!")
     hits <- grepl(pattern = "Hs\\.eg\\.db", x = ah$title)
     ahid <- names(ah)[hits]

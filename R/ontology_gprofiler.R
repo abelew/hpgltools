@@ -1,3 +1,8 @@
+## ontology_gprofiler.R: Helpers for using the gProfiler2 web service.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Run simple_gprofiler on every table from extract_significant_genes()
 #'
 #' @param sig Result from extract_significant_genes
@@ -185,7 +190,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
   ## we are not querying human data.
   if (species != "hsapiens") {
     do_hpa <- FALSE
-    do_mirna <- FALSE
+    do_mi <- FALSE
   }
 
   retlst <- list()

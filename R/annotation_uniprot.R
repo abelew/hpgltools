@@ -4,6 +4,9 @@
 ## access their data.  I think these changes will make it drastically easier to gather data
 ## from them, but I have only poked at a little thus far.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Download the txt uniprot data for a given accession/species.
 #'
 #' Uniprot is an astonishing resource, but man is it a pain to use.  Hopefully
@@ -22,13 +25,13 @@
 #' @export
 load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
                                      taxonomy = NULL, all = FALSE, first = FALSE) {
-  final_species <- ""
+  ## final_species <- ""
   if (!is.null(taxonomy)) {
     request_url <- glue::glue("https://www.uniprot.org/proteomes/?query=taxonomy%3A{xml2::url_escape(taxonomy)}")
     destination <- glue("{taxonomy}.txt.gz")
     if (!file.exists(destination)) {
       ## tt <- download.file(url = request_url, destfile = destination, method = "wget", quiet = TRUE)
-      tt <- download.file(url = request_url, destfile = destination, quiet = TRUE)
+      download.file(url = request_url, destfile = destination, quiet = TRUE)
     }
     result <- xml2::read_html(destination)
     result_html <- rvest::html_nodes(result, "tr")
@@ -39,15 +42,16 @@ load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
     species_text <- rvest::html_nodes(result, "td") %>%
       rvest::html_nodes("span") %>%
       rvest::html_text()
-    final_species <- species_text[species_text != ""]
+    ## final_species <- species_text[species_text != ""]
+    ## I pretty massively simplified this function but have not yet deleted the original code.
     if (length(accessions) == 1) {
       accession <- accessions
     } else {
       accession <- accessions[1]
-      name <- final_species[1]
+      ## name <- final_species[1]
     }
   } else {
-    if (is.null(accession) & is.null(species)) {
+    if (is.null(accession) && is.null(species)) {
       message("Defaulting to the Mycobacterium tuberculosis H37Rv strain.")
       accession <- "UP000001584"
     } else if (is.null(accession)) {
@@ -217,7 +221,7 @@ load_uniprot_go <- function(...) {
   kept[["go"]] <- as.character(kept[["go"]])
   kept <- kept %>%
     tidyr::separate_rows("go", sep = ",")
-  kept[["go"]] <- gsub(pattern='"', replacement = "", x = kept[["go"]])
+  kept[["go"]] <- gsub(pattern = '"', replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = ")", replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = "c\\(", replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = "\\s+", replacement = "", x = kept[["go"]])

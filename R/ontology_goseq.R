@@ -182,7 +182,7 @@ goseq2enrich <- function(retlist, ontology = "MF", cutoff = 1,
              gene = sig_genes,
              universe = godf[["ID"]],
              ## universe = extID,
-             geneSets = list(up=sig_genes),
+             geneSets = list(up = sig_genes),
              ## geneSets = geneSets,
              organism = organism,
              keytype = "UNKNOWN",
@@ -384,14 +384,8 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
                          expand_categories = TRUE, excel = NULL, enrich = TRUE,
                          minimum_interesting = 2, min_xref = 40,
                          ...) {
-  arglist <- list(...)
-
-  length_df <- data.frame()
   length_vector <- vector()
   de_vector <- vector()
-  gene_ids <- NULL
-  final_keytype <- NULL
-  goids_df <- NULL
   ## sig_genes may be a list, character list, or data frame.
   gene_list <- NULL
   if ("data.frame" %in% class(sig_genes) || "DFrame" %in% class(sig_genes)) {
@@ -477,11 +471,12 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
       ## table
       godf <- read.table(go_db, ...)
       colnames(godf) <- c("ID", "GO")
-    } else {
-      ## Assume species name
-      supported <- TRUE
-      species <- go_db
     }
+##    else {
+##      ## Assume species name
+##      supported <- TRUE
+##      species <- go_db
+##    }
   } else if (class(go_db)[[1]] == "OrganismDb") {
     godf <- extract_go(go_db, keytype = go_keytype)
   } else if (class(go_db)[[1]] == "OrgDb") {
@@ -505,7 +500,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
   ## entrez IDs are numeric.  This is a problem when doing the pwf function
   ## because it sets the rownames to the IDs.  As a result, we need to call
   ## make.names() on them.
-  colnames(godf) <- c("ID","GO")
+  colnames(godf) <- c("ID", "GO")
   godf[["ID"]] <- make.names(godf[["ID"]])
   metadf[["ID"]] <- make.names(metadf[["ID"]])
   de_genelist[["ID"]] <- make.names(de_genelist[["ID"]])
@@ -551,16 +546,16 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
 
   pwf_plot <- NULL
   tmp_file <- tmpmd5file(pattern = "goseq", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   pwf <- sm(suppressWarnings(goseq::nullp(DEgenes = de_vector, bias.data = length_vector,
                                           plot.fit = doplot)))
   if (isTRUE(doplot)) {
     pwf_plot <- recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   godata <- sm(goseq::goseq(pwf, gene2cat = godf, use_genes_without_cat = TRUE,
                             method = goseq_method))
@@ -619,7 +614,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
       retlist, ontology = "CC", cutoff = threshold, padjust_method = padjust_method)
   }
   if (!is.null(excel)) {
-    excel_result <- write_goseq_data(retlist, excel = excel, ...)
+    retlist[["excel_result"]] <- write_goseq_data(retlist, excel = excel, ...)
   }
   return(retlist)
 }

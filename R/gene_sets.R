@@ -239,16 +239,16 @@ parse_msigdb_sqlite <- function(filename) {
   RSQLite::dbClearResult(author_query)
   collection_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM collection")
   collection_df <- RSQLite::dbFetch(collection_query)
-  cleared <- RSQLite::dbClearResult(collection_query)
+  RSQLite::dbClearResult(collection_query)
   pub_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM publication")
   pub_df <- RSQLite::dbFetch(pub_query)
-  cleared <- RSQLite::dbClearResult(pub_query)
+  RSQLite::dbClearResult(pub_query)
   gs_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM gene_set")
   gs_df <- RSQLite::dbFetch(gs_query)
-  cleared <- RSQLite::dbClearResult(gs_query)
+  RSQLite::dbClearResult(gs_query)
   detail_query <- RSQLite::dbSendQuery(conn = db, "SELECT * FROM gene_set_details")
   detail_df <- RSQLite::dbFetch(detail_query)
-  cleared <- RSQLite::dbClearResult(detail_query)
+  RSQLite::dbClearResult(detail_query)
   RSQLite::dbDisconnect(db)
   combined <- merge(gs_df, detail_df, by.x = "id", by.y = "gene_set_id")
   combined <- merge(combined, pub_df, by = "id", all.x = TRUE)
@@ -392,11 +392,11 @@ load_msig_metadata <- function(db = "reference/msigdb_v2024.1.Hs.db") {
   gsd_query <- "SELECT * FROM gene_set_details;"
   sent <- RSQLite::dbSendQuery(conn = opened, gsd_query)
   gene_set_details <- RSQLite::fetch(sent)
-  cleared <- RSQLite::dbClearResult(sent)
+  RSQLite::dbClearResult(sent)
   pub_query <- "SELECT * FROM publication;"
   sent <- RSQLite::dbSendQuery(conn = opened, pub_query)
   publications <- RSQLite::fetch(sent)
-  cleared <- RSQLite::dbClearResult(sent)
+  RSQLite::dbClearResult(sent)
   merged <- merge(gene_sets, gene_set_details, by.x = "id", by.y = "gene_set_id", all.x = TRUE)
   merged <- merge(merged, publications, by.x = "publication_id", by.y = "id", all.x = TRUE)
   RSQLite::dbDisconnect(opened)
@@ -454,7 +454,7 @@ make_gsc_from_ids <- function(first_ids, second_ids = NULL, annotation_name = "o
       x = get0(annotation_name), keys = first_ids, keytype = current_id, columns = c(required_id)))
     first_idx <- complete.cases(first_ids)
     if (sum(first_idx) == 0) {
-      do_first <- FALSE
+      do_second <- TRUE
     } else {
       if (!all(first_idx)) {
         message(sum(first_idx) == FALSE,
@@ -791,6 +791,18 @@ make_gsc_from_pairwise <- function(pairwise, according_to = "deseq", annotation_
   return(retlst)
 }
 
+#' Create a gene set category from the results of extract_significant_genes().
+#'
+#' @param significant extract_significant_genes() result.
+#' @param according_to Default method defining the set of significant genes.
+#' @param annotation_name orgdb name from which to collect annotations.
+#' @param category_name Name of the new gsc category.
+#' @param phenotype_name Name of the new gsc.
+#' @param set_name Name of the new set.
+#' @param color Define if this is both up+down or just one.
+#' @param current_id Most of the GSC tools we have on hand want entrez IDs, use this to convert.
+#' @param required_id Most of the GSC tools we have on hand want entrez IDs, use this to convert.
+#' @param min_gmt_genes If groups have less than this number of genes, do not bother making a gsc.
 make_gsc_from_significant <- function(significant, according_to = "deseq",
                                       annotation_name = "org.Hs.eg.db", category_name = "infection",
                                       phenotype_name = "parasite", set_name = "elsayed_macrophage",

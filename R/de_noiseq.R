@@ -1,3 +1,8 @@
+## de_noiseq.R: Add NOISeq as a _pairwise family member.
+
+#' @include 01_hpgltools.R
+NULL
+
 ## NOISeq looks to me like it does not use a statistical model in the same way as
 ## limma/deseq/edger, but instead implements its own (un)guided batch correction method
 ## and expects the user to use that data as input for its set of comparisons.
@@ -40,7 +45,6 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
                             factor = NULL, lc = 1, r = 20, adj = 1.5,
                             a0per = 0.9, filter = 1,
                             keep_underscore = TRUE, ...) {
-  arglist <- list(...)
   if (isTRUE(filter)) {
     filter <- 1
   }
@@ -60,13 +64,11 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   }
   input <- sanitize_se(input, keep_underscore = keep_underscore, factors = factors)
   input_data <- choose_binom_dataset(input, force = force)
-  count_mtrx <- input_data[["data"]]
-  design <- pData(input)
+  design <- colData(input)
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
   batch_table <- table(batches)
-  condition_levels <- levels(conditions)
   design[[condition_column]] <- conditions
   if (length(levels(batches)) > 1) {
     design[["batch"]] <- batches
@@ -92,9 +94,6 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
                                  keep_underscore = keep_underscore)
   contrast_list <- list()
   result_list <- list()
-  lrt_list <- list()
-  sc <- vector("list", length(apc[["names"]]))
-  end <- length(apc[["names"]])
   coefficient_df <- data.frame()
   final_coef_colnames <- c()
   density_theta_plots <- list()
@@ -103,8 +102,8 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     numerator <- apc[["numerators"]][[name]]
     denominator <- apc[["denominators"]][[name]]
     tmp_file <- tmpmd5file(pattern = "noiseq_density_theta", fileext = ".png")
-    this_plot <- png(filename = tmp_file)
-    controlled <- dev.control("enable")
+    png(filename = tmp_file)
+    dev.control("enable")
     noiseq_table <- sm(NOISeq::noiseqbio(
       norm_input, k = k, norm = norm, factor = condition_column, lc = lc,
       r = r, adj = adj, plot = TRUE, a0per = a0per,
@@ -112,12 +111,11 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     if (class(noiseq_table)[1] != "try-error") {
       density_theta_plots[[name]] <- grDevices::recordPlot()
     }
-    plotted <- dev.off()
-    removed <- file.remove(tmp_file)
+    dev.off()
+    file.remove(tmp_file)
     invert <- FALSE
     actual_comparison <- strsplit(noiseq_table@comparison, " - ")[[1]]
     actual_numerator <- actual_comparison[1]
-    actual_denominator <- actual_comparison[2]
     if (actual_numerator != numerator) {
       invert <- TRUE
     }

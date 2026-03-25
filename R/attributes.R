@@ -1,3 +1,6 @@
+## attributes.R: A bunch of S4 methods to help deal with the various datastructures
+## used throughout this code.
+
 ## I think I would like to have functions named
 ## set_xyz() and xyz() to set and get values respectively
 ## then set the infix set function as an alias to the set_xyz
@@ -854,7 +857,6 @@ set_se_colors <- function(se, colors = TRUE,
   }
 
   num_conditions <- length(levels(condition_factor))
-  design <- colData(se)
   ## chosen_colors <- se[["conditions"]]
   chosen_colors <- condition_factor
   chosen_names <- names(chosen_colors)

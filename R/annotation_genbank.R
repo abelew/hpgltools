@@ -3,6 +3,9 @@
 ## file seeks to simplify extracting annotations from genbank flat files and/or
 ## the NCBI web interface.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Given a genbank accession, make a txDb object along with sequences, etc.
 #'
 #' Let us admit it, sometimes biomart is a pain.  It also does not have easily

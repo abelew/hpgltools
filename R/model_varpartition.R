@@ -169,7 +169,7 @@ which are shared among multiple samples.")
   }
 
   if (isTRUE(parallel)) {
-    para <- parallel::stopCluster(cl)
+    parallel::stopCluster(cl)
   }
 
   ret <- list(

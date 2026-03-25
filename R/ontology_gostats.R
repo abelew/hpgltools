@@ -47,9 +47,12 @@ gostats2enrich <- function(retlist, ontology = "MF", cutoff = 0.1,
           " categories appear interesting.")
   interesting_cutoff <- interesting[interesting_cutoff_idx, ]
   message("Gathering genes/category, this may be slow.")
-  genes_per_category <- gather_ontology_genes(
+  genes_per_category <- try(gather_ontology_genes(
     retlist, ontology = ontology, column = "Pvalue",
-    pval = cutoff)
+    pval = cutoff))
+  if ("try-error" %in% class(genes_per_category)) {
+    warning("Getting the set of genes in each category failed.")
+  }
   ## category_genes <- gsub(pattern = ", ", replacement = "/", x = genes_per_category[["sig"]])
   interesting_cutoff[["term_nohtml"]] <- gsub(
     x = interesting_cutoff[["Term"]], pattern = "^<a href.*>(.*)</a>", replacement = "\\1")

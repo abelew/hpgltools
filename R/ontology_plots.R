@@ -1,3 +1,8 @@
+## ontology_plots.R: Functions to simplify the various ontology plots.
+
+#' @include 01_hpgltools.R
+NULL
+
 #' Invoke ther various fun plots created by Guangchuang Yu.
 #'
 #' I would like to replace all of my bad ontology plotting functions
@@ -725,8 +730,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
   bp_included <- length(which(bp_nodes <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo_tree_bp", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   bp_tree_data <- try(sm(topGO::showSigOfNodes(
     bp_GOdata, bp_nodes, useInfo = "all",
     sigForAll = TRUE, firstSigNodes = bp_included,
@@ -739,8 +744,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
     bp_tree <- recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   ## And the cellular component tree
   cc_avail_nodes <- as.list(cc_GOdata@graph@nodes)
@@ -749,8 +754,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
   cc_included <- length(which(cc_nodes <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo_tree_cc", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   cc_tree_data <- try(sm(topGO::showSigOfNodes(
     cc_GOdata, cc_nodes, useInfo = "all",
     sigForAll = TRUE, firstSigNodes = cc_included,
@@ -763,8 +768,8 @@ goseq_trees <- function(goseq, goid_map = "id2go.map",
     cc_tree <- recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   trees <- list(
     "MF_over" = mf_tree,
@@ -866,8 +871,8 @@ cluster_trees <- function(de_genes, cpdata, goid_map = "id2go.map", go_db = NULL
   bp_included <- length(which(bp_all_scores <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   bp_tree_data <- try(suppressWarnings(
     topGO::showSigOfNodes(bp_GOdata, bp_all_scores, useInfo = "all",
                           sigForAll = TRUE, firstSigNodes = bp_included,
@@ -878,14 +883,14 @@ cluster_trees <- function(de_genes, cpdata, goid_map = "id2go.map", go_db = NULL
     bp_tree <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   cc_included <- length(which(cc_all_scores <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   cc_tree_data <- try(suppressWarnings(
     topGO::showSigOfNodes(cc_GOdata, cc_all_scores, useInfo = "all",
                           sigForAll = TRUE, firstSigNodes = cc_included,
@@ -896,8 +901,8 @@ cluster_trees <- function(de_genes, cpdata, goid_map = "id2go.map", go_db = NULL
     cc_tree <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   trees <- list(
     "MF_over" = mf_tree,
@@ -1048,8 +1053,8 @@ topgo_trees <- function(tg, score_limit = 0.01, sigforall = TRUE,
     bp_el <- single_topgo_tree(tg, score_column = "el_bp",
                                node_data = "fbp_godata", score_limit = score_limit,
                                sigforall = sigforall)
-    bp_el_nodes <- mf_el[["nodes"]]
-    bp_el_tree <- mf_el[["plot"]]
+    bp_el_nodes <- bp_el[["nodes"]]
+    bp_el_tree <- bp_el[["plot"]]
   }
 
   cc_el_nodes <- cc_el_tree <- NULL
@@ -1057,8 +1062,8 @@ topgo_trees <- function(tg, score_limit = 0.01, sigforall = TRUE,
     cc_el <- single_topgo_tree(tg, score_column = "el_cc",
                                node_data = "fcc_godata", score_limit = score_limit,
                                sigforall = sigforall)
-    cc_el_nodes <- mf_el[["nodes"]]
-    cc_el_tree <- mf_el[["plot"]]
+    cc_el_nodes <- cc_el[["nodes"]]
+    cc_el_tree <- cc_el[["plot"]]
   }
 
   mf_weight_nodes <- mf_weight_tree <- NULL
@@ -1210,8 +1215,8 @@ gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 
   bp_over_included <- length(which(bp_over_nodes <= score_limit))
 
   tmp_file <- tmpmd5file(pattern = "topgo", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   bp_over_tree_data <- try(suppressWarnings(
     topGO::showSigOfNodes(bp_GOdata, bp_over_nodes, useInfo = "all",
                           sigForAll = TRUE, firstSigNodes = bp_over_included,
@@ -1223,8 +1228,8 @@ gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 
     bp_over_tree <- grDevices::recordPlot()
   }
   dev.off()
-  removed <- suppressWarnings(file.remove(tmp_file))
-  removed <- unlink(dirname(tmp_file))
+  suppressWarnings(file.remove(tmp_file))
+  unlink(dirname(tmp_file))
 
   cc_avail_nodes <- as.list(cc_GOdata@graph@nodes)
   names(cc_avail_nodes) <- cc_GOdata@graph@nodes

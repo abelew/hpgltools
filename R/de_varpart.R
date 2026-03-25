@@ -1,4 +1,7 @@
-## Use variancePartition's dream method with limma.
+## de_varpart.R: Use variancePartition's dream method with limma.
+
+#' @include 01_hpgltools.R
+NULL
 
 #' Set up a model matrix and set of contrasts for pairwise comparisons using
 #' voom/limma via their modified functions from variancePartition.
@@ -75,7 +78,6 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 
   input <- sanitize_se(input, keep_underscore = keep_underscore)
   input_data <- choose_binom_dataset(input, force = force)
-  count_mtrx <- input_data[["data"]]
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)
@@ -83,8 +85,6 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
   batch_table <- table(batches)
-  condition_levels <- levels(conditions)
-
   ## The following small piece of logic is intended to handle situations where we use
   ## tximport for limma (kallisto/sailfish/salmon).
   if (is.null(input[["tximport"]])) {
@@ -115,9 +115,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                                  num_surrogates = num_surrogates,
                                  filter = filter,
                                  ...)
-    estimate_type <- model_svs
     model_svs <- model_params[["model_adjust"]]
-    null_model <- model_params[["null_model"]]
     appended_fstring <- model_params[["appended_fstring"]]
     design <- colData(model_params[["modified_input"]])
   }
@@ -126,19 +124,18 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   ## Note, if we want to work like DESEq2, this should not be first, but last.
   contrast_factor <- fctrs[["contrast"]]
   simple_fstring <- glue("~ 0 + {contrast_factor}")
-  model_formula <- as.formula(model_fstring)
   simple_model <- model.matrix(as.formula(simple_fstring), data = design)
   voom_plot <- NULL
   mesg("Dream/limma 2/6: Attempting voomWithDreamWeights.")
   tmp_file <- tmpmd5file(pattern = "voom_dream", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   voom_result <- variancePartition::voomWithDreamWeights(
     counts = data, formula = model_fstring,
     data = design, plot = TRUE)
   voom_plot <- grDevices::recordPlot()
-  plotted <- dev.off()
-  removed <- file.remove(tmp_file)
+  dev.off()
+  file.remove(tmp_file)
   one_replicate <- FALSE
   if (is.null(voom_result)) {
     ## Apparently voom returns null where there is only 1 replicate.
@@ -148,14 +145,12 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   }
 
   ## Do the lmFit() using this model
-  pairwise_fits <- NULL
   identity_fits <- NULL
   mesg("Dream/limma step 3/6: making limma and dream contrasts.")
   contrasts <- make_pairwise_contrasts(
     model = model_mtrx, conditions = conditions, contrast_factor = contrast_factor,
     extra_contrasts = extra_contrasts, keepers = keepers, keep_underscore = keep_underscore,
     do_identities = FALSE)
-  all_pairwise_contrasts <- contrasts[["all_pairwise_contrasts"]]
   contrast_vector <- c()
   for (n in seq_along(contrasts[["all_pairwise"]])) {
     dream_contrast <- gsub(x = contrasts[["all_pairwise"]][n],

@@ -12,9 +12,8 @@ NULL
 #' @param species Species at the mart for which to search.
 #' @return A mart instance.
 find_working_dataset <- function(mart, trydataset, species) {
-  chosen_dataset <- NULL
   dataset <- NULL
-  if (is.null(species) & is.null(trydataset)) {
+  if (is.null(species) && is.null(trydataset)) {
     stop("This requires either trydataset or species.")
   } else if (is.null(trydataset)) {
     dataset <- glue("{species}_gene_ensembl")
@@ -33,11 +32,9 @@ find_working_dataset <- function(mart, trydataset, species) {
       return(NULL)
     } else {
       message("Successfully connected to the ", second_dataset, " database.")
-      chosen_dataset <- second_dataset
     }
   } else {
     message("Successfully connected to the ", dataset, " database.")
-    chosen_dataset <- dataset
   }
   return(ensembl)
 }
@@ -177,7 +174,7 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
   mart <- start[["mart"]]
   all <- biomaRt::listAttributes(mart)
   example_gene <- start[["annotation"]][1, 1]
-  wanted_attributes = "feature_page"
+  wanted_attributes <- "feature_page"
   wanted_idx <- all[["page"]] == wanted_attributes
   wanted <- all[wanted_idx, "name"]
   final <- sum(wanted_idx)
@@ -246,9 +243,10 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
                                                        "transcript_version", "description", "gene_biotype"),
                                      length_requests = c("ensembl_transcript_id", "cds_length", "chromosome_name",
                                                          "strand", "start_position", "end_position"),
-                                     gene_tx_map = TRUE, gene_id_column = "ensembl_gene_id", gene_version_column = "version",
-                                     tx_id_column = "ensembl_transcript_id", tx_version_column = "transcript_version",
-                                     symbol_columns = NULL, include_lengths = TRUE, do_load = TRUE, savefile = NULL) {
+                                     gene_tx_map = TRUE, gene_id_column = "ensembl_gene_id",
+                                     gene_version_column = "version", tx_id_column = "ensembl_transcript_id",
+                                     tx_version_column = "transcript_version", symbol_columns = NULL,
+                                     include_lengths = TRUE, do_load = TRUE, savefile = NULL) {
 
   ## An attempt to get around 'unable to get local issuer certificate':
   ## As per: https://github.com/grimbough/biomaRt/issues/39
@@ -261,7 +259,7 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
   }
 
   biomart_annotations <- NULL
-  if (file.exists(savefile) & isFALSE(overwrite)) {
+  if (file.exists(savefile) && isFALSE(overwrite)) {
     fresh <- new.env()
     message("The biomart annotations file already exists, loading from it.")
     ## load_string <- paste0("load('", savefile, "', envir = fresh)")
@@ -304,7 +302,7 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
     return(retlist)
   }
   martlst <- NULL
-  if (is.null(host) & is.null(default_hosts)) {
+  if (is.null(host) && is.null(default_hosts)) {
     stop("both host and default_hosts are null.")
   } else if (is.null(host)) {
     martlst <- find_working_mart(default_hosts = default_hosts, trymart = trymart,
@@ -580,7 +578,7 @@ load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = T
 
   savefile <- glue("{species}_go_annotations.rda")
   biomart_go <- NULL
-  if (file.exists(savefile) & overwrite == FALSE) {
+  if (file.exists(savefile) && overwrite == FALSE) {
     fresh <- new.env()
     message("The biomart annotations file already exists, loading from it.")
     load(savefile, envir = fresh)
@@ -597,7 +595,7 @@ load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = T
   }
 
   martlst <- NULL
-  if (is.null(host) & is.null(default_hosts)) {
+  if (is.null(host) && is.null(default_hosts)) {
     stop("both host and default_hosts are null.")
   } else if (is.null(host)) {
     martlst <- find_working_mart(default_hosts = default_hosts, trymart = trymart,
@@ -704,7 +702,7 @@ load_biomart_orthologs <- function(gene_ids = NULL, first_species = "hsapiens",
   httr::set_config(new_config, override = FALSE)
 
   martlst <- NULL
-  if (is.null(host) & is.null(default_hosts)) {
+  if (is.null(host) && is.null(default_hosts)) {
     stop("both host and default_hosts are null.")
   } else if (is.null(host)) {
     martlst <- find_working_mart(default_hosts = default_hosts, trymart = trymart,
@@ -713,11 +711,9 @@ load_biomart_orthologs <- function(gene_ids = NULL, first_species = "hsapiens",
     martlst <- find_working_mart(default_hosts = host, trymart = trymart,
                                  archive = FALSE)
   }
-  used_mart <- NULL
   mart <- NULL
   host <- NULL
   if (!is.null(martlst)) {
-    used_mart <- martlst[["used_mart"]]
     host <- martlst[["host"]]
     mart <- martlst[["mart"]]
   }

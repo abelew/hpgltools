@@ -22,8 +22,6 @@ NULL
 #' @export
 load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", collapse = FALSE) {
   split_data <- sm(readr::read_tsv(trinotate))
-  .data <- NULL  ## Shut up, R CMD check
-
   split_data <- split_data %>%
     tidyr::separate("sprot_Top_BLASTX_hit",
                     c("blastx_name", "blastx_name2", "blastx_hitlocation",
@@ -147,14 +145,15 @@ load_trinotate_annotations <- function(trinotate = "reference/trinotate.csv", co
   ## rownames(split_data) <- make.names(split_data[["transcript_id"]], unique = TRUE)
   ## Use the 'transcript_seq' field to provide gene lengths
   ## split_data[["length"]] <- ""
-  transcript_seq <- NULL  ## transcript_seq in this context is handled by data.table I think.
+  ## transcript_seq <- NULL  ## transcript_seq in this context is handled by data.table I think.
   if (!is.null(split_data[["transcript_seq"]])) {
     lengths <- nchar(split_data[["transcript_seq"]])
     split_data[, "length"] <- lengths
   }
 
   if (isTRUE(collapse)) {
-    split_data[["collapsed_gid"]] <- gsub(x = rownames(split_data), pattern = "^(.*_c\\d+_g\\d+)_i\\d+$",
+    split_data[["collapsed_gid"]] <- gsub(x = rownames(split_data),
+                                          pattern = "^(.*_c\\d+_g\\d+)_i\\d+$",
                                           replacement = "\\1")
   }
   return(split_data)
@@ -241,8 +240,8 @@ load_trinotate_go <- function(trinotate = "reference/trinotate.csv",
   keepers <- complete.cases(go_table)
   go_table <- go_table[keepers, ]
   ## Some stupid quotations are sneaking through.
-  go_table[["ID"]] <- gsub(pattern='"', replacement = "", x = go_table[["ID"]])
-  go_table[["GO"]] <- gsub(pattern='"', replacement = "", x = go_table[["GO"]])
+  go_table[["ID"]] <- gsub(pattern = '"', replacement = "", x = go_table[["ID"]])
+  go_table[["GO"]] <- gsub(pattern = '"', replacement = "", x = go_table[["GO"]])
 
   length_data <- expanded[, c("gene_id", "transcript_id", "length")]
   length_table <- data.table::setDT(length_data)

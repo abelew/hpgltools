@@ -4,6 +4,9 @@
 ## to get their various results when performing a differential expression
 ## analysis.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' The simplest possible differential expression method.
 #'
 #' Perform a pairwise comparison among conditions which takes
@@ -50,10 +53,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   design <- colData(input)
 
   conditions <- droplevels(as.factor(design[[contrast_factor]]))
-  batches <- droplevels(as.factor(design[["batch"]]))
   data <- as.matrix(input_data[["data"]])
-  conditions_table <- table(conditions)
-  batches_table <- table(batches)
   condition_levels <- levels(conditions)
   model_mtrx <- model.matrix(as.formula(model_fstring), data = design)
   num_conds <- length(condition_levels)

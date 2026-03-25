@@ -2,6 +2,9 @@
 ## microbesonline.  I like microbesonline quite a lot!  Their MySQL interface is
 ## a little clunky, so I rewrote these functions to just webscrape it.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Download the various file formats from microbesoline.
 #'
 #' Microbesonline provides an interesting set of file formats to download.  Each
@@ -60,7 +63,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
     gbk_file <- glue("{id}.gbk")
     message("The species being downloaded is: ", species,
             " and is being downloaded as ", gbk_file, ".")
-    gbk_downloaded <- download.file(gbk_url, gbk_file, quiet = TRUE)
+    download.file(gbk_url, gbk_file, quiet = TRUE)
     retlist[["gbk"]] <- gbk_file
   }
 
@@ -69,7 +72,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
     tab_file <- glue("{id}.tab")
     message("The species being downloaded is: ", species,
             " and is being downloaded as ", tab_file, ".")
-    tab_downloaded <- download.file(tab_url, tab_file, quiet = TRUE)
+    download.file(tab_url, tab_file, quiet = TRUE)
     retlist[["tab"]] <- tab_file
   }
 
@@ -79,7 +82,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
     prot_file <- glue("{id}_proteome.fasta")
     message("The species being downloaded is: ", species,
             " and is being downloaded as ", prot_file, ".")
-    prot_downloaded <- download.file(prot_url, prot_file, quiet = TRUE)
+    download.file(prot_url, prot_file, quiet = TRUE)
     retlist[["prot"]] <- prot_file
   }
 
@@ -89,7 +92,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
     tx_file <- glue("{id}_tx.fasta")
     message("The species being downloaded is: ", species,
             " and is being downloaded as ", tx_file, ".")
-    tx_downloaded <- download.file(tx_url, tx_file, quiet = TRUE)
+    download.file(tx_url, tx_file, quiet = TRUE)
     retlist[["tx"]] <- tx_file
   }
 
@@ -99,7 +102,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
     genome_file <- glue("{id}_genome.fasta")
     message("The species being downloaded is: ", species,
             " and is being downloaded as ", genome_file, ".")
-    genome_downloaded <- download.file(genome_url, genome_file, quiet = TRUE)
+    download.file(genome_url, genome_file, quiet = TRUE)
     retlist[["genome"]] <- genome_file
   }
   return(retlist)
@@ -124,7 +127,7 @@ get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
   id_links <- id_nodes %>%
     rvest::html_nodes("td:nth-child(1) a") %>%
     rvest::html_attr("href") %>%
-    gsub(pattern = "^.*?tId=([[:digit:]]+)$", replacement = "\\1", x=.)
+    gsub(pattern = "^.*?tId=([[:digit:]]+)$", replacement = "\\1", x = .)
   id_table <- id_nodes %>%
     rvest::html_table(header = TRUE, fill = TRUE)
   id_df <- id_table[[1]]  ## Grab the first (only) element
@@ -168,7 +171,7 @@ get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
 #' @example inst/examples/annotation_microbesonline.R
 #' @export
 load_microbesonline_annotations <- function(species = NULL, id = NULL) {
-  if (is.null(id) & is.null(species)) {
+  if (is.null(id) && is.null(species)) {
     stop("This needs either a species or taxon id.")
   } else if (is.null(id)) {
     id <- get_microbesonline_taxid(species)
@@ -198,7 +201,7 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
   url <- glue::glue("http://www.microbesonline.org/cgi-bin/genomeInfo.cgi?tId={id};export=tab")
   message("Downloading: ", url)
   data <- sm(readr::read_tsv(url))
-  written <- readr::write_tsv(x = data, file = downloaded_file)
+  readr::write_tsv(x = data, file = downloaded_file)
   return(data)
 }
 

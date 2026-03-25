@@ -2,6 +2,9 @@
 ## seek to simplify performing the various dimension reduction methods and plot
 ## the results.
 
+#' @include 01_hpgltools.R
+NULL
+
 #' Incomplete function to compare PCs and SVs.
 #'
 #' This function is the beginning of a method to get a sense of what
@@ -429,21 +432,21 @@ pca_information <- function(exp, factors = c("condition", "batch"), colors_chose
 
   anova_f_colors <- grDevices::colorRampPalette(c("blue", "black", "red"))(100)
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   anova_f_heat <- try(heatmap.3(as.matrix(anova_f), scale = "none", trace = "none",
                                 linewidth = 0.5, keysize = 2, margins = c(8, 8),
                                 col = anova_f_colors, dendrogram = "none", Rowv = FALSE,
                                 Colv = FALSE, main = "anova fstats for (factor, PC)"))
   anova_f_heat <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
 
   anova_fstat_colors <- grDevices::colorRampPalette(c("blue", "white", "red"))(100)
   tmp_file <- tmpmd5file(pattern = "heat", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   anova_fstat_heat <- try(heatmap.3(as.matrix(anova_fstats), scale = "none", trace = "none",
                                     linewidth = 0.5, keysize = 2, margins = c(8, 8),
                                     col = anova_fstat_colors, dendrogram = "none", Rowv = FALSE,
@@ -597,13 +600,13 @@ pca_highscores <- function(input, n = 20, cor = TRUE, vs = "means", logged = TRU
   file.remove(tmp_file)
   unlink(dirname(tmp_file))
   tmp_file <- tmpmd5file(pattern = "biplot", fileext = ".png")
-  this_plot <- png(filename = tmp_file)
-  controlled <- dev.control("enable")
+  png(filename = tmp_file)
+  dev.control("enable")
   biplot(another_pca)
   pca_biplot <- grDevices::recordPlot()
   dev.off()
-  removed <- file.remove(tmp_file)
-  removed <- unlink(dirname(tmp_file))
+  file.remove(tmp_file)
+  unlink(dirname(tmp_file))
 
   highest <- NULL
   lowest <- NULL
@@ -1146,6 +1149,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     "y_pc" = y_pc,
     "cond_column" = cond_column,
     "batch_column" = batch_column,
+    "included_batches" = included_batches,
     "design" = design)
   class(pca_return) <- "pca_result"
   return(pca_return)
