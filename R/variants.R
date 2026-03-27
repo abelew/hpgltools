@@ -1527,8 +1527,11 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   message("There are ", length(snps_by_chr), " overlapping variants and genes.")
 
   summarized_by_chr <- data.table::as.data.table(snps_by_chr)
-  ## .N <- NULL  ## .N is a read-only symbol in data.table
-  summarized_by_chr[, count := !!sym(".N"), by = list(!!seqnames)]
+  .N <- NULL  ## .N is a read-only symbol in data.table
+  ## I am not sure if there is a way to programmatically use it without
+  ## triggering an alert from R CMD CHECK and/or flycheck.
+  ## https://www.rdocumentation.org/packages/data.table/versions/1.10.0/topics/special-symbols
+  summarized_by_chr[, count := .N, by = list(seqnames)]
 
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
