@@ -288,6 +288,14 @@ setMethod(
       }
     }
 
+    ## Something I changed, presumably to make flycheck happy, messed this up.
+    if (length(start_row) == 0) {
+      start_row <- 1
+    }
+    if (length(start_col) == 0) {
+      start_col <- 1
+    }
+
     ## Heading style 1 (For titles)
     hs1_fmt <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
                                      textDecoration = "bold", border = "Bottom",
@@ -302,9 +310,9 @@ setMethod(
     wb_sheet <- check_xlsx_worksheet(wb, sheet)
     wb <- wb_sheet[["wb"]]
     sheet <- wb_sheet[["sheet"]]
-
     new_row <- start_row
     new_col <- start_col
+
     if (!is.null(title)) {
       openxlsx::addStyle(wb = wb, sheet = sheet, style = hs1_fmt, rows = new_row,
                          cols = new_col, gridExpand = FALSE, stack = FALSE)

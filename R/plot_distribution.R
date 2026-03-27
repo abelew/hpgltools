@@ -231,7 +231,7 @@ setMethod(
       "num_low_genes" = num_low_genes,
       "low_outlier_genes" = low_outlier_genes,
       "num_low_outlier_genes" = num_low_outlier_genes)
-    class(retlist) <- "gene_boxplot"
+    class(retlist) <- "hpgltools::plot_boxplot"
     return(retlist)
   })
 
@@ -296,7 +296,7 @@ setMethod(
 #' @param x List with the topn plot and summary table.
 #' @param ... Other args to match the generic.
 #' @export
-print.gene_boxplot <- function(x, ...) {
+`print.hpgltools::plot_boxplot` <- function(x, ...) {
   summary_string <- glue("Plot describing the gene distribution from a dataset.")
   message(summary_string)
   plot(x[["plot"]])
