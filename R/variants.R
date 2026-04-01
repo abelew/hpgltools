@@ -1292,8 +1292,8 @@ snps_intersections <- function(exp, snp_result,
     summarized_by_chr <- data.table::as.data.table(inter_by_gene)
     ## Faking out r cmd check with a couple empty variables which will be used by data.table
     seqnames <- count <- NULL
-    ## .N <- NULL  ## .N is a read-only symbol in data.table
-    summarized_by_chr[, count := !!sym(".N"), by = list(seqnames)]
+    .N <- NULL  ## .N is a read-only symbol in data.table
+    summarized_by_chr[, count := .N, by = list(seqnames)]
     summarized_by_chr <- unique(summarized_by_chr[, c("seqnames", "count"), with = FALSE])
     chr_summaries[[inter_name]] <- summarized_by_chr
 
@@ -1750,9 +1750,12 @@ snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_co
   message("There are ", length(snps_by_threep), " overlapping variants and 3' padded UTRs.")
   summarized_threep_by_chr <- data.table::as.data.table(snps_by_threep)
 
-  ## .N <- NULL  ## .N is a read-only symbol in data.table
-  summarized_fivep_by_chr[, count := !!sym(".N"), by = list(seqnames)]
-  summarized_threep_by_chr[, count := !!sym(".N"), by = list(seqnames)]
+  .N <- NULL  ## .N is a read-only symbol in data.table
+  ## setting .N to NULL should keep R CMD check quiet but still result in a count
+  ## of the number of hits
+  ## As a result I do not think one may access it via things like !!sym(".N")
+  summarized_fivep_by_chr[, count := .N, by = list(seqnames)]
+  summarized_threep_by_chr[, count := .N, by = list(seqnames)]
   ## I think I can replace this data table invocation with countOverlaps...
   ## Ahh no, the following invocation merely counts which snps are found in name,
   ## which is sort of the opposite of what I want.

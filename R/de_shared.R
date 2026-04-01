@@ -453,6 +453,79 @@ print.aucc_info <- function(x, ...) {
   return(invisible(x))
 }
 
+get_de_table <- function(apr, table, type = "deseq", combined = FALSE) {
+  all_tables <- apr[[type]][["all_tables"]]
+  wanted <- NULL
+  if (table %in% names(all_tables)) {
+    wanted <- all_tables[[table]]
+  } else {
+    mesg("Unable to find ", table, " in the all pairwise result.")
+    mesg("The possible tables are: ", toString(names(all_tables)), ".")
+    stop("Unable to find ", table, " in the all pairwise result.")
+  }
+  return(wanted)
+}
+setGeneric("get_de_table")
+
+## Note, I am going to change all the classes to the form hpgltools::function_name soon.
+setMethod(
+  "get_de_table", signature = signature(apr = "combined_de"),
+  definition = function(apr, table, type = "deseq", combined = FALSE) {
+    wanted <- NULL
+    if (isTRUE(combined)) {
+      all_tables <- names(apr[["data"]])
+      if (table %in% all_tables) {
+        wanted <- apr[["data"]][[table]]
+      } else {
+        mesg("Unable to find ", table, " in the combined_de_tables result.")
+        mesg("The possible tables are: ", toString(names(all_tables)), ".")
+        stop("Unable to find ", table, " in the combine_de_tables result.")
+      }
+    } else {
+      wanted <- get_de_table(apr[["input"]], table, type = type, combined = combined)
+    }
+      return(wanted)
+  })
+
+setMethod(
+  "get_de_table", signature = signature(apr = "combined_de"),
+  definition = function(apr, table, type = "deseq", combined = FALSE) {
+    wanted <- NULL
+    if (isTRUE(combined)) {
+      all_tables <- names(apr[["data"]])
+      if (table %in% all_tables) {
+        wanted <- apr[["data"]][[table]]
+      } else {
+        mesg("Unable to find ", table, " in the combined_de_tables result.")
+        mesg("The possible tables are: ", toString(names(all_tables)), ".")
+        stop("Unable to find ", table, " in the combine_de_tables result.")
+      }
+    } else {
+      wanted <- get_de_table(apr[["input"]], table, type = type, combined = combined)
+    }
+      return(wanted)
+  })
+
+setMethod(
+  "get_de_table", signature = signature(apr = "sig_genes"),
+  definition = function(apr, table, type = "deseq", combined = FALSE) {
+    wanted <- NULL
+    if (type %in% names(apr)) {
+      up_tables <- apr[["type"]][["ups"]]
+      down_tables <- apr[["type"]][["downs"]]
+      if (table %in% names(up_tables)) {
+        wanted <- rbind(up_tables[[table]], down_tables[[table]])
+      } else {
+        stop("Unable to find the table ", table, " in the extract_significant_genes result.")
+      }
+    } else {
+      stop("Unable to find the type ", type, " in the extract_significant_genes result.")
+    }
+    return(wanted)
+  })
+
+
+
 #' Use sva's f.pvalue to adjust p-values for data adjusted by combat.
 #'
 #' This is from section 5 of the sva manual:  "Adjusting for surrogate
