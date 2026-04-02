@@ -508,6 +508,7 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 ## Something in the following will sometimes, but not always
 ## result in the error:
 ## ! no applicable method for `@` applied to an object of class "environment"
+
 #' Pull the dataframe from load_biomart_annotations()
 #'
 #' @param x Result from load_biomart_annotations()
@@ -527,23 +528,24 @@ setMethod(
     x[[slot]]
   })
 
-#' Pull the dataframe from load_biomart_annotations()
-#'
-#' @param x Result from load_biomart_annotations()
-#' @param row.names Not currently used
-#' @param optional I am not sure
-#' @param ... Unused optional parameters.
-#' @export
-setMethod(
-  "as.data.table", signature = signature(x = "hpgltools::load_annotations_biomart"),
-  definition = function(x, row.names = NULL, optional = FALSE, ...) {
-    arglist <- list(...)
-    slot <- "gene_annotations"
-    if (!is.null(arglist[["type"]])) {
-      slot <- arglist[["type"]]
-    }
-    data.table::as.data.table(x[[slot]])
-  })
+## In my containerized R, this causes an error and I do not understand why.
+## #' Pull a datatable from load_biomart_annotations()
+## #'
+## #' @param x Result from load_biomart_annotations()
+## #' @param row.names Not currently used
+## #' @param optional I am not sure
+## #' @param ... Unused optional parameters.
+## #' @export
+## setMethod(
+##   "as.data.table", signature = signature(x = "hpgltools::load_annotations_biomart"),
+##   definition = function(x, keep.rownames = FALSE, ...) {
+##     arglist <- list(...)
+##     slot <- "gene_annotations"
+##     if (!is.null(arglist[["type"]])) {
+##       slot <- arglist[["type"]]
+##     }
+##     data.table::as.data.table(x[[slot]], keep.rownames = keep.rownames, ...)
+##   })
 
 #' Print function for a set of annotations downloaded from biomart.
 #'
