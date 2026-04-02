@@ -508,18 +508,42 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 ## Something in the following will sometimes, but not always
 ## result in the error:
 ## ! no applicable method for `@` applied to an object of class "environment"
-# #' Pull the dataframe from load_biomart_annotations()
-# #'
-# #' @param x Result from load_biomart_annotations()
-# #' @param row.names Not currently used
-# #' @param optional I am not sure
-# #' @param ... Unused optional parameters.
-# #' @export
-#setMethod(
-#  "as.data.frame", signature = signature(x = "annotations_biomart"),
-#  definition = function(x, row.names = NULL, optional = FALSE, ...) {
-#    as.data.frame(x[["gene_annotations"]])
-#  })
+#' Pull the dataframe from load_biomart_annotations()
+#'
+#' @param x Result from load_biomart_annotations()
+#' @param row.names Not currently used
+#' @param optional I am not sure
+#' @param ... Unused optional parameters.
+#' @export
+setMethod(
+  "as.data.frame", signature = signature(x = "hpgltools::load_annotations_biomart"),
+  definition = function(x, row.names = NULL, optional = FALSE, ...) {
+    slot <- "gene_annotations"
+    arglist <- list(...)
+    if (!is.null(arglist[["type"]])) {
+      slot <- arglist[["type"]]
+    }
+    ## I am pretty sure load_biomart_annotations explicitly returns a dataframe.
+    x[[slot]]
+  })
+
+#' Pull the dataframe from load_biomart_annotations()
+#'
+#' @param x Result from load_biomart_annotations()
+#' @param row.names Not currently used
+#' @param optional I am not sure
+#' @param ... Unused optional parameters.
+#' @export
+setMethod(
+  "as.data.table", signature = signature(x = "hpgltools::load_annotations_biomart"),
+  definition = function(x, row.names = NULL, optional = FALSE, ...) {
+    arglist <- list(...)
+    slot <- "gene_annotations"
+    if (!is.null(arglist[["type"]])) {
+      slot <- arglist[["type"]]
+    }
+    data.table::as.data.table(x[[slot]])
+  })
 
 #' Print function for a set of annotations downloaded from biomart.
 #'

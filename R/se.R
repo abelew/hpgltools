@@ -342,7 +342,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
       message("Both rownames() and $rownames were null.")
     }
   } else {
-    gene_info <- data.table::as.data.table(gene_info, keep.rownames = "rownames")
+    gene_info <- as.data.table(gene_info, keep.rownames = "rownames")
   }
   geneid_check <- grepl(x = all_count_tables[["rownames"]], pattern = "^gene:")
   if (sum(geneid_check) > 0) {
