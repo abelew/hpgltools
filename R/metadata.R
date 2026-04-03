@@ -415,8 +415,12 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   if ("data.frame" %in% class(starting_metadata) && is.null(new_metadata)) {
     new_metadata <- NULL
   } else if (is.null(new_metadata)) {
-    new_metadata <- gsub(x = starting_metadata, pattern = "\\.xlsx$",
-                         replacement = "_modified.xlsx")
+    if ("character" %in% class(starting_metadata)) {
+      new_metadata <- gsub(x = starting_metadata, pattern = "\\.xlsx$",
+                           replacement = "_modified.xlsx")
+    } else {
+      new_metadata <- "modified_metadata.xlsx"
+    }
   }
 
   old_meta <- meta

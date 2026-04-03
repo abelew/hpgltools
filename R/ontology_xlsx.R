@@ -101,6 +101,11 @@ gather_ontology_genes <- function(result, ontology = NULL,
     return(retlist)
   }
   input <- result[["input"]]
+  ## FIXME: Come back here and clean this section with proper dispatch
+  df_classes <- c("DataFrame", "data.table", "tbl", "tibble", "tbl_df", "DFrame", "matrix")
+  if (class(input) %in% df_classes) {
+    input <- as.data.frame(input)
+  }
   sig_idx <- categories[[column]] <= pval
   na_idx <- is.na(sig_idx)
   sig_idx[na_idx] <- FALSE
