@@ -89,7 +89,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
       ret[[retname_down]] <- NULL
     }
   }
-  class(ret) <- "all_gprofiler"
+  class(ret) <- "hpgltools::all_gprofiler"
   return(ret)
 }
 
@@ -99,7 +99,7 @@ all_gprofiler <- function(sig, according_to = "deseq", together = FALSE,
 #'  up/down set provided by extract_significant_genes().
 #' @param ... Other args to match the generic.
 #' @export
-print.all_gprofiler <- function(x, ...) {
+`print.hpgltools::all_gprofiler` <- function(x, ...) {
   summary_df <- data.frame()
   for (gp in x) {
     summary_df <- rbind(summary_df, gp[["num_hits"]])
@@ -341,7 +341,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
 
   retlst[["species"]] <- species
   retlst[["threshold"]] <- threshold
-  class(retlst) <- c("gprofiler_result", "list")
+  class(retlst) <- "hpgltools::simple_gprofiler"
   return(retlst)
 }
 
@@ -353,7 +353,7 @@ simple_gprofiler2 <- function(sig_genes, species = "hsapiens", convert = TRUE,
 #'  coerced enrichResult versions.
 #' @param ... Other args to match the generic.
 #' @export
-print.gprofiler_result <- function(x, ...) {
+`print.hpgltools::simple_gprofiler` <- function(x, ...) {
   types <- c("MF", "BP", "CC", "KEGG", "REAC", "WP", "TF",
              "MIRNA", "HPA", "CORUM", "HP")
   num_string <- ""

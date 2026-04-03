@@ -463,7 +463,7 @@ perhaps change gff_type to make the merge work.")
       "results" = results,
       "tables" = tables
   )
-  class(retlist) <- c("gostats_result", "list")
+  class(retlist) <- "hpgltools::simple_gostats"
 
   pvalue_plots <- try(plot_gostats_pval(retlist))
   retlist[["pvalue_plots"]] <- pvalue_plots
@@ -490,7 +490,7 @@ perhaps change gff_type to make the merge work.")
 #'  significant subsets, enrichResult coercions, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.gostats_result <- function(x, ...) {
+`print.hpgltools::simple_gostats` <- function(x, ...) {
   bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
   mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
   cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])

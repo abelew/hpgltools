@@ -924,7 +924,7 @@ write_goseq_data <- function(goseq_result, excel = "excel/goseq.xlsx", wb = NULL
   for (img in image_files) {
     file.remove(img)
   }
-  class(res) <- "written_goseq"
+  class(res) <- "hpgltools::write_goseq_data"
   return(res)
 }
 

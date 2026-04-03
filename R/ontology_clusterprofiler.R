@@ -191,7 +191,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
       ret[[retname_down]] <- NULL
     }
   }
-  class(ret) <- "all_cprofiler"
+  class(ret) <- "hpgltools::all_cprofiler"
   return(ret)
 }
 

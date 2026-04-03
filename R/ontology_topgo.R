@@ -286,7 +286,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
     retlist[["excel"]] <- excel_ret
   }
   retlist[["goid_map"]] <- goid_map
-  class(retlist) <- "topgo_result"
+  class(retlist) <- "hpgltools::simple_topgo"
   return(retlist)
 }
 setGeneric("simple_topgo")
@@ -449,7 +449,7 @@ do_topgo <- function(type, go_map = NULL, fisher_genes = NULL, ks_genes = NULL,
     ) ## End of the switch
   }  ## End of for BP/MF/CC
   ##retlist[["pdists"]] <- try(plot_histogram(retlist[["test_result"]]@score, bins = 20))
-  class(retlist) <- c("topgo_result", "list")
+  class(retlist) <- "hpgltools::do_topgo"
   return(retlist)
 }
 
@@ -459,7 +459,7 @@ do_topgo <- function(type, go_map = NULL, fisher_genes = NULL, ks_genes = NULL,
 #'  provided by topGO, the associated plots, and coerced enrichResults.
 #' @param ... Other args to match the generic.
 #' @export
-print.topgo_result <- function(x, ...) {
+`print.hpgltools::simple_topgo` <- function(x, ...) {
   bp_entries <- nrow(x[["tables"]][["bp_over_enriched"]])
   mf_entries <- nrow(x[["tables"]][["mf_over_enriched"]])
   cc_entries <- nrow(x[["tables"]][["cc_over_enriched"]])

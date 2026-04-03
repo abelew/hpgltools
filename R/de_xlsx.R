@@ -2656,8 +2656,8 @@ and is in _no_ way statistically valid, but added as a plotting conveinence.")
     if (! "try-error" %in% class(try_result)) {
       image_files <- c(image_files, try_result[["filename"]])
     }
-    write_xlsx(
-      pre_table <- wb, data = apr[["pre_batch"]][["table"]],
+    pre_table <- write_xlsx(
+      wb, data = apr[["pre_batch"]][["table"]],
       sheet = "legend", title = "Pre-Batch PCA table.",
       start_row = 66, start_col = 10)
     xls_result <- write_xlsx(
