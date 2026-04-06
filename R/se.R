@@ -544,6 +544,9 @@ features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE
   return(result)
 }
 
+#' Plot the number of features greater than a given value for a SE
+#'
+#' @inherit features_greater_than
 #' @export
 setMethod(
   "features_greater_than", signature(data = "SummarizedExperiment"),
@@ -810,6 +813,9 @@ median_by_factor <- function(data, design, fact = "condition", fun = "median") {
   return(retlist)
 }
 
+#' Get the mean/median gene values by factor for a SE.
+#'
+#' @inherit median_by_factor
 #' @export
 setMethod(
   "median_by_factor", signature(data = "SummarizedExperiment"),
@@ -1033,6 +1039,9 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
 }
 setGeneric("merge_counts_annotations")
 
+#' Use grange information to merge counts and annotations.
+#'
+#' @inherit merge_counts_annotations
 #' @export
 setMethod(
   "merge_counts_annotations", signature = signature(gene_info = "GRanges"),
@@ -1273,6 +1282,7 @@ variance_se <- function(se, convert = "cpm", transform = "raw", norm = "raw") {
 #' @param filter Filter the data using this function.
 #' @param color_na Highlight problematic cells with red (or not).
 #' @param merge_order Put the counts or annotations first?
+#' @param ... Arguments passed along to normalize()
 #' @export
 write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "raw",
                                 convert = "cpm", transform = "log2", batch = "raw",

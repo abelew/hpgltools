@@ -506,7 +506,7 @@ setMethod(
 #' @return Data frame of gene names and number of times the pattern appears/gene.
 #' @seealso [Biostrings] [Rsamtools::FaFile()] [Biostrings::PDict()]
 #' @examples
-#'  pa_data <- get_paeruginosa_data()
+#'  pa_data <- hpgldata::get_paeruginosa_data()
 #'  pa_fasta <- pa_data[["fasta"]]
 #'  pa_gff <- pa_data[["gff"]]
 #'  ta_count <- pattern_count_genome(pa_fasta, pa_gff)
@@ -577,7 +577,7 @@ print.pattern_counted <- function(x, ...) {
 #' @return List of data frames containing gc/at/gt/ac contents.
 #' @seealso [Biostrings] [Rsamtools]
 #' @examples
-#'  pa_data <- get_paeruginosa_data()
+#'  pa_data <- hpgldata::get_paeruginosa_data()
 #'  pa_fasta <- pa_data[["fasta"]]
 #'  pa_gff <- pa_data[["gff"]]
 #'  pa_attribs <- sequence_attributes(pa_fasta, gff = pa_gff)

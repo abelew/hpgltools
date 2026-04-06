@@ -52,6 +52,3 @@ is far too big, this should become a template for that.
  data_list <- write_deseq(finished_comparison, workbook="excel/deseq_output.xls")
 }
 }
-\seealso{
-\code{\link{write_xlsx}}
-}

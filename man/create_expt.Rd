@@ -6,6 +6,9 @@
 \usage{
 create_expt(...)
 }
+\arguments{
+\item{...}{Arguments passed to create_se()}
+}
 \description{
 Create a summarized experiment when using deprecated function names.
 }

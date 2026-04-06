@@ -518,6 +518,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
 #' @param fill_alpha Make the fill transparent?
 #' @param radius Where on the circle to put them
 #' @param radius_padding How much to pad between radii.
+#' @param show_label Print the ideogram labels?
 #' @param label_size How large to make the labels in px.
 #' @param band_stroke_thickness How big to make the strokes!
 #' @return The file to which the ideogram configuration was written.

@@ -396,12 +396,13 @@ primer_qc <- function(entry, genome,
 #' @param two_away_file Location for those which are no more than 2 apart.
 #' @param doubles_file Write out variants which are 2 in a row.
 #' @param singles_file Write out the individual variants here.
+#' @export
 sequential_variants <- function(snp_sets, conditions = NULL,
                                 minimum = 3, maximum_separation = 3,
-                                one_away_file = "one_away.csv",
-                                two_away_file = "two_away.csv",
-                                doubles_file = "doubles.csv",
-                                singles_file = "singles.csv") {
+                                one_away_file = "excel/one_away.csv",
+                                two_away_file = "excel/two_away.csv",
+                                doubles_file = "excel/doubles.csv",
+                                singles_file = "excel/singles.csv") {
   if (is.null(conditions)) {
     conditions <- 1
   }
@@ -536,10 +537,10 @@ sequential_variants <- function(snp_sets, conditions = NULL,
 
     wanted_idx <- position_table[["last_sequential"]] >= minimum
     wanted <- position_table[wanted_idx, c("chr", "pos")]
+    class(wanted) <- "hpgltools::sequential_variants"
   } else {
     wanted <- NULL
   }
-  class(wanted) <- "sequential_variants"
   return(wanted)
 }
 

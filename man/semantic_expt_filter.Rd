@@ -6,6 +6,9 @@
 \usage{
 semantic_expt_filter(...)
 }
+\arguments{
+\item{...}{Arguments passed to semantic_filter()}
+}
 \description{
 Filter a dataset by gene when using deprecated function names.
 }

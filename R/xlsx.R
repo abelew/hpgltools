@@ -481,6 +481,9 @@ setMethod(
     return(ret)
   })
 
+#' Pass a DFrame to write_xlsx.
+#'
+#' @inherit write_xlsx
 #' @export
 setMethod(
   "write_xlsx", signature(data = "DFrame"),
@@ -499,6 +502,9 @@ setMethod(
     return(written)
 })
 
+#' Pass a list to write_xlsx.
+#'
+#' @inherit write_xlsx
 #' @export
 setMethod(
   "write_xlsx", signature(data = "list"),
@@ -526,6 +532,9 @@ setMethod(
     return(written)
   })
 
+#' Pass a matrix to write_xlsx.
+#'
+#' @inherit write_xlsx
 #' @export
 setMethod(
   "write_xlsx", signature(data = "matrix"),
@@ -545,6 +554,9 @@ setMethod(
     return(written)
 })
 
+#' Pass NULL to write_xlsx.
+#'
+#' @inherit write_xlsx
 #' @export
 setMethod(
   "write_xlsx", signature(data = "NULL"),
@@ -553,6 +565,7 @@ setMethod(
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
                         date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+      warning("NULL was passed to write_xlsx, returning NULL.")
       return(NULL)
     })
 

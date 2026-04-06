@@ -67,7 +67,7 @@ classify_variants <- function(metadata, coverage_column = "bedtools_coverage_fil
                                    replacement = "\\1")
     test_nt_format <- grepl(x = mutation_df[["from_to"]], pattern = "^\\w_\\w$")
     if (sum(test_nt_format) == nrow(mutation_df)) {
-      message("This was performed using an older version of my freebayes script.")
+      mesg("This was performed using an older version of my freebayes script.")
       mutation_df[["nt_from"]] <- gsub(x = mutation_df[["from_to"]],
                                        pattern = "^(\\w)_\\w$", replacement = "\\1")
       mutation_df[["nt_to"]] <- gsub(x = mutation_df[["from_to"]],
@@ -1675,15 +1675,19 @@ snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_co
 
   plus_5p_granges <- GenomicRanges::makeGRangesFromDataFrame(
     plus_features, seqnames.field = chr_column,
+    strand.field = strand_column,
     start.field = "5p_start", end.field = start_column)
   plus_3p_granges <- GenomicRanges::makeGRangesFromDataFrame(
     plus_features, seqnames.field = chr_column,
+    strand.field = strand_column,
     start.field = end_column, end.field = "3p_end")
   minus_5p_granges <- GenomicRanges::makeGRangesFromDataFrame(
     minus_features, seqnames.field = chr_column,
+    strand.field = strand_column,
     start.field = end_column, end.field = "5p_start")
   minus_3p_granges <- GenomicRanges::makeGRangesFromDataFrame(
     minus_features, seqnames.field = chr_column,
+    strand.field = strand_column,
     start.field = "3p_end", end.field = end_column)
 
   fivep_granges <- c(plus_5p_granges, minus_5p_granges)
@@ -1716,6 +1720,7 @@ snps_vs_genes_padded <- function(exp, snp_result, start_column = "start", end_co
                                            x = snp_positions[[snp_name_column]])
   snp_granges <- GenomicRanges::makeGRangesFromDataFrame(
     snp_positions, seqnames.field = snp_name_column,
+    strand.field = strand_column,
     start.field = start_column, end.field = end_column)
   ## Faking out r cmd check with a couple empty variables which will be used by data.table
   seqnames <- count <- NULL

@@ -807,7 +807,7 @@ make_gsc_from_significant <- function(significant, according_to = "deseq",
                                       annotation_name = "org.Hs.eg.db", category_name = "infection",
                                       phenotype_name = "parasite", set_name = "elsayed_macrophage",
                                       color = TRUE, current_id = "ENSEMBL", required_id = "ENTREZID",
-                                      min_gmt_genes = 10, ...) {
+                                      min_gmt_genes = 10) {
   ups <- list()
   downs <- list()
   if ("all" %in% according_to || length(according_to) > 1) {

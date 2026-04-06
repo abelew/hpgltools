@@ -111,6 +111,8 @@ modify ggcoverage to allow me to color by FC status).}
 \item{facet}{Use a specifc factor to facet the data.}
 
 \item{y_scale}{Set a specifc y-axis scale.}
+
+\item{cores}{Number of cpus to devote to this task.}
 }
 \description{
 ggcoverage is really cool, but has some hard-coded values which are

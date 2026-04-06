@@ -35,6 +35,8 @@ write_normalized_se(
 \item{color_na}{Highlight problematic cells with red (or not).}
 
 \item{merge_order}{Put the counts or annotations first?}
+
+\item{...}{Arguments passed along to normalize()}
 }
 \description{
 As per a recent request from Marina.

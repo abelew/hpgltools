@@ -143,6 +143,10 @@ subset_genes_se <- function(se, column = "txtype", method = "remove", ids = NULL
 }
 setGeneric("subset_genes")
 
+#' Subset genes from a SE with some extra sauce
+#'
+#' @inherit subset_genes
+#' @export
 setMethod(
   "subset_genes", signature = signature(input = "SummarizedExperiment"),
   definition = function(input, column = "txtype", method = "remove", ids = NULL,

@@ -9,10 +9,10 @@ sequential_variants(
   conditions = NULL,
   minimum = 3,
   maximum_separation = 3,
-  one_away_file = "one_away.csv",
-  two_away_file = "two_away.csv",
-  doubles_file = "doubles.csv",
-  singles_file = "singles.csv"
+  one_away_file = "excel/one_away.csv",
+  two_away_file = "excel/two_away.csv",
+  doubles_file = "excel/doubles.csv",
+  singles_file = "excel/singles.csv"
 )
 }
 \arguments{

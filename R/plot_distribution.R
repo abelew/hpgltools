@@ -828,6 +828,9 @@ setMethod("plot_single_qq", signature(data = "SummarizedExperiment"),
     plot_single_qq(df, x = x, y = y, labels = labels)
   })
 
+#' Matrix as input to plot_single_qq()
+#'
+#' @inherit plot_single_qq
 setMethod("plot_single_qq", signature(data = "matrix"),
   definition = function(data, x = 1, y = 2, labels = TRUE) {
     df <- as.data.frame(data)
@@ -950,6 +953,9 @@ setMethod("plot_topn", signature(data = "SummarizedExperiment"),
                       label_chars = label_chars, plot_legend = plot_legend, ...)
           })
 
+#' Matrix as input to plot_topn()
+#'
+#' @inherit plot_topn
 setMethod("plot_topn", signature(data = "matrix"),
           definition = function(data, plot_title = NULL, num = 100, sample_names = NULL,
                                 plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
@@ -958,7 +964,6 @@ setMethod("plot_topn", signature(data = "matrix"),
                       sample_names = sample_names, plot_labels = plot_labels,
                       label_chars = label_chars, plot_legend = plot_legend, ...)
           })
-
 
 #' Print a result from plot_topn().
 #'

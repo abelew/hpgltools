@@ -6,6 +6,9 @@
 \usage{
 subset_expt(...)
 }
+\arguments{
+\item{...}{Arguments passed to subset_se()}
+}
 \description{
 Subset a summarizedExperiment when using deprecated function names.
 }

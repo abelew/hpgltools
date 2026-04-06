@@ -495,11 +495,12 @@ topgo2enrich <- function(retlist, ontology = "mf", pval = 0.05, organism = NULL,
   bg_genes <- godata@allGenes
   scores <- interesting[[column]]
   adjusted <- p.adjust(scores)
-  input_type <- class(retlist[["input"]])
-  if (input_type == "data.frame") {
+  if (class(retlist[["input"]]) == "character") {
+    sig_genes <- retlist[["input"]]
+  } else if (tabularp(retlist[["input"]])) {
     sig_genes <- rownames(retlist[["input"]])
   } else {
-    sig_genes <- retlist[["input"]]
+    stop("I do not know this input data type when extracting the input genes.")
   }
   mesg("Gather genes per category, this is slow.")
   genes_per_category <- gather_ontology_genes(retlist, ontology = ontology, pval = pval,
@@ -653,12 +654,20 @@ topgo_tables <- function(results, godata, limit = 0.1, limitby = "fisher",
     all[["Row.names"]] <- NULL
     colnames(all) <- gsub(x = colnames(all), pattern = "^result1_", replacement = "")
     all[["fisher"]] <- gsub(x = all[["fisher"]], pattern = "^< ", replacement = "")
+    na_fisher <- is.na(all[["fisher"]])
+    all[na_fisher, "fisher"] <- 1.0
     all[["fisher"]] <- as.numeric(all[["fisher"]])
     all[["ks"]] <- gsub(x = all[["ks"]], pattern = "^< ", replacement = "")
+    na_ks <- is.na(all[["ks"]])
+    all[na_idx, "ks"] <- 1.0
     all[["ks"]] <- as.numeric(all[["ks"]])
     all[["el"]] <- gsub(x = all[["el"]], pattern = "^< ", replacement = "")
+    el_na <- is.na(all[["el"]])
+    all[el_na, "el"] <- 1.0
     all[["el"]] <- as.numeric(all[["el"]])
     all[["weight"]] <- gsub(x = all[["weight"]], pattern = "^< ", replacement = "")
+    weight_na <- is.na(all[["weight"]])
+    all[weight_na, "weight"] <- 1.0
     all[["weight"]] <- as.numeric(all[["weight"]])
     all_lst[[ont]] <- all
 

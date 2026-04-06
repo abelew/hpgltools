@@ -1099,9 +1099,11 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   }
 
   ## Perform a check of the PC table.
-  if (sum(is.na(comp_data)) > 0) {
+  num_comp_na <- sum(is.na(comp_data))
+  if (num_comp_na > 0) {
     message("Potentially check over the experimental design, there appear to be missing values.")
-    warning("There are NA values in the component data.  This can lead to weird plotting errors.")
+    warning("There are ", num_comp_na,
+            " NA values in the component data.  This can lead to weird plotting errors.")
   }
 
   if (nrow(comp_data) > 100 && is.null(plot_labels)) {

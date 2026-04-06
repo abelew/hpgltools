@@ -24,7 +24,13 @@ gostats2enrich <- function(retlist, ontology = "MF", cutoff = 0.1,
                            cutoff_column = "qvalue",
                            organism = NULL, padjust_method = "BH") {
   godf <- retlist[["go_db"]]
-  sig_genes <- rownames(retlist[["input"]])
+  if (class(retlist[["input"]]) == "character") {
+    sig_genes <- retlist[["input"]]
+  } else if (tabularp(retlist[["input"]])) {
+    sig_genes <- rownames(retlst[["input"]])
+  } else {
+    stop("I do not know this input data type when extracting the input genes.")
+  }
   interesting_name <- glue("{tolower(ontology)}_subset")
   interesting <- retlist[["tables"]][[interesting_name]]
   ## I think having both an adjusted and qvalue is redundant?

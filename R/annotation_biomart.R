@@ -507,14 +507,11 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 
 ## Something in the following will sometimes, but not always
 ## result in the error:
-## ! no applicable method for `@` applied to an object of class "environment"
+## no applicable method for `@` applied to an object of class "environment"
 
 #' Pull the dataframe from load_biomart_annotations()
 #'
-#' @param x Result from load_biomart_annotations()
-#' @param row.names Not currently used
-#' @param optional I am not sure
-#' @param ... Unused optional parameters.
+#' @inherit load_biomart_annotations
 #' @export
 setMethod(
   "as.data.frame", signature = signature(x = "hpgltools::load_annotations_biomart"),

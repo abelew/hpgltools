@@ -72,20 +72,20 @@ get_genesizes <- function(annotation = NULL, type = "gff", gene_type = "gene",
     ## Try subtracting end - start
     start_names <- c("start", "start_position")
     end_names <- c("end", "end_position")
-    ## chosen_start <- NULL
-    ## chosen_end <- NULL
-    ## for (st in start_names) {
-    ##   if (!is.null(annot[[st]])) {
-    ##     chosen_start <- st
-    ##   }
-    ## }
-    ## for (en in end_names) {
-    ##   if (!is.null(annot[[en]])) {
-    ##     chosen_end <- en
-    ##   }
-    ## }
-    if (!is.null(st) && !is.null(en)) {
-      ret[["gene_size"]] <- annot[[en]] - annot[[st]]
+    chosen_start <- NULL
+    chosen_end <- NULL
+    for (st in start_names) {
+      if (!is.null(annot[[st]])) {
+        chosen_start <- st
+      }
+    }
+    for (en in end_names) {
+      if (!is.null(annot[[en]])) {
+        chosen_end <- en
+      }
+    }
+    if (!is.null(chosen_start) && !is.null(chosen_end)) {
+      ret[["gene_size"]] <- annot[[chosen_end]] - annot[[chosen_start]]
     }
   }
 

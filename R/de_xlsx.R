@@ -2798,7 +2798,6 @@ write_combined_summary <- function(wb, excel_basename, apr, extracted, compare_p
 #'  notably the number of genes (n), the coefficient column (coef)
 #' @return List of data frames comprising the toptable output for each
 #'  coefficient, I also added a qvalue entry to these toptable() outputs.
-#' @seealso \code{\link{write_xlsx}}
 #' @examples
 #' \dontrun{
 #'  finished_comparison <- eBayes(deseq_output)

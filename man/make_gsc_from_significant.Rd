@@ -14,8 +14,7 @@ make_gsc_from_significant(
   color = TRUE,
   current_id = "ENSEMBL",
   required_id = "ENTREZID",
-  min_gmt_genes = 10,
-  ...
+  min_gmt_genes = 10
 )
 }
 \arguments{

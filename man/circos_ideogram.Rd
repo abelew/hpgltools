@@ -62,6 +62,8 @@ circos_ideogram(
 
 \item{radius_padding}{How much to pad between radii.}
 
+\item{show_label}{Print the ideogram labels?}
+
 \item{label_size}{How large to make the labels in px.}
 
 \item{band_stroke_thickness}{How big to make the strokes!}

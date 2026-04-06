@@ -6,6 +6,9 @@
 \usage{
 combine_expts(...)
 }
+\arguments{
+\item{...}{Arguments passed to combine_se()}
+}
 \description{
 combine summarized experiments when using deprecated function names.
 }

@@ -2715,6 +2715,10 @@ setMethod(
     return(result)
   })
 
+#' Tar a column from a SE
+#'
+#' @inherit tar_meta_column
+#' @export
 setMethod(
   "tar_meta_column", signature = signature(meta = "summarizedExperiment"),
   definition = function(meta, column = "hisatcounttable",

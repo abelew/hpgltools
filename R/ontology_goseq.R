@@ -132,7 +132,13 @@ goseq2enrich <- function(retlist, ontology = "MF", cutoff = 1,
                          cutoff_column = "over_represented_pvalue",
                          organism = NULL, padjust_method = "BH") {
   godf <- retlist[["go_db"]]
-  sig_genes <- rownames(retlist[["input"]])
+  if (class(retlist[["input"]]) == "character") {
+    sig_genes <- retlist[["input"]]
+  } else if (tabularp(retlist[["input"]])) {
+    sig_genes <- rownames(retlst[["input"]])
+  } else {
+    stop("I do not know this input data type when extracting the input genes.")
+  }
   interesting_name <- paste0(tolower(ontology), "_interesting")
   interesting <- retlist[[interesting_name]]
   if (is.null(interesting)) {

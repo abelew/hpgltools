@@ -13,6 +13,38 @@
   ...
 )
 }
+\arguments{
+\item{count_table}{Matrix of count data.}
+
+\item{method}{Type of conversion to perform: edgecpm/cpm/rpkm/cp_seq_m.}
+
+\item{annotations}{Dataframe of gene annotations.}
+
+\item{length_column}{Column of the annotations describing the gene lengths.}
+
+\item{na_to_zero}{Set NA values to 0?}
+
+\item{...}{Options I might pass from other functions are dropped into
+arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to
+match, and annotation type).}
+}
+\value{
+Dataframe of cpm/rpkm/whatever(counts)
+}
 \description{
-Convert a summarized experiment.
+I should probably tell it to also handle a simple df/vector/list of gene
+lengths, but I  haven't. cp_seq_m is a cpm conversion of the data followed by
+a rp-ish conversion which normalizes by the number of the given oligo.  By
+default this oligo is 'TA' because it was used for tnseq which should be
+normalized by the number of possible transposition sites by mariner. It
+could, however, be used to normalize by the number of methionines, for
+example -- if one wanted to do such a thing.
+}
+\examples{
+\dontrun{
+ converted_table = convert_counts(count_table, method='cbcbcpm')
+}
+}
+\seealso{
+[edgeR] [Biobase]
 }

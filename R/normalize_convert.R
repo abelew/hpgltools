@@ -97,6 +97,8 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
 setGeneric("convert_counts")
 
 #' Convert a summarized experiment.
+#' @inherit convert_counts
+#' @export
 setMethod(
   "convert_counts", signature(count_table = "SummarizedExperiment"),
   definition = function(count_table, method = "raw", annotations = NULL,

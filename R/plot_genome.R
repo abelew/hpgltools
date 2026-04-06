@@ -169,6 +169,8 @@ print.coverage_plot <- function(x, ...) {
 #' @param gene_colors specify factor of gene colors.
 #' @param facet Use a specifc factor to facet the data.
 #' @param y_scale Set a specifc y-axis scale.
+#' @param cores Number of cpus to devote to this task.
+#' @export
 plot_ggcoverage_se <- function(se, from = 1, to = 10, id_column = "gene_id",
                                coverage_column = "deeptools_coverage", convert = "cpm",
                                norm = NULL, transform = NULL,
