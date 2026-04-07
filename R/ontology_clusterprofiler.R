@@ -811,40 +811,42 @@ simple_cprofiler <- function(...) {
 #' @param sig_genes Dataframe of genes deemed 'significant.'
 #' @param de_table Dataframe of all genes in the analysis, primarily for GSEA.
 #' @param orgdb Name of the orgDb used for gathering annotation data.
+#' @param todo List of databases to query
 #' @param orgdb_from Name of a key in the orgdb used to cross reference to entrez IDs.
 #' @param orgdb_to List of keys to grab from the orgdb for cross referencing
 #'  ontologies.
 #' @param go_level How deep into the ontology tree should this dive for over
 #'  expressed categories.
 #' @param pcutoff P-value cutoff for 'significant' analyses.
+#' @param organism Organism name for mesh/reactome/etc
 #' @param qcutoff Q-value cutoff for 'significant' analyses.
 #' @param fc_column When extracting vectors of all genes, what column should be used?
 #' @param second_fc_column When extracting vectors of all genes, what column
 #'  should be tried the second time around?
+#' @param internal Deprecated
 #' @param updown Include the less than expected ontologies?
 #' @param permutations How many permutations for GSEA-ish analyses?
 #' @param min_groupsize Minimum size of an ontology before it is included.
+#' @param max_groupsize Maximum size of an ontology before it is included.
 #' @param kegg_prefix Many KEGG ids need a prefix before they will cross reference.
 #' @param kegg_organism Choose the 3 letter KEGG organism name here.
-#' @param do_gsea Perform gsea searches?
 #' @param categories How many categories should be plotted in bar/dot plots?
 #' @param excel Print the results to an excel file?
-#' @param do_david Attempt to use the DAVID database for a search?
-#' @param do_kegg Perform kegg search?
 #' @param david_id Which column to use for cross-referencing to DAVID?
+#' @param padj_type P adjustment method to use.
 #' @param david_user Default registered username to use.
-#' @param organism String name of the organism.
-#' @param internal I dunno
-#' @param max_groupsize Ignore groups which are too big.
-#' @param padj_type Use this FDR
-#' @param do_reactome what it says on the tin.
-#' @param do_dose Attempt disease ontology search.
-#' @param do_mesh Attempt MESH search.
-#' @param do_msigdb Attempt mSigDB search.
 #' @param mesh_category Use this category for MESH.
 #' @param mesh_dbname Use this MESH sub-database.
 #' @param msigdb_category Use this mSigDB sub-database.
 #' @param msig_db Use this database file for the msigdb data.
+#' @param kegg_universe Supplied set of kegg genes.
+#' @param reactome_organism Specify a reactome organism when required.
+#' @param mesh_db Provide an external MESH database.
+#' @param ah_data Provide an alternate AnnotationHub dataset.
+#' @param signature_data Provide an alternate set of mSigDB data.
+#' @param signature_df Or a dataframe of signatures/genes.
+#' @param de_table_namedf Provide an alternate set of gene IDs vs. the NCBI IDs.
+#' @param sig_genes_namedf Ibid.
 #' @return a list
 #' @seealso [clusterProfiler] [AnnotationDbi] [KEGGREST]
 #' @examples

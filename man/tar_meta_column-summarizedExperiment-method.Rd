@@ -21,6 +21,5 @@
 \item{compression}{Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?}
 }
 \description{
-I am hoping this will be useful for either backing up count tables or making
-containerized versions of analyses.
+Tar a column from a SE
 }

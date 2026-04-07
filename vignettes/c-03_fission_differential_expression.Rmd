@@ -30,14 +30,8 @@ vignette: >
 library(hpgltools)
 library(hpgldata)
 ## tt <- devtools::load_all("~/hpgltools")
-knitr::opts_knit$set(progress = TRUE,
-                     verbose = TRUE,
-                     width = 90,
-                     echo = TRUE)
-knitr::opts_chunk$set(error = TRUE,
-                      fig.width = 8,
-                      fig.height = 8,
-                      dpi = 96)
+knitr::opts_knit$set(width = 90)
+knitr::opts_chunk$set(error = TRUE, fig.width = 8, fig.height = 8, dpi = 96)
 old_options <- options(digits = 4,
                        stringsAsFactors = FALSE,
                        knitr.duplicate.label = "allow")

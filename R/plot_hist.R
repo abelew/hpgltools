@@ -115,7 +115,7 @@ plot_multihistogram <- function(data, log = FALSE, binwidth = NULL, bins = NULL,
   }
   multi <- ggplot(play_all,
                   aes(x = .data[["expression"]], fill = .data[["cond"]])) +
-    ggplot2::geom_histogram(aes(y = ggplot2::after_stat(!!density)), binwidth = binwidth,
+    ggplot2::geom_histogram(aes(y = ggplot2::after_stat(!!sym("density"))), binwidth = binwidth,
                             alpha = 0.4, position = "identity") +
     ggplot2::geom_density(alpha = 0.5) +
     ggplot2::geom_vline(data = play_cdf,

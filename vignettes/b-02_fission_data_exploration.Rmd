@@ -29,17 +29,9 @@ vignette: >
 ## These are the options I tend to favor
 library(hpgltools)
 library(hpgldata)
-knitr::opts_knit$set(progress = TRUE,
-                     verbose = TRUE,
-                     width = 90,
-                     echo = TRUE)
-knitr::opts_chunk$set(error = TRUE,
-                      fig.width = 8,
-                      fig.height = 8,
-                      dpi = 96)
-old_options <- options(digits = 4,
-                       stringsAsFactors = FALSE,
-                       knitr.duplicate.label = "allow")
+knitr::opts_knit$set(width = 90)
+knitr::opts_chunk$set(error = TRUE, fig.width = 8, fig.height = 8, dpi = 96)
+old_options <- options(digits = 4, stringsAsFactors = FALSE, knitr.duplicate.label = "allow")
 ggplot2::theme_set(ggplot2::theme_bw(base_size = 10))
 set.seed(1)
 rmd_file <- "b-02_fission_data_exploration.Rmd"
@@ -170,9 +162,8 @@ fis_normbatchpca
 
 ## pca_information provides some more information about the call to
 ## fast.svd that went into making the pca plot
-fis_info <- pca_information(norm_se,
-                            se_factors = c("condition","batch","strain","minute"),
-                            num_components = 6)
+fis_info <- pca_information(
+  norm_se, se_factors = c("condition","batch","strain","minute"), num_components = 6)
 ## The r^2 table shows that quite a lot of the variance in the data is explained by condition
 knitr::kable(head(fis_info$rsquared_table))
 ## We can look at the correlation between the principle components and the factors in the experiment
@@ -183,12 +174,11 @@ knitr::kable(fis_info$anova_p)
 
 ## Try again with batch removed data
 batchnorm_se <- normalize(fission_se, batch = "sva", filter = TRUE,
-                            transform = "log2", convert = "cpm")
+                          transform = "log2", convert = "cpm")
 plot_pca(batchnorm_se, plot_title = "limma corrected pca")
 
-test_pca <- pca_information(batchnorm_se,
-                            se_factors = c("condition","batch","strain","minute"),
-                            num_components = 6)
+test_pca <- pca_information(
+  batchnorm_se, se_factors = c("condition","batch","strain","minute"), num_components = 6)
 ```
 
 Interesting, the batch normalized pca plot looks much the same as the
@@ -211,11 +201,11 @@ tm_se <- normalize(fission_se, norm = "tmm")
 fission_boxplot <- plot_boxplot(tm_se)
 fission_boxplot
 
-rle_se <- normalize_se(fission_se, norm = "rle")
+rle_se <- normalize(fission_se, norm = "rle")
 fission_boxplot <- plot_boxplot(rle_se)
 fission_boxplot
 
-up_se <- normalize_se(fission_se, norm = "upperquartile")
+up_se <- normalize(fission_se, norm = "upperquartile")
 fission_boxplot <- plot_boxplot(up_se)
 fission_boxplot
 
@@ -243,14 +233,13 @@ plot_disheat(batchnorm_se)
 variancePartition may be used to seek out which experimental factors correlate with
 the most variance in the data.
 
-```{r variancePartition}
+```{r}
 test_varpart <- simple_varpart(fission_se)
 test_varpart[["percent_plot"]]
 test_varpart[["partition_plot"]]
 
 ## Here, let us test the variance contributed by strain, time, and replicate.
-test_varpart <- simple_varpart(fission_se,
-                               fstring = "~ strain + minute + replicate")
+test_varpart <- simple_varpart(fission_se, fstring = "~ strain + minute + replicate")
 test_varpart[["percent_plot"]]
 test_varpart[["partition_plot"]]
 ```

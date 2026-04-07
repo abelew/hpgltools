@@ -256,12 +256,13 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     scale_p = scale_p)
   numerators <- extracted[["numerators"]]
   denominators <- extracted[["denominators"]]
-
   ## At this point, we have done everything we can to combine the requested
   ## tables. So lets dump the tables to the excel file and compare how the
   ## various tools performed with some venn diagrams, and finally dump the plots
   ## from above into the sheet.
   comp <- list()
+  tnames <- names(extracted[["table_names"]])
+  venns <- list()
   ## The following if() is too long and should be split into its own function.
   if (isTRUE(do_excel)) {
     ## Starting a new counter of sheets.
@@ -270,7 +271,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     ## of the contrasts, if this is true, then it is highly likely a mistake was made
     ## when setting up the contrasts such that something got duplicated.
     worksheet_number <- start_worksheet_num
-    tnames <- names(extracted[["table_names"]])
     ## tsources <- as.character(extracted[["table_names"]])
     for (x in seq_along(tnames)) {
       tab <- tnames[x]
@@ -324,7 +324,8 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
         current_row <- de_plots_written[["current_row"]]
         current_column <- de_plots_written[["current_column"]]
       }
-    }
+    } ## End iterating over the tables.
+
     xls_result <- NULL
     if (nrow(extracted[["data"]][[1]]) < 50) {
       message("The result table is too small for meaningful comparisons.")
@@ -351,7 +352,23 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     if (class(save_result)[1] == "try-error") {
       warning("Saving xlsx failed.")
     }
-  } ## End if !is.null(excel)
+
+  } else {
+    for (x in seq_along(tnames)) {
+      tab <- tnames[x]
+      numerator <- numerators[x]
+      numerator_name <- as.character(numerator[[1]][1])
+      denominator <- denominators[x]
+      denominator_name <- as.character(denominator[[1]][1])
+      written_table <- extracted[["data"]][[tab]]
+      venn_nop_lfc0 <- try(de_venn(written_table, lfc = 0, adjp = FALSE, p = 1.0))
+      venn_nop <- try(de_venn(written_table, lfc = lfc_cutoff, adjp = FALSE, p = 1.0))
+      venn_list <- try(de_venn(written_table, lfc = 0, adjp = p_cutoff))
+      venn_sig_list <- try(de_venn(written_table, lfc = lfc_cutoff, adjp = p_cutoff))
+      venns[[tab]] <- list(venn_nop_lfc0, venn_nop, venn_list, venn_sig_list)
+    }
+    design_result <- colData(apr[["input"]])
+  }
 
   ## Finished!  Dump the important stuff into a return list.
   ret <- list(

@@ -27,7 +27,7 @@ gostats2enrich <- function(retlist, ontology = "MF", cutoff = 0.1,
   if (class(retlist[["input"]]) == "character") {
     sig_genes <- retlist[["input"]]
   } else if (tabularp(retlist[["input"]])) {
-    sig_genes <- rownames(retlst[["input"]])
+    sig_genes <- rownames(retlist[["input"]])
   } else {
     stop("I do not know this input data type when extracting the input genes.")
   }

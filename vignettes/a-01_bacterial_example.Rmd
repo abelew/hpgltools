@@ -400,7 +400,7 @@ wt_mga_plots <- graph_metrics(wt_mga_se)
 wt_mga_norm <- normalize(wt_mga_se, transform = "log2", convert = "raw", filter = TRUE, norm = "quant")
 wt_mga_nplots <- graph_metrics(wt_mga_norm)
 
-wt_mga_de <- all_pairwise(input = wt_mga_se)
+wt_mga_de <- all_pairwise(wt_mga_se)
 wt_mga_de
 
 wt_mga_tables <- combine_de_tables(wt_mga_de)

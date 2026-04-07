@@ -20,7 +20,7 @@ New vector of ENTREZ IDs.
 }
 \description{
 Though it is possible to use gsva without ENTREZ IDs, it is not trivial.
-This function attempts to ensure that the IDs in one's expressionset are
+This function attempts to ensure that the IDs in one's input are
 therefore entrez IDs. It is possible that this function is at least partially
 redundant with other functions in this package and should be replaced.
 }

@@ -65,10 +65,10 @@ because it was throwing segmentation faults.}
 \item{id_type}{Specify the ID type when loading the signature database.}
 }
 \value{
-List containing three elements: first a modified expressionset using
- the result of gsva in place of the original expression data; second the
+List containing three elements: first a modified SE using
+ the result of gsva in place of the original SE data; second the
  result from gsva, and third a data frame of the annotation data for the
- gene sets in the expressionset.  This seems a bit redundant, perhaps I
+ gene sets in the SE.  This seems a bit redundant, perhaps I
  should revisit it?
 }
 \description{

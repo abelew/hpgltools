@@ -46,7 +46,7 @@ List containing the gsva results, limma results, scores, some plots, etc.
 This function uses a couple of methods to try to get an idea of whether the
 results from gsva are actually interesting.  It does so via the following
 methods:
-  1.  Use limma on the expressionset returned by simple_gsva(), this might
+  1.  Use limma on the output returned by simple_gsva(), this might
 provide an idea of if there are changing signatures among the sample types.
   2.  Perform a simplified likelihood estimate to get a sense of the
 significant categories.

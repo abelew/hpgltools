@@ -8,7 +8,7 @@
 }
 \arguments{
 \item{x}{List containing signature annotations, the result from
-GSVA, a modified expressionset, the signatures used, and method.}
+GSVA, a modified SE, the signatures used, and method.}
 
 \item{...}{Other args to match the generic.}
 }
