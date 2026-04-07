@@ -2002,11 +2002,11 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   if (!isFALSE(gmt)) {
     mesg("Going to attempt to create gmt files from these results.")
     annotation_name <- annotation(combined[["input"]][["input"]])
-    gsc <- try(make_gsc_from_significant(ret, according_to = according_to, orgdb = annotation_name,
-                                         pair_names = c("ups", "downs"), category_name = category,
-                                         phenotype_name = phenotype_name, set_name = set_name,
-                                         current_id = current_id, required_id = required_id,
-                                         min_gmt_genes = min_gmt_genes))
+    gsc <- try(make_gsc_from_significant(
+      ret, according_to = according_to, annotation_name = annotation_name,
+      category_name = category, phenotype_name = phenotype_name, set_name = set_name,
+      color = TRUE, current_id = current_id, required_id = required_id,
+      min_gmt_genes = min_gmt_genes))
     if (! "try-error" %in% class(gsc)) {
       types <- c("both", "up", "down")
       for (t in types) {

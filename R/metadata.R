@@ -2717,7 +2717,10 @@ setMethod(
 
 #' Tar a column from a SE
 #'
-#' @inherit tar_meta_column
+#' @param meta dataframe of the good stuff.
+#' @param column Column containing filenames to archive.
+#' @param output Output prefix for the tarball's name.
+#' @param compression Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?
 #' @export
 setMethod(
   "tar_meta_column", signature = signature(meta = "summarizedExperiment"),

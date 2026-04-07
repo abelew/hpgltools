@@ -6,7 +6,7 @@ NULL
 #' Change gene IDs to the format expected by gsva using an orgdb.
 #'
 #' Though it is possible to use gsva without ENTREZ IDs, it is not trivial.
-#' This function attempts to ensure that the IDs in one's expressionset are
+#' This function attempts to ensure that the IDs in one's input are
 #' therefore entrez IDs. It is possible that this function is at least partially
 #' redundant with other functions in this package and should be replaced.
 #'
@@ -115,7 +115,7 @@ get_group_gsva_means <- function(gsva_scores, groups, keep_single = TRUE, method
 #' This function uses a couple of methods to try to get an idea of whether the
 #' results from gsva are actually interesting.  It does so via the following
 #' methods:
-#'   1.  Use limma on the expressionset returned by simple_gsva(), this might
+#'   1.  Use limma on the output returned by simple_gsva(), this might
 #' provide an idea of if there are changing signatures among the sample types.
 #'   2.  Perform a simplified likelihood estimate to get a sense of the
 #' significant categories.
@@ -206,7 +206,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     fact <- clevels[1]
   }
 
-  ## Copy the gsva expressionset and use that to pull the 'significant' entries.
+  ## Copy the gsva SE and use that to pull the 'significant' entries.
   gl <- score_gsva_likelihoods(gsva_se, factor = fact, label_size = label_size)
   likelihoods <- gl[["likelihoods"]]
   keep_idx <- likelihoods[[fact]] >= cutoff
@@ -236,7 +236,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
     ## Here is a bizarre little fact: the rownames of rowData(subset_mtrx)
     ## are not the same as the rownames of assay(subset_mtrx)
     ## which AFAIK should not be possible, but clearly I was wrong.
-    ## At least when I create an expressionset, the rowData and assay have the
+    ## At least when I create a SE, the rowData and assay have the
     ## same rownames from beginning to end.
     ## I guess this does not really matter, since we can use the full annotation table.
     subset_tbl <- as.data.frame(subset_eset)
@@ -584,10 +584,10 @@ score_gsva_likelihoods <- function(gsva_se, score = NULL, category = NULL,
 #' @param mx_diff Passed to gsva(), I do not remember what it does.
 #' @param verbose Print some information while running?
 #' @param id_type Specify the ID type when loading the signature database.
-#' @return List containing three elements: first a modified expressionset using
-#'  the result of gsva in place of the original expression data; second the
+#' @return List containing three elements: first a modified SE using
+#'  the result of gsva in place of the original SE data; second the
 #'  result from gsva, and third a data frame of the annotation data for the
-#'  gene sets in the expressionset.  This seems a bit redundant, perhaps I
+#'  gene sets in the SE.  This seems a bit redundant, perhaps I
 #'  should revisit it?
 #' @seealso [GSEABase] [load_gmt_signatures()] [create_se()] [GSVA]
 #' @export
@@ -619,7 +619,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   signature_data <- load_gmt_signatures(signatures = signatures, data_pkg = data_pkg,
                                         signature_category = signature_category,
                                         id_type = id_type)
-  ## The expressionset must have the annotation field filled in for gsva to
+  ## The SE must have the annotation field filled in for gsva to
   ## work.
   se_annotation <- annotation(se)
   se_pattern <- grepl(pattern = "Fill me in", x = annotation(se))
@@ -628,9 +628,9 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     annotation(se) <- orgdb
   }
 
-  ## The rownames() of the expressionset must be in ENTREZIDs for gsva to work.
+  ## The rownames() of the SE must be in ENTREZIDs for gsva to work.
   if (current_id != required_id || !is.integer(grep("ENSG", rownames(assay(se))))) {
-    message("Converting the rownames() of the expressionset to ", required_id, ".")
+    message("Converting the rownames() of the SummarizedExperiment to ", required_id, ".")
     if (id_source == "orgdb") {
       ##tt <- sm(library(orgdb, character.only = TRUE))
       sm(requireNamespace(orgdb))
@@ -675,7 +675,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     assay_subset <- se[old_rownames]
     converted_se <- assay_subset
     rownames(converted_se) <- new_rownames
-    message("After conversion, the expressionset has ",
+    message("After conversion, the SummarizedExperiment has ",
             length(rownames(assay(converted_se))),
             " entries.")
     check_x <- grepl(pattern = "^X", x = rownames(assay(converted_se)))
@@ -724,7 +724,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
 }
 setGeneric("simple_gsva")
 
-#' Invoke simple_gsva using an se as input.
+#' Invoke simple_gsva using a SummarizedExperiment as input.
 #'
 #' @param se Se object to be analyzed.
 #' @param signatures Provide an alternate set of signatures (GenseCollections)
@@ -747,7 +747,7 @@ setGeneric("simple_gsva")
 #' @param verbose Print some information while running?
 #' @param id_type Specify the ID type when loading the signature database.
 setMethod(
-  "simple_gsva", signature(se = "se"),
+  "simple_gsva", signature(se = "SummarizedExperiment"),
   definition = function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                         signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
                         required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5,
@@ -762,8 +762,6 @@ setMethod(
         kcdf <- "Gaussian"
       }
     }
-    se <- se
-    se <- se[["expressionset"]]
     gsva_data <- simple_gsva(se = se, signatures = signatures, data_pkg = data_pkg,
                              signature_category = signature_category, cores = cores,
                              current_id = current_id, required_id = required_id,
@@ -791,15 +789,13 @@ setMethod(
       fdata_df[["Row.names"]] <- NULL
     }
     rowData(gsva_result) <- fdata_df
-    new_se <- se
-    new_se[["expressionset"]] <- gsva_result
     retlist <- list(
       "method" = method,
       "signatures" = signatures,
       "signature_category" = signature_category,
       "required_id" = required_id,
       "min_catsize" = min_catsize,
-      "se" = new_se,
+      "se" = se,
       "gsva" = gsva_result,
       "fdata" = fdata_df)
     class(retlist) <- "gsva_result"
@@ -809,7 +805,7 @@ setMethod(
 #' Print a gsva category search.
 #'
 #' @param x List containing signature annotations, the result from
-#'  GSVA, a modified expressionset, the signatures used, and method.
+#'  GSVA, a modified SE, the signatures used, and method.
 #' @param ... Other args to match the generic.
 #' @export
 print.gsva_result <- function(x, ...) {
