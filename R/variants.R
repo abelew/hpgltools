@@ -887,16 +887,6 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
   num_levels <- length(levels(as.factor(chr)))
-
-  show_progress <- interactive() && is.null(getOption("knitr.in.progress"))
-  pb_opts <- list()
-  if (isTRUE(show_progress)) {
-    bar <- utils::txtProgressBar(max = num_levels, style = 3)
-    progress <- function(n) {
-      setTxtProgressBar(bar, n)
-    }
-    pb_opts[["progress"]] <- progress
-  }
   returns <- list()
   i <- 1
   res <- list()
@@ -909,9 +899,6 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
                    chromosome_name <- levels(as.factor(chr))[i]
                    returns[[chromosome_name]] <- snp_by_chr(observed, chr_name = chromosome_name)
                  }
-  if (isTRUE(show_progress)) {
-    close(bar)
-  }
   message("Finished iterating over the chromosomes.")
   parallel::stopCluster(cl)
 
@@ -920,25 +907,15 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   possibilities <- c()
   set_names <- list()
   invert_names <- list()
-  if (isTRUE(show_progress)) {
-    bar <- utils::txtProgressBar(style = 3)
-  }
   end <- length(res)
   mesg("Iterating over ", end, " elements.")
   for (element in seq_len(end)) {
-    if (isTRUE(show_progress)) {
-      pct_done <- element / end
-      utils::setTxtProgressBar(bar, pct_done)
-    }
     datum <- res[[element]]
     chromosome <- datum[["chromosome"]]
     data_by_chr[[chromosome]] <- datum
     possibilities <- data_by_chr[[chromosome]][["possibilities"]]
     set_names <- data_by_chr[[chromosome]][["set_names"]]
     invert_names <- data_by_chr[[chromosome]][["invert_names"]]
-  }
-  if (isTRUE(show_progress)) {
-    close(bar)
   }
 
   ## Calculate approximate snp densities by chromosome

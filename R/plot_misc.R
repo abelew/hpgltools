@@ -19,7 +19,8 @@ NULL
 #' @seealso [png()] [svg()] [postscript()] [cairo_ps()] [cairo_pdf()] [tiff()] [devEMF::emf()]
 #'  [jpg()] [bmp()]
 #' @export
-pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE,
+pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = FALSE,
+               old = FALSE,
                ...) {
   ext <- tolower(tools::file_ext(file))
   file_dir <- dirname(file)
@@ -37,46 +38,74 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
   switch(
     ext,
     "bmp" = {
-      result <- bmp(filename = file, width = width, height = height, ...)
+      result <- bmp(
+        filename = file, width = width, height = height,
+        ...)
     },
     "emf" = {
-      result <- devEMF::emf(file = file, width = width, height = height, ...)
+      result <- devEMF::emf(
+        file = file, width = width, height = height,
+        ...)
     },
     "eps" = {
-      result <- cairo_ps(filename = file, width = width, height = height, ...)
+      result <- cairo_ps(
+        filename = file, width = width, height = height,
+        ...)
     },
     "jpg" = {
-      result <- jpeg(filename = file, width = width, height = height, ...)
+      result <- jpeg(
+        filename = file, width = width, height = height,
+        ...)
     },
     "pdf" = {
-      result <- cairo_pdf(filename = file, width = width, height = height, ...)
+      result <- cairo_pdf(
+        filename = file, width = width, height = height,
+        ...)
     },
     "png" = {
-      result <- png(filename = file, width = width, height = height,
-                    units = "in", res = res,
-                    ...)
+      result <- png(
+        filename = file, width = width, height = height,
+        units = "in", res = res,
+        ...)
     },
     "ps" = {
-      result <- postscript(file = file, width = width, height = height, ...)
+      result <- postscript(
+        file = file, width = width, height = height,
+        ...)
     },
     "svg" = {
-      result <- svg(filename = file, width = width, height = height,  ...)
+      if (isTRUE(old)) {
+        result <- svg(
+          filename = file, width = width, height = height,
+          ...)
+      } else {
+        result <- svglite::svglite(
+          filename = file, width = width, height = height,
+          ...)
+      }
     },
     "tif" = {
-      result <- tiff(filename = file, width = width, height = height,
-                     units = "in", res = res, ...)
+      result <- tiff(
+        filename = file, width = width, height = height,
+        units = "in", res = res,
+        ...)
     },
     "tiff" = {
-      result <- tiff(filename = file, width = width, height = height,
-                     units = "in", res = res, ...)
+      result <- tiff(
+        filename = file, width = width, height = height,
+        units = "in", res = res,
+        ...)
     },
     "webp" = {
-      result <- webp::write_webp(target = file, ...)
+      result <- webp::write_webp(
+        target = file, ...)
     },
     {
       mesg("Defaulting to tiff.")
-      result <- tiff(filename = file, width = width, height = height,
-                     units = "in", res = res, ...)
+      result <- tiff(
+        filename = file, width = width, height = height,
+        units = "in", res = res,
+        ...)
     }) ## End of the switch
   ## Find the new device for closing later.
   dev.control("enable")
@@ -111,7 +140,10 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = TRUE
   }
 
   if (isTRUE(crop)) {
-    knitr::plot_crop(file)
+    cropped <- try(knitr::plot_crop(file))
+    if ("try-error" %in% class(cropped)) {
+      warning("knitr was unable to crop this image.")
+    }
   }
   return(image)
 }

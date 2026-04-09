@@ -1,3 +1,4 @@
+library(hpgltools)
 ## Load some annotations from a gff file
 example_gff <- system.file("share", "gas.gff", package = "hpgldata")
 

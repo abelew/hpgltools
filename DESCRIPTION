@@ -48,7 +48,7 @@ Suggests:
   robustbase, Rsamtools, Rtsne,
   rtracklayer, ruv, RUVSeq, rvest,
   scales, seqLogo, Seqinfo, Seurat, seqLogo, skimr, SmartSVA, spgs, statmod, stringi,
-  stringr, SWATH2stats,
+  stringr, SWATH2stats, svglite,
   taxize, testthat, tibble, tidyr, tidymodels, topGO, tximport,
   UniProt.ws, UpSetR, uwot, webp,
   Vennerable,

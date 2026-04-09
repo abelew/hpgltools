@@ -1,3 +1,4 @@
+library(hpgltools)
 ## This function takes forever, let us only run it once in a while
 ## Perhaps I should have it create a savefile
 if (interactive()) {

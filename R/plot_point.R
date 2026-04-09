@@ -819,8 +819,8 @@ setMethod(
     mtrx <- assay(data)
     design <- colData(data)
     colors = get_colors(data)
-    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
-                     log = log, ...)
+    plot_pairwise_ma(data = mtrx, design = design, colors = colors, log = log,
+                     ...)
   })
 
 #' Plot all pairwise MA plots in an experiment.
@@ -837,11 +837,11 @@ setMethod(
 setMethod(
   "plot_pairwise_ma", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, colors = NULL, design = NULL, log = NULL, ...) {
-    mtrx <- assay(data)
+    mtrx <- as.data.frame(assay(data))
     design <- colData(data)
     colors = get_colors(data)
-    plot_pairwise_ma(data = mtrx, design = design, colors = colors,
-                     log = log, ...)
+    plot_pairwise_ma(data = mtrx, design = design, colors = colors, log = log,
+                     ...)
   })
 
 #' Make a pretty scatter plot between two sets of numbers.

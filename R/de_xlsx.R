@@ -1793,8 +1793,12 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
     according_to <- c("limma", "edger", "deseq", "ebseq", "basic")
   }
 
+  written <- NULL
   if ("character" %in% class(excel)) {
-    write_sig_legend(wb)
+    written <- write_sig_legend(wb)
+  }
+  if ("try-error" %in% class(written)) {
+    warning("Failed to write the legend.")
   }
 
   ret <- list()
@@ -1859,7 +1863,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
       plot_name <- as.character(table_names)[table_count]
       plot_name <- gsub(pattern = "-inverted", replacement = "", x = plot_name)
 
-      this_table <- all_tables[[table_name]]
+      this_table <- as.data.frame(all_tables[[table_name]])
       ## Added this try() because I am not sure how I want to deal with
       ## extra contrasts, and until I decide it is easier to skip them
       trimming <- get_sig_genes(

@@ -1975,6 +1975,22 @@ get_sig_genes <- function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
     "down_genes" = down_genes)
   return(ret)
 }
+setGeneric("get_sig_genes")
+
+#' Use get_sig_genes() on a DFrame.
+#' @inherit get_sig_genes
+#' @export
+setMethod(
+  "get_sig_genes", signature(table = "DFrame"),
+  definition = function(table, n = NULL, z = NULL, lfc = NULL, p = NULL,
+                        min_mean_assay = NULL, assay_column = "deseq_basemean",
+                        column = "logFC", fold = "plusminus", p_column = "adj.P.Val",
+                        comparison = "orequal") {
+    table <- as.data.frame(table)
+    get_sig_genes(table, n = n, z = z, lfc = lfc, p = p, min_mean_assay = min_mean_assay,
+                  assay_column = assay_column, column = column, fold = fold,
+                  p_column = p_column, comparison = comparison)
+  })
 
 #' Run makeContrasts() with all pairwise comparisons.
 #'

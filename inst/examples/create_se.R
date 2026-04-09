@@ -1,4 +1,4 @@
-
+library(hpgltools)
 ## Check if some input data is loaded; if not, load it!
 pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {

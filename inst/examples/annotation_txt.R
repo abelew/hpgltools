@@ -1,3 +1,4 @@
+library(hpgltools)
 example_txt <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
 
 ## Create a dataframe from the peculiarly formatted tsv/csv from trinotate.

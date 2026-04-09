@@ -253,6 +253,17 @@ hpgl_cor <- function(df, method = "pearson", ...) {
   }
   return(correlation)
 }
+setGeneric("hpgl_cor")
+
+#' Pass a SE to hpgl_cor
+#'
+#' @inherit hpgl_cor
+#' @export
+setMethod(
+  "hpgl_cor", signature(df = "SummarizedExperiment"),
+  definition = function(df, method = "pearson", ...) {
+    hpgl_cor(assay(df), method = method, ...)
+  })
 
 #' Wrap p.adjust to add IHW adjustments as an option.
 #'

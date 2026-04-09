@@ -170,6 +170,7 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
                                                        "www.ensembl.org", "asia.ensembl.org"),
                                      gene_requests = c("ensembl_gene_id", "version")) {
   start <- load_biomart_annotations(species = species, overwrite = TRUE, do_save = FALSE,
+                                    archive = archive,
                                     gene_requests = gene_requests, include_lengths = FALSE)
   mart <- start[["mart"]]
   all <- biomaRt::listAttributes(mart)
@@ -234,8 +235,8 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
 #' @seealso [biomaRt::listDatasets()] [biomaRt::getBM()] [find_working_mart()]
 #' @example inst/examples/annotation_biomart.R
 #' @export
-load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE, host = NULL,
-                                     trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
+load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE,
+                                     host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
                                      default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                                        "www.ensembl.org", "asia.ensembl.org"),
                                      year = NULL, month = NULL, drop_haplotypes = FALSE, trydataset = NULL,
@@ -335,11 +336,10 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
             missing_requests, ".")
     gene_requests <- gene_requests[found_attribs]
   }
-  gene_annotations <- biomaRt::getBM(attributes = gene_requests,
-                                     filters = gene_id_column,
-                                     values = gene_ids,
-                                     mart = ensembl)
-  chosen_annotations <- c(gene_requests)
+  gene_annotations <- biomaRt::getBM(
+    attributes = gene_requests, filters = gene_id_column,
+    values = gene_ids, mart = ensembl)
+  chosen_annotations <- gene_requests
   message("Finished downloading ensembl gene annotations.")
   biomart_annotations <- NULL
   if (isTRUE(include_lengths)) {
