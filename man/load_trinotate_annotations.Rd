@@ -24,6 +24,7 @@ peculiar fashion, so this function attempts to make it easier to read and put
 them into a format usable in an expressionset.
 }
 \examples{
+library(hpgltools)
 example_txt <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
 
 ## Create a dataframe from the peculiarly formatted tsv/csv from trinotate.

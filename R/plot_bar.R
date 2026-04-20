@@ -60,6 +60,7 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
     "plot" = mean_plt,
     "var_plot" = var_plt,
     "info" = start)
+  class(retlist) <- c("hpgltools::plot_assay_by_chromosome", "list")
   return(retlist)
 }
 
@@ -151,7 +152,7 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
     "plot" = libsize_plot,
     "table" = libsize_df,
     "summary" = summary_df)
-  class(retlist) <- "hpgltools::plot_libsize"
+  class(retlist) <- c("hpgltools::plot_libsize", "list")
   return(retlist)
 }
 setGeneric("plot_libsize")
@@ -381,7 +382,7 @@ labeled by counts/genes removed.")
     "table" = all_tab,
     "count_plot" = count_columns,
     "lowgene_plot" = low_columns)
-  class(retlist) <- "prepost_filter"
+  class(retlist) <- c("hpgltools::plot_libsize_prepost", "list")
   return(retlist)
 }
 
@@ -391,7 +392,7 @@ labeled by counts/genes removed.")
 #'  the plots, and summary information.
 #' @param ... Other args to match the generic.
 #' @export
-print.prepost_filter <- function(x, ...) {
+`print.hpgltools::plot_libsize_prepost` <- function(x, ...) {
   na_idx <- is.na(x[["table"]][["sub_low"]])
   x[["table"]][na_idx, "sub_low"] <- 0
   changed_idx <- x[["table"]][["sub_low"]] > 0

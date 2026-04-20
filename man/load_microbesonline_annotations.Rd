@@ -28,6 +28,7 @@ annoying to download. This function makes that rather easier, or so I hope at
 least.
 }
 \examples{
+library(hpgltools)
 ## On those relatively rare occasions when the internet is being
 ## cranky, these tests will most certainly fail.
 

@@ -22,6 +22,7 @@ This seeks to take the peculiar format from KEGGREST for pathway<->genes and
 make it easier to deal with.  Sadly, this only works for a subset of species now.
 }
 \examples{
+library(hpgltools)
 ## This function takes forever, let us only run it once in a while
 ## Perhaps I should have it create a savefile
 if (interactive()) {

@@ -271,8 +271,11 @@ cp_go_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5, pcutoff = 0.0
 }
 
 cp_kegg_organism <- function(organism, orgdb, kegg_organism = NULL) {
-  if ("character" == class(orgdb)) {
-    orgdb <- get0(orgdb)
+  if ("character" %in% class(orgdb)) {
+    if (! orgdb %in% loadedNamespaces()) {
+      loaded <- attachNamespace(orgdb)
+    }
+    orgdb <- get0(as.character(orgdb))
   }
   if (is.null(kegg_organism)) {
     org_meta <- AnnotationDbi::metadata(orgdb)
@@ -654,11 +657,10 @@ cp_msigdb_loaded <- function(signature_data, msig_db, msigdb_category,
       return(NULL)
     }
   }
-  if (is.null(signature_df)) {
-    signature_df <- try(signatures_to_df(signature_data))
-    if ("try-error" %in% class(signature_df)) {
-      return(NULL)
-    }
+
+  signature_df <- try(signatures_to_df(signature_data))
+  if ("try-error" %in% class(signature_df)) {
+    return(NULL)
   }
   signatures <- list(
     "signature_data" = signature_data,
@@ -758,7 +760,11 @@ guess_bitr_keytype <- function(org, from, sig_genes = NULL, to = "ENTREZ",
       test_genes_df <- data.frame()
     }
     if (!is.null(sig_genes)) {
-      test_sig_df <- sm(try(clusterProfiler::bitr(sig_genes, fromType = key,
+      test_genes <- sig_genes
+      if (class(sig_genes) == "data.frame") {
+        test_genes <- rownames(sig_genes)
+      }
+      test_sig_df <- sm(try(clusterProfiler::bitr(test_genes, fromType = key,
                                                   toType = to, OrgDb = org), silent = TRUE))
       if (class(test_sig_df) == "try-error") {
         test_sig_df <- data.frame()

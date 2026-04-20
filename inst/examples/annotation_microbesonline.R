@@ -1,3 +1,4 @@
+library(hpgltools)
 ## On those relatively rare occasions when the internet is being
 ## cranky, these tests will most certainly fail.
 

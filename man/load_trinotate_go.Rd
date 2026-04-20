@@ -39,6 +39,7 @@ annotations for the trinity contigs.  This function extracts ontology data
 from it.  Keep in mind that this data is primarily from Blast2GO.
 }
 \examples{
+library(hpgltools)
 example_txt <- system.file("share", "sb", "trinotate_head.csv.xz", package = "hpgldata")
 
 ## Create a dataframe from the peculiarly formatted tsv/csv from trinotate.

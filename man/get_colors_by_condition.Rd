@@ -15,6 +15,7 @@ get_colors_by_condition(exp, ...)
 Get a list of colors by condition instead of by sample id.
 }
 \examples{
+library(hpgltools)
 ## Use this for examples of SE attribute functions.
 pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {

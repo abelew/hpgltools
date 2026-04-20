@@ -157,12 +157,15 @@ simple_gostats <- function(sig_genes, go_db = NULL, gff = NULL, gff_df = NULL, u
   try(detach("package:GOstats", unload = TRUE), silent = TRUE)
   try(detach("package:Category", unload = TRUE), silent = TRUE)
   ## In theory, requireNamespace is sufficient, but that is not true.
-  sm(requireNamespace("GOstats"))
-  sm(requireNamespace("GSEABase"))
-  sm(requireNamespace("AnnotationDbi"))
-  sm(requireNamespace("Category"))
-  sm(requireNamespace("GOstats"))
-  sm(try(attachNamespace("GOstats"), silent = TRUE))
+  required <- sm(requireNamespace("GOstats"))
+  required <- sm(requireNamespace("GSEABase"))
+  required <- sm(requireNamespace("AnnotationDbi"))
+  required <- sm(requireNamespace("Category"))
+  required <- sm(requireNamespace("GOstats"))
+  required <- sm(try(attachNamespace("GOstats"), silent = TRUE))
+  if ("try-error" %in% class(required)) {
+    stop("Failed to load GOstats.")
+  }
   message("simple_gostats(): gff_type is: ", gff_type,
           ". Change that if there are bad merges.")
   types <- c("cds", "gene", "exon", "protein_coding")
@@ -241,10 +244,10 @@ perhaps change gff_type to make the merge work.")
   mf_under <- bp_under <- cc_under <- NULL
   message("simple_gostats(): Performing MF enrichment.")
   mf_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "MF", pvalueCutoff = pcutoff,
-                             conditional = conditional, testDirection = "over")
+    name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "MF", pvalueCutoff = pcutoff,
+    conditional = conditional, testDirection = "over")
   ## This is where it fell over
   mf_over <- try(Category::hyperGTest(mf_params), silent = TRUE)
   if (class(mf_over) == "try-error") {
@@ -253,10 +256,10 @@ perhaps change gff_type to make the merge work.")
   message("Found ", nrow(GOstats::summary(mf_over)), " over MF categories.")
   message("simple_gostats(): Performing BP enrichment.")
   bp_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "BP", pvalueCutoff = pcutoff,
-                             conditional = FALSE, testDirection = "over")
+    name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "BP", pvalueCutoff = pcutoff,
+    conditional = FALSE, testDirection = "over")
   bp_over <- try(Category::hyperGTest(bp_params), silent = TRUE)
   if (class(bp_over) == "try-error") {
     bp_over <- Category::hyperGTest(bp_params)
@@ -264,34 +267,34 @@ perhaps change gff_type to make the merge work.")
   message("Found ", nrow(GOstats::summary(bp_over)), " over BP categories.")
   message("simple_gostats(): Performing CC enrichment.")
   cc_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "CC", pvalueCutoff = pcutoff,
-                             conditional = FALSE, testDirection = "over")
+    name = glue::glue("enrichment of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "CC", pvalueCutoff = pcutoff,
+    conditional = FALSE, testDirection = "over")
   cc_over <- Category::hyperGTest(cc_params)
   message("Found ", nrow(GOstats::summary(cc_over)), " over CC categories.")
   message("simple_gostats(): Performing under MF GSEA.")
   mf_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "MF", pvalueCutoff = pcutoff,
-                             conditional = conditional, testDirection = "under")
+    name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "MF", pvalueCutoff = pcutoff,
+    conditional = conditional, testDirection = "under")
   mf_under <- Category::hyperGTest(mf_params)
   message("Found ", nrow(GOstats::summary(mf_under)), " under MF categories.")
   message("simple_gostats(): Performing under BP GSEA.")
   bp_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "BP", pvalueCutoff = pcutoff,
-                             conditional = FALSE, testDirection = "under")
+    name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "BP", pvalueCutoff = pcutoff,
+    conditional = FALSE, testDirection = "under")
   bp_under <- Category::hyperGTest(bp_params)
   message("Found ", nrow(GOstats::summary(bp_under)), " under BP categories.")
   message("simple_gostats(): Performing under CC GSEA.")
   cc_params <- Category::GSEAGOHyperGParams(
-                             name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
-                             geneIds = degenes_ids, universeGeneIds = universe_ids,
-                             ontology = "CC", pvalueCutoff = pcutoff,
-                             conditional = FALSE, testDirection = "under")
+    name = glue::glue("GSEA of {species}"), geneSetCollection = gsc,
+    geneIds = degenes_ids, universeGeneIds = universe_ids,
+    ontology = "CC", pvalueCutoff = pcutoff,
+    conditional = FALSE, testDirection = "under")
   cc_under <- Category::hyperGTest(cc_params)
   message("Found ", nrow(GOstats::summary(cc_under)), " under CC categories.")
   mf_over_table <- bp_over_table <- cc_over_table <- NULL
@@ -302,6 +305,7 @@ perhaps change gff_type to make the merge work.")
   mf_under_table <- GOstats::summary(mf_under, pvalue = 1.0, htmlLinks = TRUE)
   bp_under_table <- GOstats::summary(bp_under, pvalue = 1.0, htmlLinks = TRUE)
   cc_under_table <- GOstats::summary(cc_under, pvalue = 1.0, htmlLinks = TRUE)
+  ## FIXME: replace this crap with a p.adjust()
   if (!is.null(dim(mf_over_table))) {
     mf_over_table[["qvalue"]] <- tryCatch({
       ttmp <- as.numeric(mf_over_table[["Pvalue"]])
@@ -410,7 +414,7 @@ perhaps change gff_type to make the merge work.")
   if (!is.null(dim(cc_over_sig))) {
     cc_over_sig[["definition"]] <- try(godef(cc_over_sig[["GOCCID"]]), silent = TRUE)
   } else {
-    bp_over_sig <- NULL
+    cc_over_sig <- NULL
   }
   if (!is.null(dim(mf_under_sig))) {
     mf_under_sig[["definition"]] <- try(godef(mf_under_sig[["GOMFID"]]), silent = TRUE)
@@ -425,7 +429,7 @@ perhaps change gff_type to make the merge work.")
   if (!is.null(dim(cc_under_sig))) {
     cc_under_sig[["definition"]] <- try(godef(cc_under_sig[["GOCCID"]]), silent = TRUE)
   } else {
-    bp_under_sig <- NULL
+    cc_under_sig <- NULL
   }
 
   gostats_p_mf_over <- try(plot_histogram(
@@ -461,15 +465,13 @@ perhaps change gff_type to make the merge work.")
       "gostats_ccp_over" = gostats_p_cc_over,
       "gostats_mfp_under" = gostats_p_mf_under,
       "gostats_bpp_under" = gostats_p_bp_under,
-      "gostats_ccp_under" = gostats_p_cc_under
-  )
+      "gostats_ccp_under" = gostats_p_cc_under)
   retlist <- list(
       "go_db" = go_db,
       "input" = sig_genes,
       "results" = results,
-      "tables" = tables
-  )
-  class(retlist) <- "hpgltools::simple_gostats"
+      "tables" = tables)
+  class(retlist) <- c("hpgltools::simple_gostats", "list")
 
   pvalue_plots <- try(plot_gostats_pval(retlist))
   retlist[["pvalue_plots"]] <- pvalue_plots

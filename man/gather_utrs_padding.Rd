@@ -15,7 +15,7 @@ gather_utrs_padding(
   end_column = "end",
   strand_column = "strand",
   type_column = "annot_gene_type",
-  gene_type = "protein coding",
+  gene_type = "protein_coding",
   padding = c(80, 160),
   ...
 )

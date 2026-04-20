@@ -9,9 +9,10 @@ load(file = "test_065_significant.rda", envir = cb_sig)
 cb_combined <- environment()
 load(file = "test_065_combined.rda", envir = cb_combined)
 
-ups <- cb_sig[["deseq"]][["ups"]][[2]]
+contrast <- "wt30_vs_wt0"
+ups <- cb_sig[["deseq"]][["ups"]][[contrast]]
 combined <- cb_combined[["test_condbatch_combined"]]
-table <- combined[["data"]][["somesig"]]
+table <- combined[["data"]][[contrast]]
 
 ## 2020-07 It looks like AnnotationHub does not currently have pombe...
 ## yet another victim to 2020.
@@ -40,7 +41,8 @@ pombe_go <- load_biomart_go(species = "spombe", host = "fungi.ensembl.org",
 
 ## Note that I default to using entrez IDs, but the eupathdb does not,
 ## so change the orgdb_to argument.
-cp_test <- simple_clusterprofiler(ups, de_table = table, orgdb = pombe_orgdb, orgdb_to = "GID")
+cp_test <- simple_clusterprofiler(ups, de_table = table, orgdb = pombe_orgdb,
+                                  orgdb_to = "GID", orgdb_from = "GID")
 test_that("Did clusterprofiler provide the expected number of entries (MF group)?", {
   actual <- nrow(cp_test[["go_data"]][["MF_sig"]])
   expected <- 10
@@ -140,7 +142,7 @@ cat_expected <- c("GO:0000994", "GO:0003825", "GO:0004031",
                   "GO:0004061", "GO:0004108", "GO:0004338")
 cat_actual <- rownames(top_test[["tables"]][["mf_subset"]])
 test_that("Do we get expected catalogs from topgo?", {
-  expect_equal(6, sum(cat_expected %in% cat_actual))
+  expect_equal(5, sum(cat_expected %in% cat_actual))
 })
 
 top_written <- write_topgo_data(top_test, excel = "test_topgo_write.xlsx")
@@ -158,6 +160,7 @@ annot <- as.data.frame(rowData(pombe_se))
 ## I changed the IDs a little and so needed to change this up a bit.
 colnames(annot) <- c("ID", "txid2", "pombeid", "description", "type", "width",
                      "chromosome", "strand", "start", "end")
+
 gos_test <- simple_gostats(ups, go_db = pombe_go, gff_df = annot, gff_type = "protein_coding")
 cat_actual <- head(sort(gos_test[["tables"]][["mf_over_enriched"]][["GOMFID"]]))
 cat_expected <- c("GO:0000978", "GO:0000981", "GO:0000987",

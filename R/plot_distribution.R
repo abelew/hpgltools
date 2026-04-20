@@ -188,7 +188,6 @@ setMethod(
       test_df <- log2(test_df + 1) / log(10)
     }
     summary_info <- make_summary_df(test_df, iqr_multiplier = iqr_multiplier)
-    print(summary_info)
     high_genes <- list()
     num_high_genes <- rep(0, ncol(summary_info))
     low_genes <- list()
@@ -231,7 +230,7 @@ setMethod(
       "num_low_genes" = num_low_genes,
       "low_outlier_genes" = low_outlier_genes,
       "num_low_outlier_genes" = num_low_outlier_genes)
-    class(retlist) <- "hpgltools::plot_boxplot"
+    class(retlist) <- c("hpgltools::plot_boxplot", "list")
     return(retlist)
   })
 
@@ -490,7 +489,7 @@ setMethod(
       "batch_summary" = batch_summary,
       "sample_summary" = sample_summary,
       "table" = melted)
-    class(retlist) <- "density_plot"
+    class(retlist) <- c("hpgltools::plot_density", "list")
     return(retlist)
   })
 
@@ -570,7 +569,7 @@ setMethod(
 #'  conditions/batches/samples, and the melted table of reads/gene.
 #' @param ... Other args to match the generic.
 #' @export
-print.density_plot <- function(x, ...) {
+`print.hpgltools::plot_density` <- function(x, ...) {
   summary_string <- glue("Density plot describing {nrow(x[['sample_summary']])} samples.")
   message(summary_string)
   plot(x[["plot"]])
@@ -683,8 +682,6 @@ setMethod(
     assay <- as.data.frame(assay(data))
     plot_qq_all(data = assay, design = design, colors =  colors, labels = labels, ...)
   })
-
-
 
 #' Perform a qqplot between two columns of a matrix.
 #'
@@ -814,7 +811,7 @@ plot_single_qq <- function(data, x = 1, y = 2, labels = TRUE) {
     "ratio" = ratio_plot,
     "log" = log_ratio_plot,
     "summary" = log_summary)
-  class(qq_plots) <- "hpgltools::plot_single_qq"
+  class(qq_plots) <- c("hpgltools::plot_single_qq", "list")
   return(qq_plots)
 }
 setGeneric("plot_single_qq")
@@ -937,7 +934,7 @@ plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
   retlist <- list(
     "plot" = topn_plot,
     "table" = tmpdf)
-  class(retlist) <- "topn_plot"
+  class(retlist) <- c("hpgltools::plot_topn", "list")
   return(retlist)
 }
 
@@ -970,7 +967,7 @@ setMethod("plot_topn", signature(data = "matrix"),
 #' @param x List with the topn plot and summary table.
 #' @param ... Other args to match the generic.
 #' @export
-print.topn_plot <- function(x, ...) {
+`print.hpgltools::plot_topn` <- function(x, ...) {
   summary_string <- glue("Plot describing the top-n genes from every sample of a dataset.")
   message(summary_string)
   plot(x[["plot"]])
@@ -1121,7 +1118,7 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
   }
   retlst[["data"]] <- cv_data
   retlst[["plot"]] <- retlst[["cv"]]
-  class(retlst) <- "varcoef_plot"
+  class(retlst) <- c("hpgltools::plot_variance_coefficients", "list")
   return(retlst)
 }
 setGeneric("plot_variance_coefficients")
@@ -1131,7 +1128,7 @@ setGeneric("plot_variance_coefficients")
 #' @param x List containing the coefficient of variance plot and summary.
 #' @param ... Other args to match the generic.
 #' @export
-print.varcoef_plot <- function(x, ...) {
+`print.hpgltools::plot_variance_coefficients` <- function(x, ...) {
   summary_string <- glue("Plot describing the observed variance coefficients on a per-gene basis.")
   message(summary_string)
   plot(x[["plot"]])

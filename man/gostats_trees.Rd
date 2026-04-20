@@ -8,7 +8,7 @@ gostats_trees(
   gostats_result,
   goid_map = "id2go.map",
   score_limit = 0.01,
-  overwrite = FALSE,
+  overwrite = TRUE,
   selector = "topDiffGenes",
   pval_column = "adj.P.Val"
 )

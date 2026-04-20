@@ -384,7 +384,7 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
     "first_mad" = first_mad,
     "second_median" = second_median,
     "second_mad" = second_mad)
-  class(plots) <- "linear_scatter"
+  class(plots) <- c("hpgltools::plot_linear_scatter", "list")
   return(plots)
 }
 
@@ -393,7 +393,7 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
 #' @param x List containing the result of plot_linear_scatter()
 #' @param ... Other args for the generic.
 #' @export
-print.linear_scatter <- function(x, ...) {
+`print.hpgltools::plot_linear_scatter` <- function(x, ...) {
   message("Plot attempting to show the relationship between two columns of data.")
   print(x[["scatter"]])
   return(invisible(x))
@@ -612,7 +612,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
   retlist <- list(
     "plot" = non_zero_plot,
     "table" = nz_df)
-  class(retlist) <- "hpgltools::plot_nonzero"
+  class(retlist) <- c("hpgltools::plot_nonzero", "list")
   return(retlist)
 }
 setGeneric("plot_nonzero")

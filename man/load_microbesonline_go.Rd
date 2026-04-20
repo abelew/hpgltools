@@ -42,6 +42,7 @@ ontology accessions. At the very least, it does return a large number of
 them, which is a start.
 }
 \examples{
+library(hpgltools)
 ## On those relatively rare occasions when the internet is being
 ## cranky, these tests will most certainly fail.
 

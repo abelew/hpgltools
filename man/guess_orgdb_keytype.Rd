@@ -21,6 +21,7 @@ Sometimes, one does not know what the correct keytype is for a given set of
 IDs.  This will hopefully find them.
 }
 \examples{
+library(hpgltools)
 hs_annot <- load_orgdb_annotations("org.Hs.eg.db")
 dim(hs_annot[["genes"]])
 

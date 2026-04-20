@@ -56,6 +56,8 @@ This puts the number of genes with > 0 hits on the y-axis and CPM on the
 x-axis. Made by Ramzi Temanni <temanni at umd dot edu>.
 }
 \examples{
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }

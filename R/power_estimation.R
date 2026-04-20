@@ -306,7 +306,7 @@ simple_proper <- function(de_tables, apr = NULL, mtrx = NULL, p = 0.05, experime
     ## Stealing from plotPower to get the relevant cutoffs
     nsims <- dim(powers[["power"]])[3]
     observed_power <- apply(powers[["power"]], c(1, 2), mean, na.rm = TRUE)
-    power_se <- apply(powers[["power"]], c(1, 2), !!sd, na.rm = TRUE) / sqrt(nsims)
+    power_se <- apply(powers[["power"]], c(1, 2), sd, na.rm = TRUE) / sqrt(nsims)
     ix.na <- apply(observed_power, 1, function(x) all(is.na(x)))
     observed_power <- observed_power[!ix.na, ]
     power_se <- power_se[!ix.na, ]

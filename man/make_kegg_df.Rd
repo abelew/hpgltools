@@ -18,6 +18,7 @@ for a small subset of species now.  This uses a different query format to get
 a less flexible version of the same information. But at least it works.
 }
 \examples{
+library(hpgltools)
 ## This function takes forever, let us only run it once in a while
 ## Perhaps I should have it create a savefile
 if (interactive()) {

@@ -33,6 +33,8 @@ distances from each axis, multiplied by each other, summed by axis,
 then normalized against the maximum.
 }
 \examples{
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }

@@ -37,6 +37,7 @@ are extremely fast and flexible, thus by changing the keytype argument, one
 may use a lot of different ID types and still score some useful ontology data.
 }
 \examples{
+library(hpgltools)
 hs_annot <- load_orgdb_annotations("org.Hs.eg.db")
 dim(hs_annot[["genes"]])
 

@@ -13,6 +13,7 @@ libsize(x)
 Extract library sizes.
 }
 \examples{
+library(hpgltools)
 ## Use this for examples of SE attribute functions.
 pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {

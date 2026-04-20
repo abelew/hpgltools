@@ -1153,7 +1153,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     "batch_column" = batch_column,
     "included_batches" = included_batches,
     "design" = design)
-  class(pca_return) <- "pca_result"
+  class(pca_return) <- c("hpgltools::plot_pca", "list")
   return(pca_return)
 }
 setGeneric("plot_pca")
@@ -1219,7 +1219,7 @@ setMethod(
 #'  the PCA-esque plot, experimental design, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.pca_result <- function(x, ...) {
+`print.hpgltools::plot_pca` <- function(x, ...) {
   cond_column <- x[["cond_column"]]
   batch_column <- x[["batch_column"]]
 

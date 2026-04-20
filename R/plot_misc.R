@@ -19,9 +19,20 @@ NULL
 #' @seealso [png()] [svg()] [postscript()] [cairo_ps()] [cairo_pdf()] [tiff()] [devEMF::emf()]
 #'  [jpg()] [bmp()]
 #' @export
-pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = FALSE,
-               old = FALSE,
+pp <- function(file, image = NA, width = 9, height = 9, res = 180, crop = FALSE,
+               old = FALSE, passthrough = TRUE,
                ...) {
+  ## The following is a bit silly, I am trying to figure out under what circumstances
+  ## an extra image device gets created erroneously.  Thus I added these obviously
+  ## foolish checks in the hopes of tracing down when these appear.
+  check <- get0("image")
+  if (is.null(check)) {
+    stop("The image does not appear to exist.")
+  }
+  if (is.null(image) || isTRUE(image) || isFALSE(image)) {
+    stop("The image is empty.")
+  }
+
   ext <- tolower(tools::file_ext(file))
   file_dir <- dirname(file)
   if (!file.exists(file_dir)) {
@@ -115,13 +126,26 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = FALS
 
   ## Check and make sure I am not looking at something containing a plot, as a bunch of
   ## my functions are lists with a plot slot.
-  if (class(image)[[1]] == "list") {
+  if ("list" %in% class(image)) {
     if (!is.null(image[["plot"]])) {
+      mesg("Extracting the plot element of the list.")
       image <- image[["plot"]]
     }
   }
 
   if (is.null(image)) {
+    message("The image evaluated to NULL, closing the new device.")
+    end_dev <- dev.list()
+    print(start_dev)
+    for (e in end_dev) {
+      if (! e %in% start_dev) {
+        dev.off(which = e)
+      }
+    }
+    return(invisible(NULL))
+  }
+
+  if ("logical" %in% class(image)) {
     mesg("Going to write the image to: ", file, " when dev.off() is called.")
     mesg("Do not forget to close the device when you are done.")
     return(invisible(result))
@@ -133,19 +157,31 @@ pp <- function(file, image = NULL, width = 9, height = 9, res = 180, crop = FALS
     plot(image)
   }
 
-  if (length(new_dev) > 0) {
-    dev.off(which = new_dev)
-  } else {
-    warning("There is no device to shut down.")
-  }
-
   if (isTRUE(crop)) {
     cropped <- try(knitr::plot_crop(file))
     if ("try-error" %in% class(cropped)) {
       warning("knitr was unable to crop this image.")
     }
   }
-  return(image)
+  ## Add a final check in case a plot device snuck past
+  ## This seems to happen if the printed plot is null
+  ## or has some error.
+  end_dev <- dev.list()
+  for (e in end_dev) {
+    if (! e %in% start_dev) {
+      dev.off(which = e)
+    }
+  }
+
+  ## Plot the image to whatever plotting device was open before invoking pp()
+  if (isTRUE(passthrough)) {
+    if (class(image)[[1]] == "recordedplot") {
+      print(image)
+    } else {
+      plot(image)
+    }
+  }
+  return(invisible(image))
 }
 
 #' Make spirographs!

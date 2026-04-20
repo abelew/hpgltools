@@ -137,15 +137,19 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
                                 chr_column = "chromosome", start_column = "start",
                                 end_column = "end", strand_column = "strand",
                                 type_column = "annot_gene_type",
-                                gene_type = "protein coding", padding = c(80, 160), ...) {
+                                gene_type = "protein_coding", padding = c(80, 160), ...) {
   retlist <- list()
   if (!is.null(type_column)) {
     ## Pull the entries which are of the desired type.
     all_gene_idx <- annot_df[[type_column]] == gene_type
-    annot_df <- annot_df[all_gene_idx, ]
-  }
-  if (!is.null(gid)) {
-    annot_df <- annot_df[gid, ]
+    mesg("There are ", sum(all_gene_idx), " entries of type ",
+         gene_type, " in the ", type_column, " annotation column.")
+    if (sum(all_gene_idx) > 0) {
+      annot_df <- annot_df[all_gene_idx, ]
+      mesg("Subsetting to those entries.")
+    } else {
+      warning("Not subsetting to specific genes, this may fail.")
+    }
   }
   na_idx <- is.na(annot_df[[strand_column]])
   if (sum(na_idx) > 0) {
@@ -163,7 +167,9 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   }
 
   plusone_idx <- annot_df[[strand_column]] == "+"
+  mesg("There are ", sum(plusone_idx), " plus strand entries.")
   minusone_idx <- annot_df[[strand_column]] == "-"
+  mesg("There are ", sum(minusone_idx), " minus strand entries.")
   annot_df[[start_column]] <- as.numeric(annot_df[[start_column]])
   annot_df[[end_column]] <- as.numeric(annot_df[[end_column]])
 
@@ -216,6 +222,9 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   minus_idx <- annot_df[[strand_column]] == "-"
   plus_entries <- annot_df[plus_idx, ]
   minus_entries <- annot_df[minus_idx, ]
+  if (is.null(annot_df[[name_column]])) {
+    stop("The name column does not match the set of gene annotations.")
+  }
 
   pluses_fivep <- GenomicRanges::GRanges(
                                      seqnames = S4Vectors::Rle(plus_entries[[chr_column]]),

@@ -33,7 +33,7 @@ plot_corheat <- function(input_data, column_colors = NULL, design = NULL,
   map_list <- plot_heatmap(input_data, column_colors = column_colors, design = design,
                            method = method, sample_names = sample_names, type = "correlation",
                            batch_row = batch_row, plot_title = plot_title, label_chars = label_chars, ...)
-  class(map_list) <- "correlation_heatmap"
+  class(map_list) <- c("hpgltools::plot_corheat", "list")
   return(map_list)
 }
 
@@ -42,7 +42,7 @@ plot_corheat <- function(input_data, column_colors = NULL, design = NULL,
 #' @param x List containing the correlations observed and a recorded heatmap.3().
 #' @param ... Other args to match the generic.
 #' @export
-print.correlation_heatmap <- function(x, ...) {
+`print.hpgltools::plot_corheat` <- function(x, ...) {
   min_cor <- min(x[["data"]])
   non_one_idx <- x[["data"]] == 1
   non_one <- as.data.frame(x[["data"]])
@@ -84,7 +84,7 @@ plot_disheat <- function(input_data, column_colors = NULL, design = NULL,
                            method = method, sample_names = sample_names, type = "distance",
                            batch_row = batch_row, plot_title = plot_title,
                            label_chars = label_chars, ...)
-  class(map_list) <- "distance_heatmap"
+  class(map_list) <- c("hpgltools::plot_disheat", "list")
   return(map_list)
 }
 
@@ -93,7 +93,7 @@ plot_disheat <- function(input_data, column_colors = NULL, design = NULL,
 #' @param x List containing the distances observed and a recorded heatmap.3().
 #' @param ... Other args to match the generic.
 #' @export
-print.distance_heatmap <- function(x, ...) {
+`print.hpgltools::plot_disheat` <- function(x, ...) {
   max_distance <- max(x[["data"]])
   non_zero_idx <- x[["data"]] == 0
   non_zero <- as.data.frame(x[["data"]])

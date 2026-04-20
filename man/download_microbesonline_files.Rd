@@ -21,6 +21,7 @@ format proves useful under one condition or another, ergo this defaults to
 iterating through them all and getting every file.
 }
 \examples{
+library(hpgltools)
 ## On those relatively rare occasions when the internet is being
 ## cranky, these tests will most certainly fail.
 

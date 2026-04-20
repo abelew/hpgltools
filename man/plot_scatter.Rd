@@ -40,6 +40,8 @@ This function tries to supplement a normal scatterplot with some information
 describing the relationship between the columns of data plotted.
 }
 \examples{
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }

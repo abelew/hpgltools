@@ -3,7 +3,7 @@
 #' @include 01_hpgltools.R
 NULL
 
-#' Invoke ther various fun plots created by Guangchuang Yu.
+#' Invoke the various fun plots created by Guangchuang Yu.
 #'
 #' I would like to replace all of my bad ontology plotting functions
 #' with the nicer versions from enrichplot.  I therefore have a series
@@ -14,7 +14,6 @@ NULL
 #' various plots available.  Also, when I looked up these plots it
 #' appears that clusterProfiler has some new functionality to make it
 #' easier to send results to it.
-#'
 #' @param enrichresult S4 object of type enrichResult.
 #' @param ... Parameters to pass to the various plotting functions.
 plot_enrichresult <- function(enrichresult, ...) {
@@ -1140,10 +1139,11 @@ topgo_trees <- function(tg, score_limit = 0.01, sigforall = TRUE,
 #' @seealso \pkg{topGO} \pkg{gostats}
 #' @export
 gostats_trees <- function(gostats_result, goid_map = "id2go.map", score_limit = 0.01,
-                          overwrite = FALSE, selector = "topDiffGenes",
+                          overwrite = TRUE, selector = "topDiffGenes",
                           pval_column = "adj.P.Val") {
-  make_id2gomap(goid_map = goid_map, go_db = gostats_result[["go_db"]],
-                overwrite = overwrite)
+  attached <- try(attachNamespace("topGO"), silent = TRUE)
+  map <- make_id2gomap(goid_map = goid_map, go_db = gostats_result[["go_db"]],
+                       overwrite = overwrite)
   geneID2GO <- topGO::readMappings(file = goid_map)
   annotated_genes <- names(geneID2GO)
   de_genes <- gostats_result[["input"]]

@@ -38,7 +38,7 @@ genoplot_chromosome <- function(accession = "AE009949", start = NULL, end = NULL
     "mid_pos" = mid_pos,
     "limits" = xlims,
     "plot" = gene_map)
-  class(retlist) <- "hpgltools::genoplot_chromosome"
+  class(retlist) <- c("hpgltools::genoplot_chromosome", "list")
   return(retlist)
 }
 
@@ -109,7 +109,7 @@ plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 1
     "region" = gr,
     "coverage_data" = g1_coverage,
     "plot" = cov_plot)
-  class(retlist) <- "coverage_plot"
+  class(retlist) <- c("hpgltools::plot_ggcoverage", "list")
   return(retlist)
 }
 
@@ -119,7 +119,7 @@ plot_ggcoverage <- function(gr, from, to, id_column, coverage_files, padding = 1
 #' @param x List containing some information and the plot of interest.
 #' @param ... Other args for the generic.
 #' @export
-print.coverage_plot <- function(x, ...) {
+`print.hpgltools::plot_ggcoverage` <- function(x, ...) {
   plot(x[["plot"]])
   return(invisible(x))
 }
@@ -336,12 +336,12 @@ plot_ggcoverage_se <- function(se, from = 1, to = 10, id_column = "gene_id",
     "coverage_data" = coverage_info,
     "observed_genes" = observed_genes,
     "plot" = cov_plot)
-  class(retlist) <- "ggcoverage_plot"
+  class(retlist) <- c("hpgltools::plot_ggcoverage_se", "list")
   return(retlist)
 }
 
 #' @export
-print.ggcoverage_plot <- function(x, ...) {
+`print.hpgltools::plot_ggcoverage_se` <- function(x, ...) {
   message("Something something useful.")
   print(x[["plot"]])
   return(invisible(x))
@@ -415,6 +415,7 @@ plot_ggbio_heatmap <- function(grange_data, tbl, tilesize = 1000,
     "bins_1nt" = bins_1nt,
     "kary" = kary,
     "variants" = var_kary)
+  class(retlist) <- c("hpgltools::plot_ggbio_heatmap", "list")
   return(retlist)
 }
 

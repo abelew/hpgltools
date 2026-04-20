@@ -508,22 +508,21 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
 ## Something in the following will sometimes, but not always
 ## result in the error:
 ## no applicable method for `@` applied to an object of class "environment"
-
-#' Pull the dataframe from load_biomart_annotations()
-#'
-#' @inherit load_biomart_annotations
-#' @export
-setMethod(
-  "as.data.frame", signature = signature(x = "hpgltools::load_annotations_biomart"),
-  definition = function(x, row.names = NULL, optional = FALSE, ...) {
-    slot <- "gene_annotations"
-    arglist <- list(...)
-    if (!is.null(arglist[["type"]])) {
-      slot <- arglist[["type"]]
-    }
-    ## I am pretty sure load_biomart_annotations explicitly returns a dataframe.
-    x[[slot]]
-  })
+# #' Pull the dataframe from load_biomart_annotations()
+# #'
+# #' @inherit load_biomart_annotations
+# #' @export
+# setMethod(
+#   "as.data.frame", signature = signature(x = "hpgltools::load_annotations_biomart"),
+#   definition = function(x, row.names = NULL, optional = FALSE, ...) {
+#     slot <- "gene_annotations"
+#     arglist <- list(...)
+#     if (!is.null(arglist[["type"]])) {
+#       slot <- arglist[["type"]]
+#     }
+#     ## I am pretty sure load_biomart_annotations explicitly returns a dataframe.
+#     x[[slot]]
+#  })
 
 ## In my containerized R, this causes an error and I do not understand why.
 ## #' Pull a datatable from load_biomart_annotations()

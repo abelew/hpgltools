@@ -47,6 +47,7 @@ import.gff/import.gff3/import.gff2 calls in try() because sometimes those
 functions fail in unpredictable ways.
 }
 \examples{
+library(hpgltools)
 ## Load some annotations from a gff file
 example_gff <- system.file("share", "gas.gff", package = "hpgldata")
 

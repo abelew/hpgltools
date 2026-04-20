@@ -473,7 +473,13 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                               replacement = "\\1"), ".rda")
     } else {
       message("Saving the summarized experiment to 'se.rda'.")
-      savefile <- "se.rda"
+      savefile <- "rda/se.rda"
+      if (!file.exists("rda")) {
+        dir.create("rda")
+      }
+      if (!is.null(file_column)) {
+        savefile <- glue("rda/se_{file_column}.rda")
+      }
     }
   }
   save_result <- try(save(se, file = savefile), silent = TRUE)

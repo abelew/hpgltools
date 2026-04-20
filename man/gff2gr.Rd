@@ -20,6 +20,7 @@ GRanges represenatation of the gff portion of interest.
 Rewrite a gff file as a granges with full seqinfo if possible.
 }
 \examples{
+library(hpgltools)
 ## Load some annotations from a gff file
 example_gff <- system.file("share", "gas.gff", package = "hpgldata")
 

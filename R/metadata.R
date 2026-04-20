@@ -2396,8 +2396,8 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
       theme(legend.position = "none",
             plot.title = element_text(hjust = 0.5))
   }
-  retlist[["ggplot"]] <- ggplt
-  class(retlist) <- "hpgltools::meta_sankey"
+  retlist[["plot"]] <- ggplt
+  class(retlist) <- "hpgltools::plot_meta_sankey"
   return(retlist)
 }
 setGeneric("plot_meta_sankey")
@@ -2408,13 +2408,13 @@ setGeneric("plot_meta_sankey")
 #'  sankey.
 #' @param ... Other args to match the generic.
 #' @export
-`print.hpgltools::meta_sankey` <- function(x, ...) {
+`print.hpgltools::plot_meta_sankey` <- function(x, ...) {
   summary_string <- glue("A sankey plot describing the metadata of {nrow(x[['design']])} samples,
 including {length(x[['observed_nodes']])} out of {length(x[['permutations']])} nodes \\
 and traversing metadata factors:
 {toString(x[['factors']])}.")
   message(summary_string)
-  plot(x[["ggplot"]])
+  plot(x[["plot"]])
   return(invisible(x))
 }
 

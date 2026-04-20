@@ -16,6 +16,8 @@ Plot of the BCV a la ggplot2.
 This was written primarily to understand what that function is doing in edgeR.
 }
 \examples{
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
   source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }

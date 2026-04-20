@@ -200,7 +200,7 @@ which are shared among multiple samples.")
     rowData(new_input) <- tmp_annot
     ret[["modified_input"]] <- new_input
   }
-  class(ret) <- "varpart"
+  class(ret) <- c("hpgltools::simple_varpart", "list")
   return(ret)
 }
 
@@ -211,7 +211,7 @@ which are shared among multiple samples.")
 #'  fitted/sorted data by variance, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.varpart <- function(x, ...) {
+`print.hpgltools::simple_varpart` <- function(x, ...) {
   summary_string <- glue("The result of using variancePartition with the model:
 {x[['model_fstring']]}")
   message(summary_string)

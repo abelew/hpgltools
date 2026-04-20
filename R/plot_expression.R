@@ -144,7 +144,7 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
     "norm_df" = norm_df,
     "raw_plot" = raw_plot,
     "plot" = plot)
-  class(retlist) <- "paired_expression_plot"
+  class(retlist) <- c("hpgltools::ggsignif_paired_genes", "list")
   return(retlist)
 }
 

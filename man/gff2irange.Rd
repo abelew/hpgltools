@@ -31,6 +31,7 @@ getSet()  This is another place which should be revisited for improvements
 via mcols().  Check snp.r. for ideas.
 }
 \examples{
+library(hpgltools)
 ## Load some annotations from a gff file
 example_gff <- system.file("share", "gas.gff", package = "hpgldata")
 

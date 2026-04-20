@@ -50,6 +50,8 @@ simple_clusterprofiler(
 
 \item{orgdb}{Name of the orgDb used for gathering annotation data.}
 
+\item{todo}{List of databases to query}
+
 \item{orgdb_from}{Name of a key in the orgdb used to cross reference to entrez IDs.}
 
 \item{orgdb_to}{List of keys to grab from the orgdb for cross referencing
@@ -60,7 +62,7 @@ expressed categories.}
 
 \item{pcutoff}{P-value cutoff for 'significant' analyses.}
 
-\item{organism}{String name of the organism.}
+\item{organism}{Organism name for mesh/reactome/etc}
 
 \item{qcutoff}{Q-value cutoff for 'significant' analyses.}
 
@@ -69,7 +71,7 @@ expressed categories.}
 \item{second_fc_column}{When extracting vectors of all genes, what column
 should be tried the second time around?}
 
-\item{internal}{I dunno}
+\item{internal}{Deprecated}
 
 \item{updown}{Include the less than expected ontologies?}
 
@@ -77,7 +79,7 @@ should be tried the second time around?}
 
 \item{min_groupsize}{Minimum size of an ontology before it is included.}
 
-\item{max_groupsize}{Ignore groups which are too big.}
+\item{max_groupsize}{Maximum size of an ontology before it is included.}
 
 \item{kegg_prefix}{Many KEGG ids need a prefix before they will cross reference.}
 
@@ -89,7 +91,7 @@ should be tried the second time around?}
 
 \item{david_id}{Which column to use for cross-referencing to DAVID?}
 
-\item{padj_type}{Use this FDR}
+\item{padj_type}{P adjustment method to use.}
 
 \item{david_user}{Default registered username to use.}
 
@@ -101,19 +103,21 @@ should be tried the second time around?}
 
 \item{msig_db}{Use this database file for the msigdb data.}
 
-\item{do_gsea}{Perform gsea searches?}
+\item{kegg_universe}{Supplied set of kegg genes.}
 
-\item{do_david}{Attempt to use the DAVID database for a search?}
+\item{reactome_organism}{Specify a reactome organism when required.}
 
-\item{do_kegg}{Perform kegg search?}
+\item{mesh_db}{Provide an external MESH database.}
 
-\item{do_reactome}{what it says on the tin.}
+\item{ah_data}{Provide an alternate AnnotationHub dataset.}
 
-\item{do_dose}{Attempt disease ontology search.}
+\item{signature_data}{Provide an alternate set of mSigDB data.}
 
-\item{do_mesh}{Attempt MESH search.}
+\item{signature_df}{Or a dataframe of signatures/genes.}
 
-\item{do_msigdb}{Attempt mSigDB search.}
+\item{de_table_namedf}{Provide an alternate set of gene IDs vs. the NCBI IDs.}
+
+\item{sig_genes_namedf}{Ibid.}
 }
 \value{
 a list

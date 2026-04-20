@@ -67,6 +67,7 @@ addition, one may use the pdfs as a set of images importable into illustrator
 or whatever.
 }
 \examples{
+library(hpgltools)
 ## The first task for most of my functions is to create one of the multi-dimensional
 ## data structures containing metadata, annotations, and expression values.
 ## I have a couple of functions which generate these using extant, publicly available data.

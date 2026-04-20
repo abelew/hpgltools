@@ -25,6 +25,7 @@ requires ENTREZIDs.  In the mean time, this creates a dataframe of the mapped
 columns for a given set of gene ids using the in a sqlite instance.
 }
 \examples{
+library(hpgltools)
 hs_annot <- load_orgdb_annotations("org.Hs.eg.db")
 dim(hs_annot[["genes"]])
 

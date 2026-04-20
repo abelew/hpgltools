@@ -5,6 +5,105 @@
 #' @include 01_hpgltools.R
 NULL
 
+all_goseq <- function(sig, according_to = "deseq", together = FALSE, go_db = NULL,
+                      length_db = NULL, doplot = TRUE, adjust = 0.1, threshold = 0.1,
+                      plot_title = NULL, length_keytype = "transcripts", go_keytype = "entrezid",
+                      goseq_method = "Wallenius", padjust_method = "BH",
+                      expand_categories = TRUE, excel = NULL, enrich = TRUE,
+                      minimum_interesting = 2, min_xref = 20) {
+  ret <- list()
+  input_up <- list()
+  input_down <- list()
+  source <- "significant"
+
+  xlsx <- init_xlsx(excel)
+  if (is.null(xlsx)) {
+    xlsx_dir <- "excel"
+    excel_basename <- ""
+    xlsx_base <- ""
+  } else {
+    xlsx_dir <- xlsx[["dirname"]]
+    excel_basename <- xlsx[["basename"]]
+    xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
+  }
+
+  ## Check if this came from extract_significant_genes or extract_abundant_genes.
+  if (!is.null(sig[[according_to]][["ups"]])) {
+    input_up <- sig[[according_to]][["ups"]]
+    input_down <- sig[[according_to]][["downs"]]
+  } else if (!is.null(sig[["abundances"]])) {
+    source <- "abundance"
+    input_up <- sig[["abundances"]][[according_to]][["high"]]
+    input_down <- sig[["abundances"]][[according_to]][["low"]]
+  } else {
+    stop("I do not understand this input.")
+  }
+
+  sig_names <- names(input_up)
+  for (i in seq_along(sig_names)) {
+    name <- sig_names[i]
+    mesg("Starting ", name, ".")
+    retname_up <- paste0(name, "_up")
+    retname_down <- paste0(name, "_down")
+    up <- input_up[[name]]
+    down <- input_down[[name]]
+    up_elements <- 0
+    down_elements <- 0
+    if (source == "abundance") {
+      up <- names(up)
+      down <- names(down)
+      up_elements <- length(up)
+      down_elements <- length(down)
+    } else {
+      up_elements <- nrow(up)
+      down_elements <- nrow(down)
+    }
+    if (isTRUE(together)) {
+      if (source == "abundance") {
+        up <- c(up, down)
+        up_elements <- up_elements + down_elements
+        down <- c()
+        down_elements <- 0
+      } else {
+        up <- rbind(up, down)
+        up_elements <- nrow(up)
+        down <- data.frame()
+        down_elements <- 0
+      }
+    }
+    if (up_elements > 0) {
+      chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
+      up <- as.data.frame(up)
+      table <- as.data.frame(table)
+      args <- list(
+        "sig_genes" = up,
+        "go_db" = go_db, "length_db" = length_db, "doplot" = doplot,
+        "adjust" = adjust, "threshold" = threshold, "plot_title" = plot_title,
+        "length_keytype" = length_keytype, "go_keytype" = go_keytype, "goseq_method" = goseq_method,
+        "padjust_method" = padjust_method, "expand_categories" = expand_categories, "excel" = excel,
+        "enrich" = enrich, "minimum_interesting" = minimum_interesting, "min_xref" = min_xref)
+      simple_go <- try(do.call(what = "simple_goseq", args = args))
+    } else {
+      ret[[retname_up]] <- NULL
+    }
+    if (down_elements > 0) {
+      chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
+      args <- list(
+        "sig_genes" = down,
+        "go_db" = go_db, "length_db" = length_db, "doplot" = doplot,
+        "adjust" = adjust, "threshold" = threshold, "plot_title" = plot_title,
+        "length_keytype" = length_keytype, "go_keytype" = go_keytype, "goseq_method" = goseq_method,
+        "padjust_method" = padjust_method, "expand_categories" = expand_categories, "excel" = excel,
+        "enrich" = enrich, "minimum_interesting" = minimum_interesting, "min_xref" = min_xref)
+      simple_go <- try(do.call(what = "simple_goseq", args = args))
+    } else {
+      ret[[retname_down]] <- NULL
+    }
+  }
+  class(ret) <- "hpgltools::all_goseq"
+  return(ret)
+}
+
 #' Filter a goseq significance search
 #'
 #' Given a goseq result, use some simple filters to pull out the
