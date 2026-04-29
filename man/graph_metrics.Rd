@@ -71,6 +71,6 @@ qq plots.
 }
 }
 \seealso{
-[plot_nonzero()] [plot_legend()] [plot_libsize()] [plot_disheat()]
+[plot_nonzero()] [plot_legend()] [plot_quantreads()] [plot_disheat()]
  [plot_corheat()] [plot_topn()] [plot_pca()] [plot_sm()] [plot_boxplot()]
 }

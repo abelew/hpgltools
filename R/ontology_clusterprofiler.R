@@ -864,11 +864,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    todo = NULL, orgdb_from = NULL, orgdb_to = "ENTREZID",
                                    go_level = 3, pcutoff = 0.05, organism = "human", qcutoff = 0.1,
                                    fc_column = "logFC", second_fc_column = "deseq_logfc",
-                                   internal = FALSE, updown = "up", permutations = 1000,
+                                   updown = "up", permutations = 1000,
                                    min_groupsize = 5, max_groupsize = 500, kegg_prefix = NULL,
                                    kegg_organism = NULL, categories = 12, excel = NULL,
-                                   david_id = "ENTREZ_GENE_ID", padj_type = "BH",
-                                   david_user = "abelew@umd.edu", mesh_category = "C",
+                                   padj_type = "BH",mesh_category = "C",
                                    mesh_dbname = "gendoo", msigdb_category = "C2", msig_db = NULL,
                                    kegg_universe = NULL, reactome_organism = NULL,
                                    mesh_db = NULL, ah_data = NULL, signature_data = NULL,
@@ -876,8 +875,14 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
                                    sig_genes_namedf = NULL) {
   ## TODO: Separate out these various pieces of functionality to query
   ## stuff like kegg/reactome/etc into separate functions.
-  sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
-  sm(requireNamespace(package = "DOSE", quietly = TRUE))
+  loaded <- sm(requireNamespace(package = "clusterProfiler", quietly = TRUE))
+  if (!isTRUE(loaded)) {
+    warning("Unable to load the clusterProfiler namespace.")
+  }
+  loaded <- sm(requireNamespace(package = "DOSE", quietly = TRUE))
+  if (!isTRUE(loaded)) {
+    warning("Unable to load the DOSE namespace.")
+  }
   org <- NULL
   ## Start off by figuring out what was given, an OrgDb or the name of one.
   ## S4ME!
@@ -995,7 +1000,7 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   }
 
   ## kegg organism sanity check
-  kegg_organism <- cp_kegg_organism(organism, orgdb, kegg_organism = kegg_organism)
+  kegg_organism <- cp_kegg_organism(organism, org, kegg_organism = kegg_organism)
   if (is.null(kegg_organism)) {
     todo[["enrich_kegg"]] <- FALSE
     todo[["gse_kegg"]] <- FALSE

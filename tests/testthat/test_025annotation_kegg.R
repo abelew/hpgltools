@@ -24,8 +24,7 @@ test_that("Do we get the expected ncbi protein IDs?", {
 })
 
 actual <- head(test_kegg[["uniprotid"]])
-expected <- c("P0AD86", "P00561", "P00547", "P00934",
-              "P75616", "P0A8I3")
+expected <- c("P0AD86", "P00561", "P00547", "P00934", "P75616", "P0A8I3")
 test_that("Do we get the expected uniprot IDs?", {
   expect_equal(expected, actual)
 })

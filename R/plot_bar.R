@@ -64,7 +64,7 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
   return(retlist)
 }
 
-#' Make a ggplot graph of library sizes.
+#' Make a ggplot graph of the number of reads quantified per sample.
 #'
 #' It is often useful to have a quick view of which samples have more/fewer
 #' reads.  This does that and maintains one's favorite color scheme and tries to
@@ -84,14 +84,14 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
 #' @seealso [ggplot2] [prettyNum] [plot_sample_bars()]
 #' @examples
 #' \dontrun{
-#'  libsize_plot <- plot_libsize(exp = exp)
+#'  libsize_plot <- plot_quantreads(exp = exp)
 #'  libsize_plot  ## ooo pretty bargraph
 #' }
 #' @export
-plot_libsize <- function(data, condition = NULL, colors = NULL,
-                         text = TRUE, order = NULL, plot_title = NULL, yscale = NULL,
-                         exp_names = NULL, label_chars = 10,
-                         ...) {
+plot_quantreads <- function(data, condition = NULL, colors = NULL,
+                            text = TRUE, order = NULL, plot_title = NULL, yscale = NULL,
+                            exp_names = NULL, label_chars = 10,
+                            ...) {
   arglist <- list(...)
   if (is.null(text)) {
     text <- TRUE
@@ -152,12 +152,12 @@ plot_libsize <- function(data, condition = NULL, colors = NULL,
     "plot" = libsize_plot,
     "table" = libsize_df,
     "summary" = summary_df)
-  class(retlist) <- c("hpgltools::plot_libsize", "list")
+  class(retlist) <- c("hpgltools::plot_quantreads", "list")
   return(retlist)
 }
-setGeneric("plot_libsize")
+setGeneric("plot_quantreads")
 
-#' Send a SummarizedExperiment to plot_libsize().
+#' Send a SummarizedExperiment to plot_quantreads().
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -173,20 +173,20 @@ setGeneric("plot_libsize")
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "SummarizedExperiment"),
+  "plot_quantreads", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
                         exp_names = NULL, label_chars = 10, ...) {
     mtrx <- as.matrix(assay(data))
     condition <- conditions(data)
     colors <- colors(data)
-    plot_libsize(mtrx, condition = condition, colors = colors, text = text,
-                 order = order, plot_title = plot_title, yscale = yscale,
-                 exp_names = exp_names, label_chars = label_chars,
+    plot_quantreads(mtrx, condition = condition, colors = colors, text = text,
+                    order = order, plot_title = plot_title, yscale = yscale,
+                    exp_names = exp_names, label_chars = label_chars,
                  ...)
   })
 
-#' Run plot_libsize() with a dataframe as input.
+#' Run plot_quantreads() with a dataframe as input.
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -202,18 +202,18 @@ setMethod(
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "data.frame", condition = "factor",
-                                        colors = "character"),
+  "plot_quantreads", signature = signature(data = "data.frame", condition = "factor",
+                                           colors = "character"),
   definition = function(data, condition, colors, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
                         exp_names = NULL, label_chars = 10, ...) {
     data <- as.matrix(data)
-    plot_libsize(data, condition = condition, colors = colors,
-                 text = text, order = order, plot_title = plot_title, yscale = yscale,
-                 exp_names = exp_names, label_chars = label_chars, ...) # , ...)
+    plot_quantreads(data, condition = condition, colors = colors,
+                    text = text, order = order, plot_title = plot_title, yscale = yscale,
+                    exp_names = exp_names, label_chars = label_chars, ...) # , ...)
   })
 
-#' Run plot_libsize() with an ExpressionSet as input.
+#' Run plot_quantreads() with an ExpressionSet as input.
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -229,19 +229,19 @@ setMethod(
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "ExpressionSet"),
+  "plot_quantreads", signature = signature(data = "ExpressionSet"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
                         exp_names = NULL, label_chars = 10, ...) {
     mtrx <- assay(data)
     condition <- colData(data)[["condition"]]
-    plot_libsize(mtrx, condition = condition, colors = colors,
-                 text = text, order = order, plot_title = plot_title,
-                 yscale = yscale, exp_names = exp_names, label_chars = label_chars,
-                 ...)
+    plot_quantreads(mtrx, condition = condition, colors = colors,
+                    text = text, order = order, plot_title = plot_title,
+                    yscale = yscale, exp_names = exp_names, label_chars = label_chars,
+                    ...)
   })
 
-#' Run plot_libsize() with an exp as input.
+#' Run plot_quantreads() with an exp as input.
 #'
 #' @param data SummarizedExperiment presumably created by create_se().
 #' @param condition Set of conditions observed in the metadata, overriding
@@ -257,16 +257,16 @@ setMethod(
 #' @return Plot of library sizes and a couple tables describing the data.
 #' @export
 setMethod(
-  "plot_libsize", signature = signature(data = "SummarizedExperiment"),
+  "plot_quantreads", signature = signature(data = "SummarizedExperiment"),
   definition = function(data, condition = NULL, colors = NULL, text = TRUE,
                         order = NULL, plot_title = NULL, yscale = NULL,
                         exp_names = NULL, label_chars = 10, ...) {
     mtrx <- assay(data)
     condition <- conditions(data)
     colors = get_colors(data)
-    plot_libsize(mtrx, condition = condition, colors = colors, text = text,
-                 order = order, plot_title = plot_title, yscale = yscale,
-                 exp_names = exp_names, label_chars = label_chars, ...)
+    plot_quantreads(mtrx, condition = condition, colors = colors, text = text,
+                    order = order, plot_title = plot_title, yscale = yscale,
+                    exp_names = exp_names, label_chars = label_chars, ...)
   })
 
 #' Print the library sizes from an experiment.
@@ -275,7 +275,7 @@ setMethod(
 #'  and table.
 #' @param ... Other args to match the generic.
 #' @export
-`print.hpgltools::plot_libsize` <- function(x, ...) {
+`print.hpgltools::plot_quantreads` <- function(x, ...) {
   min_value <- min(x[["table"]][["sum"]])
   max_value <- max(x[["table"]][["sum"]])
   message("Library sizes of ", nrow(x[["table"]]), " samples, \
@@ -299,14 +299,14 @@ ranging from ", prettyNum(min_value, big.mark = ","),
 #' @param ... Extra arbitrary arguments to pass to normalize()
 #' @return Bar plot showing the number of genes below the low_limit before and
 #'  after filtering the data.
-#' @seealso [plot_libsize()] [filter_counts()]
+#' @seealso [plot_quantreads()] [filter_counts()]
 #' @export
 plot_libsize_prepost <- function(exp, low_limit = 2, filter = TRUE,
                                  num_color = "black", num_size = 4, ...) {
-  start <- plot_libsize(exp, text = FALSE)
+  start <- plot_quantreads(exp, text = FALSE)
   norm <- sm(normalize(exp, filter = filter,
                             ...))
-  end <- plot_libsize(norm)
+  end <- plot_quantreads(norm)
 
   ## Gather the number of genes which are <= the low limit, before and after filtering
   lt_min_start <- colSums(assay(exp) <= low_limit)
@@ -494,9 +494,9 @@ plot_sample_bars <- function(sample_df, condition = NULL, colors = NULL,
                              text = TRUE, plot_title = NULL, yscale = NULL, ...) {
   arglist <- list(...)
 
-  y_label <- "Library size in pseudocounts."
+  y_label <- "Quantified reads in pseudocounts."
   if (isTRUE(integerp)) {
-    y_label <- "Library size in counts."
+    y_label <- "Quantified reads in integer counts."
   }
   if (!is.null(arglist[["y_label"]])) {
     y_label <- arglist[["y_label"]]

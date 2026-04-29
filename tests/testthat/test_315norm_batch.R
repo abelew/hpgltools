@@ -27,10 +27,10 @@ test_that("limma batch gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)
 })
 
-expected <- c(2.03245815, 0.01467331, 0.00000000, 0.11385040, 0.41124803)
+expected <- c(2.0391559, 0.0146712, 0.0000000, 0.1136721, 0.4125156)
 names(expected) <- test_genes
 pasilla_batch <- sm(normalize(pasilla_se, batch = "limmaresid"))
-actual_df <- exprs(pasilla_batch)
+actual_df <- assay(pasilla_batch)
 actual <- actual_df[test_genes, c("untreated1")]
 test_that("limma-residuals batch gives expected values?", {
     expect_equal(expected, actual, tolerance = 0.0001)

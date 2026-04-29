@@ -1550,6 +1550,10 @@ extract_abundant_genes <- function(pairwise, according_to = "deseq", n = 100,
 
   for (type in according_to) {
     datum <- pairwise[[type]]
+    if (is.null(pairwise[[type]])) {
+      message("The method: ", type, " does not appear in the pairwise results, returning null.")
+      return(NULL)
+    }
     abundant_lists[[type]] <- get_abundant_genes(datum, type = type, n = n, z = z,
                                                  unique = unique)
     ## Something to note: the coefficient df from deseq (for example) includes coefficients
@@ -1697,6 +1701,10 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
                                       comparison = "orequal", required_id = "ENTREZID",
                                       min_gmt_genes = 10, ...) {
   image_files <- c()  ## For cleaning up tmp image files after saving the xlsx file.
+
+  ## Start out assuming we will write a xlsx file.
+  do_excel <- TRUE
+  ## Later on we will test this assertion.
 
   if (is.null(lfc_cutoffs)) {
     if (lfc == 0) {
@@ -1848,7 +1856,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   } ## End checking set of according_tos for valid entries.
   ## Our list of chosen_columns should have two levels, the first by method
   ## The second with logfc and p, which contain the columns of interest.
-
+  change_counts <- data.frame()
   according <- NULL
   according_to <- according_kept
   for (summary_count in seq_along(according_to)) {
@@ -1910,7 +1918,6 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
     ## I want to start writing out msigdb compatible gmt files and therefore
     ## want to start creating gene set collections from our data.
 
-    do_excel <- TRUE
     if (is.null(excel)) {
       do_excel <- FALSE
     }

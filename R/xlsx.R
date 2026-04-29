@@ -15,7 +15,7 @@ NULL
 #' @param sheet Sheet to check/create.
 #' @return The workbook object hopefully with a new worksheet.
 #' @seealso [openxlsx::addWorksheet()]
-check_xlsx_worksheet <- function(wb, sheet) {
+check_xlsx_worksheet <- function(wb, sheet, taken_sheets = c()) {
   newsheet <- NULL
   if (is.null(wb)) {
     return(NULL)
@@ -26,6 +26,12 @@ check_xlsx_worksheet <- function(wb, sheet) {
     found_sheets <- found_sheets + 1
     retlist <- list("wb" = wb, "sheet" = sheet)
     return(retlist)
+  }
+  if (length(sheet) > 28) {
+    sheet <- abbreviate(sheet, minlength = 28)
+  }
+  if (sheet %in% taken_sheets) {
+    sheet <- paste0("sheet_", length(taken_sheets) + 1)
   }
 
   newsheet <- try(openxlsx::addWorksheet(wb, sheetName = sheet), silent = TRUE)
@@ -230,8 +236,8 @@ write_xlsx <- function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
                        rownames = TRUE, start_row = 1, start_col = 1,
                        title = NULL, float_format = "0.000", data_table = TRUE,
                        freeze_first_row = TRUE, freeze_first_column = TRUE,
-                       date_format = "yyyy-mm-dd",
-                       column_width = "heuristic", ...) {
+                       date_format = "yyyy-mm-dd", column_width = "heuristic", taken_sheets = c(),
+                       ...) {
   message("This function is intended to write xlsx files.")
   message("It was passed an object of type ", class(data),
           " and does not know what to do with it.")
@@ -281,8 +287,8 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd",  column_width = "heuristic", taken_sheets = c(),
+                        ...) {
     old_options <- options(openxlsx.dateFormat = date_format)
     ## Added to check if each column is comprised of whole numbers.
     ## If this is TRUE for a column, do not use the float_format
@@ -327,7 +333,7 @@ setMethod(
     sci_fmt <- openxlsx::createStyle(numFmt = "scientific")
 
     ## Create the new worksheet.
-    wb_sheet <- check_xlsx_worksheet(wb, sheet)
+    wb_sheet <- check_xlsx_worksheet(wb, sheet, taken_sheets = taken_sheets)
     wb <- wb_sheet[["wb"]]
     sheet <- wb_sheet[["sheet"]]
     new_row <- start_row
@@ -511,14 +517,16 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic",
+                        taken_sheets = c(), ...) {
     one_df <- as.data.frame(data)
     written <- write_xlsx(
       data = one_df, wb = wb, sheet = sheet, excel = excel,
       rownames = rownames, start_row = start_row, start_col = start_col,
       title = title, float_format = float_format, data_table = data_table,
       freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
-      date_format = date_format, column_wdith = column_width, ...)
+      date_format = date_format, column_wdith = column_width, taken_sheets = taken_sheets,
+      ...)
     return(written)
 })
 
@@ -532,7 +540,8 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic",
+                        taken_sheets = c(), ...) {
     written <- NULL
     for (element in seq_along(data)) {
       sheet_name <- names(data)[element]
@@ -546,7 +555,8 @@ setMethod(
         rownames = rownames, start_row = start_row, start_col = start_col,
         title = title, float_format = float_format, data_table = data_table,
         freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
-        date_format = date_format, column_width = column_width, ...)
+        date_format = date_format, column_width = column_width, taken_sheets = taken_sheets,
+        ...)
       print(names(written[["workbook"]]))
     }
     return(written)
@@ -562,15 +572,16 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd",
-                        column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic", taken_sheets = c(),
+                        ...) {
     one_df <- as.data.frame(data)
     written <- write_xlsx(
       data = one_df, wb = wb, sheet = sheet, excel = excel,
       rownames = rownames, start_row = start_row, start_col = start_col,
       title = title, float_format = float_format, data_table = data_table,
       freeze_first_column = freeze_first_column, freeze_first_row = freeze_first_row,
-      date_format = date_format, column_width = column_width, ...)
+      date_format = date_format, column_width = column_width, taken_sheets = taken_sheets,
+      ...)
     return(written)
 })
 
@@ -584,7 +595,8 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic",
+                        taken_sheets = c(), ...) {
       warning("NULL was passed to write_xlsx, returning NULL.")
       return(NULL)
     })
@@ -626,7 +638,8 @@ setMethod(
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
                         freeze_first_row = TRUE, freeze_first_column = TRUE,
-                        date_format = "yyyy-mm-dd", column_width = "heuristic", ...) {
+                        date_format = "yyyy-mm-dd", column_width = "heuristic",
+                        taken_sheets = c(), ...) {
     current_wb <- excel[["workbook"]]
     current_sheet <- excel[["sheet"]]
     current_row <- excel[["end_row"]]
@@ -649,7 +662,8 @@ setMethod(
                rownames = rownames, start_row = start_row, start_col = start_col,
                title = title, float_format = float_format, data_table = data_table,
                freeze_first_row = freeze_first_row, freeze_first_column = freeze_first_column,
-               date_format = date_format, column_width = column_width, ...)
+               date_format = date_format, column_width = column_width,
+               taken_sheets = taken_sheets, ...)
   })
 
 #' An attempt to improve the behaivor of openxlsx's plot inserter.

@@ -2226,6 +2226,10 @@ plot_metadata_factors <- function(exp, column = "hisatsinglemapped", second_colu
 #' @param node_width Make nodes more or less rectangular with this.
 #' @param color_choices Either a named vector of states and colors, or NULL
 #'  (in which case it will use viridis.)
+#' @param label_all This defaults to creating labels which are the
+#'  concatenation of the entire state, which works well for simple
+#'  experimental designs but can quickly become too much to read after
+#'  3 or 4 factors.
 #' @param drill_down When true, this will end in the product of the
 #'  factor levels number of final states. (e.g. if there are 2 sexes,
 #'  3 visits, and 4 genotypes, there will be 2, 6, 24 states going
@@ -2235,7 +2239,7 @@ plot_metadata_factors <- function(exp, column = "hisatsinglemapped", second_colu
 #' @export
 plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "node",
                              font_size = 18, node_width = 30,
-                             color_choices = NULL,
+                             color_choices = NULL, label_all = TRUE,
                              drill_down = TRUE) {
   ## Recasting to a dataframe in case I pass a SE with a datatable/tibble/etc
   design <- as.data.frame(design)
@@ -2329,6 +2333,8 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
   plot_df <- merge(plot_df, links_to_nodes, by.x = "node", by.y = "name")
   plot_df[["name"]] <- paste0(plot_df[["name"]], ":",
                               plot_df[["value"]])
+  plot_df[["label"]] <- gsub(x = plot_df[["name"]], pattern = ".* (\\w+:\\d+)$",
+                             replacement = "\\1")
 
   color_fact <- NULL
   if (!is.null(color_choices)) {
@@ -2366,14 +2372,28 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
     "observed_nodes" = unique(plot_df[["node"]]))
 
   if (fill == "node") {
-    ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
-                                 node = !!sym("node"), next_node = !!sym("next_node"),
-                                 fill = factor(!!sym("node")), label = !!sym("name")))
+    ggplt <- NULL
+    if (isTRUE(label_all)) {
+      ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                   node = !!sym("node"), next_node = !!sym("next_node"),
+                                   fill = factor(!!sym("node")), label = !!sym("name")))
+    } else {
+      message("label_all is FALSE.")
+      ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                   node = !!sym("node"), next_node = !!sym("next_node"),
+                                   fill = factor(!!sym("node")), label = !!sym("label")))
+    }
   } else if (fill == "next") {
     message("Filling to next node?")
-    ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
-                                 node = !!sym("node"), next_node = !!sym("next_node"),
-                                 fill = factor(!!sym("next_node")), label = !!sym("name")))
+    if (isTRUE(label_all)) {
+      ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                   node = !!sym("node"), next_node = !!sym("next_node"),
+                                   fill = factor(!!sym("next_node")), label = !!sym("name")))
+    } else {
+      ggplt <- ggplot(plot_df, aes(x = !!sym("x"), next_x = !!sym("next_x"),
+                                   node = !!sym("node"), next_node = !!sym("next_node"),
+                                   fill = factor(!!sym("next_node")), label = !!sym("label")))
+    }
   }
   ggplt <- ggplt +
     ggsankey::geom_sankey(flow.alpha = 0.6,
@@ -2425,11 +2445,11 @@ setMethod(
   "plot_meta_sankey", signature = signature(design = "SummarizedExperiment"),
   definition = function(design, factors = c("condition", "batch"),
                         fill = "node", font_size = 18, node_width = 30,
-                        color_choices = NULL, drill_down = TRUE) {
+                        color_choices = NULL, label_all = TRUE, drill_down = TRUE) {
     design <- colData(design)
     plot_meta_sankey(design, factors = factors, fill = fill, font_size = font_size,
                      node_width = node_width, color_choices = color_choices,
-                     drill_down = drill_down)
+                     label_all = label_all, drill_down = drill_down)
   })
 
 ## I might want to just delete this, I think the ggplot version is better.

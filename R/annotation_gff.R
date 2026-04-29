@@ -227,6 +227,31 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
   return(ret)
 }
 
+#' Take the df from load_gff_annotations and pull the GO information from it.
+#'
+#' @param df Result from load_gff_annotations()
+#' @param go_column Column containing the GO list
+#' @param id_column Column containing the gene IDs
+#' @param separator Character separating the GO categories.
+load_gff_go <- function(df, go_column = "GO", id_column = "row.names", separator = ",") {
+  go_df <- data.frame()
+  starting_df <- data.frame()
+  if (id_column == "row.names") {
+    starting_df <- df
+    starting_df[["id_column"]] <- rownames(starting_df)
+    starting_df <- starting_df[, c("id_column", go_column)]
+  } else {
+    starting_df <- df[, c(id_column, go_column)]
+  }
+  colnames(starting_df) <- c("ID", "GO")
+  starting_df <- as.data.frame(starting_df)
+  go_df <- starting_df %>%
+    dplyr::mutate("GO" = as.list(strsplit(x = .data[["GO"]], split = separator))) %>%
+    tidyr::unnest("GO")
+  go_df[["GO"]] <- gsub(x = go_df[["GO"]], pattern = "\\s", replacement = "")
+  return(go_df)
+}
+
 #' Merge child annotations into a parental gff file.
 #'
 #' On occasion we create gff files with specific features of interest.

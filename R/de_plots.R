@@ -1550,6 +1550,10 @@ significant_barplots <- function(combined, lfc_cutoffs = c(0, 1, 2), invert = FA
   downlist <- list()
 
   types <- according_to
+  if (length(according_to) < 1) {
+    message("Unable to discern the methods to test significance, according_to is NULL.")
+    return(NULL)
+  }
   if (according_to[[1]] == "all") {
     types <- c("limma", "edger", "deseq", "ebseq", "basic")
   }

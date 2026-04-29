@@ -22,9 +22,9 @@ pp(
 \item{image}{Optionally, add the image you wish to plot and this will both
 print it to file and screen.}
 
-\item{width}{How wide?}
+\item{width}{Image width in inches.}
 
-\item{height}{How high?}
+\item{height}{Image height in inches.}
 
 \item{res}{The chosen resolution.}
 

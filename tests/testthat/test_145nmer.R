@@ -24,10 +24,10 @@ annot_df[["short_chromosome_name"]] <- gsub(x = annot_df[["chromosome_name"]],
 padding <- gather_utrs_padding(BSgenome.Dmelanogaster.UCSC.dm6,
                                annot_df = annot_df,
                                name_column = "ensembl", start_column = "start_position",
-                               chr_column = "short_chromosome_name", end_column = "end_position",
+                               chr_column = "chromosome_name", end_column = "end_position",
                                strand_column = "TXSTRAND", gene_type = "protein-coding",
                                type_column = "genetype")
-expected <- 4508
+expected <- 4506
 actual <- nrow(padding[["fiveprime_plus_table"]])
 test_that("Collect padding of CDS from the melanogaster genome?", {
     expect_equal(expected, actual)

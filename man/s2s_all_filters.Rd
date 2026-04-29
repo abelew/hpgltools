@@ -8,6 +8,7 @@ s2s_all_filters(
   s2s_exp,
   column = "proteinname",
   pep_column = "fullpeptidename",
+  mscore_column = "m_score",
   fft = 0.7,
   plot = FALSE,
   target_fdr = 0.02,

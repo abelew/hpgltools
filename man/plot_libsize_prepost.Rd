@@ -36,5 +36,5 @@ change in the number of genes which are well/poorly represented in the data
 before and after performing a low-count filter.
 }
 \seealso{
-[plot_libsize()] [filter_counts()]
+[plot_quantreads()] [filter_counts()]
 }

@@ -4,7 +4,7 @@
 \alias{check_xlsx_worksheet}
 \title{Create the named worksheet in a workbook, this function was not well named.}
 \usage{
-check_xlsx_worksheet(wb, sheet)
+check_xlsx_worksheet(wb, sheet, taken_sheets = c())
 }
 \arguments{
 \item{wb}{Workbook to modify}

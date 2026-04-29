@@ -10,7 +10,7 @@ load_genbank_annotations(
   file = NULL,
   sequence = TRUE,
   type = "CDS",
-  savetxdb = FALSE,
+  savetxdb = TRUE,
   restez_db = "/sw/local/genbank/current"
 )
 }

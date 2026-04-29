@@ -33,10 +33,15 @@ test_that("calling convert_counts and normalize are equivalent?", {
 ## Make sure that we remove undefined numbers from fdata(length)
 ## This subtraction logic is no longer needed, the pasilla annotations have
 ## cds lengths already recorded; and they take into account the UTRs.
-#rowData(pasilla_se)[["start_position"]] <- as.numeric(rowData(pasilla_se)[["start_position"]])
-#rowData(pasilla_se)[["end_position"]] <- as.numeric(rowData(pasilla_se)[["end_position"]])
-#rowData(pasilla_se)[["cds_length"]] <- abs(rowData(pasilla_se)[["start_position"]] -
-#                                             rowData(pasilla_se)[["end_position"]])
+
+## Well, some versions of pasilla provide this information, others do not...
+if (is.null(rowData(pasilla_se)[["cds_length"]])) {
+  rowData(pasilla_se)[["start_position"]] <- as.numeric(rowData(pasilla_se)[["start_position"]])
+  rowData(pasilla_se)[["end_position"]] <- as.numeric(rowData(pasilla_se)[["end_position"]])
+  rowData(pasilla_se)[["cds_length"]] <- abs(rowData(pasilla_se)[["start_position"]] -
+                                               rowData(pasilla_se)[["end_position"]])
+  print(summary(rowData(pasilla_se)[["cds_length"]]))
+}
 undef <- rowData(pasilla_se)[["cds_length"]] == "undefined"
 lengths <- rowData(pasilla_se)[["cds_length"]]
 lengths[undef] <- NA
@@ -53,9 +58,13 @@ test_that("rpkm conversions are equivalent?", {
 ## I have a modification of rpkm(), cp_seq_m(), which should give some expected results.
 ## This is intended to count the number of instances of a given sequence ('TA' by default)
 ## and normalize based on its relative frequency.  This is useful primarily for tnseq.
-tt <- BiocManager::install("BSgenome.Dmelanogaster.UCSC.dm6")
-tt <- sm(library("BSgenome.Dmelanogaster.UCSC.dm6"))
+genome <- "BSgenome.Dmelanogaster.UCSC.dm6"
+installp <- ! genome %in% installed.packages()
+if (isTRUE(installp)) {
+  tt <- BiocManager::install(genome)
+}
 
+tt <- sm(library(genome, character.only = TRUE))
 pasilla_convert <- suppressWarnings(normalize(
   pasilla_se, convert = "cp_seq_m", start_column = "start_position",
   chromosome_column = "chromosome_name", end_column = "end_position",

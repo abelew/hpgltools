@@ -13,16 +13,6 @@ if (file.exists(pasilla_file) & file.exists(pasilladf_file)) {
 pasilla_se <- pasilla[["se"]]
 ## create_se generates a .Rdata file which may be reread, do so.
 
-limma <- new.env()
-limma_file <- "320_de_limma.rda"
-if (file.exists(limma_file)) {
-  load(limma_file, envir = limma)
-} else {
-  stop("The pasilla data file does not exist.")
-}
-counts <- limma[["counts"]]
-design <- limma[["design"]]
-
 metadata <- design
 colnames(metadata) <- c("condition", "batch")
 metadata[["condition"]] <- as.factor(metadata[["condition"]])

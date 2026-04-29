@@ -10,8 +10,8 @@ NULL
 #' @param file Filename to write
 #' @param image Optionally, add the image you wish to plot and this will both
 #'  print it to file and screen.
-#' @param width How wide?
-#' @param height How high?
+#' @param width Image width in inches.
+#' @param height Image height in inches.
 #' @param res The chosen resolution.
 #' @param crop Crop off the edges of the plot?
 #' @param ... Arguments passed to the image plotters.
@@ -402,6 +402,30 @@ function(el, x) {
     "plotly" = plotly,
     "modified_df" = plot[["data"]])
   return(retlist)
+}
+
+#' Remove an arbitrary geometry from a ggplot2 object
+#'
+#' Amalie asked about removing labels from a plot, I did not want to
+#' regenerate the plot and so did a search and found the following
+#' function which excludes a geometry from a ggplot2 object.
+#' @param ggplot2_object Input ggplot2 plot.
+#' @param geom_type Exclude elements of this geometry type from the
+#' plot.
+#' @export
+remove_ggplot_geom <- function(ggplot2_object, geom_type = "GeomTextRepel") {
+  # Delete layers that match the requested type.
+  layers <- lapply(ggplot2_object$layers, function(x) {
+    if (class(x$geom)[1] == geom_type) {
+      NULL
+    } else {
+      x
+    }
+  })
+  # Delete the unwanted layers.
+  layers <- layers[!sapply(layers, is.null)]
+  ggplot2_object$layers <- layers
+  return(ggplot2_object)
 }
 
 ## EOF

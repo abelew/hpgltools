@@ -1152,6 +1152,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
 #' @seealso [SWATH2stats]
 #' @export
 s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullpeptidename",
+                            mscore_column = "m_score",
                             fft = 0.7, plot = FALSE, target_fdr = 0.02, upper_fdr = 0.05,
                             mscore = 0.01, percentage = 0.75, remove_decoys = TRUE,
                             max_peptides = 15, min_peptides = 2,
@@ -1159,18 +1160,20 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
                             do_proteotypic = TRUE, do_peptide = TRUE,
                             do_max = TRUE, do_min = TRUE, ...) {
   retlist <- list()
-  retlist[["decoy_lists"]] <- SWATH2stats::assess_decoy_rate(s2s_exp)
-  decoy_number <- grepl(pattern = "^DECOY", x = s2s_exp[["proteinname"]])
+  retlist[["decoy_lists"]] <- SWATH2stats::assess_decoy_rate(s2s_exp, column = column)
+  decoy_number <- grepl(pattern = "^DECOY", x = s2s_exp[[column]])
   message("There were ", sum(!decoy_number),
           " observations and ", sum(decoy_number), " decoy observations.")
-  retlist[["fdr_overall"]] <- SWATH2stats::assess_fdr_overall(
-    s2s_exp, output = "Rconsole", plot = plot)
-  retlist[["byrun_fdr"]] <- SWATH2stats::assess_fdr_byrun(
-    s2s_exp, FFT = fft, plot = plot, output = "Rconsole")
+  retlist[["fdr_overall"]] <- try(SWATH2stats::assess_fdr_overall(
+    s2s_exp, output = "Rconsole", plot = plot, score_col = mscore_column))
+  retlist[["byrun_fdr"]] <- try(SWATH2stats::assess_fdr_byrun(
+    s2s_exp, FFT = fft, plot = plot, output = "Rconsole"))
   retlist[["chosen_mscore"]] <- SWATH2stats::mscore4assayfdr(
-    s2s_exp, FFT = fft, fdr_target = target_fdr, ...)
+    s2s_exp, FFT = fft, fdr_target = target_fdr,
+    ...)
   retlist[["prot_score"]] <- SWATH2stats::mscore4protfdr(
-    s2s_exp, FFT = fft, fdr_target = target_fdr, ...)
+    s2s_exp, FFT = fft, fdr_target = target_fdr,
+    ...)
   message("Starting mscore filter.")
   retlist[["raw"]] <- s2s_exp
   filt <- s2s_exp
@@ -1178,9 +1181,8 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
   if (isTRUE(do_mscore)) {
     message("Starting mscore filter.")
     filt <- try(SWATH2stats::filter_mscore(
-                                 s2s_exp,
-                                 retlist[["chosen_mscore"]],
-                                 ...))
+      s2s_exp, retlist[["chosen_mscore"]],
+      ...))
     if (class(filt)[1] == "try-error") {
       warning("The mscore filter failed, reverting to the raw data.")
       filt <- s2s_exp
@@ -1197,10 +1199,8 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
   if (isTRUE(do_freqobs)) {
     message("Starting freqobs filter.")
     filt <- try(SWATH2stats::filter_mscore_freqobs(
-                                 filt,
-                                 mscore,
-                                 percentage,
-                                 ...))
+      filt, mscore, percentage,
+      ...))
     if (class(filt)[1] == "try-error") {
       warning("The mscore filter failed, reverting to the mscore filtered data.")
       filt <- filt_backup
@@ -1218,11 +1218,9 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
     message("Starting fdr filter.")
     ## filter_mscore_fdr should probably be modified for flexibility.
     filt <- try(SWATH2stats::filter_mscore_fdr(
-                                 filt,
-                                 FFT = fft,
-                                 overall_protein_fdr_target = retlist[["prot_score"]],
-                                 upper_overall_peptide_fdr_limit = upper_fdr,
-                                 ...))
+      filt, FFT = fft, overall_protein_fdr_target = retlist[["prot_score"]],
+      upper_overall_peptide_fdr_limit = upper_fdr,
+      ...))
     if (class(filt)[1] == "try-error") {
       warning("The fdr filter failed, reverting to the freqobs filtered data.")
       filt <- filt_backup
@@ -1237,11 +1235,10 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
   filt_backup <- filt
 
   if (isTRUE(do_proteotypic)) {
-    message("Starting proteotypic filter.")
+    message("Starting proteotypic filter, note the 'column' argument requires a modified s2s.")
     filt <- try(SWATH2stats::filter_proteotypic_peptides(
-                                 filt,
-                                 column = column,
-                                 ...))
+      filt, column = column,
+      ...))
     if (class(filt)[1] == "try-error") {
       warning("The proteotypic filter failed, reverting to the fdr filtered data.")
       filt <- filt_backup
@@ -1260,8 +1257,7 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
     ## Looking at this function, it just renames the peptides to remove the 1/!
     ## That is not a filter!
     filt <- try(SWATH2stats::filter_all_peptides(
-                                 filt,
-                                 column = column))
+      filt, column = column))
     if (class(filt)[1] == "try-error") {
       warning("The peptide filter failed, reverting to the proteotypic filtered data.")
       filt <- filt_backup
@@ -1278,10 +1274,8 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
   if (isTRUE(do_max)) {
     message("Starting maximum peptide filter.")
     filt <- try(SWATH2stats::filter_on_max_peptides(
-                                 data = filt,
-                                 column = column,
-                                 n_peptides = max_peptides,
-                                 ...))
+      data = filt, column = column, n_peptides = max_peptides,
+      ...))
     if (class(filt)[1] == "try-error") {
       warning("The maximum peptide filter failed, reverting to the proteotypic filtered data.")
       filt <- filt_backup
@@ -1297,10 +1291,7 @@ s2s_all_filters <- function(s2s_exp, column = "proteinname", pep_column = "fullp
   if (isTRUE(do_min)) {
     message("Starting minimum peptide filter.")
     filt <- try(SWATH2stats::filter_on_min_peptides(
-                                 data = filt,
-                                 n_peptides = min_peptides,
-                                 column = column,
-                                 rm.decoy = remove_decoys))
+      data = filt, n_peptides = min_peptides, column = column, rm.decoy = remove_decoys))
     if (class(filt)[1] == "try-error") {
       warning("The minimum peptide filter failed, reverting to the maximum peptide filtered data.")
       filt <- filt_backup

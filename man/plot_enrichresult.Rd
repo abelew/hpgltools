@@ -2,7 +2,7 @@
 % Please edit documentation in R/ontology_plots.R
 \name{plot_enrichresult}
 \alias{plot_enrichresult}
-\title{Invoke ther various fun plots created by Guangchuang Yu.}
+\title{Invoke the various fun plots created by Guangchuang Yu.}
 \usage{
 plot_enrichresult(enrichresult, ...)
 }

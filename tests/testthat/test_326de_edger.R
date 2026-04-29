@@ -12,16 +12,6 @@ if (file.exists(pasilla_file)) {
 }
 pasilla_se <- pasilla[["se"]]
 
-limma <- new.env()
-limma_file <- "320_de_limma.rda"
-if (file.exists(limma_file)) {
-  load(limma_file, envir = limma)
-} else {
-  stop("The pasilla data file does not exist.")
-}
-counts <- limma[["counts"]]
-design <- limma[["design"]]
-
 metadata <- design
 colnames(metadata) <- c("condition", "batch")
 ## Performing edgeR differential expression analysis as per the edgeR vignette.

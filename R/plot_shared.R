@@ -177,7 +177,7 @@ ggplt <- function(gg, filename = "ggplot.html",
 #'   \item density = a ggplot2 view of the density of each raw sample (this is
 #'      complementary but more fun than a boxplot)
 #' }
-#' @seealso [plot_nonzero()] [plot_legend()] [plot_libsize()] [plot_disheat()]
+#' @seealso [plot_nonzero()] [plot_legend()] [plot_quantreads()] [plot_disheat()]
 #'  [plot_corheat()] [plot_topn()] [plot_pca()] [plot_sm()] [plot_boxplot()]
 #' @examples
 #' \dontrun{
@@ -239,7 +239,7 @@ graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean"
     nonzero <- list()
   }
   mesg("Graphing library sizes.")
-  libsize <- try(plot_libsize(input, plot_title = libsize_title,
+  libsize <- try(plot_quantreads(input, plot_title = libsize_title,
                               ...))
   if ("try-error" %in% class(libsize)) {
     libsize <- list()

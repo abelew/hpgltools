@@ -19,6 +19,7 @@
   freeze_first_column = TRUE,
   date_format = "yyyy-mm-dd",
   column_width = "heuristic",
+  taken_sheets = c(),
   ...
 )
 }

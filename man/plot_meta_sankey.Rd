@@ -11,6 +11,7 @@ plot_meta_sankey(
   font_size = 18,
   node_width = 30,
   color_choices = NULL,
+  label_all = TRUE,
   drill_down = TRUE
 )
 }
@@ -27,6 +28,11 @@ plot_meta_sankey(
 
 \item{color_choices}{Either a named vector of states and colors, or NULL
 (in which case it will use viridis.)}
+
+\item{label_all}{This defaults to creating labels which are the
+concatenation of the entire state, which works well for simple
+experimental designs but can quickly become too much to read after
+3 or 4 factors.}
 
 \item{drill_down}{When true, this will end in the product of the
  factor levels number of final states. (e.g. if there are 2 sexes,

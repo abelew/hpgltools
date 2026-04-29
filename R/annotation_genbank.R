@@ -30,9 +30,13 @@ NULL
 #' @export
 load_genbank_annotations <- function(accession = "AE009949", db = "nucleotide",
                                      file = NULL, sequence = TRUE, type = "CDS",
-                                     savetxdb = FALSE, restez_db = "/sw/local/genbank/current") {
-  restez::restez_path_set(filepath = restez_db)
-  all_ids <- restez::list_db_ids(n = NULL)
+                                     savetxdb = TRUE, restez_db = "/sw/local/genbank/current") {
+  restez_found <- try(restez::restez_path_set(filepath = restez_db), silent = TRUE)
+  if ("try-error" %in% class(restez_found)) {
+    all_ids <- NULL
+  } else {
+    all_ids <- restez::list_db_ids(n = NULL)
+  }
   res <- list()
   if (accession %in% all_ids) {
     res <- restez::gb_record_get(accession)

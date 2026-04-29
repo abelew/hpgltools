@@ -236,6 +236,12 @@ gather_utrs_padding <- function(bsgenome, annot_df, gid = NULL, name_column = "g
   range_names <- as.character(GenomicRanges::seqnames(pluses_fivep))
   genome_names <- as.character(names(bsgenome))
   keep_idx <- range_names %in% genome_names
+  if (sum(keep_idx) < 10) {
+    warning("There are very few matches between the genome and grange names.  Check the chr_column and name_column parameters.")
+    if (sum(keep_idx) == 0) {
+      stop("There are no matches between the name and chromosome names.")
+    }
+  }
   pluses_fivep <- pluses_fivep[keep_idx]
   retlist[["fiveprime_plus_granges"]] <- pluses_fivep
 

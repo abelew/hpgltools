@@ -147,13 +147,13 @@ test_that("Does plot_pyprophet_protein return a plot?", {
 cf_tric_file <- system.file(file.path("share", "cf_comet_HCD.tsv"),
                             package = "hpgldata")
 cf_tric_data <- readr::read_tsv(cf_tric_file)
-cf_tric_data[["ProteinName"]] <- gsub(pattern="^(.*)_.*$", replacement="\\1",
-                                      x=cf_tric_data[["ProteinName"]])
+cf_tric_data[["ProteinName"]] <- gsub(pattern = "^(.*)_.*$", replacement = "\\1",
+                                      x = cf_tric_data[["ProteinName"]])
 wc_tric_file <- system.file(file.path("share", "wc_comet_HCD.tsv"),
                             package = "hpgldata")
 wc_tric_data <- readr::read_tsv(wc_tric_file)
-wc_tric_data[["ProteinName"]] <- gsub(pattern="^(.*)_.*$", replacement="\\1",
-                                      x=wc_tric_data[["ProteinName"]])
+wc_tric_data[["ProteinName"]] <- gsub(pattern = "^(.*)_.*$", replacement = "\\1",
+                                      x = wc_tric_data[["ProteinName"]])
 tric_data <- rbind(wc_tric_data, cf_tric_data)
 prev_tric_file <- system.file(file.path("share", "previous_comet_HCD.tsv"),
                               package = "hpgldata")
@@ -177,16 +177,36 @@ rownames(sample_annotation) <- paste0("s", rownames(sample_annotation))
 s2s_file <- system.file(file.path("share", "s2s_data.rda"), package = "hpgldata")
 ## I therefore performed the above and copied the resulting csv file
 ## to hpgldata as s2s_data.csv
-s2s_data <- load(s2s_file)
+s2s_data <- environment()
+loaded <- load(s2s_file, envir = s2s_data)
 
 ## With that in mind, this is one of my functions, but it just runs swath2stats filters.
+## My s2s_all_filters assumes a slightly modified version of SWATH2stats
+## which is able to take in non-standard column names for the various
+## mscore/decoy/etc data.  If one does not have that, some steps will falter,
+## but it should still provide at least a partial filtering.
 s2s_filtered <- s2s_all_filters(s2s_data, target_fdr = 0.1, mscore = 0.1,
                                 upper_fdr = 0.1, do_min = FALSE)
-filtered_mtrx <- as.data.frame(write_matrix_proteins(s2s_filtered[["final"]]))
-rownames(filtered_mtrx) <- filtered_mtrx[[1]]
-filtered_mtrx[[1]] <- NULL
+## write_matrix_peptides requires a few columns:
+## ProteinName run_id FullPeptideName Intensity decoy ProteinName
+s2s_final <- s2s_filtered[["final"]]
+colnames(s2s_final)[1] <- "ProteinName"
+colnames(s2s_final)[2] <- "FullPeptideName"
+colnames(s2s_final)[22] <- "Intensity"
+protein_mtrx <- write_matrix_proteins(s2s_final)
+filtered_mtrx <- as.data.frame(protein_mtrx)
+filtered_mtrx[["gene"]] <- gsub(protein_mtrx[["ProteinName"]], pattern = "(^\\d+\\/)(\\w+)_.*$",
+                                replacement = "\\2")
+filtered_mtrx[["gene"]] <- gsub(x = filtered_mtrx[["gene"]], pattern = "^\\d+\\/", replacement = "")
+rownames(filtered_mtrx) <- make.names(filtered_mtrx[["gene"]], unique = TRUE)
+filtered_mtrx[["gene"]] <- NULL
+filtered_mtrx[["ProteinName"]] <- NULL
+## rownames(filtered_mtrx) <- filtered_mtrx[[1]]
+## filtered_mtrx[[1]] <- NULL
 ## Sadly, s2s leaves the weirdly formatted sample names in place, so I still need to do
 ## some manual massaging before I can use it.
+
+## Also I think I wrote something which can relatively intelligently do all this for me?
 reordered <- colnames(filtered_mtrx)
 metadata <- sample_annotation[reordered, ]
 colnames(filtered_mtrx) <- gsub(x = colnames(filtered_mtrx),
@@ -199,23 +219,33 @@ mtb_annotations <- as.data.frame(mtb_microbes)
 rownames(mtb_annotations) <- make.names(mtb_annotations[["sysName"]], unique = TRUE)
 
 existing_data <- rownames(sample_annotation) %in% colnames(filtered_mtrx)
+message("There are ", sum(existing_data),
+        " entries which agree between the matrix and sample annotations.")
 sample_annot_subset <- sample_annotation[existing_data, ]
-existing_data <- rownames(t(filtered_mtrx)) %in% rownames(sample_annotation)
-t_filtered_mtrx <- t(filtered_mtrx)[existing_data, ]
-filtered_mtrx <- t(t_filtered_mtrx)
+existing_data <- rownames(t(filtered_mtrx)) %in% rownames(sample_annot_subset)
+t_filtered_mtrx <- BiocGenerics::t(filtered_mtrx)[existing_data, ]
+filtered_mtrx <- as.data.frame(t(t_filtered_mtrx))
 reordered <- colnames(filtered_mtrx)
 metadata <- sample_annot_subset[reordered, ]
 metadata[["sampleid"]] <- rownames(metadata)
 weird_ids <- grepl(x = rownames(filtered_mtrx), pattern = "_")
-filtered_mtrx <- filtered_mtrx[!weird_ids, ]
+if (sum(weird_ids) > 0) {
+  filtered_mtrx <- filtered_mtrx[!weird_ids, ]
+}
 
 rownames(metadata)
 colnames(filtered_mtrx)
+rownames(metadata) == colnames(filtered_mtrx)
+dim(filtered_mtrx)
 
-mtb_se <- create_se(metadata, count_dataframe = filtered_mtrx, gene_info = mtb_annotations)
-plot_libsize(mtb_se)
+mtb_se <- create_se(metadata, count_dataframe = filtered_mtrx,
+                    gene_info = mtb_annotations, handle_na = "leave",
+                    feature_type = "peptide", savefile = "mtb_peptides.rda")
+plot_quantreads(mtb_se)
 plot_nonzero(mtb_se)
 
+mtb_norm <- normalize(mtb_se, transform = "log2", convert = "cpm", filter = TRUE)
+plot_pca(mtb_norm)
 end <- as.POSIXlt(Sys.time())
 elapsed <- round(x = as.numeric(end - start))
 message("\nFinished 250proteomics.R in ", elapsed,  " seconds.")

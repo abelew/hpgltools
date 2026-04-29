@@ -17,7 +17,6 @@ simple_clusterprofiler(
   qcutoff = 0.1,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
-  internal = FALSE,
   updown = "up",
   permutations = 1000,
   min_groupsize = 5,
@@ -26,9 +25,7 @@ simple_clusterprofiler(
   kegg_organism = NULL,
   categories = 12,
   excel = NULL,
-  david_id = "ENTREZ_GENE_ID",
   padj_type = "BH",
-  david_user = "abelew@umd.edu",
   mesh_category = "C",
   mesh_dbname = "gendoo",
   msigdb_category = "C2",
@@ -71,8 +68,6 @@ expressed categories.}
 \item{second_fc_column}{When extracting vectors of all genes, what column
 should be tried the second time around?}
 
-\item{internal}{Deprecated}
-
 \item{updown}{Include the less than expected ontologies?}
 
 \item{permutations}{How many permutations for GSEA-ish analyses?}
@@ -89,11 +84,7 @@ should be tried the second time around?}
 
 \item{excel}{Print the results to an excel file?}
 
-\item{david_id}{Which column to use for cross-referencing to DAVID?}
-
 \item{padj_type}{P adjustment method to use.}
-
-\item{david_user}{Default registered username to use.}
 
 \item{mesh_category}{Use this category for MESH.}
 
@@ -118,6 +109,12 @@ should be tried the second time around?}
 \item{de_table_namedf}{Provide an alternate set of gene IDs vs. the NCBI IDs.}
 
 \item{sig_genes_namedf}{Ibid.}
+
+\item{internal}{Deprecated}
+
+\item{david_id}{Which column to use for cross-referencing to DAVID?}
+
+\item{david_user}{Default registered username to use.}
 }
 \value{
 a list
