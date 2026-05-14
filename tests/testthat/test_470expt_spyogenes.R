@@ -16,28 +16,29 @@ test_that("Did the gene information load?", {
   expect_equal(expected, actual)
 })
 
-mgas_norm <- normalize(mgas_se, transform = "log2",
-                          convert = "cbcbcpm", filter = TRUE)
+mgas_norm <- normalize(mgas_se, transform = "log2", convert = "cbcbcpm", filter = TRUE)
+mgas_state <- state(mgas_norm)
 test_that("Is the filter state maintained?", {
-  expect_equal("cbcb", mgas_norm[["state"]][["filter"]])
+  expect_equal("cbcb", mgas_state[["filter"]])
 })
 test_that("Is the normalization state maintained?", {
-  expect_equal("raw", mgas_norm[["state"]][["normalization"]])
+  expect_equal("raw", mgas_state[["normalization"]])
 })
 test_that("Is the conversion state maintained?", {
-  expect_equal("cbcbcpm", mgas_norm[["state"]][["conversion"]])
+  expect_equal("cbcbcpm", mgas_state[["conversion"]])
 })
 test_that("Is the transformation state maintained?", {
-  expect_equal("log2", mgas_norm[["state"]][["transform"]])
+  expect_equal("log2", mgas_state[["transform"]])
 })
 
 mgas_norm <- normalize(mgas_norm, batch = "combat_scale")
+mgas_state <- state(mgas_norm)
 test_that("Is the batch state maintained?", {
-  expect_equal("combat_scale", mgas_norm[["state"]][["batch"]])
+  expect_equal("combat_scale", mgas_state[["batch"]])
 })
 
 mgas_pairwise <- all_pairwise(mgas_se)
-expected <- 0.39
+expected <- 0.50
 actual <- min(mgas_pairwise[["comparison"]][["comp"]])
 test_that("Do we get reasonably high similarities among the various DE tools?", {
   expect_gt(actual, expected)
@@ -46,27 +47,30 @@ test_that("Do we get reasonably high similarities among the various DE tools?", 
 mgas_combined <- combine_de_tables(mgas_pairwise, excel = FALSE)
 mgas_sig <- extract_significant_genes(mgas_combined, excel = FALSE)
 expected <- 150
-actual <- nrow(mgas_sig[["deseq"]][["ups"]][["wtllcf_vs_mga1llcf"]])
+actual <- nrow(mgas_sig[["deseq"]][["ups"]][["wt_ll_cf_vs_mga1_ll_cf"]])
 test_that("Do we find some significant genes in the mga/wt fructose analysis?", {
   expect_gt(actual, expected)
 })
 
 mgas_data <- load_genbank_annotations(accession = "AE009949")
 expected <- 1895017
-actual <- GenomicRanges::width(mgas_data[["seq"]])  ## This fails on travis?
+actual <- Biostrings::width(mgas_data[["sequence"]])
 actual_width <- actual
 test_that("Can I extract the chromosome sequence from a genbank file? (widths)", {
   expect_equal(expected, actual)
 })
 
-expected <- c(1845, 17)
-actual <- dim(as.data.frame(mgas_data[["exons"]]))
+cds_features <- mgas_data[["feature_list"]][["CDS"]]
+
+expected <- c(1845, 10)
+actual <- dim(cds_features)
 test_that("Can I extract the chromosome sequence from a genbank file? (exons)", {
   expect_equal(expected, actual)
 })
 
-expected <- c("dnaA", "dnaN", NA, "pth", "trcF", NA)
-actual <- head(as.data.frame(mgas_data[["genes"]])[["gene"]])
+expected <- c("spyM18_0001", "spyM18_0002", "spyM18_0004",
+              "spyM18_0005", "spyM18_0007", "spyM18_0008")
+actual <- head(cds_features[["locus_tag"]])
 test_that("Can I extract the chromosome sequence from a genbank file? (gene names)", {
   expect_equal(expected, actual)
 })
@@ -99,8 +103,8 @@ rownames(circos_annot_df) <- make.names(gsub(x = mgas_df[["sysName"]],
 ## There is no way circos will work on travis, lets be realistic.
 ##if (identical(Sys.getenv("HAS_CIRCOS"), "true")) {
 ## Plot the coefficients of latelog glucose
-glucose_table <- mgas_pairwise[["limma"]][["identity_tables"]][["mga1llcg"]]
-wtvmga_glucose <- mgas_pairwise[["limma"]][["all_tables"]][["wtllcg_vs_mga1llcg"]]
+glucose_table <- mgas_pairwise[["limma"]][["identity_tables"]][["mga1_ll_cg"]]
+wtvmga_glucose <- mgas_pairwise[["limma"]][["all_tables"]][["wt_ll_cg_vs_mga1_ll_cg"]]
 relevant_widths <- merge(glucose_table, mgas_df, by.x = "row.names",
                          by.y = "sysName", all.x = TRUE)
 ## Since genbankr died, get the gene lengths from microbesonline

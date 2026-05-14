@@ -779,6 +779,8 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
     label_list <- design[["sampleid"]]
   } else if (class(exp_names) == "character" && length(exp_names) == 1) {
     label_list <- design[[exp_names]]
+  } else if (class(exp_names) == "character" && length(exp_names) > 1) {
+    label_list <- exp_names
   } else if (is.null(arglist[["label_list"]])) {
     label_list <- given_samples
   } else if (arglist[["label_list"]] == "concat") {

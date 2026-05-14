@@ -1419,7 +1419,7 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
     created <- suppressWarnings(dir.create(ideogram_dir, recursive = TRUE))
   }
 
-  etc_file <- file.path(path.package("hpgldata"), "share", "circos", "circos_etc.tar.xz")
+  etc_file <- file.path(find.package("hpgldata"), "share", "circos", "circos_etc.tar.xz")
   etc_cmd <- glue("tar -C {dirname(conf_dir)} -xavf {etc_file} 2>/dev/null 1>&2")
   system(command = etc_cmd)
 

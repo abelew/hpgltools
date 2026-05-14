@@ -595,9 +595,17 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
                         signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
                         required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5,
                         orgdb = "org.Hs.eg.db", method = "ssgsea", kcdf = NULL,
-                        ranking = FALSE, msig_db = NULL,
+                        ranking = TRUE, msig_db = NULL,
                         ## wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID"),
-                        wanted_meta = "all", mx_diff = TRUE, verbose = FALSE, id_type = "entrez") {
+                        wanted_meta = "all", mx_diff = TRUE, verbose = TRUE, id_type = "entrez") {
+
+  if (is.null(kcdf)) {
+    if (state(se)[["transform"]] == "raw") {
+      kcdf <- "Poisson"
+    } else {
+      kcdf <- "Gaussian"
+    }
+  }
   if (is.null(cores)) {
     cores <- min(parallel::detectCores() - 1, 16)
   }
@@ -636,10 +644,8 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
       sm(requireNamespace(orgdb))
       sm(try(attachNamespace(orgdb), silent = TRUE))
       old_ids <- rownames(assay(se))
-      new_ids <- sm(AnnotationDbi::select(x = get0(orgdb),
-                                          keys = old_ids,
-                                          keytype = current_id,
-                                          columns = c(required_id)))
+      new_ids <- sm(AnnotationDbi::select(
+        x = get0(orgdb), keys = old_ids, keytype = current_id, columns = c(required_id)))
     } else if (id_source == "rowdata") {
       ids <- rowData(se)[[required_id]]
       new_ids <- data.frame(
@@ -713,94 +719,42 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
   ## from the msigDB sqlite file here so that the rowData() has all the fun stuff
   ## like the paper reference, authors, etc.  That information is not available with
   ## the sparse GSVAdata; but I can extract it trivially from the sqlite.
-  gsva_se <- create_se(metadata = colData(se),
-                       gene_info = gene_sets_df, count_dataframe = gsva_result)
+  gsva_se <- create_se(metadata = colData(se), gene_info = gene_sets_df,
+                       count_dataframe = gsva_result)
+  annot_df <- data.frame(row.names = rownames(assay(gsva_se)))
+  annot_df[["description"]] <- ""
+  annot_df[["ids"]] <- ""
+  message("Adding descriptions and IDs to the gene set annotations.")
+  shared_sig_data <- signature_data[rownames(annot_df)]
+  for (i in seq_along(names(shared_sig_data))) {
+    annot_df[i, "description"] <- description(shared_sig_data[[i]])
+    annot_df[i, "ids"] <- toString(GSEABase::geneIds(shared_sig_data[[i]]))
+  }
+  if (!is.null(msig_db)) {
+    message("Adding annotations from ", msig_db, ".")
+    improved <- get_msigdb_metadata(msig_db = msig_db, wanted_meta = wanted_meta)
+    ## Add improved to rowData
+    annot_df <- merge(annot_df, improved, by = "row.names", all.x = TRUE)
+    rownames(annot_df) <- annot_df[["Row.names"]]
+    annot_df[["Row.names"]] <- NULL
+  }
+  rowData(gsva_se) <- annot_df
+
   retlist <- list(
     "input_se" = se,
     "input_matrix" = assay_data,
     "gsva_result" = gsva_se,
-    "signature_data" = signature_data)
+    "method" = method,
+    "min_catsize" = min_catsize,
+    "required_id" = required_id,
+    "se" = se,
+    "signature_category" = signature_category,
+    "signature_data" = signature_data,
+    "signatures" = signatures)
   return(retlist)
+  class(retlist) <- "hpgltools::simple_gsva"
 }
 setGeneric("simple_gsva")
-
-#' Invoke simple_gsva using a SummarizedExperiment as input.
-#'
-#' @param se Se object to be analyzed.
-#' @param signatures Provide an alternate set of signatures (GenseCollections)
-#' @param data_pkg What package contains the requisite dataset?
-#' @param signature_category Specify a subset category to extract from the signatures database.
-#' @param cores How many CPUs to use?
-#' @param current_id Where did the IDs of the genes come from?
-#' @param required_id gsva (I assume) always requires ENTREZ IDs, but just in
-#'  case this is a parameter.
-#' @param id_source How to find the IDs (DBI or rowData).
-#' @param min_catsize Minimum category size to consider interesting (passed to gsva()).
-#' @param orgdb What is the data source for the rownames()?
-#' @param method Which gsva method to use? Changed this from gsva to ssgsea
-#'  because it was throwing segmentation faults.
-#' @param kcdf Options for the gsva methods.
-#' @param ranking another gsva option.
-#' @param msig_db File contining msigdb annotations.
-#' @param wanted_meta Desired metadata elements from the mxig_xml file.
-#' @param mx_diff Passed to gsva(), I do not remember what it does.
-#' @param verbose Print some information while running?
-#' @param id_type Specify the ID type when loading the signature database.
-setMethod(
-  "simple_gsva", signature(se = "SummarizedExperiment"),
-  definition = function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
-                        signature_category = "c2", cores = NULL, current_id = "ENSEMBL",
-                        required_id = "ENTREZID", id_source = "orgdb", min_catsize = 5,
-                        orgdb = "org.Hs.eg.db", method = "ssgsea", kcdf = NULL,
-                        ranking = FALSE, msig_db = NULL,
-                        ## wanted_meta = c("ORGANISM", "DESCRIPTION_BRIEF", "AUTHORS", "PMID"),
-                        wanted_meta = "all", mx_diff = TRUE, verbose = FALSE, id_type = "entrez") {
-    if (is.null(kcdf)) {
-      if (state(se)[["transform"]] == "raw") {
-        kcdf <- "Poisson"
-      } else {
-        kcdf <- "Gaussian"
-      }
-    }
-    gsva_data <- simple_gsva(se = se, signatures = signatures, data_pkg = data_pkg,
-                             signature_category = signature_category, cores = cores,
-                             current_id = current_id, required_id = required_id,
-                             id_source = id_source, min_catsize = min_catsize,
-                             orgdb = orgdb, method = method, kcdf = kcdf, ranking = ranking,
-                             msig_db = msig_db, wanted_meta = wanted_meta, mx_diff = mx_diff,
-                             verbose = verbose, id_type = id_type)
-    gsva_result <- gsva_data[["gsva_result"]]
-    signature_data <- gsva_data[["signature_data"]]
-    fdata_df <- data.frame(row.names = rownames(assay(gsva_result)))
-    fdata_df[["description"]] <- ""
-    fdata_df[["ids"]] <- ""
-    message("Adding descriptions and IDs to the gene set annotations.")
-    shared_sig_data <- signature_data[rownames(fdata_df)]
-    for (i in seq_along(names(shared_sig_data))) {
-      fdata_df[i, "description"] <- description(shared_sig_data[[i]])
-      fdata_df[i, "ids"] <- toString(GSEABase::geneIds(shared_sig_data[[i]]))
-    }
-    if (!is.null(msig_db)) {
-      message("Adding annotations from ", msig_db, ".")
-      improved <- get_msigdb_metadata(msig_db = msig_db, wanted_meta = wanted_meta)
-      ## Add improved to rowData
-      fdata_df <- merge(fdata_df, improved, by = "row.names", all.x = TRUE)
-      rownames(fdata_df) <- fdata_df[["Row.names"]]
-      fdata_df[["Row.names"]] <- NULL
-    }
-    rowData(gsva_result) <- fdata_df
-    retlist <- list(
-      "method" = method,
-      "signatures" = signatures,
-      "signature_category" = signature_category,
-      "required_id" = required_id,
-      "min_catsize" = min_catsize,
-      "se" = se,
-      "gsva" = gsva_result,
-      "fdata" = fdata_df)
-    class(retlist) <- "gsva_result"
-    return(retlist)
-  })
 
 #' Print a gsva category search.
 #'
@@ -808,7 +762,7 @@ setMethod(
 #'  GSVA, a modified SE, the signatures used, and method.
 #' @param ... Other args to match the generic.
 #' @export
-print.gsva_result <- function(x, ...) {
+`print.hpgltools::simple_gsva` <- function(x, ...) {
   summary_string <- glue("GSVA result using method: {x[['method']]} against the \\
 {x[['signature_category']]} dataset.
 Scores range from: {prettyNum(min(assay(x[['se']])))} \\

@@ -17,6 +17,7 @@
   Colv = TRUE,
   label_chars = 10,
   filter = TRUE,
+  topn = NULL,
   ...
 )
 }

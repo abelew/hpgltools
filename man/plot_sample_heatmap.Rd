@@ -17,6 +17,7 @@ plot_sample_heatmap(
   Colv = TRUE,
   label_chars = 10,
   filter = TRUE,
+  topn = NULL,
   ...
 )
 }

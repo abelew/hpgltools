@@ -64,6 +64,15 @@ plot_assay_by_chromosome <- function(exp, chromosome_column = "chromosome", scaf
   return(retlist)
 }
 
+#' I changed this to 'plot_quantreads', but at least for a while cannot
+#' be trusted to remember that.
+#'
+#' @param ... Passed to plot_quantreads
+#' @export
+plot_libsize <- function(...) {
+  plot_quantreads(...)
+}
+
 #' Make a ggplot graph of the number of reads quantified per sample.
 #'
 #' It is often useful to have a quick view of which samples have more/fewer
@@ -404,6 +413,31 @@ The number of genes with low coverage changes by {min_range}-{max_range} genes."
   message(summary_string)
   plot(x[["lowgene_plot"]])
   return(invisible(x))
+}
+
+plot_overrepresented_species <- function(exp, factor = 1.5, prop_vs = "Mean") {
+  message("Note to self, this does not work well if the data is log2 transformed, but should be cpm'd.")
+  df <- as.data.frame(assay(exp))
+  csum <- colSums(df)
+  prop_df <- df
+  for (sample in colnames(df)) {
+    prop_df[[sample]] <- prop_df[[sample]] / csum[[sample]]
+  }
+  vector_summary <- summary(unlist(prop_df))
+  ## Extract the genes which are on average more than x*the mean
+  cutoff_value <- (vector_summary[prop_vs] * factor) * ncol(prop_df)
+  keepers <- rowSums(prop_df) >= cutoff_value
+  short_df <- prop_df[keepers, ]
+  short_df[["name"]] <- rownames(short_df)
+  long_df <- reshape2::melt(short_df)
+  prop_plot <- ggplot(long_df, aes(x = variable, y = value, fill = name)) +
+    ggplot2::geom_bar(stat = "identity") +
+    ggplot2::xlab("Sample ID") +
+    ggplot2::ylab("Relative abundance") +
+    ggplot2::theme_bw(base_size = base_size) +
+    ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
+                   axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
+  return(prop_plot)
 }
 
 #' Make a ggplot graph of the percentage/number of reads kept/removed.

@@ -245,6 +245,7 @@ adjuster_counts <- function(input, model_fstring = "~ 0 + condition",
 #' @param noscale Used by combat, scale the data?
 #' @param prior_plots Perform the various plots provided by combat
 #' @param control_type I do not remember.
+#' @param ... Sometimes all_pairwise and friends have extra arguments which will get passed along.
 #' @return Adjusted data
 #' @export
 adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
@@ -255,7 +256,7 @@ adjuster_svs <- function(input, model_fstring = "~ 0 + condition",
                          filter = "raw", thresh = 1,
                          adjust_method = "ruv",
                          noscale = FALSE, prior_plots = FALSE,
-                         control_type = "norm") {
+                         control_type = "norm", ...) {
   ## Gather all the likely pieces we can use
   ## Without the following requireNamespace(ruv)
   ## we get an error 'unable to find an inherited method for function RUVr'

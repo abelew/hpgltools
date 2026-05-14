@@ -166,7 +166,7 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       "model" = model_mtrx,
       "model_fstring" = model_fstring,
       "norm_input" = norm_input)
-  class(retlist) <- c("noiseq_pairwise", "list")
+  class(retlist) <- c("hpgltools::noiseq_pairwise", "list")
   return(retlist)
 }
 
@@ -175,7 +175,7 @@ noiseq_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
 #' @param x result to print.
 #' @param ... arbitrary arguments.
 #' @export
-print.noiseq_pairwise <- function(x, ...) {
+`print.hpgltools::noiseq_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the Noiseq pairwise analysis.")
   message(summary_string)
   return(invisible(x))

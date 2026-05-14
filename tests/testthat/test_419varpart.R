@@ -13,8 +13,7 @@ pasilla_se <- pasilla[["se"]]
 pasilla_norm <- normalize(pasilla_se, filter = TRUE, transform = "log2",
                           convert = "cpm", norm = "quant")
 
-pasilla_varpart <- sm(simple_varpart(pasilla_norm, predictor = NULL,
-                                     factors = c("condition", "batch")))
+pasilla_varpart <- sm(simple_varpart(pasilla_norm))
 
 ## Grab the model and see if it survived.
 expected <- "condition + batch"
@@ -26,7 +25,8 @@ test_that("Does my varpart function return a sane model?", {
 ## Something strange changed here.
 ## See if the variance by condition is as expected
 ##expected <- c(0.8451941, 0.8436158, 0.8364982, 0.8361348, 0.8240863, 0.8174928)
-expected <-  c(0.9929197, 0.9905977, 0.9900641, 0.9890613, 0.9885474, 0.9867127)
+expected <-  c(0.9929197, 0.9905977, 0.9900641,
+               0.9890613, 0.9885474, 0.9867127)
 actual <- head(pasilla_varpart[["sorted_df"]])[["condition"]]
 test_that("Do we get expected values of variance by condition?", {
   expect_equal(expected, actual, tolerance = 0.01)

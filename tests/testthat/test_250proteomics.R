@@ -193,7 +193,7 @@ s2s_final <- s2s_filtered[["final"]]
 colnames(s2s_final)[1] <- "ProteinName"
 colnames(s2s_final)[2] <- "FullPeptideName"
 colnames(s2s_final)[22] <- "Intensity"
-protein_mtrx <- write_matrix_proteins(s2s_final)
+protein_mtrx <- SWATH2stats::write_matrix_proteins(s2s_final)
 filtered_mtrx <- as.data.frame(protein_mtrx)
 filtered_mtrx[["gene"]] <- gsub(protein_mtrx[["ProteinName"]], pattern = "(^\\d+\\/)(\\w+)_.*$",
                                 replacement = "\\2")

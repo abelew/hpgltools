@@ -228,7 +228,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
       annot_df = annot_df, num_surrogates = num_surrogates, keepers = keepers,
       keep_underscore = keep_underscore, dream_model = dream_model, force = force,
       ...)
-  }
+  }  ## End iterating over the set of included results.
 
   original_pvalues <- NULL
   ## Add in a little work to re-adjust the p-values in the situation where sva
@@ -1131,33 +1131,47 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
   ## contrast performed
   retlst <- list()
   methods <- c()
-  if (class(results[["basic"]])[1] == "basic_pairwise") {
+  if (class(results[["basic"]])[1] == "hpgltools::basic_pairwise") {
     retlst[["basic"]] <- results[["basic"]][["all_tables"]]
     methods <- c(methods, "basic")
+  } else {
+    warn("The basic results are not of class hpgltools::basic_pairwise.")
   }
-  if (class(results[["deseq"]])[1] == "deseq_pairwise") {
+  if (class(results[["deseq"]])[1] == "hpgltools::deseq_pairwise") {
     retlst[["deseq"]] <- results[["deseq"]][["all_tables"]]
     methods <- c(methods, "deseq")
+  } else {
+    warn("The deseq results are not of class hpgltools::deseq_pairwise.")
   }
-  if (class(results[["dream"]])[1] == "dream_pairwise") {
+  if (class(results[["dream"]])[1] == "hpgltools::dream_pairwise") {
     retlst[["dream"]] <- results[["dream"]][["all_tables"]]
     methods <- c(methods, "dream")
+  } else {
+    warn("The dream results are not of class hpgltools::dream_pairwise.")
   }
-  if (class(results[["ebseq"]])[1] == "ebseq_pairwise") {
+  if (class(results[["ebseq"]])[1] == "hpgltools::ebseq_pairwise") {
     retlst[["ebseq"]] <- results[["ebseq"]][["all_tables"]]
     methods <- c(methods, "ebseq")
+  } else {
+    warn("The ebseq results are not of class hpgltools::ebseq_pairwise.")
   }
-  if (class(results[["edger"]])[1] == "edger_pairwise") {
+  if (class(results[["edger"]])[1] == "hpgltools::edger_pairwise") {
     retlst[["edger"]] <- results[["edger"]][["all_tables"]]
     methods <- c(methods, "edger")
+  } else {
+    warn("The edger results are not of class hpgltools::edger_pairwise.")
   }
-  if (class(results[["limma"]])[1] == "limma_pairwise") {
+  if (class(results[["limma"]])[1] == "hpgltools::limma_pairwise") {
     retlst[["limma"]] <- results[["limma"]][["all_tables"]]
     methods <- c(methods, "limma")
+  } else {
+    warn("The limma results are not of class hpgltools::limma_pairwise.")
   }
-  if (class(results[["noiseq"]])[1] == "noiseq_pairwise") {
+  if (class(results[["noiseq"]])[1] == "hpgltools::noiseq_pairwise") {
     retlst[["noiseq"]] <- results[["noiseq"]][["all_tables"]]
     methods <- c(methods, "noiseq")
+  } else {
+    warn("The noiseq results are not of class hpgltools::noiseq_pairwise.")
   }
 
   extra_eval_names <- NULL

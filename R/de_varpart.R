@@ -235,7 +235,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     "pairwise_comparisons" = all_pairwise_comparisons,
     "single_table" = all_tables,
     "voom_result" = voom_result)
-  class(retlist) <- c("dream_pairwise", "list")
+  class(retlist) <- c("hpgltools::dream_pairwise", "list")
   if (!is.null(arglist[["limma_excel"]])) {
     retlist[["dream_excel"]] <- write_limma(retlist, excel = arglist[["limma_excel"]])
   }
@@ -247,7 +247,7 @@ dream_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 #' @param x List from dream_pairwise().
 #' @param ... Other args for the generic.
 #' @export
-print.dream_pairwise <- function(x, ...) {
+`print.hpgltools::dream_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the hybrid variancePartition/limma pairwise analysis.")
   message(summary_string)
   return(invisible(x))

@@ -40,7 +40,7 @@ test_that("Created pseudomonas se of the correct metadata size?", {
 })
 
 expected <- "Pseudomonas aeruginosa RNAseq data of two strains and two time points."
-actual <- pa_se[["title"]]
+actual <- metadata(pa_se)[["title"]]
 ## 04
 test_that("The se has a title.", {
   expect_equal(expected, actual)

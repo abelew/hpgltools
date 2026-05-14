@@ -13,21 +13,19 @@ if (file.exists(pasilla_file) & file.exists(pasilladf_file)) {
 pasilla_se <- pasilla[["se"]]
 ## create_se generates a .Rdata file which may be reread, do so.
 
-metadata <- design
-colnames(metadata) <- c("condition", "batch")
+metadata <- colData(pasilla_se)
+counts <- assay(pasilla_se)
 metadata[["condition"]] <- as.factor(metadata[["condition"]])
 metadata[["batch"]] <- as.factor(metadata[["batch"]])
 ## Performing DESeq2 differential expression analysis as per the DESeq vignette.
-summarized <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
-                                             colData = metadata,
-                                             design=~ 0 + batch + condition)
+summarized <- DESeq2::DESeqDataSetFromMatrix(
+  countData = counts, colData = metadata, design=~ 0 + batch + condition)
 dataset <- DESeq2::DESeqDataSet(se = summarized, design=~ 0 + batch + condition)
 deseq_sf <- DESeq2::estimateSizeFactors(dataset)
 deseq_disp <- DESeq2::estimateDispersions(deseq_sf)
 deseq_run <- DESeq2::nbinomWaldTest(deseq_disp, betaPrior = FALSE)
-deseq_result <- as.data.frame(DESeq2::results(deseq_run,
-                                              contrast = c("condition", "treated", "untreated"),
-                                              format = "DataFrame"))
+deseq_result <- as.data.frame(DESeq2::results(
+  deseq_run, contrast = c("condition", "treated", "untreated"), format = "DataFrame"))
 
 ## Performing DESeq2 analysis using hpgltools.
 hpgl_deseq <- deseq2_pairwise(input = pasilla_se,

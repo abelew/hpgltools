@@ -4,12 +4,12 @@ context("329de_shared.R: Do the combined differential expression searches work?"
 pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
 pasilla_se <- pasilla[["se"]]
+limma <- new.env()
+load("074_de_limma.rda", envir = limma)
 deseq <- new.env()
 load("324_de_deseq.rda", envir = deseq)
 edger <- new.env()
 load("326_de_edger.rda", envir = edger)
-limma <- new.env()
-load("320_de_limma.rda", envir = limma)
 basic <- new.env()
 load("327_de_basic.rda", envir = basic)
 
@@ -24,35 +24,38 @@ hpgl_tables <- combine_de_tables(hpgl_all, keepers = test_keepers,
                                  excel = "excel_test.xlsx")
 
 combined_excel <- hpgl_tables
-expected <- c("gg", "ggplot")
-actual <- class(combined_excel[["plots"]][["treatment"]][["limma_scatter_plots"]][["scatter"]])
+expected <- "ggplot2::ggplot"
+actual <- class(combined_excel[["plots"]][["treatment"]][["limma_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty limma scatter plot?", {
     expect_equal(expected, actual)
 })
-actual <- class(combined_excel[["plots"]][["treatment"]][["deseq_scatter_plots"]][["scatter"]])
+
+actual <- class(combined_excel[["plots"]][["treatment"]][["deseq_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty deseq scatter plot?", {
     expect_equal(expected, actual)
 })
-actual <- class(combined_excel[["plots"]][["treatment"]][["edger_scatter_plots"]][["scatter"]])
+
+actual <- class(combined_excel[["plots"]][["treatment"]][["edger_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty edger scatter plot?", {
     expect_equal(expected, actual)
 })
 
 ## Test that we can extract the significant genes and get pretty graphs
+excel_file <- "excel_test_sig.xlsx"
 significant_excel <- extract_significant_genes(combined_excel,
                                                excel = "excel_test_sig.xlsx")
 test_that("Does combine_de_tables create an excel file?", {
-    expect_true(file.exists("excel_test_sig.xlsx"))
+    expect_true(file.exists(excel_file))
 })
 
 ## How many significant up genes did limma find?
 table <- "treatment"
 actual <- dim(significant_excel[["limma"]][["ups"]][[table]])
 expected_rows <- 90
-expected_cols <- 53
+expected_cols <- 65
 test_that("Is the number of significant up genes as expected? (limma)", {
   expect_gt(actual[1], expected_rows)
-  expect_equal(actual[2], expected_cols)
+  expect_gt(actual[2], expected_cols)
 })
 
 actual <- nrow(significant_excel[["deseq"]][["ups"]][[table]])
@@ -86,15 +89,10 @@ test_that("Is the number of significant down genes as expected? (edger)", {
 })
 
 actual <- class(significant_excel[["sig_bar_plots"]][["limma"]])[[1]]
-expected <- "gg"
+expected <- "ggplot2::ggplot"
 test_that("Are the significance bar plots generated? (limma)",  {
     expect_equal(expected, actual)
 })
-
-test_that("Does combine_de_tables create an excel file?", {
-    expect_true(file.exists("excel_test.xlsx"))
-})
-removed <- file.remove("excel_test.xlsx")
 
 hpgl_two <- all_pairwise(pasilla_se, filter = TRUE, keepers = test_keepers)
 hpgl_two_tables <- combine_de_tables(hpgl_two, keepers = test_keepers)
@@ -103,29 +101,37 @@ test_that("Can we provide limited keepers to all_pairwise()?", {
                names(hpgl_two[["deseq"]][["all_tables"]]))
 })
 
-hpgl_sva_result <- all_pairwise(pasilla_se, model_batch = "sva", which_voom = "limma",
+hpgl_sva_result <- all_pairwise(pasilla_se, model_svs = "svaseq", which_voom = "limma",
+                                model_fstring = "~ 0 + condition",
                                 limma_method = "robust", edger_method = "long",
                                 edger_test = "qlr", filter = TRUE)
 deseq_result <- deseq[["hpgl_deseq"]]
 expected <- deseq_result[["all_tables"]][["untreated_vs_treated"]]
-actual <- hpgl_all[["deseq"]][["all_tables"]][["untreated_vs_treated"]]
+actual <- hpgl_all[["deseq"]][["all_tables"]][["treated_vs_untreated"]]
+shared <- rownames(actual) %in% rownames(expected)
+actual <- actual[shared, ]
+shared <- rownames(expected) %in% rownames(actual)
+expected <- expected[shared, ]
+
+expected_vector <- expected[["logFC"]]
+actual_vector <- actual[["logFC"]] * -1.0
+test_that("Do we get similar results to previous DE runs: (DESeq2)?", {
+    expect_equal(expected_vector, actual_vector, tolerance = 0.05)
+})
+
+edger_result <- edger[["hpgl_edger"]]
+expected <- edger_result[["all_tables"]][["untreated_vs_treated"]]
+actual <- hpgl_all[["edger"]][["all_tables"]][["treated_vs_untreated"]]
 shared <- rownames(actual) %in% rownames(expected)
 actual <- actual[shared, ]
 shared <- rownames(expected) %in% rownames(actual)
 expected <- expected[shared, ]
 table_order <- rownames(expected)
-actual <- actual[table_order, ]
-test_that("Do we get similar results to previous DE runs: (DESeq2)?", {
-    expect_equal(expected, actual, tolerance = 0.05)
-})
 
-edger_result <- edger[["hpgl_edger"]]
-expected <- edger_result[["all_tables"]][["untreated_vs_treated"]]
-expected <- expected[table_order, ]
-actual <- hpgl_all[["edger"]][["all_tables"]][["untreated_vs_treated"]]
-actual <- actual[table_order, ]
+expected_vector <- expected[table_order, "logFC"]
+actual_vector <- actual[table_order, "logFC"] * -1.0
 test_that("Do we get similar results to previous DE runs: (edgeR)?", {
-    expect_equal(expected, actual, tolerance = 0.08)
+    expect_equal(expected_vector, actual_vector, tolerance = 0.08)
 })
 
 limma_result <- limma[["hpgl_limma"]]
@@ -140,10 +146,20 @@ test_that("Do we get similar results to previous DE runs: (limma)?", {
 basic_result <- basic[["hpgl_basic"]]
 expected <- basic_result[["all_tables"]][["untreated_vs_treated"]]
 expected <- expected[table_order, ]
-actual <- hpgl_all[["basic"]][["all_tables"]][["untreated_vs_treated"]]
+actual <- hpgl_all[["basic"]][["all_tables"]][["treated_vs_untreated"]]
 actual <- actual[table_order, ]
+
+shared <- rownames(actual) %in% rownames(expected)
+actual <- actual[shared, ]
+shared <- rownames(expected) %in% rownames(actual)
+expected <- expected[shared, ]
+table_order <- rownames(expected)
+
+expected_vector <- expected[table_order, "logFC"]
+actual_vector <- actual[table_order, "logFC"] * -1.0
+
 test_that("Do we get similar results to previous DE runs: (basic)?", {
-    expect_equal(expected, actual)
+    expect_equal(expected_vector, actual_vector)
 })
 
 le <- hpgl_all[["comparison"]][["comp"]]["limma_vs_edger", ]

@@ -2185,8 +2185,8 @@ dispatch_csv_search <- function(meta, column, input_file_spec, new_spec = NULL,
 #' @param scale Rescale the data?
 #' @return ggplot and maybe some form of useful table.
 #' @export
-plot_metadata_factors <- function(exp, column = "hisatsinglemapped", second_column = NULL,
-                                  norm_column = NULL, type = NULL, scale = "base10") {
+plot_metadata_factor <- function(exp, column = "hisatsinglemapped", second_column = NULL,
+                                  norm_column = NULL, type = NULL, scale = "linear") {
   condition <- plotted <- NULL ## R CMD check
   design <- as.data.frame(colData(exp))
   color_choices <- get_colors_by_condition(exp)
@@ -2212,6 +2212,15 @@ plot_metadata_factors <- function(exp, column = "hisatsinglemapped", second_colu
     meta_plot <- ggstatsplot::ggbetweenstats(data = design, x = condition, y = plotted)
   }
   return(meta_plot)
+}
+
+plot_metadata_pair <- function(exp, column = "hisat_single_mapped_hg38_100",
+                               second_column = "hisat_single_mapped_rRNA", ...) {
+  condition <- plotted <- NULL ## R CMD check
+  design <- as.data.frame(colData(exp))
+  color_choices <- get_colors_by_condition(exp)
+  result <- plot_scatter(design, xcol = column, ycol = second_column)
+  return(result)
 }
 
 #' Plot metadata factors as a sankey diagram.

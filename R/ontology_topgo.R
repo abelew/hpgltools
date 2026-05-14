@@ -82,11 +82,6 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
   if (isTRUE(overwrite) && file.exists(goid_map)) {
     file.remove(goid_map)
   }
-  #gomap_info <- make_id2gomap(goid_map = goid_map, go_db = go_db, overwrite = overwrite)
-  #if (is.null(gomap_info)) {
-  #  warning("There appears to have been a problem generating the gomap.")
-  #}
-  #geneID2GO <- topGO::readMappings(file = goid_map)
   geneID2GO <- df_to_mappings(go_db)
   annotated_genes <- names(geneID2GO)
   if (is.null(go_db)) {
@@ -138,9 +133,14 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
                  ## .combine = "c", .multicombine = TRUE,
                  .packages = c("hpgltools", "Hmisc", "topGO")) %dopar% {
                    type <- methods[c]
-                   returns[[type]] <- do_topgo(type, go_map = geneID2GO,
-                                               fisher_genes = fisher_interesting_genes,
-                                               ks_genes = ks_interesting_genes)
+                   returns[[type]] <- do_topgo(
+                     type, go_map = geneID2GO, fisher_genes = fisher_interesting_genes,
+                     ks_genes = ks_interesting_genes,
+                     selector = selector,
+                     sigforall = sigforall, numchar = numchar,
+                     pval_column = pval_column, overwrote = overwrite,
+                     cutoff = limit, densities = densities,
+                     pval_plots = pval_plots)
     }
     stopped <- parallel::stopCluster(cl)
     if (class(stopped)[1] == "try-error") {
@@ -157,9 +157,13 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
     for (r in seq_along(methods)) {
       type <- methods[r]
       message("Starting ", type, ".")
-      a_result <- do_topgo(type, go_map = geneID2GO,
-                           fisher_genes = fisher_interesting_genes,
-                           ks_genes = ks_interesting_genes)
+      a_result <- do_topgo(
+        type, go_map = geneID2GO, fisher_genes = fisher_interesting_genes,
+        ks_genes = ks_interesting_genes,
+        selector = selector, sigforall = sigforall, numchar = numchar,
+        pval_column = pval_column, overwrite = overwrite,
+        cutoff = limit, densities = densities,
+        pval_plots = pval_plots)
       ontology_result[["MF"]][[type]] <- a_result[["MF"]]
       ontology_result[["BP"]][[type]] <- a_result[["BP"]]
       ontology_result[["CC"]][[type]] <- a_result[["CC"]]
@@ -659,7 +663,7 @@ topgo_tables <- function(results, godata, limit = 0.1, limitby = "fisher",
     all[["fisher"]] <- as.numeric(all[["fisher"]])
     all[["ks"]] <- gsub(x = all[["ks"]], pattern = "^< ", replacement = "")
     na_ks <- is.na(all[["ks"]])
-    all[na_idx, "ks"] <- 1.0
+    all[na_ks, "ks"] <- 1.0
     all[["ks"]] <- as.numeric(all[["ks"]])
     all[["el"]] <- gsub(x = all[["el"]], pattern = "^< ", replacement = "")
     el_na <- is.na(all[["el"]])

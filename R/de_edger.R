@@ -251,12 +251,12 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   if (!is.null(arglist[["edger_excel"]])) {
     retlist[["edger_excel"]] <- write_edger(retlist, excel = arglist[["edger_excel"]])
   }
-  class(retlist) <- c("edger_pairwise", "list")
+  class(retlist) <- c("hpgltools::edger_pairwise", "list")
   return(retlist)
 }
 
 #' @export
-print.edger_pairwise <- function(x, ...) {
+`print.hpgltools::edger_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the EdgeR pairwise analysis.")
   message(summary_string)
   return(invisible(x))

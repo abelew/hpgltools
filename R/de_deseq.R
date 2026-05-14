@@ -551,12 +551,12 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   if (!is.null(arglist[["deseq_excel"]])) {
     retlist[["deseq_excel"]] <- write_deseq(retlist, excel = arglist[["deseq_excel"]])
   }
-  class(retlist) <- c("deseq_pairwise", "list")
+  class(retlist) <- c("hpgltools::deseq_pairwise", "list")
   return(retlist)
 }
 
 #' @export
-print.deseq_pairwise <- function(x, ...) {
+`print.hpgltools::deseq_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the DESeq2 pairwise analysis.")
   message(summary_string)
   return(invisible(x))

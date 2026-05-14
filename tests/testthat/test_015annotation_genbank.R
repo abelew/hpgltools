@@ -5,11 +5,12 @@ context("015annotation_genbank.R")
 ## The good news: they do something again
 ## I need to decide what I want to test now, though...
 testing <- suppressWarnings(load_genbank_annotations())
+gene_df <- testing[["feature_list"]][["gene"]]
 test_that("Do we get some data?", {
-  expect_gt(nrow(testing), 1800)
+  expect_gt(nrow(gene_df), 1800)
 })
 
-actual_loci <- sort(head(testing[["locus_tag"]]), n = 10)
+actual_loci <- sort(head(gene_df[["locus_tag"]]), n = 10)
 expected_loci <- c("spyM18_0001", "spyM18_0002", "spyM18_0004",
                    "spyM18_0005", "spyM18_0007", "spyM18_0008")
 test_that("Do we get expected Spy IDs?", {

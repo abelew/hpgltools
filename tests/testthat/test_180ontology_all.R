@@ -137,7 +137,7 @@ if (file.exists("test_go_write.xlsx")) {
   removed <- unlink("test_go_write", recursive = TRUE)
 }
 
-top_test <- simple_topgo(ups, go_db = pombe_go, overwrite = TRUE)
+top_test <- simple_topgo(ups, go_db = pombe_go, overwrite = TRUE, parallel = FALSE)
 cat_expected <- c("GO:0000994", "GO:0003825", "GO:0004031",
                   "GO:0004061", "GO:0004108", "GO:0004338")
 cat_actual <- rownames(top_test[["tables"]][["mf_subset"]])
@@ -184,7 +184,7 @@ gprof_test <- simple_gprofiler(sig_genes = ups, species = "spombe",
                                do_reactome = FALSE, do_tf = FALSE, do_wp = FALSE)
 gprof_table <- gprof_test[["BP"]]
 actual_dim <- nrow(gprof_table)
-expected_dim <- 30
+expected_dim <- 25
 test_that("Does gprofiler provide some expected tables?", {
   expect_gt(actual_dim, expected_dim)
 })

@@ -6,16 +6,16 @@
 \usage{
 load_genbank_annotations(
   accession = "AE009949",
-  db = "nucleotide",
-  file = NULL,
-  sequence = TRUE,
-  type = "CDS",
-  savetxdb = TRUE,
+  database = "nuccore",
+  return_type = "genbank",
+  save_gb = TRUE,
   restez_db = "/sw/local/genbank/current"
 )
 }
 \arguments{
 \item{accession}{Accession to download and import.}
+
+\item{restez_db}{Location of local genbank used by restez.}
 
 \item{db}{Entrez Database to query}
 
@@ -26,8 +26,6 @@ load_genbank_annotations(
 \item{type}{Extract entries of this type.}
 
 \item{savetxdb}{Attempt saving a txdb object?}
-
-\item{restez_db}{Location of local genbank used by restez.}
 }
 \value{
 List containing a txDb, sequences, and some other stuff which I
@@ -38,10 +36,10 @@ Let us admit it, sometimes biomart is a pain.  It also does not have easily
 accessible data for microbes.  Genbank does!
 }
 \details{
-Tested in test_40ann_biomartgenbank.R and test_70expt_spyogenes.R
-This primarily sets some defaults for the genbankr service in order to
-facilitate downloading genomes from genbank and dumping them into a local
-txdb instance.
+This switched to using restez, which does not provide the helpful
+data structures that genbankr did.  I am not sure if I can still
+create orgdb/txdb entries therefore unless I yank that code out of
+an old version of genbankr, or if I make use of txdbmaker etc.
 }
 \examples{
 ## 202601 eutils seems to be having some trouble.

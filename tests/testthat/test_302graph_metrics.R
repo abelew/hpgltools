@@ -8,7 +8,7 @@ pasilla_se <- pasilla[["se"]]
 test_genes <- c("FBgn0000014", "FBgn0000008", "FBgn0000017", "FBgn0000018", "FBgn0000024")
 
 ## What graphs can we make!?
-libsize_plot <- plot_libsize(pasilla_se)
+libsize_plot <- plot_quantreads(pasilla_se)
 actual <- libsize_plot[["table"]][["sum"]]
 expected <- c(13971670, 21909886, 8357876, 9840745, 18668667, 9571213, 10343219)
 test_that("The libsize plot is as expected?", {

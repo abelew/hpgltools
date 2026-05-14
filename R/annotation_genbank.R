@@ -11,10 +11,10 @@ NULL
 #' Let us admit it, sometimes biomart is a pain.  It also does not have easily
 #' accessible data for microbes.  Genbank does!
 #'
-#' Tested in test_40ann_biomartgenbank.R and test_70expt_spyogenes.R
-#' This primarily sets some defaults for the genbankr service in order to
-#' facilitate downloading genomes from genbank and dumping them into a local
-#' txdb instance.
+#' This switched to using restez, which does not provide the helpful
+#' data structures that genbankr did.  I am not sure if I can still
+#' create orgdb/txdb entries therefore unless I yank that code out of
+#' an old version of genbankr, or if I make use of txdbmaker etc.
 #'
 #' @param accession Accession to download and import.
 #' @param db Entrez Database to query
@@ -28,45 +28,105 @@ NULL
 #' @seealso [Biostrings] [GenomicFeatures] [genbankr::import()] [genbankr::readGenBank()]
 #' @example inst/examples/annotation_genbank.R
 #' @export
-load_genbank_annotations <- function(accession = "AE009949", db = "nucleotide",
-                                     file = NULL, sequence = TRUE, type = "CDS",
-                                     savetxdb = TRUE, restez_db = "/sw/local/genbank/current") {
+load_genbank_annotations <- function(accession = "AE009949", database = "nuccore",
+                                     return_type = "gbwithparts", save_gb = TRUE,
+                                     restez_db = "/sw/local/genbank/current") {
   restez_found <- try(restez::restez_path_set(filepath = restez_db), silent = TRUE)
   if ("try-error" %in% class(restez_found)) {
+    message("The restez path: ", restez_db, " failed to initialized.")
     all_ids <- NULL
   } else {
+    message("Collecting IDs from the local restez database at: ", restez_db, ".")
     all_ids <- restez::list_db_ids(n = NULL)
   }
   res <- list()
   if (accession %in% all_ids) {
+    message("Collecting accession ", accession, " from the local database.")
     res <- restez::gb_record_get(accession)
   } else {
-    res <- restez::entrez_fetch(db = db, id = accession, rettype = db)
-  }
-  data <- restez::gb_extract(record = res, what = "features")
-  ret <- data.frame()
-  hits <- 0
-  for (i in seq_along(data)) {
-    element <- data[[i]]
-    if (element[["type"]] == type) {
-      hits <- hits + 1
-      row <- as.data.frame(element)
-      if (hits == 1) {
-        ret <- row
-      } else {
-        ret <- as.data.frame(data.table::rbindlist(list(ret, row), fill = TRUE))
-      }
-    } else {
-      next
+    message("Fetching the accession: ", accession, " from the ncbi ",
+            database, " database.")
+    res <- restez::entrez_fetch(db = database, id = accession, rettype = return_type)
+    message("Downloaded ", stringr::str_length(res), " bytes.")
+    if (isTRUE(save_gb)) {
+      file_connection <- file(paste0(accession, ".gb"))
+      written <- writeLines(res, file_connection)
+      closed <- close(file_connection)
     }
   }
-  if (!is.null(ret[["location"]]) && is.null(ret[["start"]])) {
-    ret[["start"]] <- gsub(x = ret[["location"]], pattern = "^([[:digit:]]+).*$",
-                           replacement = "\\1")
-    ret[["end"]] <- gsub(x = ret[["location"]], pattern = "^.*\\.\\.([[:digit:]]+)$",
-                         replacement = "\\1")
+  gb_features <- restez::gb_extract(record = res, what = "features")
+  message("Extracted ", length(gb_features), " from the genbank data.")
+  gb_sequence <- restez::gb_extract(record = res, what = "sequence")
+  message("Extracted ", stringr::str_length(gb_sequence),
+          " characters from the gb sequence.")
+  gb_definition <- restez::gb_extract(record = res, what = "definition")
+  gb_version <- restez::gb_extract(record = res, what = "version")
+  gb_biostring <- Biostrings::DNAStringSet(gb_sequence)
+
+  feature_list <- list()
+  feature_hits <- list()
+  for (i in seq_along(gb_features)) {
+    element <- gb_features[[i]]
+    this_type <- element[["type"]]
+    if (is.null(feature_list[[this_type]])) {
+      feature_list[[this_type]] <- data.frame()
+      feature_hits[[this_type]] <- 0
+    }
+    row <- as.data.frame(element)
+    feature_hits[[this_type]] <- feature_hits[[this_type]] + 1
+    if (feature_hits[[this_type]] == 1) {
+      this_df <- row
+      feature_list[[this_type]] <- this_df
+    } else {
+      feature_list[[this_type]] <- as.data.frame(
+        data.table::rbindlist(list(feature_list[[this_type]], row), fill = TRUE))
+    }
   }
-  return(ret)
+
+  gr_gene_df <- feature_list[["gene"]]
+  gr_gene_df[["strand"]] <- "+"
+  neg_features <- grepl(x = gr_gene_df[["location"]], pattern = "complement")
+  gr_gene_df[neg_features, "strand"] <- "-"
+  gr_gene_df[["start"]] <- gsub(x = gr_gene_df[["location"]], pattern = "^complement\\(", replacement = "")
+  gr_gene_df[["start"]] <- gsub(x = gr_gene_df[["start"]], pattern = "\\)$", replacement = "")
+  gr_gene_df[["end"]] <- as.numeric(gsub(x = gr_gene_df[["start"]], pattern = "^([[:digit:]]+)\\.\\.([[:digit:]]+)$", replacement = "\\2"))
+  gr_gene_df[["start"]] <- as.numeric(gsub(x = gr_gene_df[["start"]], pattern = "^([[:digit:]]+)?\\.\\.([[:digit:]]+)$", replacement = "\\1"))
+
+  gr_cds_df <- feature_list[["CDS"]]
+  gr_cds_df[["strand"]] <- "+"
+  neg_features <- grepl(x = gr_cds_df[["location"]], pattern = "complement")
+  gr_cds_df[neg_features, "strand"] <- "-"
+  gr_cds_df[["start"]] <- gsub(x = gr_cds_df[["location"]], pattern = "^complement\\(", replacement = "")
+  gr_cds_df[["start"]] <- gsub(x = gr_cds_df[["start"]], pattern = "\\)$", replacement = "")
+  gr_cds_df[["end"]] <- as.numeric(gsub(x = gr_cds_df[["start"]], pattern = "^([[:digit:]]+)\\.\\.([[:digit:]]+)$", replacement = "\\2"))
+  gr_cds_df[["start"]] <- as.numeric(gsub(x = gr_cds_df[["start"]], pattern = "^([[:digit:]]+)?\\.\\.([[:digit:]]+)$", replacement = "\\1"))
+
+  gr_gene_df[["chr"]] <- gb_definition
+  gr_cds_df[["chr"]] <- gb_definition
+
+  gene_gr <- GenomicRanges::makeGRangesFromDataFrame(
+    gr_gene_df, keep.extra.columns = TRUE)
+  cds_gr <- GenomicRanges::makeGRangesFromDataFrame(
+    gr_cds_df, keep.extra.columns = TRUE)
+
+  ## Hmm it looks like restez mis-parses some genbank features.  That is super-annoying.
+  ## It also does not keep the chromosome ID with the features, which
+  ## will make creating a GRange difficult.
+  ## I will therefore set this aside for now and return a data
+  ## structure containing the outputs from restez and my somewhat
+  ## mangled list of dataframes.
+
+  retlist <- list(
+    "definition" = gb_definition,
+    "version" = gb_version,
+    "sequence_vector" = gb_sequence,
+    "sequence" = gb_biostring,
+    "features" = gb_features,
+    "feature_list" = feature_list,
+    "gene_granges" = gene_gr,
+    "cds_granges" = cds_gr)
+  class(retlist) <- c("hpgltools::load_genbank_annotations", "list")
+  return(retlist)
 }
 
 #' A genbank accession downloader scurrilously stolen from ape.

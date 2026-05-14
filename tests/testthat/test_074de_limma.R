@@ -32,3 +32,6 @@ test <- write_limma(testing, excel = "test_limma_pairwise.xlsx")
 test_that("write_limma() did something?", {
   expect_true(file.exists("test_limma_pairwise.xlsx"))
 })
+
+hpgl_limma = testing
+save(list = ls(), file = "074_de_limma.rda")

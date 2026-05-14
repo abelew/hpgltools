@@ -42,10 +42,17 @@ NULL
 #' @export
 basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
                            null_fstring = "~", model_svs = NULL,
-                           annot_df = NULL, keepers = NULL,
+                           annot_df = NULL, keepers = NULL, filter = FALSE,
                            fx = "mean", keep_underscore = TRUE, ...) {
   arglist <- list(...)
   mesg("Starting basic pairwise comparisons.")
+  current <- state(input)
+  filteredp <- current[["filter"]]
+  if ((is.null(filteredp) || filteredp == "raw") &&
+        isTRUE(filter)) {
+    input <- sm(normalize(input, filter = filter))
+  }
+
   input <- sanitize_se(input, keep_underscore = keep_underscore)
   fctrs <- get_formula_factors(model_fstring)
   contrast_factor <- fctrs[["factors"]][1]
@@ -232,7 +239,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
       "method" = "basic",
       "num_contrasts" = total_contrasts,
       "variances" = variance_table)
-  class(retlist) <- c("basic_pairwise", "list")
+  class(retlist) <- c("hpgltools::basic_pairwise", "list")
   if (!is.null(arglist[["basic_excel"]])) {
     retlist[["basic_excel"]] <- write_basic(retlist, excel = arglist[["basic_excel"]])
   }
@@ -240,7 +247,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 }
 
 #' @export
-print.basic_pairwise <- function(x, ...) {
+`print.hpgltools::basic_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the Basic pairwise analysis.")
   message(summary_string)
   return(invisible(x))

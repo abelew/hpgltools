@@ -316,6 +316,26 @@ get_formula_factors <- function(formula_string = NULL) {
   if (length(retlist[["factors"]]) > 1) {
     retlist[["assumed_batch"]] <- retlist[["factors"]][2]
   }
+
+  ## In the case of a mixed model, get back an unmixed model
+  ## In case we want to try model.matrix or something like it.
+  if (isTRUE(retlist[["mixed"]])) {
+    unmixed_fstring <- "~ "
+    if (!is.null(retlist[["cellmeans_intercept"]])) {
+      unmixed_fstring <- paste0(unmixed_fstring, " ",
+                                retlist[["cellmeans_intercept"]])
+      for (fct in retlist[["factors"]]) {
+        unmixed_fstring <- paste0(unmixed_fstring, " + ", fct)
+      }
+    } else {
+      for (fct in retlist[["factors"]]) {
+        unmixed_fstring <- paste0(unmixed_fstring, " ", fct, " +")
+      }
+      unmixed_fstring = gsub(x = unmixed_fstring, pattern = " \\+$",
+                             replacement = "")
+    }
+    retlist[["unmixed_fstring"]] <- unmixed_fstring
+  }
   return(retlist)
 }
 setGeneric("get_formula_factors")
@@ -684,6 +704,7 @@ test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
 test_design_model_rank <- function(design, fstring = "~ condition + batch") {
   retlist <- list()
   fctrs <- get_formula_factors(fstring)
+  unmixed_fstring <- fctrs[["unmixed_fstring"]]
   degrees <- get_degrees(design, fctrs[["factors"]])
   levels <- degrees[["factor_levels"]]
   for (f in names(levels)) {
@@ -692,6 +713,9 @@ test_design_model_rank <- function(design, fstring = "~ condition + batch") {
     }
   }
   test_formula <- as.formula(fstring)
+  if (!is.null(fctrs[["unmixed_fstring"]])) {
+    test_formula <- as.formula(fctrs[["unmixed_fstring"]])
+  }
   matrix_test <- model.matrix(test_formula, data = design)
   num_columns <- ncol(matrix_test)
   matrix_decomp <- qr(matrix_test)

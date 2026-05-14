@@ -469,7 +469,8 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
 plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
                                 input_names = NULL, dendrogram = "column",
                                 row_label = NA, plot_title = NULL, Rowv = TRUE,
-                                Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+                                Colv = TRUE, label_chars = 10, filter = TRUE, topn = NULL,
+                                ...) {
   data <- as.data.frame(data)
   if (is.null(heatmap_colors)) {
     heatmap_colors <- gplots::redgreen(75)
@@ -478,6 +479,13 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
     names <- colnames(data)
   }
   data <- as.matrix(data)
+
+  if (!is.null(topn)) {
+    relative <- rowSums(data)
+    chosen <- order(relative, decreasing = TRUE)
+    data <- data[chosen, ]
+    data <- head(data, n = topn)
+  }
 
   if (is.null(input_names)) {
     input_names <- colnames(data)
@@ -489,6 +497,10 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   }
   if (!is.null(label_chars) && is.numeric(label_chars)) {
     input_names <- abbreviate(input_names, minlength = label_chars)
+  }
+
+  if (isTRUE(row_label)) {
+    row_label <- abbreviate(rownames(data), minlength = label_chars)
   }
 
   ## drop NAs to help hclust()
@@ -530,7 +542,8 @@ setMethod(
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
                         input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
-                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+                        Colv = TRUE, label_chars = 10, filter = TRUE, topn = NULL,
+                        ...) {
     input_design <- colData(data)
     input_names <- colnames(input_design)
     input_data <- assay(data)
@@ -538,7 +551,7 @@ setMethod(
     plot_sample_heatmap(input_data, colors = input_colors, design = input_design,
       input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
-      Colv = Colv, label_chars = label_chars, filter = filter, ...)
+      Colv = Colv, label_chars = label_chars, filter = filter, topn = topn, ...)
   })
 
 #' Plot a sample heatmap with a SummarizedExperiment.
@@ -562,7 +575,7 @@ setMethod(
   definition = function(data, colors = NULL, design = NULL, heatmap_colors = NULL,
                         input_names = NULL, dendrogram = "column",
                         row_label = NA, plot_title = NULL, Rowv = TRUE,
-                        Colv = TRUE, label_chars = 10, filter = TRUE, ...) {
+                        Colv = TRUE, label_chars = 10, filter = TRUE, topn = NULL, ...) {
     input_design <- colData(data)
     input_colors <- get_colors(data)
     input_names <- sampleNames(data)
@@ -571,6 +584,7 @@ setMethod(
       input_names = input_names, dendrogram = dendrogram, heatmap_colors = heatmap_colors,
       row_label = row_label, plot_title = plot_title, Rowv = Rowv,
       Colv = Colv, label_chars = label_chars, filter = filter,
+      topn = topn,
       ...)
   })
 

@@ -11,8 +11,8 @@ pasilla <- new.env()
 load("pasilla.rda", envir = pasilla)
 pasilla <- pasilla[["se"]]
 
-counts <- exprs(pasilla)
-design <- pData(pasilla)
+counts <- assay(pasilla)
+design <- colData(pasilla)
 
 noint_model <- stats::model.matrix(~ condition + batch, data = design)
 int_model <- stats::model.matrix(~ 0 + condition + batch, data = design)

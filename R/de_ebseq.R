@@ -106,12 +106,12 @@ ebseq_pairwise <- function(input = NULL, patterns = NULL,
       "denominators" = denominators,
       "method" = "ebseq",
       "numerators" = numerators)
-  class(retlist) <- c("ebseq_pairwise", "list")
+  class(retlist) <- c("hpgltools::ebseq_pairwise", "list")
   return(retlist)
 }
 
 #' @export
-print.ebseq_pairwise <- function(x, ...) {
+`print.hpgltools::ebseq_pairwise` <- function(x, ...) {
   summary_string <- glue("The results from the EBSeq pairwise analysis.")
   message(summary_string)
   return(invisible(x))
@@ -175,11 +175,13 @@ ebseq_pairwise_subset <- function(input, model_fstring = "~ 0 + condition + batc
     pair <- input[, idx]
     pair_data <- assay(pair)
     pair_conditions <- droplevels(conditions[idx])
-    a_result <- ebseq_two(pair_data, pair_conditions, numerator = b_name, denominator = a_name,
+    ## Try to ensure the levels match the desired pair
+    pair_conditions <-  relevel(pair_conditions, b_name)
+    a_result <- ebseq_two(pair_data, pair_conditions, numerator = a_name, denominator = b_name,
                           ng_vector = ng_vector, rounds = rounds, target_fdr = target_fdr,
                           norm = norm, force = force)
-    numerators <- c(numerators, b_name)
-    denominators <- c(denominators, a_name)
+    numerators <- c(numerators, a_name)
+    denominators <- c(denominators, b_name)
     retlst[[name]] <- a_result
   }
   retlst[["numerators"]] <- numerators

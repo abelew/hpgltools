@@ -11,6 +11,7 @@ basic_pairwise(
   model_svs = NULL,
   annot_df = NULL,
   keepers = NULL,
+  filter = FALSE,
   fx = "mean",
   keep_underscore = TRUE,
   ...

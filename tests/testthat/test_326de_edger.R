@@ -12,11 +12,11 @@ if (file.exists(pasilla_file)) {
 }
 pasilla_se <- pasilla[["se"]]
 
-metadata <- design
-colnames(metadata) <- c("condition", "batch")
+metadata <- colData(pasilla_se)
+counts <- assay(pasilla_se)
 ## Performing edgeR differential expression analysis as per the edgeR vignette.
-model <- model.matrix(~ 0 + design[["condition"]] + design[["libType"]])
-colnames(model) <- c("treated", "untreated", "libtype")
+model <- model.matrix(~ 0 + metadata[["condition"]] + metadata[["batch"]])
+colnames(model) <- c("untreated", "treated", "libtype")
 raw <- edgeR::DGEList(counts = counts, group = metadata[["condition"]])
 norm <- edgeR::calcNormFactors(raw)
 disp_norm <- edgeR::estimateCommonDisp(norm)
