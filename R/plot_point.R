@@ -50,6 +50,18 @@ plot_bcv <- function(data) {
   ret <- list("data" = disp_df, "plot" = disp_plot)
   return(ret)
 }
+setGeneric("plot_bcv")
+
+#' Pass a SE to plot_bcv
+#'
+#' @inherit plot_bcv
+#' @export
+setMethod(
+  "plot_bcv", signature(data = "SummarizedExperiment"),
+  definition = function(data) {
+    df <- as.data.frame(assay(data))
+    plot_bcv(df)
+  })
 
 #' Make a scatter plot between two sets of numbers with a cheesy distance metric
 #' and some statistics of the two sets.
