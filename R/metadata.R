@@ -430,6 +430,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
   }
   meta[["sampleid"]] <- gsub(pattern = "\\s+", replacement = "", x = meta[[id_column]])
   new_columns <- c()
+  entries_with_data <- c()
 
   for (entry in seq_along(specification)) {
     entry_type <- names(specification[entry])
@@ -509,7 +510,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
     "new_columns" = new_column,
     "old_meta" = old_meta,
     "new_meta" = meta)
-  class(ret) <- "preprocessing_metadata"
+  class(ret) <- c("hpgltools::gather_preprocessing_metadata", "list")
   return(ret)
 }
 
@@ -519,7 +520,7 @@ gather_preprocessing_metadata <- function(starting_metadata = NULL, specificatio
 #'  to it, and copies of the metadata before/after modification.
 #' @param ... Other args to match the generic.
 #' @export
-print.preprocessing_metadata <- function(x, ...) {
+`print.hpgltools::gather_preprocessing_metadata` <- function(x, ...) {
   message("The result of performing extract_preprocessing_metadata().")
   columns <- toString(colnames(x[["new_meta"]]))
   message("The columns now are: ", columns, ".")
@@ -635,6 +636,10 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_filename_search(
         meta, input_file_spec, verbose = verbose, new_spec = new_spec,
         species = species, type = type, basedir = basedir)
+    },
+    "fastp_stats" = {
+      entries <- dispatch_fastp_json_search(
+        meta, input_file_spec, verbose = verbose, new_spec = new_spec, basedir = basedir, ...)
     },
     "fastqc_pct_gc" = {
       ## %GC     62
@@ -776,11 +781,15 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     },
     "hisat_genome_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
+      backup_search <- "^\\s+\\d+ \\(.+\\) aligned >1 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
+      backup_replace <- "^\\s+(\\d+) \\(.+\\) aligned >1 times"
       mesg("Searching for number of concordant multi-mapped reads to RNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, type = type, species = species, new_spec = new_spec, ...)
+        verbose = verbose, type = type, species = species, new_spec = new_spec,
+        backup_search = backup_search, backup_replace = backup_replace,
+        ...)
     },
     "hisat_genome_single_all" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned exactly 1 time"
@@ -883,19 +892,28 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     },
     "hisat_rrna_single_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly exactly 1 time"
+      backup_search <- "^\\s+\\d+ \\(.+\\) aligned exactly 1 time"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly exactly 1 time"
+      backup_replace <- "^\\s+(\\d+) \\(.+\\) aligned exactly 1 time"
       mesg("Searching for number of concordant single-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, species = species, type = "rRNA", new_spec = new_spec, ...)
+        verbose = verbose, species = species, type = "rRNA",
+        new_spec = new_spec, backup_search = backup_search,
+        backup_replace = backup_replace,
+        ...)
     },
     "hisat_rrna_multi_concordant" = {
       search <- "^\\s+\\d+ \\(.+\\) aligned concordantly >1 times"
       replace <- "^\\s+(\\d+) \\(.+\\) aligned concordantly >1 times"
+      backup_search <- "^\\s+\\d+ \\(.+\\) aligned >1 times"
+      backup_replace <- "^\\s+(\\d+) \\(.+\\) aligned >1 times"
       mesg("Searching for number of concordant multi-mapped reads to rRNA by hisat.")
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, basedir = basedir, as = "numeric",
-        verbose = verbose, type = "rRNA", species = species, new_spec = new_spec, ...)
+        verbose = verbose, type = "rRNA", species = species, new_spec = new_spec,
+        backup_search = backup_search, backup_replace = backup_replace,
+        ...)
     },
     "hisat_rrna_pct_vs_trimmed" = {
       numerator_column <- specification[["hisat_rrna_multi_concordant"]][["column"]]
@@ -1841,6 +1859,36 @@ dispatch_gc <- function(meta, input_file_spec, verbose = FALSE,
   return(output_entries)
 }
 
+dispatch_fastp_json_search <- function(meta, input_file_spec, verbose = FALSE,
+                                 new_spec = NULL, basedir = "preprocessing") {
+  output_entries <- data.frame(row.names = rownames(meta))
+  input_files <- seek_filenames(meta, input_file_spec, new_spec, basedir = basedir)
+  filenames_with_wildcards <- glue(input_file_spec)
+  if (isTRUE(verbose)) {
+    message("Example json filename: ", filenames_with_wildcards[1], ".")
+  }
+  for (row in seq_len(nrow(meta))) {
+    input_file <- input_files[[row]]
+    if (is.null(input_file)) {
+      next
+    }
+
+    info <- jsonlite::read_json(input_file)
+    summary_info <- unlist(info[["summary"]])
+    filter_info <- unlist(info[["filtering_result"]])
+    duplication_info <- unlist(info[["duplication"]])
+    adapter_info <- unlist(info[["adapter_cutting"]])
+    info_vector <- c(summary_info, filter_info, duplication_info, adapter_info)
+    for (column_name in names(info_vector)) {
+      if (is.null(output_entries[[column_name]])) {
+        output_entries[[column_name]] <- "undef"
+      }
+      output_entries[row, column_name] <- info_vector[column_name]
+    }
+  } ## End looking at every row of the metadata
+  return(output_entries)
+}
+
 #' Pull raw MD5 sums into the metadata sheet.
 #'
 #' @param meta Input metadata
@@ -2214,13 +2262,33 @@ plot_metadata_factor <- function(exp, column = "hisatsinglemapped", second_colum
   return(meta_plot)
 }
 
-plot_metadata_pair <- function(exp, column = "hisat_single_mapped_hg38_100",
-                               second_column = "hisat_single_mapped_rRNA", ...) {
+plot_metadata_pair <- function(exp, first_column, second_column, linear = TRUE,
+                               ...) {
+  arglist <- list(...)
   condition <- plotted <- NULL ## R CMD check
-  design <- as.data.frame(colData(exp))
-  color_choices <- get_colors_by_condition(exp)
-  result <- plot_scatter(design, xcol = column, ycol = second_column)
+  if (isTRUE(linear)) {
+    result <- plot_linear_scatter(exp, xcol = first_column, ycol = second_column,
+                                  color_weights = FALSE, text_col = "sampleid", identity = TRUE,
+                                  label_prefix = "Mapped reads according to", ...)
+  } else {
+    result <- plot_scatter(exp, xcol = first_column, ycol = second_column, ...)
+  }
   return(result)
+}
+setGeneric("plot_metadata_pair")
+
+setMethod(
+  "plot_metadata_pair", signature(exp = "SummarizedExperiment"),
+  definition = function(exp, first_column, second_column, ...) {
+    design <- as.data.frame(colData(exp))
+    color_choices <- get_colors_by_condition(exp)
+    plot_metadata_pair(design, first_column, second_column, ...)
+  })
+
+plot_genome_vs_rrna <- function(exp, first_column = "hisat_genome_single_all",
+                                second_column = "hisat_rrna_single_concordant", ...) {
+  arglist <- list(...)
+  plot_metadata_pair(exp, first_column, second_column, ...)
 }
 
 #' Plot metadata factors as a sankey diagram.
@@ -2720,17 +2788,14 @@ tar_meta_column <- function(meta, column = "hisat_count_table", output = NULL, c
     "output" = output,
     "files_included" = include_list,
     "files_requested" = start_list)
-  class(retlist) <- "meta_tarball"
+  class(retlist) <- c("hpgltools::tar_meta_column", "list")
   return(retlist)
 }
 setGeneric("tar_meta_column")
 
 #' Make a tarball using a metadata column given an xlsx file.
 #'
-#' @param meta dataframe of the good stuff.
-#' @param column Column containing filenames to archive.
-#' @param output Output prefix for the tarball's name.
-#' @param compression Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?
+#' @inherit tar_meta_column
 #' @export
 setMethod(
   "tar_meta_column", signature = signature(meta = "character"),
@@ -2746,13 +2811,10 @@ setMethod(
 
 #' Tar a column from a SE
 #'
-#' @param meta dataframe of the good stuff.
-#' @param column Column containing filenames to archive.
-#' @param output Output prefix for the tarball's name.
-#' @param compression Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?
+#' @inherit tar_meta_column
 #' @export
 setMethod(
-  "tar_meta_column", signature = signature(meta = "summarizedExperiment"),
+  "tar_meta_column", signature = signature(meta = "SummarizedExperiment"),
   definition = function(meta, column = "hisatcounttable",
                         output = NULL, compression = "xz") {
     meta <- colData(meta)
@@ -2857,8 +2919,8 @@ make_assembly_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "hisat_alignment" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
     "deeptools_coverage" = list(
@@ -2963,6 +3025,9 @@ make_assembly_spec <- function() {
   return(specification)
 }
 
+## TODO: Remove all the file_new nonsense and just make file c(main, secondary) and
+## change the downstream functions to check the length of the file slot.
+
 #' Generate a RNASeq specification for use by gather_preprocessing_metadata()
 #'
 #' This currently assumes the set of tools used by one doing RNASeq to be trimomatic,
@@ -2983,6 +3048,8 @@ make_rnaseq_spec <- function(umi = FALSE) {
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
     "fastqc_most_overrepresented" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
+    "fastp_stats" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastp/fastp_report.json"),
     "kraken_standard_classified" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr"),
     "kraken_standard_unclassified" = list(
@@ -3040,19 +3107,19 @@ make_rnaseq_spec <- function(umi = FALSE) {
     "hisat_genome_pct_vs_trimmed" = list(
       "column" = "hisat_genome_pct_vs_trimmed"),
     "hisat_observed_genes" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_sum_genes_pct" = list(
       "column" = "hisat_sum_genes_pct"),
     "hisat_observed_mean_exprs" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_observed_median_exprs" = list(
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*_{subtype}_{tag}.count.xz"),
     "hisat_alignment" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*.bam"),
     "deeptools_coverage" = list(
@@ -3081,8 +3148,8 @@ make_rnaseq_spec <- function(umi = FALSE) {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/quant.sf"),
     "bbmap_coverage_stats" = list(
@@ -3210,8 +3277,8 @@ make_dnaseq_spec <- function() {
       ## So, for the moment I will make this less stringent to pick up both file names.
       ## Ergo the extra glob.
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
-      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
+      "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
     "deduplication_stats" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*freebayes_{species}/deduplication_stats.txt"),
     "freebayes_variants_by_gene" = list(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ontology_clusterprofiler.R
 \name{all_cprofiler}
 \alias{all_cprofiler}
-\title{Run simple_clusterprofiler on every table from extract_significant_genes()}
+\title{Run simple_clusterprofiler on every table from extract_significant_genes}
 \usage{
 all_cprofiler(
   sig,
@@ -18,9 +18,7 @@ all_cprofiler(
   qcutoff = 0.1,
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
-  internal = FALSE,
   updown = "up",
-  permutations = 1000,
   min_groupsize = 5,
   max_groupsize = 500,
   kegg_prefix = NULL,
@@ -71,11 +69,7 @@ all_cprofiler(
 
 \item{second_fc_column}{A fallback column for FC values.}
 
-\item{internal}{This changes the output data structure, but I forget how.}
-
 \item{updown}{Seek out categories with increased enrichment,  or decreased.}
-
-\item{permutations}{Run x permutations in clusterProfiler. (deprecated by cp authors)}
 
 \item{min_groupsize}{Ignore groups with less than x genes.}
 
@@ -117,7 +111,7 @@ all_cprofiler(
 
 \item{excel}{Output xlsx filename.}
 
-\item{...}{Arguments to pass to simple_clusterprofiler().}
+\item{...}{Arguments to pass to simple_clusterprofiler.}
 }
 \description{
 Most of the options are taken from simple_cprofiler and passed directly down.

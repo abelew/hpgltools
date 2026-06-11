@@ -3,6 +3,14 @@
 #' @include 01_hpgltools.R
 NULL
 
+## I have a hypothesis that warnings which look like:
+## "in method for plot_volcano_condition_de with signature input='hpgltools::combine_de_tables: no definition for class hpgltools::combine_de_tables
+## Perhaps the file with that function declaration has not yet been
+## collated by R and therefore is causing this error?
+## If so, I may be able to add an @include here and stop the warning?
+#' @include de_xlsx.R
+NULL
+
 ## FIXME: This has both p_type and adjp parameters, which is redundantredundant.
 #' Make a MA plot of some limma output with pretty colors and shapes.
 #'
@@ -416,7 +424,8 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
     wanted_table <- found_table
   }
 
-  if ("combined_de" %in% class(data)) {
+  ## FIXME: Make this an actual class dispatch and get rid of this if() BS.
+  if ("hpgltools::combine_de_tables" %in% class(data)) {
     wanted_tablename <- data[["kept"]][[wanted_table]]
     actual_tablenames <- data[["keepers"]][[wanted_table]]
     actual_numerator <- actual_tablenames[[1]]
@@ -426,9 +435,9 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
       ret[["invert"]] <- TRUE
     }
     wanted_table <- wanted_tablename
-  } else if ("combined_table" %in% class(data)) {
+  } else if ("hpgltools::combine_mapped_table" %in% class(data)) {
     table_source <- "combined_table"
-  } else if (class(data)[1] == "all_pairwise") {
+  } else if ("hpgltools::all_pairwise" %in% class(data)) {
     ## if it is in fact all_pairwise, then there should be a set of
     ## slots 'limma', 'deseq', 'edger', 'basic' from which we can
     ## essentially convert the input by extracting the relevant type.
@@ -1162,6 +1171,9 @@ plot_sankey_de <- function(de_table, lfc = 1.0, p = 0.05,
 #' @param color_high Color for the ups.
 #' @param color_low and the downs.
 #' @param size Point size
+#' @param size_by Use the provided column to change the size of each dot according
+#'  to the range of values in this factor.
+#' @param size_categories Define the number of categories used to resize the dots with size_by.
 #' @param invert Flip the plot?
 #' @param label Label some points?
 #' @param label_type What kind of label to apply.
@@ -1177,9 +1189,12 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                                       p_col = "adj.P.Val", p_name = "-log10 p-value", pval = 0.05,
                                       shapes_by_state = FALSE, stroke = TRUE, fill = TRUE,
                                       color_high = "darkred", color_low = "darkblue",
-                                      size = 2, invert = FALSE, label = NULL, label_type = "text",
+                                      size = 2, size_by = NULL, size_categories = NULL,
+                                      invert = FALSE, label = NULL, label_type = "text",
                                       label_column = "hgnc_symbol", label_size = 6,
-                                      nudge_x = 0, nudge_y = 0, ...) {
+                                      nudge_x = 0, nudge_y = 0,
+                                      ...) {
+  arglist <- list(...)
   low_vert_line <- 0.0 - logfc
   horiz_line <- -1 * log10(pval)
 
@@ -1191,6 +1206,13 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
   }
   df <- data.frame("xaxis" = as.numeric(input[[fc_col]]),
                    "yaxis" = as.numeric(input[[p_col]]))
+  if (!is.null(size_by)) {
+    if (is.null(size_categories)) {
+      sizes <- 6
+    }
+    df[["size"]] <- make_ntile_factor(input[[size_by]], size_categories,
+                                      by = "range", log = "log2")
+  }
   rownames(df) <- rownames(input)
 
   if (isTRUE(invert)) {
@@ -1224,7 +1246,6 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
   }
   plot_colors <- c("#555555", color_high, color_low)
   names(plot_colors) <- c("insignificant", "up", "down")
-
   if (isTRUE(stroke) && isTRUE(fill)) {
     plt <- ggplot(data = df,
                   aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
@@ -1246,26 +1267,48 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
 
   ## Now define when to put lines vs. points
   if (is.null(line_position)) {
-    plt <- plt +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    if (is.null(size_by)) {
+      plt <- plt +
+        ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    } else {
+      plt <- plt +
+        ggplot2::geom_point(aes(size = .data[["size"]]), stat = "identity", alpha = alpha)
+    }
   } else if (line_position == "bottom") {
     ## lines, then points.
     plt <- plt +
       ggplot2::geom_hline(yintercept = horiz_line, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = logfc, color = line_color, size = (size / 2)) +
-      ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size = (size / 2)) +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+      ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size = (size / 2))
+    if (is.null(size_by)) {
+      plt <- plt +
+        ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    } else {
+      plt <- plt +
+        ggplot2::geom_point(aes(size = .data[["size"]]), stat = "identity")
+    }
   } else if (line_position == "top") {
     ## points, then lines
+    if (is.null(size_by)) {
     plt <- plt +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha, shape = 21) +
+      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha, shape = 21)
+    } else {
+      plt <- plt +
+        ggplot2::geom_point(aes(size = .data[["size"]]), stat = "identity", alpha = alpha, shape = 21)
+    }
+    plt <- plt +
       ggplot2::geom_hline(yintercept = horiz_line, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = logfc, color = line_color, size = (size / 2)) +
       ggplot2::geom_vline(xintercept = low_vert_line, color = line_color, size = (size / 2))
   } else {
     mesg("Not printing volcano demarcation lines.")
-    plt <- plt +
-      ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    if (is.null(size_by)) {
+      plt <- plt +
+        ggplot2::geom_point(stat = "identity", size = size, alpha = alpha)
+    } else {
+      plt <- plt +
+        ggplot2::geom_point(aes(size = .data[["size"]]), stat = "identity", alpha = alpha)
+    }
   }
 
   ## Now set the colors and axis labels
@@ -1311,7 +1354,8 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
       num_labels <- sum(sig_idx)
       df_subset <- df[sig_idx, ]
     } else {
-      stop("I do not understand this set of IDs to label.")
+      mesg("Not labelling.")
+      label_type <- "none"
     }
     if (label_type == "text") {
       plt <- plt +
@@ -1328,6 +1372,8 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
                            aes(x = .data[["xaxis"]], y = .data[["logyaxis"]],
                                label = .data[["label"]],
                                angle = 45, size = label_size, vjust = 2))
+    } else if (label_type == "none") {
+      ## Do nothing in this instance.
     } else {
       mesg("Assuming geom_label_repel for labels.")
       plt <- plt +
@@ -1342,8 +1388,72 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
 
   retlist <- list("plot" = plt,
                   "df" = df)
+  class(retlist) <- c("hpgltools::plot_volcano_condition_de", "list")
   return(retlist)
 }
+setGeneric("plot_volcano_condition_de")
+
+#' Plot a volcano plot using the result from combine_de_tables
+#'
+#' @inherit plot_volcano_condition_de
+#' @export
+setMethod(
+  "plot_volcano_condition_de", signature(input = "hpgltools::combine_de_tables"),
+  definition = function(input, table_name, alpha = 0.5, fc_col = "logFC",
+                        fc_name = "log2 fold change", line_color = "black",
+                        line_position = "bottom", logfc = 1.0, p_col = "adj.P.Val",
+                        p_name = "-log10 p-value", pval = 0.05, shapes_by_state = FALSE,
+                        stroke = TRUE, fill = TRUE, color_high = NULL, color_low = NULL,
+                        size = 2, size_by = NULL, size_categories = NULL,
+                        invert = FALSE, label = NULL, label_type = "text",
+                        label_column = "hgnc_symbol", label_size = 6, nudge_x = 0, nudge_y = 0,
+                        ...) {
+    arglist <- list(...)
+    new_input <- input[["data"]][[table_name]]
+    input_se <- input[["input"]][["input"]]
+    se_colors <- get_colors_by_condition(input_se)
+    chosen_high <- "darkred"
+    chosen_low <- "darkblue"
+    if (is.null(color_high)) {
+      chosen_high <- as.character(se_colors[1])
+    } else {
+      chosen_high <- color_high
+    }
+    if (is.null(color_low)) {
+      chosen_low <- as.character(se_colors[2])
+    } else {
+      chosen_low <- color_low
+    }
+    message("Set color_high to ", chosen_high, " and color_low to ",
+            chosen_low, ".")
+
+    if (!is.null(arglist[["according_to"]])) {
+      fc_col <- paste0(arglist[["according_to"]], "_logfc")
+      p_col <- paste0(arglist[["according_to"]], "_adjp")
+    } else {
+      if (fc_col == "logFC") {
+        message("Resetting fc_column to deseq_logfc.")
+        fc_col <- "deseq_logfc"
+      }
+      if (p_col == "adj.P.Val") {
+        message("Resetting p_col to deseq_adjp.")
+        p_col <- "deseq_adjp"
+      }
+    }
+    plot_volcano_condition_de(new_input, table_name = table_name, alpha = alpha,
+                              fc_col = fc_col, fc_name = fc_name,
+                              line_color = line_color, line_position = line_position,
+                              logfc = logfc, p_col = p_col,
+                              p_name = p_name, pval = pval,
+                              shapes_by_state = shapes_by_state,
+                              stroke = stroke, fill = fill,
+                              color_high = chosen_high, color_low = chosen_low,
+                              size = size, invert = invert,
+                              label = label, label_type = label_type,
+                              label_column = label_column, label_size = label_size,
+                              nudge_x = nudge_x, nudge_y = nudge_y,
+                              ...)
+  })
 
 #' Plot the rank order of the data in two tables against each other.
 #'
@@ -1893,7 +2003,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
     "upset_list" = ud_list,
     "groups" = group_information,
     "plot" = upset_combined)
-  class(retlist) <- "combined_de_upset"
+  class(retlist) <- c("hpgltools::upsetr_combined_de", "list")
   return(retlist)
 }
 
@@ -1902,7 +2012,7 @@ upsetr_combined_de <- function(combined, according_to = "deseq",
 #' @param x List produced by combined_de_upset
 #' @param ... Other args for the generic.
 #' @export
-print.combined_de_upset <- function(x, ...) {
+`print.hpgltools::upsetr_combined_de` <- function(x, ...) {
   summary_string <- glue("Plot describing unique/shared genes in a differential expression table.")
   message(summary_string)
   print(x[["plot"]])
@@ -2041,7 +2151,7 @@ upsetr_sig <- function(sig, according_to = "deseq", contrasts = NULL, up = TRUE,
   retlist[["both"]] <- both
   retlist[["all"]] <- all
   retlist[["intersections"]] <- intersections
-  class(retlist) <- "sig_de_upset"
+  class(retlist) <- c("hpgltools::upsetr_sig", "list")
   return(retlist)
 }
 

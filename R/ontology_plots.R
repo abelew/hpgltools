@@ -258,13 +258,10 @@ setGeneric("plot_topn_gsea")
 
 #' Plot topn GSEA results given the result from all_cprofiler
 #'
-#' @param gse clusterProfiler GSEA result.
-#' @param topn Number of enrichments to plot.
-#' @param id Focus on a specific category.
-#' @param add_score Add the score to the plot.
+#' @inherit plot_topn_gsea
 #' @export
 setMethod(
-  "plot_topn_gsea", signature = signature(gse = "all_cprofiler"),
+  "plot_topn_gsea", signature = signature(gse = "hpgltools::all_cprofiler"),
   definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
     ## Yank out the data
     retlist <- list()
@@ -288,13 +285,10 @@ setMethod(
 
 #' Plot topn GSEA results given the result from simple_clusterprofiler
 #'
-#' @param gse clusterProfiler GSEA result.
-#' @param topn Number of enrichments to plot.
-#' @param id Focus on a specific category.
-#' @param add_score Add the score to the plot.
+#' @inherit plot_topn_gsea
 #' @export
 setMethod(
-  "plot_topn_gsea", signature = signature(gse = "clusterprofiler_result"),
+  "plot_topn_gsea", signature = signature(gse = "hpgltools::simple_clusterprofiler"),
   definition = function(gse, topn = 20, id = NULL, add_score = TRUE) {
     ## Yank out the data
     retlist <- list()

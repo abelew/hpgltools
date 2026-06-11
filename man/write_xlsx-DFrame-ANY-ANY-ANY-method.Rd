@@ -53,6 +53,8 @@ points in floating point columns.}
 
 \item{column_width}{Either a specific value, NULL, or 'heuristic' which guesses.}
 
+\item{taken_sheets}{Vector containing the names of sheets which have already been used.}
+
 \item{...}{Set of extra arguments given to openxlsx.}
 }
 \value{

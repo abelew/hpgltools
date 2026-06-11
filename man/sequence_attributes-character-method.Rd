@@ -7,7 +7,7 @@
 \S4method{sequence_attributes}{character}(fasta, gff = NULL, type = "gene", key = NULL)
 }
 \arguments{
-\item{fasta}{String describing a bsgenome or fasta file.}
+\item{fasta}{Genome encoded as a fasta file.}
 
 \item{gff}{Optional gff of annotations (if not provided it will just ask the
 whole genome).}
@@ -16,6 +16,20 @@ whole genome).}
 
 \item{key}{What type of entry of the gff file to key from?}
 }
+\value{
+List of data frames containing gc/at/gt/ac contents.
+}
 \description{
-Invoke sequence_attributes() when provided a fasta filename or name of BSgenome.
+This extends the logic of the pattern searching in pattern_count_genome() to
+search on some other attributes.
+}
+\examples{
+ pa_data <- hpgldata::get_paeruginosa_data()
+ pa_fasta <- pa_data[["fasta"]]
+ pa_gff <- pa_data[["gff"]]
+ pa_attribs <- sequence_attributes(pa_fasta, gff = pa_gff)
+ head(pa_attribs)
+}
+\seealso{
+[Biostrings] [Rsamtools]
 }

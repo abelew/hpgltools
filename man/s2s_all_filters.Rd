@@ -37,6 +37,8 @@ function. (s2s_exp stands for: SWATH2stats experiment)}
 \item{pep_column}{What column in the data contains the peptide name (not
 currently used, but it should be.)}
 
+\item{mscore_column}{Use this column to filter by mscore.}
+
 \item{fft}{Ratio of false negatives to true positives, used by
 assess_by_fdr() and similar functions.}
 

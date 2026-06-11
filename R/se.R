@@ -549,6 +549,7 @@ features_greater_than <- function(data, cutoff = 1, hard = TRUE, inverse = FALSE
     "features" = feature_tables)
   return(result)
 }
+setGeneric("features_greater_than")
 
 #' Plot the number of features greater than a given value for a SE
 #'
@@ -818,6 +819,7 @@ median_by_factor <- function(data, design, fact = "condition", fun = "median") {
     "indexes" = group_indexes)
   return(retlist)
 }
+setGeneric("median_by_factor")
 
 #' Get the mean/median gene values by factor for a SE.
 #'
@@ -1327,7 +1329,7 @@ write_normalized_se <- function(se, excel = "excel/pretty_counts.xlsx", norm = "
   new_row <- 1
   ## Perform a quick query to see if sva will explode on this data.
   test_norm <- normalize(se, transform = transform,
-                         convert = convert, filter = filter)
+                         convert = convert, filter = filter, ...)
   test_zeros <- sum(rowSums(assay(test_norm)) == 0)
   if (test_zeros > 0) {
     actual_filter <- "simple"

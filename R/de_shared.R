@@ -2,6 +2,43 @@
 ## The functionsin this file seek to make it possible to treat all the DE
 ## methods identically and/or simultaneously.
 
+#' I am working to properly define my various classes
+#' and using a combination of https://rguides.dev/guides/r-s4-classes/
+#' the book 'Software for Data Analysis', and
+#' https://adv-r.hadley.nz/s4.html in order to learn the process.
+#'
+#' For the moment, I am going to define the representation of my
+#' classes as the important elements of their return list.  My assumption
+#' is that it will be immediately useful to have a getter for each
+#' of those elements.
+#'
+#' For now, the elements like basic/deseq/etc will just be 'list'
+#' but as I fill in S4 heirarchy for hpgltools, that should change
+#' to things like 'hpgltools::de_basic', and the de_basic class
+#' should have its own proper representation, validation, etc...
+#'
+#' But, until I complete that process, I think just using the base
+#' class (list) for these elements should get me a resonable start.
+setClass("hpgltools::all_pairwise",
+         representation = list(
+           basic = "list",
+           deseq = "list",
+           dream = "list",
+           ebseq = "list",
+           edger = "list",
+           limma = "list",
+           noiseq = "list",
+           batch_type = "character",
+           comparison = "list",
+           extra_contrasts = "character",
+           input = "SummarizedExperiment",
+           model_fstring = "character",
+           model_factors = "list",
+           model_svs = "matrix",
+           original_pvalues = "data.frame",
+           pre_batch = "list",
+           post_batch = "list"))
+
 #' Perform limma, DESeq2, EdgeR, basic, noiseq, dream, and ebseq
 #' pairwise analyses.
 #'
@@ -267,7 +304,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     "original_pvalues" = original_pvalues,
     "pre_batch" = pre_pca,
     "post_batch" = post_pca)
-  class(ret) <- c("all_pairwise", "list")
+  class(ret) <- c("hpgltools::all_pairwise", "list")
 
   if (!is.null(arglist[["combined_excel"]])) {
     mesg("Invoking combine_de_tables().")
@@ -284,7 +321,7 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
 #'  contrasts and models used.
 #' @param ... Other args to match the generic.
 #' @export
-print.all_pairwise <- function(x, ...) {
+`print.hpgltools::all_pairwise` <- function(x, ...) {
   included <- c()
   for (b in c("basic", "deseq", "ebseq", "edger", "limma", "noiseq")) {
     if (!is.null(x[[b]])) {
@@ -434,7 +471,7 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
     "cor" = simple_cor,
     "plot" = intersection_plot,
     "scatter" = scatter)
-  class(retlist) <- "aucc_info"
+  class(retlist) <- c("hpgltools::calculate_aucc", "list")
   return(retlist)
 }
 
@@ -444,7 +481,7 @@ calculate_aucc <- function(tbl, tbl2 = NULL, px = "deseq_adjp", py = "edger_adjp
 #'  describing the AUCC.
 #' @param ... Other args to match the generic.
 #' @export
-print.aucc_info <- function(x, ...) {
+`print.hpgltools::calculate_aucc` <- function(x, ...) {
   summary_string <- glue("These two tables have an aucc value of: \\
 {x[['aucc']]} and correlation: ")
   message(summary_string)
@@ -452,79 +489,6 @@ print.aucc_info <- function(x, ...) {
   plot(x[["plot"]])
   return(invisible(x))
 }
-
-get_de_table <- function(apr, table, type = "deseq", combined = FALSE) {
-  all_tables <- apr[[type]][["all_tables"]]
-  wanted <- NULL
-  if (table %in% names(all_tables)) {
-    wanted <- all_tables[[table]]
-  } else {
-    mesg("Unable to find ", table, " in the all pairwise result.")
-    mesg("The possible tables are: ", toString(names(all_tables)), ".")
-    stop("Unable to find ", table, " in the all pairwise result.")
-  }
-  return(wanted)
-}
-setGeneric("get_de_table")
-
-## Note, I am going to change all the classes to the form hpgltools::function_name soon.
-setMethod(
-  "get_de_table", signature = signature(apr = "combined_de"),
-  definition = function(apr, table, type = "deseq", combined = FALSE) {
-    wanted <- NULL
-    if (isTRUE(combined)) {
-      all_tables <- names(apr[["data"]])
-      if (table %in% all_tables) {
-        wanted <- apr[["data"]][[table]]
-      } else {
-        mesg("Unable to find ", table, " in the combined_de_tables result.")
-        mesg("The possible tables are: ", toString(names(all_tables)), ".")
-        stop("Unable to find ", table, " in the combine_de_tables result.")
-      }
-    } else {
-      wanted <- get_de_table(apr[["input"]], table, type = type, combined = combined)
-    }
-      return(wanted)
-  })
-
-setMethod(
-  "get_de_table", signature = signature(apr = "combined_de"),
-  definition = function(apr, table, type = "deseq", combined = FALSE) {
-    wanted <- NULL
-    if (isTRUE(combined)) {
-      all_tables <- names(apr[["data"]])
-      if (table %in% all_tables) {
-        wanted <- apr[["data"]][[table]]
-      } else {
-        mesg("Unable to find ", table, " in the combined_de_tables result.")
-        mesg("The possible tables are: ", toString(names(all_tables)), ".")
-        stop("Unable to find ", table, " in the combine_de_tables result.")
-      }
-    } else {
-      wanted <- get_de_table(apr[["input"]], table, type = type, combined = combined)
-    }
-      return(wanted)
-  })
-
-setMethod(
-  "get_de_table", signature = signature(apr = "sig_genes"),
-  definition = function(apr, table, type = "deseq", combined = FALSE) {
-    wanted <- NULL
-    if (type %in% names(apr)) {
-      up_tables <- apr[["type"]][["ups"]]
-      down_tables <- apr[["type"]][["downs"]]
-      if (table %in% names(up_tables)) {
-        wanted <- rbind(up_tables[[table]], down_tables[[table]])
-      } else {
-        stop("Unable to find the table ", table, " in the extract_significant_genes result.")
-      }
-    } else {
-      stop("Unable to find the type ", type, " in the extract_significant_genes result.")
-    }
-    return(wanted)
-  })
-
-
 
 #' Use sva's f.pvalue to adjust p-values for data adjusted by combat.
 #'
@@ -1079,28 +1043,11 @@ compare_de_tables <- function(first, second, fcx = "deseq_logfc", px = "deseq_ad
   merged <- merged[, kept_columns]
   colnames(merged) <- c("first_lfc", "first_p", "second_lfc", "second_p")
   scatter <- plot_linear_scatter(merged[, c("first_lfc", "second_lfc")])
-  class(scatter) <- "cross_table_comparison"
   scatter[["first_table"]] <- first_table
   scatter[["fcx_column"]] <- fcx
   scatter[["fcy_column"]] <- fcy
   scatter[["second_table"]] <- second_table
   return(scatter)
-}
-
-#' Print a representation of compare_de_tables().
-#' Note I think I want to have that function return slightly different types
-#' depending on how the function call was set up.
-#'
-#' @param x List provided by plot_linear_scatter() containing
-#'  correlations, plots, linear model.
-#' @param ... Other args to match the generic.
-#' @export
-print.cross_table_comparison <- function(x, ...) {
-  summary_string <- glue("Comparison of the {x[['fcx_column']]} vs {x[['fcy_column']]}
-of two DE tables.")
-  message(summary_string)
-  plot(x[["scatter"]])
-  return(invisible(x))
 }
 
 #' See how similar are results from limma/deseq/edger/ebseq.
@@ -1135,43 +1082,43 @@ correlate_de_tables <- function(results, annot_df = NULL, extra_contrasts = NULL
     retlst[["basic"]] <- results[["basic"]][["all_tables"]]
     methods <- c(methods, "basic")
   } else {
-    warn("The basic results are not of class hpgltools::basic_pairwise.")
+    warning("The basic results are not of class hpgltools::basic_pairwise.")
   }
   if (class(results[["deseq"]])[1] == "hpgltools::deseq_pairwise") {
     retlst[["deseq"]] <- results[["deseq"]][["all_tables"]]
     methods <- c(methods, "deseq")
   } else {
-    warn("The deseq results are not of class hpgltools::deseq_pairwise.")
+    warning("The deseq results are not of class hpgltools::deseq_pairwise.")
   }
   if (class(results[["dream"]])[1] == "hpgltools::dream_pairwise") {
     retlst[["dream"]] <- results[["dream"]][["all_tables"]]
     methods <- c(methods, "dream")
   } else {
-    warn("The dream results are not of class hpgltools::dream_pairwise.")
+    warning("The dream results are not of class hpgltools::dream_pairwise.")
   }
   if (class(results[["ebseq"]])[1] == "hpgltools::ebseq_pairwise") {
     retlst[["ebseq"]] <- results[["ebseq"]][["all_tables"]]
     methods <- c(methods, "ebseq")
   } else {
-    warn("The ebseq results are not of class hpgltools::ebseq_pairwise.")
+    warning("The ebseq results are not of class hpgltools::ebseq_pairwise.")
   }
   if (class(results[["edger"]])[1] == "hpgltools::edger_pairwise") {
     retlst[["edger"]] <- results[["edger"]][["all_tables"]]
     methods <- c(methods, "edger")
   } else {
-    warn("The edger results are not of class hpgltools::edger_pairwise.")
+    warning("The edger results are not of class hpgltools::edger_pairwise.")
   }
   if (class(results[["limma"]])[1] == "hpgltools::limma_pairwise") {
     retlst[["limma"]] <- results[["limma"]][["all_tables"]]
     methods <- c(methods, "limma")
   } else {
-    warn("The limma results are not of class hpgltools::limma_pairwise.")
+    warning("The limma results are not of class hpgltools::limma_pairwise.")
   }
   if (class(results[["noiseq"]])[1] == "hpgltools::noiseq_pairwise") {
     retlst[["noiseq"]] <- results[["noiseq"]][["all_tables"]]
     methods <- c(methods, "noiseq")
   } else {
-    warn("The noiseq results are not of class hpgltools::noiseq_pairwise.")
+    warning("The noiseq results are not of class hpgltools::noiseq_pairwise.")
   }
 
   extra_eval_names <- NULL
@@ -1649,7 +1596,7 @@ get_abundant_genes <- function(datum, type = "limma", n = NULL, z = NULL,
       abundant_list[["low"]][[coef]] <- tail(coef_ordered, n = n)
     }
   }
-  class(abundant_list) <- c("abundant_genes", "list")
+  class(abundant_list) <- c("hpgltools::get_abundant_genes", "list")
   return(abundant_list)
 }
 
@@ -1659,7 +1606,7 @@ get_abundant_genes <- function(datum, type = "limma", n = NULL, z = NULL,
 #'  for the most and least abundant genes observed.
 #' @param ... Other args to match the generic.
 #' @export
-print.abundant_genes <- function(x, ...) {
+`print.hpgltools::get_abundant_genes` <- function(x, ...) {
   message("A set of genes deemed abundant.")
   return(invisible(x))
 }

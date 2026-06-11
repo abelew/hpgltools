@@ -104,7 +104,7 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
                                             IRanges::IRanges(start = 1, end = min(1e+05, seqnames[1])))
     } else if (format %in% c("wig", "bw", "bedgraph")) {
       coverage_gr <- range(rtracklayer::import(track_files[1]))
-      seqnames <- as.character(seqnames(coverage_gr))
+      seqnames <- as.character(Seqinfo::seqnames(coverage_gr))
       if (GenomicRanges::width(coverage_gr) <= 1e+05) {
         coverage_gr <- GenomicRanges::resize(coverage_gr, width = 1e+05)
       }

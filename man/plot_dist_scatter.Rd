@@ -43,6 +43,7 @@ if (is.null(pombe_se)) {
 bcv <- plot_bcv(pombe_se)
 bcv[["plot"]]
 
+pombe_norm <- get0("pombe_norm")
 if (is.null(pombe_norm)) {
   source(system.file("examples", "normalize_pombe.R", package = "hpgltools"))
 }

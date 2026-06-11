@@ -17,11 +17,9 @@ NULL
 #' an old version of genbankr, or if I make use of txdbmaker etc.
 #'
 #' @param accession Accession to download and import.
-#' @param db Entrez Database to query
-#' @param file Use a file instead of downloading the accession?
-#' @param sequence Download the sequence with the annotations?
-#' @param type Extract entries of this type.
-#' @param savetxdb Attempt saving a txdb object?
+#' @param database Entrez Database to query
+#' @param return_type Type of file to download from ncbi.
+#' @param save_gb Save a copy of the genbank file locally.
 #' @param restez_db Location of local genbank used by restez.
 #' @return List containing a txDb, sequences, and some other stuff which I
 #'  haven't yet finalized.

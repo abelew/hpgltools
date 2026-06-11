@@ -53,6 +53,8 @@ points in floating point columns.}
 
 \item{column_width}{Either a specific value, NULL, or 'heuristic' which guesses.}
 
+\item{taken_sheets}{Vector containing the names of sheets which have already been used.}
+
 \item{...}{Set of extra arguments given to openxlsx.}
 }
 \value{
@@ -60,19 +62,5 @@ List containing the sheet and workbook written as well as the
  bottom-right coordinates of the last row/column written to the worksheet.
 }
 \description{
-I like to give folks data in any format they prefer, even though I sort
-of hate excel.  Most people I work with use it, so therefore I do too.
-This function has been through many iterations, first using XLConnect,
-then xlsx, and now openxlsx.  Hopefully this will not change again.
-}
-\examples{
- \dontrun{
-  xls_coords <- write_xlsx(dataframe, sheet = "hpgl_data", excel = "testing.xlsx")
-  xls_coords <- write_xlsx(another_df, wb = xls_coords$workbook,
-                          sheet = "hpgl_data", start_row = xls_coords$end_col)
- }
-}
-\seealso{
-[openxlsx] [openxlsx::createWorkbook()] [openxlsx::writeData()]
- [openxlsx::writeDataTable()] [openxlsx::saveWorkbook()]
+Write a dataframe to an excel spreadsheet sheet.
 }

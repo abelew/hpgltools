@@ -361,7 +361,7 @@ treatment group."
       "interpolated_text" = interpolated_text)
     result_list[[vs_string]] <- retlist
   }
-  class(result_list) <- "proper_estimate"
+  class(result_list) <- c("hpgltools::simple_proper", "list")
   return(result_list)
 }
 
@@ -372,7 +372,7 @@ treatment group."
 #'  paper/grant.
 #' @param ... Other args to match the generic.
 #' @export
-print.proper_estimate <- function(x, ...) {
+`print.hpgltools::simple_proper` <- function(x, ...) {
   message(x[[1]][["interpolated_text"]])
   print(x[[1]][["power_plot"]])
   return(invisible(x))

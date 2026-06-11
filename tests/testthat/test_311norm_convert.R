@@ -36,20 +36,20 @@ test_that("calling convert_counts and normalize are equivalent?", {
 
 ## Well, some versions of pasilla provide this information, others do not...
 if (is.null(rowData(pasilla_se)[["cds_length"]])) {
-  rowData(pasilla_se)[["start_position"]] <- as.numeric(rowData(pasilla_se)[["start_position"]])
-  rowData(pasilla_se)[["end_position"]] <- as.numeric(rowData(pasilla_se)[["end_position"]])
+  rowData(pasilla_se)[["start_position"]] <- suppressWarnings(as.numeric(rowData(pasilla_se)[["start_position"]]))
+  rowData(pasilla_se)[["end_position"]] <- suppressWarnings(as.numeric(rowData(pasilla_se)[["end_position"]]))
   rowData(pasilla_se)[["cds_length"]] <- abs(rowData(pasilla_se)[["start_position"]] -
                                                rowData(pasilla_se)[["end_position"]])
   print(summary(rowData(pasilla_se)[["cds_length"]]))
 }
-undef <- rowData(pasilla_se)[["cds_length"]] == "undefined"
+undef <- is.na(rowData(pasilla_se)[["cds_length"]])
 lengths <- rowData(pasilla_se)[["cds_length"]]
-lengths[undef] <- NA
+## I changed my rpkm function to coerce undefined values to 1k so that
+## they are effectively not normalized.
+lengths[undef] <- 1000
 fdata_lengths <- as.vector(as.numeric(lengths))
 names(fdata_lengths) <- rownames(rowData(pasilla_se))
 expected <- edgeR::rpkm(assay(pasilla_se), gene.length = fdata_lengths)
-na_idx <- is.na(expected)
-expected[na_idx] <- 0
 actual <- assay(pasilla_norm)
 test_that("rpkm conversions are equivalent?", {
     expect_equal(expected, actual)

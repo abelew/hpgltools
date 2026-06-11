@@ -562,7 +562,7 @@ pattern_count_genome <- function(fasta, gff = NULL, pattern = "TA",
       "num" = as.data.frame(t(result)),
       stringsAsFactors = FALSE)
   colnames(num_pattern) <- c("name", "number")
-  class(num_pattern) <- "pattern_counted"
+  class(num_pattern) <- c("hpgltools::pattern_count_genome", "list")
   return(num_pattern)
 }
 
@@ -572,7 +572,7 @@ pattern_count_genome <- function(fasta, gff = NULL, pattern = "TA",
 #'  were observed in every gene.
 #' @param ... Other args to match the generic.
 #' @export
-print.pattern_counted <- function(x, ...) {
+`print.hpgltools::pattern_count_genome` <- function(x, ...) {
   summary_string <-
     glue("The pattern was observed {sum(x[['number']])} times ober {nrow(x)} genes.")
   message(summary_string)
@@ -632,14 +632,11 @@ sequence_attributes <- function(fasta, gff = NULL, type = "gene", key = NULL) {
   colnames(attribs) <- c("gc", "at", "gt", "ac")
   return(attribs)
 }
+setGeneric("sequence_attributes")
 
 #' Invoke sequence_attributes() when provided a fasta filename or name of BSgenome.
 #'
-#' @param fasta String describing a bsgenome or fasta file.
-#' @param gff Optional gff of annotations (if not provided it will just ask the
-#'  whole genome).
-#' @param type Column of the gff file to use.
-#' @param key What type of entry of the gff file to key from?
+#' @inherit sequence_attributes
 #' @export
 setMethod(
   "sequence_attributes", signature(fasta = "character"),
@@ -743,7 +740,7 @@ make_bsgenome_from_fasta <- function(fasta, pkgname, title, organism, common_nam
   if ("try-error" %in% class(tt)) {
     stop("Unable to load Biostrings, cannot create final package.")
   }
-  pkg_builder <- BSgenome::forgeBSgenomeDataPkg(description_file, replace = TRUE)
+  pkg_builder <- BSgenomeForge::forgeBSgenomeDataPkg(description_file, replace = TRUE)
   if ("try-error" %in% class(pkg_builder)) {
     message("forgeBSgenomeDataPkg failed with error: ")
     message("A likely reason is too many open files, which may be changed in /etc/sysctl.conf")

@@ -232,7 +232,7 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
     "train_rocs" = train_rocs,
     "test_rocs" = test_rocs,
     "tuner" = tuner)
-  class(retlist) <- "classified_n_times"
+  class(retlist) <- c("hpgltools::classify_n_times", "list")
   return(retlist)
 }
 
@@ -317,7 +317,7 @@ create_partitions <- function(full_df, interesting_meta, outcome_factor = "condi
     outcome_factor = outcome_factor,
     list = list,
     times = times)
-  class(retlist) <- "partitioned_data"
+  class(retlist) <- c("hpgltools::create_partitions", "list")
   return(retlist)
 }
 
@@ -326,7 +326,7 @@ create_partitions <- function(full_df, interesting_meta, outcome_factor = "condi
 #' @param x List containing the n sets of partitioned data test/train.
 #' @param ... Other args to match the generic.
 #' @export
-print.partitioned_data <- function(x, ...) {
+`print.hpgltools::create_partitions` <- function(x, ...) {
   train_sets <- list()
   count <- 0
   for (tr in x[["trainers"]]) {
@@ -468,7 +468,7 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
     "roc" = roc,
     "roc_plot" = roc_record,
     "auc" = auc)
-  class(retlist) <- "classifier_evaluation"
+  class(retlist) <- c("hpgltools::self_evaluate_model", "list")
   return(retlist)
 }
 
@@ -478,7 +478,7 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
 #'  thereof, the confusion matrix, and vector of incorrectly called samples.
 #' @param ... Other args to match the generic.
 #' @export
-print.classifier_evaluation <- function(x, ...) {
+`print.hpgltools::self_evaluate_model` <- function(x, ...) {
   message("The summary of the (in)correct calls is: ")
   print(x[["self_summary"]])
   message("The missed samples are: ")
@@ -630,7 +630,7 @@ write_classifier_summary <- function(result, excel = "ML_summary.xlsx", name = N
     "legend" = legend_written,
     "result" = result_written,
     "summary" = summary_written)
-  class(retlist) <- "ml_summary_written"
+  class(retlist) <- c("hpgltools::write_classifier_summary", "list")
   return(retlist)
 }
 

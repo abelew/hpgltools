@@ -13,6 +13,7 @@ simple_xcell(
   label_size = NULL,
   col_margin = 6,
   length_column = "cds_length",
+  symbol_column = NULL,
   row_margin = 12,
   sig_cutoff = 0.2,
   verbose = TRUE,
@@ -36,6 +37,8 @@ simple_xcell(
 \item{col_margin}{Used by par() when printing the final heatmap.}
 
 \item{length_column}{rowData column with the gene lengths.}
+
+\item{symbol_column}{Get the gene symbols from this annotation column.}
 
 \item{row_margin}{Ibid.}
 

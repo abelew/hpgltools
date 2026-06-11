@@ -2,17 +2,14 @@
 % Please edit documentation in R/attributes.R
 \name{annotation<-}
 \alias{annotation<-}
-\title{Add a annotation mcolumn to a se.}
+\title{Generic set_annotations function calling to BiocGenerics.}
 \usage{
 annotation(object, ...) <- value
 }
 \arguments{
-\item{object}{Summarized Experiment to modify.}
-
-\item{...}{Arbitrary arguments.}
-
-\item{value}{vector of batches.}
+\item{...}{Other options}
 }
 \description{
-Add a annotation mcolumn to a se.
+I do not think I should need to define this, I have an importFrom
+in 01_hpgltools.R and this file includes that.
 }

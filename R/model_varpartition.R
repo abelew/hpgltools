@@ -33,7 +33,7 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
   retlist <- list(
       "resorted" = sorted,
       "plot" = new_plot)
-  class(retlist) <- "reordered_varpart"
+  class(retlist) <- c("hpgltools::replot_varpart_percent", "list")
   return(retlist)
 }
 
@@ -42,7 +42,7 @@ replot_varpart_percent <- function(varpart_output, n = 30, column = NULL, decrea
 #' @param x List of a resorted variance partition analysis and its plot.
 #' @param ... Other args to match the generic.
 #' @export
-print.reordered_varpart <- function(x, ...) {
+`print.hpgltools::replit_varpart_percent` <- function(x, ...) {
   plot(x[["plot"]])
   return(invisible(x))
 }

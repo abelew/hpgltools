@@ -436,7 +436,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
-  if (happyp[["found_chromosomes"]] == 0) {
+  if (sum(happyp[["found_chromosomes"]]) == 0) {
     warning("circos_check_chromosomes() did not find any chromosomes.")
   }
 
@@ -622,7 +622,7 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
     all_seq <- Biostrings::getSeq(raw_seq)
     ## genome_length <- sum(as.data.frame(all_seq@ranges)[["width"]])
     chr_df <- data.frame("width" = BiocGenerics::width(all_seq), "names" = names(all_seq))
-    chr_df[["names"]] <- gsub(x = chr_df[["names"]], pattern = "^(\\w+) .*", replacement = "\\1")
+    chr_df[["names"]] <- gsub(x = chr_df[["names"]], pattern = "^(\\w+)?\\s*.*", replacement = "\\1")
   }
 
   if (!is.null(chromosomes)) {
@@ -631,7 +631,7 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, chr_df)
-  if (happyp[["found_chromosomes"]] <= 0) {
+  if (sum(happyp[["found_chromosomes"]] <= 0)) {
     warning("circos_check_chromosomes() did not find any chromosomes.")
   }
 
@@ -771,7 +771,7 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
-  if (happyp[["found_chromosomes"]] <= 0) {
+  if (sum(happyp[["found_chromosomes"]] <= 0)) {
     warning("circos_check_chromosomes did not find any chromosomes.")
   }
   ## FIXME: Redo this with %>%
@@ -989,6 +989,7 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
 
   ## Add a filter to make sure there are no features which span the entire chromosome
   ## These happen when using genbank genomes.
+  orig <- options(scipen = 999)
   if (is.null(max)) {
     max <- 1000000
   }
@@ -1023,13 +1024,13 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
     minus_df <- merge(minus_df, tmpdf, by = "row.names", all.x = TRUE)
     minus_df[["value"]] <- paste0(minus_df[["value"]], ",id=", minus_df[["id"]])
     minus_df[["value"]] <- gsub(pattern = "[[:space:]]", replacement = "", x = minus_df[["value"]])
-    print(head(minus_df))
-    print(head(plus_df))
     minus_df[["id"]] <- NULL
     rownames(minus_df) <- minus_df[["Row.names"]]
     minus_df[["Row.names"]] <- NULL
   }
 
+  ## I recently had a weird situation where exactly 1 gene was
+  ## in scientific notation!
   message("Writing data file: ", cfg@plus_data_file, " with the + strand GO data.")
   write.table(plus_df, file = cfg@plus_data_file, quote = FALSE,
               row.names = FALSE, col.names = FALSE, na = "no_go")
@@ -1254,6 +1255,7 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
   message("Returning the inner width: ", second_inner,
           ".  Use it as the outer for the next ring.")
   new_outer <- second_inner - spacing
+  new <- options(orig)
   return(new_outer)
 }
 
@@ -1289,6 +1291,7 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
                           strand_column = "strand", id_column = NULL,
                           cog_map = NULL,
                           radius = 1800, chr_units = 1000, band_url = NULL, ...) {
+  orig <- options(scipen = 999)
   mesg("This assumes you have a colors.conf in circos/colors/ ",
        "and fonts.conf in circos/fonts/")
   mesg("It also assumes you have conf/ideogram.conf, conf/ticks.conf, ",
@@ -1493,6 +1496,7 @@ chromosomes_display_default = yes
                      "annot" = annot,
                      "plus_df" = plus_df,
                      "minus_df" = minus_df)
+  new <- options(orig)
   return(circos_data)
 }
 
@@ -1718,6 +1722,7 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
                         thickness = 80, padding = 1, margin = 0.00, stroke_thickness = 0.00,
                         orientation = "out",
                         outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
+  orig <- options(scipen = 999)
   annot <- cfg@annot
   full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
   if (nrow(full_table) == 0) {
@@ -1751,7 +1756,7 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   ## Add a check that we pulled the same chromosomes as exist in the annotations.
   happyp <- circos_check_chromosomes(cfg, full_table,
                                      df_chr_column = "chr", df_gene_column = "rownames")
-  if (happyp[["found_chromosomes"]] <= 0) {
+  if (sum(happyp[["found_chromosomes"]]) <= 0) {
     warning("No chrosomosomes were found by circos_check_chromosomes().")
   }
   tile_cfg_file <- cfg@cfg_file
@@ -1847,6 +1852,7 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   new_outer <- inner - spacing
   message("Returning the inner width: ", new_outer,
           ".  Use it as the outer for the next ring.")
+  new <- options(orig)
   return(new_outer)
 }
 

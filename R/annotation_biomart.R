@@ -299,7 +299,7 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
         warning("The column ", gene_id_column, " is not in the annotations.")
       }
     }
-    class(retlist) <- "annotations_biomart"
+    class(retlist) <- c("hpgltools::load_biomart_annotations", "list")
     return(retlist)
   }
   martlst <- NULL
@@ -501,7 +501,7 @@ load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do
     "year" = year,
     "month" = month,
     "species" = species)
-  class(retlist) <- "hpgltools::load_annotations_biomart"
+  class(retlist) <- c("hpgltools::load_annotations_biomart", "list")
   return(retlist)
 }
 
@@ -664,7 +664,7 @@ load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = T
     "mart_name" = used_mart,
     "attributes" = dl_rows,
     "species" = species)
-  class(retlist) <- "biomart_go"
+  class(retlist) <- c("hpgltools::load_biomart_go", "list")
   return(retlist)
 }
 
@@ -674,7 +674,7 @@ load_biomart_go <- function(species = "hsapiens", overwrite = FALSE, do_save = T
 #'  mart used, host used, name of the mart, and attributes.
 #' @param ... Other args to match the generic.
 #' @export
-print.biomart_go <- function(x, ...) {
+`print.hpgltools::load_biomart_go` <- function(x, ...) {
   summary_string <- glue("The GO annotations from biomart host {x[['host']]} \\
 for species {x[['species']]} provided {prettyNum(nrow(x[['go']]), big.mark = ',')} rows.")
   message(summary_string)

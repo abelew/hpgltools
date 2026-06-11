@@ -7,7 +7,7 @@ from the combined tables.}
 \usage{
 extract_significant_genes(
   combined,
-  according_to = "all",
+  according_to = "deseq",
   lfc = 1,
   p = 0.05,
   sig_bar = TRUE,

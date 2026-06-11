@@ -8,6 +8,10 @@
 #' @include 01_hpgltools.R
 NULL
 
+## Material in this depends on de_shared.R
+#' @include de_shared.R
+NULL
+
 #' Convert a vector of yes/no by DE method to a list.
 #'
 #' This compiles the set of possible methods to include in an
@@ -96,6 +100,29 @@ check_includes <- function(includes = NULL, apr = NULL, methods = NULL, ...) {
   }
   return(final)
 }
+
+#' I am adding a new verb to my understanding of the S4 language
+#'
+#' Well, let us be honest, understanding is a bit of an overstatement.
+#' But if I properly understand what is going on, I should start
+#' making proper class declarations for the various things I am doing
+#'
+#' When using setClass, one may define the slots with a c() vector,
+#' or use representation with a list(); presumably using the list
+#' form allows one to nest stuff and do weird things I do not yet get.
+setClass("hpgltools::combine_de_tables",
+         representation = list(
+           input = "list", ## I think this should be hpgltools::all_pairwise
+           data = "list",
+           table_names = "character",
+           plots = "list",
+           comp_plot = "list",
+           keepers = "list",
+           kept = "character",
+           model_used = "matrix",
+           model_fstrings = "character",
+           design_result = "NULL",
+           de_summary = "list"))
 
 #' Combine portions of deseq/limma/edger table output.
 #'
@@ -384,7 +411,6 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     "model_fstrings" = model_fstrings,
     "design_result" = design_result,
     "de_summary" = extracted[["summaries"]])
-  class(ret) <- c("combined_de", "list")
 
   if (!is.null(rda)) {
     varname <- gsub(x = basename(rda), pattern = "\\.rda$", replacement = "")
@@ -409,6 +435,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
     image_dir <- dirname(img)
   }
   try(unlink(image_dir), silent = TRUE)
+  class(ret) <- c("hpgltools::combine_de_tables", "list")
   return(ret)
 }
 
@@ -419,7 +446,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
 #'  summaries of the data.
 #' @param ... Other args to match the generic.
 #' @export
-print.combined_de <- function(x, ...) {
+`print.hpgltools::combine_de_tables` <- function(x, ...) {
   message("A set of combined differential expression results.")
   summary_table <- x[["de_summary"]][, c("table", "deseq_sigup", "deseq_sigdown",
                                          "edger_sigup", "edger_sigdown",
@@ -1088,7 +1115,7 @@ Defaulting to fdr.")
     "includes" = includes,
     "inverts" = inverts,
     "summary" = summary_lst)
-  class(ret) <- c("combined_table", "list")
+  class(ret) <- c("hpgltools::combine_mapped_table", "list")
   return(ret)
 }
 
@@ -1097,7 +1124,7 @@ Defaulting to fdr.")
 #' @param x Data table of combined differential expression results.
 #' @param ... Other args to match the generic.
 #' @export
-print.combined_table <- function(x, ...) {
+`print.hpgltools::combine_mapped_table` <- function(x, ...) {
   message("A combined differential expression table.")
   message("Comprising ", nrow(x[["comb"]]), " genes and including ", x[["includes"]], ".")
   return(invisible(x))
@@ -1219,7 +1246,7 @@ map_keepers <- function(keepers, table_names, datum) {
       }
     }
   }
-  class(keeper_table_map) <- "mapped_keepers"
+  class(keeper_table_map) <- "hpgltools::map_keepers"
   return(keeper_table_map)
 }
 
@@ -1228,7 +1255,7 @@ map_keepers <- function(keepers, table_names, datum) {
 #' @param x List full of kept information.
 #' @param ... Other args to match the generic.
 #' @export
-print.mapped_keepers <- function(x, ...) {
+`print.hpgltools::map_keepers` <- function(x, ...) {
   message("The set of mappings between the wanted data and available data in a pairwise comparison.")
   print(names(x))
   return(invisible(x))
@@ -1283,7 +1310,6 @@ extract_keepers <- function(extracted, keepers, table_names,
                             wanted_genes = NULL, scale_p = FALSE) {
   ## First check that your set of keepers is in the data
   ## all_keepers is therefore the set of all coefficients in numerators/denominators
-  message("Looking for subscript invalid names, start of extract_keepers.")
   all_keepers <- as.character(unlist(keepers))
 
   ## keeper_names is the set of arbitrarily chosen names for the written sheets
@@ -1648,6 +1674,20 @@ extract_abundant_genes <- function(pairwise, according_to = "deseq", n = 100,
 extract_siggenes <- function(...) {
   extract_significant_genes(...)
 }
+
+setClass("hpgltools::extract_significant_genes",
+         representation = list(
+           sig_bar_plots = "list",
+           summary_df = "data.frame",
+           lfc = "numeric",
+           p = "numeric",
+           z = "numeric",
+           n = "numeric",
+           according = "character",
+           p_type = "character",
+           excel = "list"
+         ))
+
 #' Extract the sets of genes which are significantly up/down regulated
 #' from the combined tables.
 #'
@@ -1689,7 +1729,7 @@ extract_siggenes <- function(...) {
 #' @return The set of up-genes, down-genes, and numbers therein.
 #' @seealso \code{\link{combine_de_tables}}
 #' @export
-extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
+extract_significant_genes <- function(combined, according_to = "deseq", lfc = 1.0,
                                       p = 0.05, sig_bar = TRUE, z = NULL, n = NULL,
                                       min_mean_assay = NULL, assay_column = NULL,
                                       top_percent = NULL, p_type = "adj",
@@ -1735,7 +1775,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
     table_names <- "all"
     num_tables <- 1
     table_mappings <- table_names
-  } else if (class(combined)[1] == "combined_de") {
+  } else if (class(combined)[1] == "hpgltools::combine_de_tables") {
     ## Then this is the result of combine_de_tables()
     num_tables <- length(names(combined[["data"]]))
     table_names <- combined[["table_names"]]
@@ -2015,7 +2055,6 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
   for (img in image_files) {
     try(suppressWarnings(file.remove(img)), silent = TRUE)
   }
-  class(ret) <- c("sig_genes", "list")
 
   ## If there is no gmt fielname provided, but an excel filename is provided,
   ## save a .gmt with the xlsx file's basename
@@ -2052,6 +2091,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
       }
     }
   }
+  class(ret) <- c("hpgltools::extract_significant_genes", "list")
   return(ret)
 }
 
@@ -2061,7 +2101,7 @@ extract_significant_genes <- function(combined, according_to = "all", lfc = 1.0,
 #'  plots, xlsx output file, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.sig_genes <- function(x, ...) {
+`print.hpgltools::extract_significant_genes` <- function(x, ...) {
   message("A set of genes deemed significant according to ", toString(x[["according"]]), ".")
   params <- ""
   if (!is.null(x[["lfc"]])) {
@@ -2118,6 +2158,69 @@ summarize_ups_downs <- function(ups, downs) {
   summary_table <- summary_table[summary_table_idx, ]
   return(summary_table)
 }
+
+#' Extract a DE table from some data structure.
+#'
+#' @param apr Input data, defaulting to the result from all_pairwise()
+#' @param table Table name to extract
+#' @param type Choose the result from this DE method.
+#' @param combined Combine all the result types.
+get_de_table <- function(apr, table, type = "deseq", combined = FALSE) {
+  all_tables <- apr[[type]][["all_tables"]]
+  wanted <- NULL
+  if (table %in% names(all_tables)) {
+    wanted <- all_tables[[table]]
+  } else {
+    mesg("Unable to find ", table, " in the all pairwise result.")
+    mesg("The possible tables are: ", toString(names(all_tables)), ".")
+    stop("Unable to find ", table, " in the all pairwise result.")
+  }
+  return(wanted)
+}
+setGeneric("get_de_table")
+
+#' Extract tables from the result of combine_de_tables.
+#'
+#' @inherit get_de_table
+setMethod(
+  "get_de_table", signature = signature(apr = "hpgltools::combine_de_tables"),
+  definition = function(apr, table, type = "deseq", combined = FALSE) {
+    wanted <- NULL
+    if (isTRUE(combined)) {
+      all_tables <- names(apr[["data"]])
+      if (table %in% all_tables) {
+        wanted <- apr[["data"]][[table]]
+      } else {
+        mesg("Unable to find ", table, " in the combined_de_tables result.")
+        mesg("The possible tables are: ", toString(names(all_tables)), ".")
+        stop("Unable to find ", table, " in the combine_de_tables result.")
+      }
+    } else {
+      wanted <- get_de_table(apr[["input"]], table, type = type, combined = combined)
+    }
+      return(wanted)
+  })
+
+#' Extract DE result tables from the result of extract_significant_genes.
+#'
+#' @inherit get_de_table
+setMethod(
+  "get_de_table", signature = signature(apr = "hpgltools::extract_significant_genes"),
+  definition = function(apr, table, type = "deseq", combined = FALSE) {
+    wanted <- NULL
+    if (type %in% names(apr)) {
+      up_tables <- apr[["type"]][["ups"]]
+      down_tables <- apr[["type"]][["downs"]]
+      if (table %in% names(up_tables)) {
+        wanted <- rbind(up_tables[[table]], down_tables[[table]])
+      } else {
+        stop("Unable to find the table ", table, " in the extract_significant_genes result.")
+      }
+    } else {
+      stop("Unable to find the type ", type, " in the extract_significant_genes result.")
+    }
+    return(wanted)
+  })
 
 #' Find the sets of intersecting significant genes
 #'
@@ -2213,7 +2316,7 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
       tmp_file <- tmpmd5file(pattern = "venn", fileext = ".png")
       png(filename = tmp_file)
       dev.control("enable")
-      Vennerable::plot(sets, doWeights = FALSE)
+      try(Vennerable::plot(sets, doWeights = FALSE), silent = TRUE)
       rec <- grDevices::recordPlot()
       dev.off()
       file.remove(tmp_file)
@@ -2329,7 +2432,7 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
     try(suppressWarnings(file.remove(img)), silent = TRUE)
   }
 
-  class(lst) <- c("sig_intersect", "list")
+  class(lst) <- c("hpgltools::intersect_significant", "list")
   return(lst)
 }
 
@@ -2339,7 +2442,7 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
 #'  intersections, subsets of the intersections, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.sig_intersect <- function(x, ...) {
+`print.hpgltools::intersect_significant` <- function(x, ...) {
   message("A set of genes deemed significant by multiple methods.")
   return(invisible(x))
 }

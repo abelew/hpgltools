@@ -28,6 +28,7 @@ NULL
 #' @param model_svs Method to extract surrogate variables (not used).
 #' @param annot_df Extra annotation dataframe.
 #' @param keepers Set of specific contrasts to perform instead of all.
+#' @param filter Pre-filter the data, as per deseq and friends.
 #' @param fx What function to use for mean/median?
 #' @param keep_underscore Sanitize model underscores?
 #' @param ... Extra options passed to arglist.

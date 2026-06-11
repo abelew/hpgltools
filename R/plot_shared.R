@@ -384,7 +384,7 @@ graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean"
     "tsne_table" = tsne[["table"]]
   )
   options(old_options)
-  class(ret_data) <- "graphed_metrics"
+  class(ret_data) <- c("hpgltools::graph_metrics", "list")
   return(ret_data)
 }
 
@@ -393,7 +393,7 @@ graph_metrics <- function(input, cormethod = "pearson", distmethod = "euclidean"
 #' @param x List containing a large number of plots and some tables.
 #' @param ... Other args to match the generic.
 #' @export
-print.graphed_metrics <- function(x, ...) {
+`print.hpgltools::graph_metrics` <- function(x, ...) {
   summary_string <- glue("A large number of plots produced by graph_metrics(), \
 here are the elements:")
   message(summary_string)
@@ -436,7 +436,7 @@ plot_legend <- function(stuff) {
     "color_fact" = color_fact,
     "colors" = plot[["data"]][, c("condition", "batch", "colors")],
     "plot" = legend_plot)
-  class(ret) <- "legend_plot"
+  class(ret) <- c("hpgltools::plot_legend", "list")
   return(ret)
 }
 
@@ -445,7 +445,7 @@ plot_legend <- function(stuff) {
 #' @param x List containing the condition factor, colors used, and plot.
 #' @param ... Other args to match the generic.
 #' @export
-print.legend_plot <- function(x, ...) {
+`print.hpgltools::plot_legend` <- function(x, ...) {
   summary_string <- glue("The colors used in the expressionset are: \\
 {toString(levels(as.factor(x[['color_fact']])))}.")
   message(summary_string)

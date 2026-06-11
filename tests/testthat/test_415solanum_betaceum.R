@@ -19,8 +19,8 @@ untarred <- utils::untar(tarfile = system.file("share/sb/preprocessing.tar.xz",
 ## entirely bad, putative transcriptome as an input for kallisto and rsem.
 ## Given that as input, we think we can hunt down some meaningful genes.
 ## Let us see if that is true.
-
-sb_se <- create_se(metadata = "preprocessing/kept_samples.xlsx", gene_info = sb_annot)
+sb_se <- suppressWarnings(
+  create_se(metadata = "preprocessing/kept_samples.xlsx", gene_info = sb_annot))
 actual <- dim(exprs(sb_se))
 expected <- c(234330, 8)
 test_that("Do we get an expected matrix from create_se()?", {

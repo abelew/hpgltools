@@ -13,6 +13,7 @@ NULL
 #'
 #' @param wb Workbook to modify
 #' @param sheet Sheet to check/create.
+#' @param taken_sheets A vector of already taken sheet names.
 #' @return The workbook object hopefully with a new worksheet.
 #' @seealso [openxlsx::addWorksheet()]
 check_xlsx_worksheet <- function(wb, sheet, taken_sheets = c()) {
@@ -183,6 +184,7 @@ sanitize_percent <- function(numbers, df = NULL) {
 #'
 #' @param numbers Column of numbers.
 #' @param df optional df rather than just a vector.
+#' @export
 sanitize_number_encoding <- function(numbers, df = NULL) {
   number_column <- NULL
   if (!is.null(df)) {
@@ -211,6 +213,15 @@ sanitize_number_encoding <- function(numbers, df = NULL) {
   return(numbers)
 }
 
+setClass("hpgltools::write_xlsx",
+         representation = list(
+           workbook = "list",
+           sheet = "character",
+           frozen = "character",
+           end_row = "numeric",
+           end_col = "numeric",
+           file = "character"))
+
 #' Use openxlsx to write some information into a xlsx file.
 #'
 #' @param data Data frame to print.
@@ -228,6 +239,7 @@ sanitize_number_encoding <- function(numbers, df = NULL) {
 #' @param freeze_first_column Add a hint to make the first column always on screen?
 #' @param date_format Coerce date columns to this format.
 #' @param column_width Either a specific value, NULL, or 'heuristic' which guesses.
+#' @param taken_sheets Vector containing the names of sheets which have already been used.
 #' @param ... Set of extra arguments given to openxlsx.
 #' @return List containing the sheet and workbook written as well as the
 #'  bottom-right coordinates of the last row/column written to the worksheet.
@@ -241,45 +253,15 @@ write_xlsx <- function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
   message("This function is intended to write xlsx files.")
   message("It was passed an object of type ", class(data),
           " and does not know what to do with it.")
-  standardGeneric("write_xlsx")
   return(NULL)
 }
 setGeneric("write_xlsx")
-setOldClass("written_xlsx")
+##setGeneric("write_xlsx")
+##setOldClass("hpgltools::write_xlsx")
 
 #' Write a dataframe to an excel spreadsheet sheet.
 #'
-#' I like to give folks data in any format they prefer, even though I sort
-#' of hate excel.  Most people I work with use it, so therefore I do too.
-#' This function has been through many iterations, first using XLConnect,
-#' then xlsx, and now openxlsx.  Hopefully this will not change again.
-#'
-#' @param data Data frame to print.
-#' @param wb Workbook to which to write.
-#' @param sheet Name of the sheet to write.
-#' @param excel Filename of final excel workbook to write
-#' @param rownames Include row names in the output?
-#' @param start_row First row of the sheet to write. Useful if writing multiple tables.
-#' @param start_col First column to write.
-#' @param title Title for this xlsx table.
-#' @param float_format Revisit this, but it hard-sets the number of decimal
-#'  points in floating point columns.
-#' @param data_table Write this as an excel data table instead of just a collection of cells.
-#' @param freeze_first_row Add a hint to make the first row always on screen?
-#' @param freeze_first_column Add a hint to make the first column always on screen?
-#' @param date_format Coerce date columns to this format.
-#' @param column_width Either a specific value, NULL, or 'heuristic' which guesses.
-#' @param ... Set of extra arguments given to openxlsx.
-#' @return List containing the sheet and workbook written as well as the
-#'  bottom-right coordinates of the last row/column written to the worksheet.
-#' @seealso [openxlsx] [openxlsx::createWorkbook()] [openxlsx::writeData()]
-#'  [openxlsx::writeDataTable()] [openxlsx::saveWorkbook()]
-#' @examples
-#'  \dontrun{
-#'   xls_coords <- write_xlsx(dataframe, sheet = "hpgl_data", excel = "testing.xlsx")
-#'   xls_coords <- write_xlsx(another_df, wb = xls_coords$workbook,
-#'                           sheet = "hpgl_data", start_row = xls_coords$end_col)
-#'  }
+#' @inherit write_xlsx
 #' @export
 setMethod(
   "write_xlsx", signature(data = "data.frame"),
@@ -503,7 +485,7 @@ setMethod(
       save_result <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)
       ret[["save_result"]] <- save_result
     }
-    class(ret) <- "written_xlsx"
+    class(ret) <- c("hpgltools::write_xlsx", "list")
     return(ret)
   })
 
@@ -530,7 +512,7 @@ setMethod(
     return(written)
 })
 
-#' Pass a list to write_xlsx.
+#' Pass a list to write_xlsx
 #'
 #' @inherit write_xlsx
 #' @export
@@ -601,39 +583,12 @@ setMethod(
       return(NULL)
     })
 
-#' Print the result from write_xlsx.
-#'
-#' @param x List containing some information about the xlsx file.
-#' @param ... Other args for the generic.
-#' @export
-print.written_xlsx <- function(x, ...) {
-  result_string <- glue("write_xlsx() wrote {x[['file']]}.
- The cursor is on sheet {x[['sheet']]}, row: {x[['end_row']]} column: {x[['end_col']]}.")
-  message(result_string)
-  return(invisible(x))
-}
-
 #' Write an xlsx file given the result of an existing xlsx write.
 #'
-#' @param data Data frame to print.
-#' @param wb Workbook to which to write.
-#' @param sheet Name of the sheet to write.
-#' @param excel Filename of final excel workbook to write
-#' @param rownames Include row names in the output?
-#' @param start_row First row of the sheet to write. Useful if writing multiple tables.
-#' @param start_col First column to write.
-#' @param title Title for this xlsx table.
-#' @param float_format Revisit this, but it hard-sets the number of decimal
-#'  points in floating point columns.
-#' @param data_table Write this as an excel data table instead of just a collection of cells.
-#' @param freeze_first_row Add a hint to make the first row always on screen?
-#' @param freeze_first_column Add a hint to make the first column always on screen?
-#' @param date_format Coerce date columns to this format.
-#' @param column_width Either a specific value, NULL, or 'heuristic' which guesses.
-#' @param ... Set of extra arguments given to openxlsx.
+#' @inherit write_xlsx
 #' @export
 setMethod(
-  "write_xlsx", signature = signature(excel = "written_xlsx"),
+  "write_xlsx", signature(excel = "hpgltools::write_xlsx"),
   definition = function(data = NULL, wb = NULL, sheet = NULL, excel,
                         rownames = TRUE, start_row = 1, start_col = 1,
                         title = NULL, float_format = "0.000", data_table = TRUE,
@@ -665,6 +620,18 @@ setMethod(
                date_format = date_format, column_width = column_width,
                taken_sheets = taken_sheets, ...)
   })
+
+#' Print the result from write_xlsx.
+#'
+#' @param x List containing some information about the xlsx file.
+#' @param ... Other args for the generic.
+#' @export
+`print.hpgltools::write_xlsx` <- function(x, ...) {
+  result_string <- glue("write_xlsx() wrote {x[['file']]}.
+ The cursor is on sheet {x[['sheet']]}, row: {x[['end_row']]} column: {x[['end_col']]}.")
+  message(result_string)
+  return(invisible(x))
+}
 
 #' An attempt to improve the behaivor of openxlsx's plot inserter.
 #'

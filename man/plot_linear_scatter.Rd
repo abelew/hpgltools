@@ -20,7 +20,6 @@ plot_linear_scatter(
   first = NULL,
   second = NULL,
   base_url = NULL,
-  color_weights = TRUE,
   xlab = NULL,
   ylab = NULL,
   model_type = "robust",
@@ -28,8 +27,10 @@ plot_linear_scatter(
   add_rsq = TRUE,
   add_cor = TRUE,
   label_prefix = "Expression of",
+  color_weights = TRUE,
   color_high = NULL,
   color_low = NULL,
+  color_column = NULL,
   alpha = 0.4,
   ...
 )
@@ -63,9 +64,6 @@ plot_linear_scatter(
 
 \item{base_url}{Base url to add to the plot.}
 
-\item{color_weights}{Apply colors by the weights of the points vs
-the linear model.}
-
 \item{xlab}{Alternate x-axis label.}
 
 \item{ylab}{Alternate x-axis label.}
@@ -80,9 +78,14 @@ the linear model.}
 
 \item{label_prefix}{Use this prefix for the axis labels.}
 
+\item{color_weights}{Apply colors by the weights of the points vs
+the linear model.}
+
 \item{color_high}{Chosen color for points significantly above the mean.}
 
 \item{color_low}{Chosen color for points significantly below the mean.}
+
+\item{color_column}{Column in the input data to use for categorical colors.}
 
 \item{alpha}{Choose an alpha channel to define how see-through the dots are.}
 
@@ -116,6 +119,7 @@ if (is.null(pombe_se)) {
 bcv <- plot_bcv(pombe_se)
 bcv[["plot"]]
 
+pombe_norm <- get0("pombe_norm")
 if (is.null(pombe_norm)) {
   source(system.file("examples", "normalize_pombe.R", package = "hpgltools"))
 }

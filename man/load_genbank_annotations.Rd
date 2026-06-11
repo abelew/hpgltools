@@ -7,7 +7,7 @@
 load_genbank_annotations(
   accession = "AE009949",
   database = "nuccore",
-  return_type = "genbank",
+  return_type = "gbwithparts",
   save_gb = TRUE,
   restez_db = "/sw/local/genbank/current"
 )
@@ -15,17 +15,13 @@ load_genbank_annotations(
 \arguments{
 \item{accession}{Accession to download and import.}
 
+\item{database}{Entrez Database to query}
+
+\item{return_type}{Type of file to download from ncbi.}
+
+\item{save_gb}{Save a copy of the genbank file locally.}
+
 \item{restez_db}{Location of local genbank used by restez.}
-
-\item{db}{Entrez Database to query}
-
-\item{file}{Use a file instead of downloading the accession?}
-
-\item{sequence}{Download the sequence with the annotations?}
-
-\item{type}{Extract entries of this type.}
-
-\item{savetxdb}{Attempt saving a txdb object?}
 }
 \value{
 List containing a txDb, sequences, and some other stuff which I
@@ -50,7 +46,7 @@ if (! "try-error" \%in\% class(gbk_file)) {
   removed <- file.remove(gbk_file[["written_file"]])
 }
 
-sagalacticae_genbank_annot <- load_genbank_annotations(accession = test_accession, type = "CDS")
+sagalacticae_genbank_annot <- load_genbank_annotations(accession = test_accession)
 if (! "try-error" \%in\% class(sagalacticae_genbank_annot)) {
   dim(sagalacticae_genbank_annot)
 }

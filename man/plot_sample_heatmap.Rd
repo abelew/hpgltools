@@ -46,6 +46,8 @@ plot_sample_heatmap(
 
 \item{filter}{Filter the data before performing this plot?}
 
+\item{topn}{Limit the plot to the top-n most highly expressed elements.}
+
 \item{...}{More parameters for a good time!}
 }
 \value{

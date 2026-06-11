@@ -441,25 +441,6 @@ plot_pyprophet_distribution <- function(pyprophet_data, column = "delta_rt", kee
   }
   ## I am not certain this is valid.
   plot_df[[column]] <- abs(plot_df[[column]])
-
-  ##  testing <- data.table::as.data.table(plot_df)
-  ##  recast_dt <- data.table::dcast.data.table(data = testing,
-  ##                                            formula = sequence+proteinname~sample,
-  ##                                            fun.aggregate = mean,
-  ##                                            value.var = "intensity")
-  ##  names <- recast_dt[["proteinname"]]
-  ##  sequences <- recast_dt[["sequence"]]
-  ##  recast_dt[, c("proteinname", "sequence") := NULL]
-  ##  nan_idx <- is.na(recast_dt)
-  ##  recast_dt[nan_idx] <- 0
-  ##  recast_norm <- log2(
-  ##    1 + preprocessCore::normalize.quantiles.robust(as.matrix(recast_dt)))
-  ##  remelt <- as.data.table(recast_norm)
-  ##  remelt[["proteinname"]] <- names
-  ##  remelt[["sequence"]] <- sequences
-  ##  remelted <- data.table::melt(data = remelt, value.name = "intensity")
-  ##  colnames(remelted) <- c("proteinname", "sequence", "sample", "intensity")
-
   ## Drop rows from the metadata and colors which had errors.
   if (length(keepers) > 0) {
     metadata <- metadata[keepers, ]
@@ -504,7 +485,7 @@ plot_pyprophet_distribution <- function(pyprophet_data, column = "delta_rt", kee
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(axis.text = ggplot2::element_text(size = base_size, colour = "black"),
                    legend.key.size = ggplot2::unit(0.3, "cm"))
-  density <- directlabels::direct.label(density)
+  density <- suppressWarnings(directlabels::direct.label(density))
 
   violin <- ggplot(data = plot_df, aes(x = .data[["sample"]], y = .data[[column]])) +
     ggplot2::geom_violin(aes(fill = .data[["sample"]]), width = 1, scale = "area") +

@@ -30,6 +30,11 @@ print it to file and screen.}
 
 \item{crop}{Crop off the edges of the plot?}
 
+\item{old}{A couple of plotters have new and old implementations (svg),
+use the old one?}
+
+\item{passthrough}{Pass the plot through to the default plotter after printint it?}
+
 \item{...}{Arguments passed to the image plotters.}
 }
 \value{

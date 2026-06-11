@@ -71,7 +71,8 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
     },
     "rpkm" = {
       count_table <- hpgl_rpkm(count_table, annotations = annotations,
-                               length_column = length_column, ...)
+                               length_column = length_column,
+                               ...)
     },
     "cp_seq_m" = {
       counts <- edgeR::cpm(count_table)
@@ -335,6 +336,10 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   if (!is.null(arglist[["end_column"]])) {
     end_column <- arglist[["end_column"]]
   }
+  length_na <- 1000
+  if (!is.null(arglist[["length_na"]])) {
+    length_na <- arglist[["length_na"]]
+  }
   ## holy crapola I wrote this when I had no clue what I was doing.
   if (class(count_table)[1] == "edgeR") {
     count_table <- count_table[["counts"]]
@@ -372,8 +377,8 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   lenvec <- NULL
   if (is.null(length_column) && is.null(merged_annot[["length"]]) &&
         is.null(merged_annot[["width"]])) {
-    if (!is.null(merged_annot[["start_column"]]) &&
-          !is.null(merged_annot[["end_column"]])) {
+    if (!is.null(merged_annot[[start_column]]) &&
+          !is.null(merged_annot[[end_column]])) {
       length_column <- "length"
       merged_annot[[length_column]] <- abs(
         merged_annot[[start_column]] - merged_annot[[end_column]])
@@ -399,6 +404,22 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   if (is.null(merged_annot[[length_column]])) {
     if (!is.null(merged_annot[[start_column]]) &&
           !is.null(merged_annot[[end_column]])) {
+      start_na <- is.na(suppressWarnings(as.numeric(merged_annot[[start_column]])))
+      end_na <- is.na(suppressWarnings(as.numeric(merged_annot[[end_column]])))
+      num_nas <- sum(start_na) + sum(end_na)
+      if (num_nas > 0) {
+        if (is.numeric(length_na)) {
+          mesg("There are ", num_nas, " among the start/end points, setting their lengths to ",
+               length_na, ".")
+          merged_annot[start_na, start_column] <- length_na
+          merged_annot[end_na, start_column] <- length_na
+          merged_annot[start_na, end_column] <- 0
+          merged_annot[end_na, end_column] <- 0
+        } else {
+          mesg("There are ", num_nas, " among the start/end points, removing them.")
+          merged_annot <- merged_annot[!start_na, ]
+        }
+      }
       merged_annot[["width"]] <- abs(as.numeric(merged_annot[[start_column]]) -
                                        as.numeric(merged_annot[[end_column]]))
       length_column <- "width"

@@ -14,17 +14,6 @@ NULL
 #' @example inst/examples/plot_point.R
 #' @export
 plot_bcv <- function(data) {
-  data_class <- class(data)[1]
-  if (data_class == "exp" || data_class == "SummarizedExperiment") {
-    data <- assay(data)
-  } else if (data_class == "ExpressionSet") {
-    data <- assay(data)
-  } else if (data_class == "matrix" || data_class == "data.frame") {
-    data <- as.data.frame(data)
-    ## some functions prefer matrix, so I am keeping this explicit for the moment
-  } else {
-    stop("This function only understands types: exp, ExpressionSet, data.frame, and matrix.")
-  }
   data <- edgeR::DGEList(counts = data)
   edisp <- edgeR::estimateDisp(data)
   avg_log_cpm <- edisp[["AveLogCPM"]]
@@ -153,8 +142,6 @@ plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
 #' @param first First column to plot.
 #' @param second Second column to plot.
 #' @param base_url Base url to add to the plot.
-#' @param color_weights Apply colors by the weights of the points vs
-#'  the linear model.
 #' @param xlab Alternate x-axis label.
 #' @param ylab Alternate x-axis label.
 #' @param model_type Type of lm to use.
@@ -162,8 +149,11 @@ plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
 #' @param add_rsq Add the rsquared value to the plot.
 #' @param add_cor Add the correlation coefficient to the plot.
 #' @param label_prefix Use this prefix for the axis labels.
+#' @param color_weights Apply colors by the weights of the points vs
+#'  the linear model.
 #' @param color_high Chosen color for points significantly above the mean.
 #' @param color_low Chosen color for points significantly below the mean.
+#' @param color_column Column in the input data to use for categorical colors.
 #' @param alpha Choose an alpha channel to define how see-through the dots are.
 #' @param ... Extra args likely used for choosing significant genes.
 #' @return List including a ggplot2 scatter plot and some histograms.  This plot
@@ -184,12 +174,15 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
                                 xcol = NULL, ycol = NULL, text_col = NULL, logfc = 2.0,
                                 identity = FALSE, z = 1.5, z_lines = FALSE,
                                 first = NULL, second = NULL, base_url = NULL,
-                                color_weights = TRUE, xlab = NULL, ylab = NULL,
-                                model_type = "robust", add_equation = TRUE, add_rsq = TRUE,
+                                xlab = NULL, ylab = NULL, model_type = "robust",
+                                add_equation = TRUE, add_rsq = TRUE,
                                 add_cor = TRUE, label_prefix = "Expression of",
-                                color_high = NULL, color_low = NULL, alpha = 0.4, ...) {
+                                color_weights = TRUE, color_high = NULL, color_low = NULL,
+                                color_column = NULL, alpha = 0.4,
+                                ...) {
   ## At this time, one might expect arglist to contain
   ## z, p, fc, n and these will therefore be passed to get_sig_genes()
+  arglist <- list(...)
   df <- as.data.frame(df)
   if (isTRUE(color_high)) {
     color_high <- "#FF0000"
@@ -358,6 +351,18 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
   if (isTRUE(loess)) {
     first_vs_second <- first_vs_second +
       ggplot2::geom_smooth(method = "loess")
+  }
+
+  if (!is.null(text_col)) {
+    first_vs_second <- first_vs_second +
+      ggrepel::geom_text_repel(aes(x = .data[[xcol]], y = .data[[ycol]],
+                                   label = .data[[text_col]]))
+  }
+
+  if (!is.null(color_column)) {
+    first_vs_second <- first_vs_second +
+      ggplot2::scale_fill_manual(aes(fill = color_column)) +
+      ggplot2::scale_color_manual(aes(color = color_column))
   }
 
   first_vs_second <- first_vs_second +
@@ -869,20 +874,17 @@ plot_scatter <- function(df, color = "black", xlab = NULL, xcol = NULL, ycol = N
   if (is.null(ycol)) {
     ycol <- 2
   }
-  df <- data.frame(df[, c(xcol, ycol)])
-  df <- df[complete.cases(df), ]
   df_columns <- colnames(df)
-  df_x_axis <- df_columns[1]
-  df_y_axis <- df_columns[2]
+  df_x_axis <- df_columns[xcol]
+  df_y_axis <- df_columns[ycol]
   if (is.null(xlab)) {
     xlab <- glue("Expression of {df_x_axis}")
   }
   if (is.null(ylab)) {
     ylab <- glue("Expression of {df_y_axis}")
   }
-  colnames(df) <- c("first", "second")
   df[["label"]] <- rownames(df)
-  first_vs_second <- ggplot(df, aes(x = .data[["first"]], y = .data[["second"]],
+  first_vs_second <- ggplot(df, aes(x = .data[[xcol]], y = .data[[ycol]],
                                     label = .data[["label"]])) +
     ggplot2::xlab(xlab) +
     ggplot2::ylab(ylab) +

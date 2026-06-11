@@ -709,7 +709,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
     "bp_subset" = interesting[["bp_subset"]],
     "cc_subset" = interesting[["cc_subset"]],
     "pvalue_plots" = pval_plots)
-  class(retlist) <- c("goseq_result", "list")
+  class(retlist) <- c("hpgltools::simple_goseq", "list")
   if (isTRUE(enrich)) {
     retlist[["mf_enrich"]] <- goseq2enrich(
       retlist, ontology = "MF", cutoff = threshold, padjust_method = padjust_method)
@@ -730,7 +730,7 @@ simple_goseq <- function(sig_genes, go_db = NULL, length_db = NULL, doplot = TRU
 #'  significant subsets, enrichResult coercions, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.goseq_result <- function(x, ...) {
+`print.hpgltools::simple_goseq` <- function(x, ...) {
   hit_string <- glue("Ontologies observed by goseq using {x[['num_genes']]} genes
 with significance cutoff {x[['threshold']]}.
 There are {nrow(x[['mf_interesting']])} MF hits, {nrow(x[['bp_interesting']])}, \\

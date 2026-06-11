@@ -10,6 +10,8 @@ check_xlsx_worksheet(wb, sheet, taken_sheets = c())
 \item{wb}{Workbook to modify}
 
 \item{sheet}{Sheet to check/create.}
+
+\item{taken_sheets}{A vector of already taken sheet names.}
 }
 \value{
 The workbook object hopefully with a new worksheet.

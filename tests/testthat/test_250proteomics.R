@@ -185,8 +185,9 @@ loaded <- load(s2s_file, envir = s2s_data)
 ## which is able to take in non-standard column names for the various
 ## mscore/decoy/etc data.  If one does not have that, some steps will falter,
 ## but it should still provide at least a partial filtering.
-s2s_filtered <- s2s_all_filters(s2s_data, target_fdr = 0.1, mscore = 0.1,
-                                upper_fdr = 0.1, do_min = FALSE)
+s2s_filtered <- suppressWarnings(
+  s2s_all_filters(s2s_data, target_fdr = 0.1, mscore = 0.1,
+                  upper_fdr = 0.1, do_min = FALSE))
 ## write_matrix_peptides requires a few columns:
 ## ProteinName run_id FullPeptideName Intensity decoy ProteinName
 s2s_final <- s2s_filtered[["final"]]
@@ -238,10 +239,12 @@ colnames(filtered_mtrx)
 rownames(metadata) == colnames(filtered_mtrx)
 dim(filtered_mtrx)
 
-mtb_se <- create_se(metadata, count_dataframe = filtered_mtrx,
-                    gene_info = mtb_annotations, handle_na = "leave",
-                    feature_type = "peptide", savefile = "mtb_peptides.rda")
-plot_quantreads(mtb_se)
+## I warn when NAs are in the expression data, but I expect NAs in this set.
+mtb_se <- suppressWarnings(
+  create_se(metadata, count_dataframe = filtered_mtrx,
+            gene_info = mtb_annotations, handle_na = "leave",
+            feature_type = "peptide", savefile = "mtb_peptides.rda"))
+suppressWarnings(plot_quantreads(mtb_se))
 plot_nonzero(mtb_se)
 
 mtb_norm <- normalize(mtb_se, transform = "log2", convert = "cpm", filter = TRUE)

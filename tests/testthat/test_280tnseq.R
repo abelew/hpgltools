@@ -92,7 +92,7 @@ test_that("tnseq_multi_saturation returns some fun?", {
 a909_norm <- normalize(a909_se, convert = "cpm", transform = "log2")
 a909_de <- all_pairwise(a909_se, model_fstring = "~ 0 + condition")
 test_that("all_pairwise returned?", {
-  expect_equal("all_pairwise", class(a909_de)[1])
+  expect_equal("hpgltools::all_pairwise", class(a909_de)[1])
 })
 
 ## Make a couple tables out of that:
@@ -103,11 +103,12 @@ a909_tables <- combine_de_tables(
   a909_de, keepers = a909_contrasts,
   excel = "a909_tables.xlsx")
 test_that("all_pairwise returned?", {
-  expect_true("combined_de" %in% class(a909_tables))
+  expect_true("hpgltools::combine_de_tables" == class(a909_tables)[1])
 })
 
+## I changed this function to default to only providing the DESeq2 results.
 a909_sig <- extract_significant_genes(
-  a909_tables, excel = "a909_sig.xlsx")
+  a909_tables, excel = "a909_sig.xlsx", according_to = "all")
 expected <- 15
 actual <- a909_sig[["summary_df"]]["low_vs_control", "edger_up"]
 test_that("Did we get the expected number of up genes between low Ca+ and control according to EdgeR?", {

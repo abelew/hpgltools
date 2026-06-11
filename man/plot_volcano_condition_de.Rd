@@ -22,6 +22,8 @@ plot_volcano_condition_de(
   color_high = "darkred",
   color_low = "darkblue",
   size = 2,
+  size_by = NULL,
+  size_categories = NULL,
   invert = FALSE,
   label = NULL,
   label_type = "text",
@@ -66,6 +68,11 @@ plot_volcano_condition_de(
 \item{color_low}{and the downs.}
 
 \item{size}{Point size}
+
+\item{size_by}{Use the provided column to change the size of each dot according
+to the range of values in this factor.}
+
+\item{size_categories}{Define the number of categories used to resize the dots with size_by.}
 
 \item{invert}{Flip the plot?}
 

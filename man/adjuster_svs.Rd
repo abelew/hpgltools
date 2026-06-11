@@ -21,7 +21,8 @@ adjuster_svs(
   adjust_method = "ruv",
   noscale = FALSE,
   prior_plots = FALSE,
-  control_type = "norm"
+  control_type = "norm",
+  ...
 )
 }
 \arguments{
@@ -61,6 +62,8 @@ smartsva}
 \item{prior_plots}{Perform the various plots provided by combat}
 
 \item{control_type}{I do not remember.}
+
+\item{...}{Sometimes all_pairwise and friends have extra arguments which will get passed along.}
 }
 \value{
 Adjusted data

@@ -2,7 +2,7 @@
 % Please edit documentation in R/xlsx.R
 \name{write_xlsx,list,ANY,ANY,ANY-method}
 \alias{write_xlsx,list,ANY,ANY,ANY-method}
-\title{Pass a list to write_xlsx.}
+\title{Pass a list to write_xlsx}
 \usage{
 \S4method{write_xlsx}{list,ANY,ANY,ANY}(
   data = NULL,
@@ -53,6 +53,8 @@ points in floating point columns.}
 
 \item{column_width}{Either a specific value, NULL, or 'heuristic' which guesses.}
 
+\item{taken_sheets}{Vector containing the names of sheets which have already been used.}
+
 \item{...}{Set of extra arguments given to openxlsx.}
 }
 \value{
@@ -60,5 +62,5 @@ List containing the sheet and workbook written as well as the
  bottom-right coordinates of the last row/column written to the worksheet.
 }
 \description{
-Pass a list to write_xlsx.
+Pass a list to write_xlsx
 }

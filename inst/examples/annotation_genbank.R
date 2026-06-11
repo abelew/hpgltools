@@ -6,7 +6,7 @@ if (! "try-error" %in% class(gbk_file)) {
   removed <- file.remove(gbk_file[["written_file"]])
 }
 
-sagalacticae_genbank_annot <- load_genbank_annotations(accession = test_accession, type = "CDS")
+sagalacticae_genbank_annot <- load_genbank_annotations(accession = test_accession)
 if (! "try-error" %in% class(sagalacticae_genbank_annot)) {
   dim(sagalacticae_genbank_annot)
 }

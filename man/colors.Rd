@@ -4,12 +4,12 @@
 \alias{colors}
 \title{Alias function to get_colors()}
 \usage{
-colors(input, ...)
+colors(exp, ...)
 }
 \arguments{
-\item{input}{Input datastructure}
+\item{exp}{Input}
 
-\item{...}{Arguments passed along.}
+\item{...}{Other arguments}
 }
 \description{
 Alias function to get_colors()

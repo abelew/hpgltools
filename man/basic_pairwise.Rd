@@ -30,6 +30,8 @@ basic_pairwise(
 
 \item{keepers}{Set of specific contrasts to perform instead of all.}
 
+\item{filter}{Pre-filter the data, as per deseq and friends.}
+
 \item{fx}{What function to use for mean/median?}
 
 \item{keep_underscore}{Sanitize model underscores?}

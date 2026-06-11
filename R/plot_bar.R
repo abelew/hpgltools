@@ -415,6 +415,13 @@ The number of genes with low coverage changes by {min_range}-{max_range} genes."
   return(invisible(x))
 }
 
+#' Given results from kraken, create a bar plot of the most over represented species observed.
+#'
+#' @param exp Input se
+#' @param factor Define overrepresented as this factor multiplied by 'prop_vs', which
+#'  in turn may be a portion of the quartile or mean/median.
+#' @param prop_vs The portion of the data distribution used to define an outlier.
+#' @export
 plot_overrepresented_species <- function(exp, factor = 1.5, prop_vs = "Mean") {
   message("Note to self, this does not work well if the data is log2 transformed, but should be cpm'd.")
   df <- as.data.frame(assay(exp))
@@ -430,7 +437,8 @@ plot_overrepresented_species <- function(exp, factor = 1.5, prop_vs = "Mean") {
   short_df <- prop_df[keepers, ]
   short_df[["name"]] <- rownames(short_df)
   long_df <- reshape2::melt(short_df)
-  prop_plot <- ggplot(long_df, aes(x = variable, y = value, fill = name)) +
+  prop_plot <- ggplot(long_df, aes(x = !!sym("variable"), y = !!sym("value"),
+                                   fill = !!sym("name"))) +
     ggplot2::geom_bar(stat = "identity") +
     ggplot2::xlab("Sample ID") +
     ggplot2::ylab("Relative abundance") +
@@ -614,7 +622,7 @@ plot_sample_bars <- function(sample_df, condition = NULL, colors = NULL,
       min(as.numeric(sample_df[["sum"]]))
     if (scale_difference > 10.0) {
       mesg("The scale difference between the smallest and largest
-libraries is > 10. Assuming a log10 scale is better, set scale = FALSE if not.")
+libraries is > 10. Assuming a log10 scale is better, set yscale = FALSE if not.")
       yscale <- TRUE
     } else {
       yscale <- FALSE

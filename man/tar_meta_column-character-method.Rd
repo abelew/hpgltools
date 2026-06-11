@@ -21,5 +21,6 @@
 \item{compression}{Actually, this might be a mistake, I think utils::tar takes 'gzip', not 'gz'?}
 }
 \description{
-Make a tarball using a metadata column given an xlsx file.
+I am hoping this will be useful for either backing up count tables or making
+containerized versions of analyses.
 }

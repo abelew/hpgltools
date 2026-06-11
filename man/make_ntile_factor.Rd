@@ -4,12 +4,19 @@
 \alias{make_ntile_factor}
 \title{Make an arbitrary factor out of a numeric vector}
 \usage{
-make_ntile_factor(numeric_vector, n)
+make_ntile_factor(numeric_vector, n, by = "ntile", log = FALSE)
 }
 \arguments{
 \item{numeric_vector}{Vector of numbers!}
 
 \item{n}{numer of levels for the resulting factor.}
+
+\item{by}{Method used to calculate the ntiles: either the actual ntile function,
+'range' which is a straight proportional categorization of elements rather than maintain
+a consistent number of elements per bin, or anything else; which currently defaults
+to monobin's pct.bin function.}
+
+\item{log}{Transform the input vector?}
 }
 \value{
 Factor with levels from q1 to q4.

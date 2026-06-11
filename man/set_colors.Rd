@@ -4,10 +4,23 @@
 \alias{set_colors}
 \title{Create a simple generic for setting colors in expressionsets/SEs/etc.}
 \usage{
-set_colors(exp, ...)
+set_colors(
+  exp,
+  colors = NULL,
+  color_column = "color",
+  change_by = "condition",
+  chosen_palette = "Dark2",
+  ...
+)
 }
 \arguments{
 \item{exp}{Datastructure to modify.}
+
+\item{color_column}{metadta column containing colors.}
+
+\item{change_by}{Metadata column to use to define colors.}
+
+\item{chosen_palette}{ColorBrewer palette used when choosing colors.}
 
 \item{...}{Args passed to the various setters.}
 }

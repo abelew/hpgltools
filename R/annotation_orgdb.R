@@ -182,7 +182,7 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
       "transcripts" = transcripts,
       "fivep_utr" = fivep_utr,
       "threep_utr" = threep_utr)
-  class(retlist) <- "orgdb_annotations"
+  class(retlist) <- c("hpgltools::load_orgdb_annotations", "list")
   return(retlist)
 }
 
@@ -191,7 +191,7 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
 #' @param x Result from load_orgdb_annotations().
 #' @param ... pass along args
 #' @export
-print.orgdb_annotations <- function(x, ...) {
+`print.hpgltools::load_orgdb_annotations` <- function(x, ...) {
   result_string <- glue("A set of orgdb annotations including: {nrow(x[['genes']])} gene annotations.")
   return(result_string)
 }

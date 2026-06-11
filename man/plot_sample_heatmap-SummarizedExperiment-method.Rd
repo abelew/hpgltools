@@ -46,8 +46,19 @@
 
 \item{filter}{Filter the data before performing this plot?}
 
+\item{topn}{Limit the plot to the top-n most highly expressed elements.}
+
 \item{...}{More parameters for a good time!}
 }
+\value{
+a recordPlot() heatmap describing the samples.
+}
 \description{
-Plot a sample heatmap with a SummarizedExperiment.
+Sometimes you just want to see how the genes of an experiment are related to
+each other.  This can handle that.  These heatmap functions should probably
+be replaced with neatmaps or heatplus or whatever it is, as the annotation
+dataframes in them are pretty awesome.
+}
+\seealso{
+[gplots::heatmap.2()]
 }

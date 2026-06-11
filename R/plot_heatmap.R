@@ -462,6 +462,7 @@ plot_heatplus <- function(input, type = "correlation", method = "pearson", annot
 #' @param Colv Reorder the columns by expression?
 #' @param label_chars Maximum number of characters before abbreviating sample names.
 #' @param filter Filter the data before performing this plot?
+#' @param topn Limit the plot to the top-n most highly expressed elements.
 #' @param ... More parameters for a good time!
 #' @return a recordPlot() heatmap describing the samples.
 #' @seealso [gplots::heatmap.2()]
@@ -523,19 +524,7 @@ setGeneric("plot_sample_heatmap")
 
 #' Plot a sample heatmap of an ExpressionSet.
 #'
-#' @param data Input/expressionset/dataframe set of samples.
-#' @param colors Color scheme of the samples (not needed if input is an input).
-#' @param design Design matrix describing the experiment (gotten for free if an input).
-#' @param heatmap_colors Specify a colormap.
-#' @param input_names Alternate samples names.
-#' @param dendrogram Where to put dendrograms?
-#' @param row_label Passed through to heatmap.2.
-#' @param plot_title Title of the plot!
-#' @param Rowv Reorder the rows by expression?
-#' @param Colv Reorder the columns by expression?
-#' @param label_chars Maximum number of characters before abbreviating sample names.
-#' @param filter Filter the data before performing this plot?
-#' @param ... More parameters for a good time!
+#' @inherit plot_sample_heatmap
 #' @export
 setMethod(
   "plot_sample_heatmap", signature(data = "ExpressionSet"),
@@ -556,19 +545,7 @@ setMethod(
 
 #' Plot a sample heatmap with a SummarizedExperiment.
 #'
-#' @param data Input/expressionset/dataframe set of samples.
-#' @param colors Color scheme of the samples (not needed if input is an input).
-#' @param design Design matrix describing the experiment (gotten for free if an input).
-#' @param heatmap_colors Specify a colormap.
-#' @param input_names Alternate samples names.
-#' @param dendrogram Where to put dendrograms?
-#' @param row_label Passed through to heatmap.2.
-#' @param plot_title Title of the plot!
-#' @param Rowv Reorder the rows by expression?
-#' @param Colv Reorder the columns by expression?
-#' @param label_chars Maximum number of characters before abbreviating sample names.
-#' @param filter Filter the data before performing this plot?
-#' @param ... More parameters for a good time!
+#' @inherit plot_sample_heatmap
 #' @export
 setMethod(
   "plot_sample_heatmap", signature = signature(data = "SummarizedExperiment"),

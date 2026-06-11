@@ -354,11 +354,35 @@ make_quartile_factor <- function(numeric_vector) {
 #'
 #' @param numeric_vector Vector of numbers!
 #' @param n numer of levels for the resulting factor.
+#' @param by Method used to calculate the ntiles: either the actual ntile function,
+#'  'range' which is a straight proportional categorization of elements rather than maintain
+#'  a consistent number of elements per bin, or anything else; which currently defaults
+#'  to monobin's pct.bin function.
+#' @param log Transform the input vector?
 #' @return Factor with levels from q1 to q4.
 #' @export
-make_ntile_factor <- function(numeric_vector, n) {
-  ntiles <- dplyr::ntile(numeric_vector, n)
-  new_factor <- as.factor(paste0("n", ntiles))
+make_ntile_factor <- function(numeric_vector, n, by = "ntile", log = FALSE) {
+  ntiles <- c()
+  if (by == "ntile") {
+    ntiles <- dplyr::ntile(numeric_vector, n)
+    new_factor <- as.factor(paste0("n", ntiles))
+  } else if (by == "range") {
+    if (log == "log2") {
+      numeric_vector <- log2(numeric_vector)
+    }
+    top <- max(numeric_vector)
+    bottom <- min(numeric_vector)
+    bin_size <- (top - bottom) / n
+    break_vector <- bottom
+    for (br in seq_len(n - 2)) {
+      break_vector <- c(break_vector, bottom + (bin_size * br))
+    }
+    break_vector[n] <- top
+    new_factor <- as.factor(paste0("c", cut(numeric_vector, break_vector, labels = FALSE, include.lowest = TRUE)))
+  } else {
+    ntiles <- monobin::pct.bin(numeric_vector, n)
+    new_factor <- paste0("p", ntiles)
+  }
   return(new_factor)
 }
 

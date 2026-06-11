@@ -1122,6 +1122,7 @@ read_thermo_xlsx <- function(xlsx_file, test_row = NULL) {
 #' @param column What column in the data contains the protein name?
 #' @param pep_column What column in the data contains the peptide name (not
 #'  currently used, but it should be.)
+#' @param mscore_column Use this column to filter by mscore.
 #' @param fft Ratio of false negatives to true positives, used by
 #'  assess_by_fdr() and similar functions.
 #' @param plot Print plots of the various rates by sample?

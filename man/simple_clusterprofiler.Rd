@@ -18,7 +18,6 @@ simple_clusterprofiler(
   fc_column = "logFC",
   second_fc_column = "deseq_logfc",
   updown = "up",
-  permutations = 1000,
   min_groupsize = 5,
   max_groupsize = 500,
   kegg_prefix = NULL,
@@ -70,8 +69,6 @@ should be tried the second time around?}
 
 \item{updown}{Include the less than expected ontologies?}
 
-\item{permutations}{How many permutations for GSEA-ish analyses?}
-
 \item{min_groupsize}{Minimum size of an ontology before it is included.}
 
 \item{max_groupsize}{Maximum size of an ontology before it is included.}
@@ -109,12 +106,6 @@ should be tried the second time around?}
 \item{de_table_namedf}{Provide an alternate set of gene IDs vs. the NCBI IDs.}
 
 \item{sig_genes_namedf}{Ibid.}
-
-\item{internal}{Deprecated}
-
-\item{david_id}{Which column to use for cross-referencing to DAVID?}
-
-\item{david_user}{Default registered username to use.}
 }
 \value{
 a list

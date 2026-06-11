@@ -10,8 +10,15 @@ test_that("Can we count patterns in sequence data?", {
   expect_equal(expected, actual)
 })
 
-gene_info <- load_biomart_annotations(
-  species = "dmelanogaster", year = "2020", month = "11")[["annotation"]]
+sad <- FALSE
+gene_info <- try(load_biomart_annotations(
+  species = "dmelanogaster", year = "2020", month = "11"))
+if ("try-error" %in% class(gene_info)) {
+  sad <- TRUE
+}
+testthat::skip_if(sad)
+
+gene_info <- gene_info[["annotation"]]
 info_idx <- gene_info[["gene_biotype"]] == "protein_coding"
 gene_info <- gene_info[info_idx, ]
 rownames(gene_info) <- make.names(gene_info[["ensembl_gene_id"]], unique = TRUE)

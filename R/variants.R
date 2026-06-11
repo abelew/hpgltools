@@ -194,7 +194,7 @@ classify_variants <- function(metadata, coverage_column = "bedtools_coverage_fil
     "missing_by_sample" = missing_by_sample,
     "mutations_by_sample" = mutations_by_sample,
     "mutations_by_sample_norm" = sample_mutations_norm)
-  class(retlist) <- "classified_mutations"
+  class(retlist) <- c("hpgltools::classify_variants", "list")
   return(retlist)
 }
 
@@ -203,7 +203,7 @@ classify_variants <- function(metadata, coverage_column = "bedtools_coverage_fil
 #' @param x List containing some fun stats of variants observed.
 #' @param ... Other args to match the generic.
 #' @export
-print.classified_mutations <- function(x, ...) {
+`print.hpgltools::classify_variants` <- function(x, ...) {
   message("The set of classified mutations observed, including: ")
   print(x[["mutations_by_sample"]])
   pheatmap::pheatmap(x[["sample_mutations_norm"]])
@@ -795,7 +795,7 @@ get_proportion_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   if (isTRUE(do_save)) {
     save(list = "retlist", file = savefile)
   }
-  class(retlist) <- "categorized_snp_sets"
+  class(retlist) <- c("hpgltools::get_proportion_snp_sets", "list")
   return(retlist)
 }
 
@@ -956,7 +956,7 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
   if (isTRUE(do_save)) {
     save(list = "retlist", file = savefile)
   }
-  class(retlist) <- "snp_sets"
+  class(retlist) <- c("hpgltools::get_snp_sets", "list")
   return(retlist)
 }
 
@@ -967,7 +967,7 @@ get_snp_sets <- function(snp_exp, factor = "pathogenstrain",
 #'  the factor, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.snp_sets <- function(x, ...) {
+`print.hpgltools::get_snp_sets` <- function(x, ...) {
   summary_string <- glue("A set of variants observed when cross referencing all variants against
 the samples associated with each metadata factor: {x[['factor']]}.  {ncol(x[['values']])}
 categories and {nrow(x[['values']])} variants were observed with {length(x[['intersections']])}
@@ -1286,7 +1286,7 @@ snps_intersections <- function(exp, snp_result,
     "inters" = inters,
     "chr_summaries" = chr_summaries,
     "gene_summaries" = gene_summaries)
-  class(retlist) <- "snp_intersections"
+  class(retlist) <- c("hpgltools::snps_intersections", "list")
   return(retlist)
 }
 
@@ -1296,7 +1296,7 @@ snps_intersections <- function(exp, snp_result,
 #'  chromosome and gene.
 #' @param ... Other args to match the generic.
 #' @export
-print.snp_intersections <- function(x, ...) {
+`print.hpgltools::snps_intersections` <- function(x, ...) {
   summary_string <- glue("The combinations of variants, \\
 chromosomes, and genes which are unique to every factor
 and combination of factors in the data.")
@@ -1407,6 +1407,11 @@ snp_subset_genes <- function(exp, snp_exp, start_column = "start", end_column = 
 snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = "end",
                           snp_name_column = "seqnames", observed_in = NULL,
                           more_than = 0, chr_column = "chromosome", ignore_strand = TRUE) {
+  seqnames <- .N <- NULL  ## .N is a read-only symbol in data.table
+  ## I am not sure if there is a way to programmatically use it without
+  ## triggering an alert from R CMD CHECK and/or flycheck.
+  ## https://www.rdocumentation.org/packages/data.table/versions/1.10.0/topics/special-symbols
+
   features <- rowData(exp)
   if (is.null(features[[start_column]])) {
     stop("Unable to find the ", start_column, " column in the annotation data.")
@@ -1504,10 +1509,6 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   message("There are ", length(snps_by_chr), " overlapping variants and genes.")
 
   summarized_by_chr <- data.table::as.data.table(snps_by_chr)
-  .N <- NULL  ## .N is a read-only symbol in data.table
-  ## I am not sure if there is a way to programmatically use it without
-  ## triggering an alert from R CMD CHECK and/or flycheck.
-  ## https://www.rdocumentation.org/packages/data.table/versions/1.10.0/topics/special-symbols
   summarized_by_chr[, count := .N, by = list(seqnames)]
 
   ## I think I can replace this data table invocation with countOverlaps...
@@ -1547,7 +1548,7 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
     "count_by_gene" = count_by_gene_irange,
     "count_by_gene_dplyr" = count_by_gene_dplyr,
     "summary" = summarized_by_chr)
-  class(retlist) <- "snps_genes"
+  class(retlist) <- c("hpgltools::snps_vs_genes", "list")
   return(retlist)
 }
 
@@ -1557,7 +1558,7 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
 #'  chromosome, gene, and summaries of the result.
 #' @param ... Other args to match the generic.
 #' @export
-print.snps_genes <- function(x, ...) {
+`print.hpgltools::snps_vs_genes` <- function(x, ...) {
   gt_zero <- sum(x[["count_by_gene"]] > 0)
   most_num <- max(x[["count_by_gene"]])
   most_idx <- x[["count_by_gene"]] == most_num

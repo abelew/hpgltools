@@ -17,11 +17,11 @@ simple_gsva(
   orgdb = "org.Hs.eg.db",
   method = "ssgsea",
   kcdf = NULL,
-  ranking = FALSE,
+  ranking = TRUE,
   msig_db = NULL,
   wanted_meta = "all",
   mx_diff = TRUE,
-  verbose = FALSE,
+  verbose = TRUE,
   id_type = "entrez"
 )
 }

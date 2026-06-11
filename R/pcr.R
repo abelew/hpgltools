@@ -26,7 +26,7 @@ cheap_tm <- function(sequence) {
   ret <- list(
     "method" = method,
     "tm" = tm)
-  class(ret) <- "cheap_tm"
+  class(ret) <- c("hpgltools::cheap_tm", "list")
   return(ret)
 }
 
@@ -1028,7 +1028,7 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
     "density_vector" = long_density_vector,
     "variant_vector" = long_variant_vector,
     "favorites" = sequence_df)
-  class(retlist) <- "density_primers"
+  class(retlist) <- c("hpgltools::snp_density_primers", "list")
   return(retlist)
 }
 
@@ -1037,7 +1037,7 @@ snp_density_primers <- function(snp_count, pdata_column = "condition",
 #' @param x List from snp_density_primers()
 #' @param ... Other args for the generic.
 #' @export
-print.density_primers <- function(x, ...) {
+`print.hpgltools::snp_density_primers` <- function(x, ...) {
   summary_string <- glue("A set of putative PCR primers to distinguish strain variants.")
   message(summary_string)
   return(invisible(x))

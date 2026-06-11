@@ -37,7 +37,7 @@ NULL
 #' I am spending a lot more time messing with models from various
 #' tools, as a result broom turns out to be quite handy.
 #' @name broom
-#' @import broom
+#' @importFrom broom bootstrap
 NULL
 
 #' The enrichResult class.
@@ -115,23 +115,27 @@ NULL
 #' @import Biobase
 #' @import ggplot2
 #' @import graphics
-#' @import stats
-#' @import SummarizedExperiment
+#' @import grDevices
+#' @import methods
 #' @importFrom BiocGenerics
 #'  annotation annotation<- as.data.frame conditions conditions<- normalize
-#' @importFrom data.table data.table as.data.table setkey rbindlist
+#' @importFrom data.table as.data.table data.table rbindlist setkey
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
+#' @importFrom glue glue
 #' @importFrom grDevices recordPlot
 #' @importFrom IRanges %over%
 #' @importFrom rlang abort sym
-#' @importFrom S4Vectors DataFrame metadata mcols mcols<-
+#' @importFrom S4Vectors complete.cases DataFrame metadata metadata<- mcols mcols<- na.omit
+#' @importFrom stats aggregate as.dendrogram as.formula biplot coef cor cor.test cov density dist
+#'  end glm IQR lm lm.fit lowess mad median model.matrix nlm order.dendrogram
+#'  p.adjust p.adjust.methods pf pnorm princomp quantile relevel reorder resid
+#'  sd setNames start step var
+#' @importFrom SummarizedExperiment assay assay<- colData colData<-
+#'  ncol nrow rowData rowData<- SummarizedExperiment
 #' @importFrom utils
 #'  capture.output data download.file head installed.packages read.csv read.delim
 #'  read.table setTxtProgressBar tail write.csv write.table
-#' @import glue
-#' @import grDevices
-#' @import methods
 "_PACKAGE"
 
 #' The following sets the ggplot2 default text size.

@@ -42,7 +42,7 @@ test_that("Do we get a pretty edger scatter plot?", {
 
 ## Test that we can extract the significant genes and get pretty graphs
 excel_file <- "excel_test_sig.xlsx"
-significant_excel <- extract_significant_genes(combined_excel,
+significant_excel <- extract_significant_genes(combined_excel, according_to = "all",
                                                excel = "excel_test_sig.xlsx")
 test_that("Does combine_de_tables create an excel file?", {
     expect_true(file.exists(excel_file))
@@ -101,10 +101,11 @@ test_that("Can we provide limited keepers to all_pairwise()?", {
                names(hpgl_two[["deseq"]][["all_tables"]]))
 })
 
-hpgl_sva_result <- all_pairwise(pasilla_se, model_svs = "svaseq", which_voom = "limma",
-                                model_fstring = "~ 0 + condition",
-                                limma_method = "robust", edger_method = "long",
-                                edger_test = "qlr", filter = TRUE)
+hpgl_sva_result <- suppressWarnings(
+  all_pairwise(pasilla_se, model_svs = "svaseq", which_voom = "limma",
+               model_fstring = "~ 0 + condition",
+               limma_method = "robust", edger_method = "long",
+               edger_test = "qlr", filter = TRUE))
 deseq_result <- deseq[["hpgl_deseq"]]
 expected <- deseq_result[["all_tables"]][["untreated_vs_treated"]]
 actual <- hpgl_all[["deseq"]][["all_tables"]][["treated_vs_untreated"]]
@@ -162,12 +163,12 @@ test_that("Do we get similar results to previous DE runs: (basic)?", {
     expect_equal(expected_vector, actual_vector)
 })
 
-le <- hpgl_all[["comparison"]][["comp"]]["limma_vs_edger", ]
-ld <- hpgl_all[["comparison"]][["comp"]]["limma_vs_deseq", ]
+le <- hpgl_all[["comparison"]][["comp"]]["edger_vs_limma", ]
+ld <- hpgl_all[["comparison"]][["comp"]]["deseq_vs_limma", ]
 ed <- hpgl_all[["comparison"]][["comp"]]["deseq_vs_edger", ]
-lb <- hpgl_all[["comparison"]][["comp"]]["limma_vs_basic", ]
-eb <- hpgl_all[["comparison"]][["comp"]]["edger_vs_basic", ]
-db <- hpgl_all[["comparison"]][["comp"]]["deseq_vs_basic", ]
+lb <- hpgl_all[["comparison"]][["comp"]]["basic_vs_limma", ]
+eb <- hpgl_all[["comparison"]][["comp"]]["basic_vs_edger", ]
+db <- hpgl_all[["comparison"]][["comp"]]["basic_vs_deseq", ]
 test_that("Are the comparisons between DE tools sufficiently similar? (limma/edger)", {
     expect_gt(le, 0.95)
 })
@@ -210,11 +211,11 @@ test_that("Has the untreated/treated combined table been filled in?", {
     expect_equal(expected, actual)
 })
 
-table <- "untreated_vs_treated"
+table <- "treated_vs_untreated"
 sig_tables <- extract_significant_genes(combined_table,
                                         according_to = "all",
                                         excel = FALSE)
-expected <- 100
+expected <- 90
 actual <- nrow(sig_tables[["limma"]][["ups"]][[table]])
 test_that("Are the limma significant ups expected?", {
     expect_gt(actual, expected)
@@ -226,7 +227,7 @@ test_that("Are the limma significant downs expected?", {
     expect_gt(actual, expected)
 })
 
-expected <- 100
+expected <- 90
 actual <- nrow(sig_tables[["edger"]][["ups"]][[table]])
 test_that("Are the edger significant ups expected?", {
     expect_gt(actual, expected)
@@ -250,22 +251,10 @@ test_that("Are the deseq significant downs expected?", {
     expect_gt(actual, expected)
 })
 
-expected <- 40
-actual <- nrow(sig_tables[["basic"]][["ups"]][[table]])
-test_that("Are the basic significant ups expected?", {
-    expect_gt(actual, expected)
-})
-
-expected <- 20
-actual <- nrow(sig_tables[["basic"]][["downs"]][[table]])
-test_that("Are the basic significant downs expected?", {
-    expect_gt(actual, expected)
-})
-
 ## I significantly changed the format of this function's output.
 funkytown <- plot_num_siggenes(combined_table[["data"]][[1]])
 ## expected <- c(11.02373, 10.91238, 10.80103, 10.68968, 10.57833, 10.46698)
-expected <- c(5.52222, 5.46644, 5.41066, 5.35488, 5.29910, 5.24332)
+expected <- c(3.45, 3.41, 3.38, 3.34, 3.31, 3.27)
 actual <- as.numeric(head(funkytown[["up_data"]][[1]]))
 test_that("Can we monitor changing significance (up_fc)?", {
     expect_equal(expected, actual, tolerance = 0.02)

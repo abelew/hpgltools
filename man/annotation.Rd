@@ -2,7 +2,7 @@
 % Please edit documentation in R/attributes.R
 \name{annotation}
 \alias{annotation}
-\title{Generic get_annotations function with a reminder if I pass it something new.}
+\title{Generic get_annotations function calling to BiocGenerics.}
 \usage{
 annotation(object, ...)
 }
@@ -12,5 +12,6 @@ annotation(object, ...)
 \item{...}{Other options}
 }
 \description{
-Generic get_annotations function with a reminder if I pass it something new.
+I do not think I should need to define this, I have an importFrom
+in 01_hpgltools.R and this file includes that.
 }

@@ -138,7 +138,7 @@ simple_topgo <- function(sig_genes, goid_map = "id2go.map", go_db = NULL,
                      ks_genes = ks_interesting_genes,
                      selector = selector,
                      sigforall = sigforall, numchar = numchar,
-                     pval_column = pval_column, overwrote = overwrite,
+                     pval_column = pval_column, overwrite = overwrite,
                      cutoff = limit, densities = densities,
                      pval_plots = pval_plots)
     }

@@ -67,6 +67,7 @@ Imports:
   S4Vectors, shiny, SummarizedExperiment, sva,
   tidyselect,
   varhandle, variancePartition
+Depends: R (>= 4.1)
 VignetteBuilder: knitr
 ByteCompile: true
 RemoteType: github
@@ -96,10 +97,10 @@ Collate:
     'de_edger.R'
     'de_limma.R'
     'de_noiseq.R'
-    'de_plots.R'
     'de_shared.R'
-    'de_varpart.R'
     'de_xlsx.R'
+    'de_plots.R'
+    'de_varpart.R'
     'dimension_reduction.R'
     'gene_sets.R'
     'genes.R'

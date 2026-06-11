@@ -114,7 +114,7 @@ deseq_lrt <- function(exp, interactor_column = "visitnumber",
     retlist <- list(
       "deseq_result" = deseq_lrt,
       "deseq_table" = deseq_lrt_table)
-    class(retlist) <- "deseq_lrt_noclusters"
+    class(retlist) <- c("hpgltools::deseq_lrt", "list")
     return(retlist)
   }
 
@@ -134,7 +134,7 @@ deseq_lrt <- function(exp, interactor_column = "visitnumber",
       "cluster_data" = cluster_data,
       "group_list" = group_lst,
       "favorite_genes" = cluster_data[["df"]])
-  class(retlist) <- "deseq_lrt"
+  class(retlist) <- c("hpgltools::deseq_lrt", "list")
   return(retlist)
 }
 
@@ -157,7 +157,7 @@ deseq_pairwise <- function(...) {
 #'  of the most significant genes.
 #' @param ... Other args to match the generic.
 #' @export
-print.deseq_lrt <- function(x, ...) {
+`print.hpgltools::deseq_lrt` <- function(x, ...) {
   summary_string <- glue("The result from deseq_lrt().")
   message(summary_string)
 }
@@ -547,7 +547,6 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       "num_contrasts" = total_contrasts,
       "numerators" = numerators,
       "run" = deseq_run)
-  class(retlist) <- c("deseq_result", "list")
   if (!is.null(arglist[["deseq_excel"]])) {
     retlist[["deseq_excel"]] <- write_deseq(retlist, excel = arglist[["deseq_excel"]])
   }

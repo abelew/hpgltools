@@ -39,13 +39,28 @@
 #' @include se.R
 NULL
 
-#' Generic get_annotations function with a reminder if I pass it something new.
+#' Generic get_annotations function calling to BiocGenerics.
+#'
+#' I do not think I should need to define this, I have an importFrom
+#' in 01_hpgltools.R and this file includes that.
 #'
 #' @param object Input data structure.
 #' @param ... Other options
 #' @importFrom BiocGenerics annotation
 annotation <- function(object, ...) {
   BiocGenerics::annotation(object, ...)
+}
+
+#' Generic set_annotations function calling to BiocGenerics.
+#'
+#' I do not think I should need to define this, I have an importFrom
+#' in 01_hpgltools.R and this file includes that.
+#'
+#' @param ... Other options
+#' @importFrom BiocGenerics annotation
+`annotation<-` <- function(object, ..., value) {
+  BiocGenerics::annotation(object) <- value
+  return(x)
 }
 
 #' Get the batch column from a se.
@@ -90,16 +105,16 @@ setMethod(
     return(exp)
   })
 
-#' Add a annotation mcolumn to a se.
-#'
-#' @param object Summarized Experiment to modify.
-#' @param ... Arbitrary arguments.
-#' @param value vector of batches.
-`annotation<-` <- function(object, ..., value) {
-  BiocGenerics::annotation(object, ...) <- value
-  return(object)
-}
-setGeneric("annotation<-")
+## #' Add a annotation mcolumn to a se.
+## #'
+## #' @param object Summarized Experiment to modify.
+## #' @param ... Arbitrary arguments.
+## #' @param value vector of batches.
+## `annotation<-` <- function(object, ..., value) {
+##   BiocGenerics::annotation(object, ...) <- value
+##   return(object)
+## }
+## setGeneric("annotation<-")
 
 #' Ensure we have an annotation setter for SEs
 #'
@@ -327,7 +342,6 @@ setMethod(
   "colData<-", signature(x = "SummarizedExperiment", value = "data.frame"),
   definition = function(x, ..., value) {
     value <- DataFrame(value)
-    message("Recasting the data.frame to DataFrame.")
     SummarizedExperiment::colData(x, ...) <- value
     return(x)
   })
@@ -346,6 +360,37 @@ get_colors <- function(exp, ...) {
 }
 setGeneric("get_colors")
 
+#' Get colors from a dataframe.
+#'
+#' @inherit get_colors
+#' @export
+setMethod(
+  "get_colors", signature(exp = "data.frame"),
+  definition = function(exp, ...) {
+    arglist <- list(...)
+    chosen_column <- "color"
+    if (!is.null(arglist[["color_column"]])) {
+      chosen_column <- arglist[["color_column"]]
+    }
+    if (is.null(exp[[chosen_column]])) {
+      warning("This dataframe does not have information in the ", chosen_column, " returning a new df.")
+      new_exp <- set_colors(exp, ...)
+      return(new_exp)
+    }
+    exp[[chosen_column]]
+  })
+
+#' Get colors from the weirdo S4 dataframe
+#'
+#' @inherit get_colors
+#' @export
+setMethod(
+  "get_colors", signature(exp = "DFrame"),
+  definition = function(exp, ...) {
+    recast <- as.data.frame(exp)
+    get_colors(recast)
+  })
+
 #' Get colors from a SE.
 #'
 #' @param exp Input se
@@ -363,20 +408,19 @@ setMethod(
       exp_colors <- exp_colors[check_colors]
     }
     if (is.null(exp_colors)) {
-      exp <- set_se_colors(exp,
-                           ...)
-      exp_colors <- S4Vectors::metadata(exp)[["colors"]]
+      warning("This summarized experiment has no colors, setting them and returning a new instance.")
+      new_exp <- set_colors(exp, ...)
+      return(new_exp)
     }
     return(exp_colors)
   })
 
 #' Alias function to get_colors()
 #'
-#' @param input Input datastructure
-#' @param ... Arguments passed along.
+#' @inherit get_colors
 #' @export
-colors <- function(input, ...) {
-  get_colors(input, ...)
+colors <- function(exp, ...) {
+  get_colors(exp, ...)
 }
 
 #' Add colors to a dataset
@@ -386,17 +430,22 @@ colors <- function(input, ...) {
 #' @param value vector of colors
 #' @export
 `colors<-` <- function(exp, ..., value) {
-  set_se_colors(exp, value, ...)
+  set_colors(exp, value, ...)
 }
 setGeneric("colors<-")
 
 #' Get a list of colors by condition instead of by sample id.
 #'
-#' @param exp Input data structure
-#' @param ... Arguments to pass along.
-#' @example inst/examples/attributes_se.R
+#' Usually we give a vector of all samples by colors.  This just
+#' simplifies that to one element each.  Currently only used in
+#' combine_de_tables() but I think it will have use elsewhere.
+#'
+#' @param exp Expression from which to gather colors.
+#' @param fact Use this metadata column to set the colors.
+#' @param levels When not null, colors may be set to arbitrary samples.
+#' @return List of colors by condition.
 #' @export
-get_colors_by_condition <- function(exp, ...) {
+get_colors_by_condition <- function(exp, fact = "condition", levels = NULL, ...) {
   message("This function is intended to print 1 color per experimental condition.")
   message("It was passed an object of type ", class(exp),
           " and does not know what to do.")
@@ -407,14 +456,7 @@ setGeneric("get_colors_by_condition")
 
 #' Get a named vector of colors by condition.
 #'
-#' Usually we give a vector of all samples by colors.  This just
-#' simplifies that to one element each.  Currently only used in
-#' combine_de_tables() but I think it will have use elsewhere.
-#'
-#' @param exp Expression from which to gather colors.
-#' @param fact Use this metadata column to set the colors.
-#' @param levels When not null, colors may be set to arbitrary samples.
-#' @return List of colors by condition.
+#' @inherit get_colors_by_condition
 #' @export
 setMethod(
   "get_colors_by_condition", signature(exp = "SummarizedExperiment"),
@@ -458,43 +500,213 @@ setMethod(
     return(colors_by_condition)
   })
 
+#' Figure out likely colors from a dataframe.
+#'
+#' @inherit get_colors_by_condition
+#' @export
+setMethod(
+  "get_colors_by_condition", signature(exp = "data.frame"),
+  definition = function(exp, fact = "condition", levels = NULL) {
+    all_colors <- get_colors(exp)
+  })
+
 #' Create a simple generic for setting colors in expressionsets/SEs/etc.
 #'
 #' @param exp Datastructure to modify.
+#' @param color_column metadta column containing colors.
+#' @param change_by Metadata column to use to define colors.
+#' @param chosen_palette ColorBrewer palette used when choosing colors.
 #' @param ... Args passed to the various setters.
 #' @return Modified data structure.
 #' @export
-set_colors <- function(exp, ...) {
+set_colors <- function(exp, colors = NULL, color_column = "color",
+                       change_by = "condition", chosen_palette = "Dark2", ...) {
   message("This function is intended to set the colors of a dataset.")
   message("It was passed an object of type ", class(exp),
           " and does not know what to do.")
-  standardGeneric("set_colors")
   return(exp)
 }
 setGeneric("set_colors")
 
+#' Modify colors for a dataframe and character.
+#'
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "data.frame", colors = "character"),
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    num_levels <- length(levels(as.factor(exp[[change_by]])))
+    if (length(colors) == nrow(exp)) {
+      exp[[color_column]] <- as.factor(colors)
+    } else if (length(colors) == num_levels) {
+      if (is.null(names(colors))) {
+        message("The colors have no names associated with them, setting them to:")
+        color_names <- levels(as.factor(exp[[change_by]]))
+        names(colors) <- color_names
+        print(colors)
+      }
+      exp[[color_column]] <- "black"
+      for (col in seq_along(colors)) {
+        this_color <- colors[col]
+        this_name <- names(colors)[col]
+        element_idx <- exp[[change_by]] == this_name
+        exp[element_idx, color_column] <- this_color
+      }
+      exp[[color_column]] <- as.factor(exp[[color_column]])
+    }
+    return(exp)
+  })
+
+#' I want to move the logic of these various functions to their simplest
+#' accessors...
+#' Thus, use this as a starting point and then create methods for
+#' each of the pieces here.
+#'
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "data.frame", colors = "factor"),
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    exp[[color_column]] <- colors
+    return(exp)
+  })
+
+#' Set colors when we are working with a df and list.
+#'
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "data.frame", colors = "list"),
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    sample_names <- rownames(exp)
+    cond_names <- levels(as.factor(exp[[change_by]]))
+    current_conds <- as.character(exp[[change_by]])
+    list_names <- names(colors)
+    list_len <- length(colors)
+    sample_comparison <- list_names %in% sample_names
+    cond_comparison <- list_names %in% cond_names
+    change_by_sample <- FALSE
+    change_by_condition <- FALSE
+
+    if (sum(sample_comparison) == list_len) {
+      mesg("Changing colors to match specific samples in the color list.")
+      change_by_sample <- TRUE
+    } else if (sum(cond_comparison) == list_len) {
+      mesg("Changing colors to match specific conditions in the color list.")
+      change_by_condition <- TRUE
+    } else {
+      warning("This list does not match the samples nor conditions.")
+      exp <- set_colors(exp)
+      return(exp)
+    }
+
+    if (is.null(exp[[change_by]])) {
+      warning("There are no original colors, setting defaults.")
+      exp <- set_colors(exp)
+    }
+
+    old_colors <- as.character(exp[[color_column]])
+    names(old_colors) <- rownames(exp)
+    new_colors <- old_colors
+    if (isTRUE(change_by_condition)) {
+      change_conditions <- names(colors)
+      for (col in seq_along(change_conditions)) {
+        change_condition <- change_conditions[col]
+        new_color <- colors[[col]]
+        new_idx <- which(current_conds == change_condition)
+        mesg("Setting: ", toString(new_idx), " to ", new_color, ".")
+        new_colors[new_idx] <- new_color
+      }
+      exp[[color_column]] <- as.factor(new_colors)
+    } else if (isTRUE(change_by_sample)) {
+      change_samples <- names(colors)
+      for (sam in seq_along(change_samples)) {
+        change_sample <- change_samples[sam]
+        new_color <- colors[change_sample]
+        new_colors[change_sample] <- new_color
+        exp[change_sample, change_by] <- new_colors
+      }
+      exp[[color_column]] <- as.factor(new_colors)
+    }
+    return(exp)
+  })
+
+#' Set the colors of a dataframe with no provided colors.
+#'
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "data.frame", colors = "NULL"),
+  definition = function(exp, colors = NULL,
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    arglist <- list(...)
+    message("Setting colors with no pre-defined colors, using the ", chosen_palette, " palette.")
+    change_by <- arglist[["change_by"]]
+    if (is.null(change_by)) {
+      change_by <- "condition"
+    }
+    color_column <- arglist[["color_column"]]
+    if (is.null(color_column)) {
+      color_column <- "color"
+    }
+    condition_factor <- as.factor(exp[[change_by]])
+    num_conditions <- length(levels(condition_factor))
+    chosen_colors <- condition_factor
+    chosen_names <- levels(chosen_colors)
+    sample_colors <- sm(
+      grDevices::colorRampPalette(
+        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+    mapping <- setNames(sample_colors, unique(chosen_colors))
+    chosen_colors <- mapping[chosen_colors]
+    names(chosen_colors) <- rownames(exp)
+    exp[[color_column]] <- chosen_colors
+    return(exp)
+  })
+
+#' Change colors of a DFrame
+#'
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "DFrame"),
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    recast <- as.data.frame(exp)
+    new_exp <- set_colors(recast, colors = colors, color_column = color_column,
+                          change_by = change_by, chosen_palette = chosen_palette, ...)
+    return(new_exp)
+  })
+
 #' Set colors for a SE.
 #'
-#' @param exp Input se.
-#' @param ... Arguments passed along to set_se_colors().
+#' @inherit set_colors
 #' @export
 setMethod(
   "set_colors", signature(exp = "SummarizedExperiment"),
-  definition = function(exp, ...) {
-    se <- set_se_colors(exp, ...)
-    return(se)
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    meta <- as.data.frame(colData(exp))
+    new_meta <- set_colors(meta, colors = colors, color_column = color_column,
+                           change_by = change_by, chosen_palette = chosen_palette, ...)
+    new_colors <- new_meta[[color_column]]
+    colData(exp) <- new_meta
+    metadata(exp)[["colors"]] <- new_colors
+    return(exp)
   })
 
 #' Infix color setter for a SE.
 #'
 #' @param exp Input SE
-#' @param ... Arguments passed along to set_se_colors().
+#' @param ... Arguments passed along to set_colors().
 #' @param value New colors
 #' @export
 setMethod(
   "colors<-", signature(exp = "SummarizedExperiment"),
   definition = function(exp, ...) {
-    se <- set_se_colors(exp, ...)
+    se <- set_colors(exp, ...)
     return(se)
   })
 
@@ -655,7 +867,7 @@ setMethod(
         colors <- NULL
       }
     }
-    new_se <- set_se_colors(new_se, colors = colors)
+    new_se <- set_colors(new_se, colors = colors)
     return(new_se)
   })
 
@@ -838,171 +1050,172 @@ set_se_batches <- function(se, fact, ids = NULL, handle_na = "unknown", drop = T
   return(se)
 }
 
-#' Set the colors of a summarized experiment.
-#'
-#' @param se Input se
-#' @param colors Set of colors to add.
-#' @param chosen_palette If colors is TRUE, use this palette to set colors.
-#' @param change_by Use this factor to set the colors.
-#' @export
-set_se_colors <- function(se, colors = TRUE,
-                          chosen_palette = "Dark2", change_by = "condition") {
-  condition_factor <- as.factor(colData(se)[["condition"]])
-
-  ## Since I already have logic for named characters, just convert a list to one...
-  if ("list" %in% class(colors)) {
-    new_colors <- as.character(colors)
-    names(new_colors) <- names(colors)
-    colors <- new_colors
-  }
-
-  num_conditions <- length(levels(condition_factor))
-  ## chosen_colors <- se[["conditions"]]
-  chosen_colors <- condition_factor
-  chosen_names <- names(chosen_colors)
-  sample_colors <- NULL
-  if (is.null(colors) || isTRUE(colors)) {
-    sample_colors <- sm(
-      grDevices::colorRampPalette(
-        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
-    mapping <- setNames(sample_colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-    names(chosen_colors) <- rownames(colData(se))
-  } else if (class(colors) == "factor") {
-    if (change_by == "condition") {
-      mesg("The new colors are a factor, changing according to condition.")
-      ## In this case, we have every color accounted for in the set of conditions.
-      colors_allocated <- names(colors) %in% levels(colData(se)[["condition"]])
-      if (sum(colors_allocated) < length(colors)) {
-        missing_colors <- colors[!colors_allocated]
-        stop("Colors for the following categories are not being used: ",
-             toString(names(missing_colors)), ".")
-      }
-      possible_conditions <- levels(colData(se)[["condition"]])
-      conditions_allocated <- possible_conditions %in% names(colors)
-      if (sum(conditions_allocated) < length(possible_conditions)) {
-        missing_conditions <- possible_conditions[!conditions_allocated]
-        missing_samples <- c()
-        for (cond in missing_conditions) {
-          missing_by_condition <- colData(se)[["condition"]] == cond
-          missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
-          missing_samples <- c(missing_samples, missing_samples_by_cond)
-        }
-        warning("Some conditions do not have a color: ", missing_conditions, ".")
-        warning("These samples are: ", missing_samples, ".")
-      }
-      mapping <- colors
-      chosen_colors <- mapping[as.character(chosen_colors)]
-      names(chosen_colors) <- chosen_names
-    } else if (change_by == "sample") {
-      mesg("The new colors are a factor, changing according to sampleID.")
-      ## This is changing them by sample id.
-      ## In this instance, we are changing specific colors to the provided colors.
-      chosen_colors <- se[["colors"]]
-      for (snum in seq_along(names(colors))) {
-        sampleid <- names(colors)[snum]
-        sample_color <- colors[[snum]]
-        chosen_colors[[sampleid]] <- sample_color
-      }
-    }
-    chosen_idx <- complete.cases(chosen_colors)
-    chosen_colors <- chosen_colors[chosen_idx]
-  } else if (class(colors) == "character") {
-    if (is.null(names(colors))) {
-      names(colors) <- levels(as.factor(se[["conditions"]]))
-    }
-    if (change_by == "condition") {
-      mesg("The new colors are a character, changing according to condition.")
-      ## In this case, we have every color accounted for in the set of conditions.
-      mapping <- colors
-      pd_factor <- as.factor(colData(se)[["condition"]])
-      possible_conditions <- levels(pd_factor)
-      colors_allocated <- names(colors) %in% possible_conditions
-      if (sum(colors_allocated) < length(colors)) {
-        missing_colors <- colors[!colors_allocated]
-        warning("Colors for the following categories are not being used: ",
-                toString(names(missing_colors)), ".")
-      }
-      conditions_allocated <- possible_conditions %in% names(colors)
-      if (sum(conditions_allocated) < length(possible_conditions)) {
-        missing_conditions <- possible_conditions[!conditions_allocated]
-        missing_samples <- c()
-        for (cond in missing_conditions) {
-          missing_by_condition <- colData(se)[["condition"]] == cond
-          missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
-          missing_samples <- c(missing_samples, missing_samples_by_cond)
-        }
-        warning("Some conditions do not have a color: ", missing_conditions, ".")
-        warning("These samples are: ", missing_samples, ".")
-      }
-      chosen_colors <- mapping[as.character(chosen_colors)]
-      names(chosen_colors) <- chosen_names
-    } else if (change_by == "sample") {
-      mesg("The new colors are a character, changing according to sampleID.")
-      ## This is changing them by sample id.
-      ## In this instance, we are changing specific colors to the provided colors.
-      chosen_colors <- metadata(se)[["colors"]]
-      for (snum in seq_along(names(colors))) {
-        sampleid <- names(colors)[snum]
-        sample_color <- colors[[snum]]
-        chosen_colors[[sampleid]] <- sample_color
-      }
-    }
-    chosen_idx <- complete.cases(chosen_colors)
-    chosen_colors <- chosen_colors[chosen_idx]
-  } else if (class(colors) == "list") {
-    if (change_by == "condition") {
-      mesg("The new colors are a list, changing according to condition.")
-      ## In this case, we have every color accounted for in the set of conditions.
-      mapping <- as.character(colors)
-      names(mapping) <- names(colors)
-      chosen_colors <- mapping[chosen_colors]
-    } else if (change_by == "sample") {
-      mesg("The new colors are a list, changing according to sampleID.")
-      ## This is changing them by sample id.
-      ## In this instance, we are changing specific colors to the provided colors.
-      chosen_colors <- se[["colors"]]
-      for (snum in seq_along(names(colors))) {
-        sampleid <- names(colors)[snum]
-        sample_color <- colors[[snum]]
-        chosen_colors[[sampleid]] <- sample_color
-        ## Set the condition for the changed samples to something unique.
-        original_condition <- colData(se)[sampleid, "condition"]
-        changed_condition <- glue("{original_condition}{snum}")
-        ## se[["design"]][sampleid, "condition"] <- changed_condition
-        tmp_pdata <- colData(se)
-        old_levels <- levels(tmp_pdata[["condition"]])
-        new_levels <- c(old_levels, changed_condition)
-        levels(tmp_pdata[["condition"]]) <- new_levels
-        tmp_pdata[sampleid, "condition"] <- changed_condition
-        colData(se) <- tmp_pdata
-      }
-    }
-    chosen_idx <- complete.cases(chosen_colors)
-    chosen_colors <- chosen_colors[chosen_idx]
-  } else if (is.null(colors)) {
-    mesg("Setting colors according to a color ramp.")
-    colors <- sm(
-      grDevices::colorRampPalette(
-        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
-    ## Check that all conditions are named in the color list:
-    mapping <- setNames(colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-  } else {
-    warning("Number of colors provided does not match the number of conditions nor samples.")
-    warning("Unsure of what to do, so choosing colors with RColorBrewer.")
-    sample_colors <- suppressWarnings(
-      grDevices::colorRampPalette(
-        RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
-    mapping <- setNames(sample_colors, unique(chosen_colors))
-    chosen_colors <- mapping[chosen_colors]
-  }
-
-  ## Catchall in case I forgot to set the names before now.
-  names(chosen_colors) <- rownames(colData(se))
-  metadata(se)[["colors"]] <- chosen_colors
-  return(se)
-}
+## I think this can be deleted now!  Yay dropping bad code
+## #' Set the colors of a summarized experiment.
+## #'
+## #' @param se Input se
+## #' @param colors Set of colors to add.
+## #' @param chosen_palette If colors is TRUE, use this palette to set colors.
+## #' @param change_by Use this factor to set the colors.
+## #' @export
+## set_se_colors <- function(se, colors = TRUE,
+##                           chosen_palette = "Dark2", change_by = "condition") {
+##   condition_factor <- as.factor(colData(se)[[change_by]])
+##
+##   ## Since I already have logic for named characters, just convert a list to one...
+##   if ("list" %in% class(colors)) {
+##     new_colors <- as.character(colors)
+##     names(new_colors) <- names(colors)
+##     colors <- new_colors
+##   }
+##
+##   num_conditions <- length(levels(condition_factor))
+##   ## chosen_colors <- se[["conditions"]]
+##   chosen_colors <- condition_factor
+##   chosen_names <- names(chosen_colors)
+##   sample_colors <- NULL
+##   if (is.null(colors) || isTRUE(colors)) {
+##     sample_colors <- sm(
+##       grDevices::colorRampPalette(
+##         RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+##     mapping <- setNames(sample_colors, unique(chosen_colors))
+##     chosen_colors <- mapping[chosen_colors]
+##     names(chosen_colors) <- rownames(colData(se))
+##   } else if (class(colors) == "factor") {
+##     if (change_by == "condition") {
+##       mesg("The new colors are a factor, changing according to condition.")
+##       ## In this case, we have every color accounted for in the set of conditions.
+##       colors_allocated <- names(colors) %in% levels(colData(se)[["condition"]])
+##       if (sum(colors_allocated) < length(colors)) {
+##         missing_colors <- colors[!colors_allocated]
+##         stop("Colors for the following categories are not being used: ",
+##              toString(names(missing_colors)), ".")
+##       }
+##       possible_conditions <- levels(colData(se)[["condition"]])
+##       conditions_allocated <- possible_conditions %in% names(colors)
+##       if (sum(conditions_allocated) < length(possible_conditions)) {
+##         missing_conditions <- possible_conditions[!conditions_allocated]
+##         missing_samples <- c()
+##         for (cond in missing_conditions) {
+##           missing_by_condition <- colData(se)[["condition"]] == cond
+##           missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
+##           missing_samples <- c(missing_samples, missing_samples_by_cond)
+##         }
+##         warning("Some conditions do not have a color: ", missing_conditions, ".")
+##         warning("These samples are: ", missing_samples, ".")
+##       }
+##       mapping <- colors
+##       chosen_colors <- mapping[as.character(chosen_colors)]
+##       names(chosen_colors) <- chosen_names
+##     } else if (change_by == "sample") {
+##       mesg("The new colors are a factor, changing according to sampleID.")
+##       ## This is changing them by sample id.
+##       ## In this instance, we are changing specific colors to the provided colors.
+##       chosen_colors <- se[["colors"]]
+##       for (snum in seq_along(names(colors))) {
+##         sampleid <- names(colors)[snum]
+##         sample_color <- colors[[snum]]
+##         chosen_colors[[sampleid]] <- sample_color
+##       }
+##     }
+##     chosen_idx <- complete.cases(chosen_colors)
+##     chosen_colors <- chosen_colors[chosen_idx]
+##   } else if (class(colors) == "character") {
+##     if (is.null(names(colors))) {
+##       names(colors) <- levels(as.factor(se[["conditions"]]))
+##     }
+##     if (change_by == "condition") {
+##       mesg("The new colors are a character, changing according to condition.")
+##       ## In this case, we have every color accounted for in the set of conditions.
+##       mapping <- colors
+##       pd_factor <- as.factor(colData(se)[["condition"]])
+##       possible_conditions <- levels(pd_factor)
+##       colors_allocated <- names(colors) %in% possible_conditions
+##       if (sum(colors_allocated) < length(colors)) {
+##         missing_colors <- colors[!colors_allocated]
+##         warning("Colors for the following categories are not being used: ",
+##                 toString(names(missing_colors)), ".")
+##       }
+##       conditions_allocated <- possible_conditions %in% names(colors)
+##       if (sum(conditions_allocated) < length(possible_conditions)) {
+##         missing_conditions <- possible_conditions[!conditions_allocated]
+##         missing_samples <- c()
+##         for (cond in missing_conditions) {
+##           missing_by_condition <- colData(se)[["condition"]] == cond
+##           missing_samples_by_cond <- rownames(colData(se))[missing_by_condition]
+##           missing_samples <- c(missing_samples, missing_samples_by_cond)
+##        }
+##        warning("Some conditions do not have a color: ", missing_conditions, ".")
+##        warning("These samples are: ", missing_samples, ".")
+##      }
+##      chosen_colors <- mapping[as.character(chosen_colors)]
+##      names(chosen_colors) <- chosen_names
+##    } else if (change_by == "sample") {
+##      mesg("The new colors are a character, changing according to sampleID.")
+##       ## This is changing them by sample id.
+##       ## In this instance, we are changing specific colors to the provided colors.
+##       chosen_colors <- metadata(se)[["colors"]]
+##       for (snum in seq_along(names(colors))) {
+##         sampleid <- names(colors)[snum]
+##         sample_color <- colors[[snum]]
+##         chosen_colors[[sampleid]] <- sample_color
+##       }
+##     }
+##     chosen_idx <- complete.cases(chosen_colors)
+##     chosen_colors <- chosen_colors[chosen_idx]
+##   } else if (class(colors) == "list") {
+##     if (change_by == "condition") {
+##       mesg("The new colors are a list, changing according to condition.")
+##       ## In this case, we have every color accounted for in the set of conditions.
+##       mapping <- as.character(colors)
+##       names(mapping) <- names(colors)
+##       chosen_colors <- mapping[chosen_colors]
+##     } else if (change_by == "sample") {
+##       mesg("The new colors are a list, changing according to sampleID.")
+##       ## This is changing them by sample id.
+##       ## In this instance, we are changing specific colors to the provided colors.
+##       chosen_colors <- se[["colors"]]
+##       for (snum in seq_along(names(colors))) {
+##         sampleid <- names(colors)[snum]
+##         sample_color <- colors[[snum]]
+##         chosen_colors[[sampleid]] <- sample_color
+##         ## Set the condition for the changed samples to something unique.
+##         original_condition <- colData(se)[sampleid, "condition"]
+##         changed_condition <- glue("{original_condition}{snum}")
+##         ## se[["design"]][sampleid, "condition"] <- changed_condition
+##         tmp_pdata <- colData(se)
+##         old_levels <- levels(tmp_pdata[["condition"]])
+##         new_levels <- c(old_levels, changed_condition)
+##         levels(tmp_pdata[["condition"]]) <- new_levels
+##         tmp_pdata[sampleid, "condition"] <- changed_condition
+##         colData(se) <- tmp_pdata
+##       }
+##     }
+##     chosen_idx <- complete.cases(chosen_colors)
+##     chosen_colors <- chosen_colors[chosen_idx]
+##   } else if (is.null(colors)) {
+##     mesg("Setting colors according to a color ramp.")
+##     colors <- sm(
+##       grDevices::colorRampPalette(
+##         RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+##     ## Check that all conditions are named in the color list:
+##     mapping <- setNames(colors, unique(chosen_colors))
+##     chosen_colors <- mapping[chosen_colors]
+##   } else {
+##     warning("Number of colors provided does not match the number of conditions nor samples.")
+##     warning("Unsure of what to do, so choosing colors with RColorBrewer.")
+##     sample_colors <- suppressWarnings(
+##       grDevices::colorRampPalette(
+##         RColorBrewer::brewer.pal(num_conditions, chosen_palette))(num_conditions))
+##     mapping <- setNames(sample_colors, unique(chosen_colors))
+##     chosen_colors <- mapping[chosen_colors]
+##   }
+##
+##   ## Catchall in case I forgot to set the names before now.
+##   names(chosen_colors) <- rownames(colData(se))
+##   metadata(se)[["colors"]] <- chosen_colors
+##   return(se)
+## }
 
 #' Set arbitrary experimental design factors.
 #'
@@ -1263,6 +1476,7 @@ setMethod(
   object <- Biobase::exprs(object, value)
   return(object)
 }
+setGeneric("exprs<-")
 
 #' A setter to put the expression data into an expt.
 #'
@@ -1382,6 +1596,7 @@ libsize_factor <- function(object) {
 notes <- function(object) {
   Biobase::notes(object)
 }
+setGeneric("notes")
 
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'
@@ -1417,6 +1632,7 @@ setMethod(
   Biobase::pData(object) <- value
   return(object)
 }
+setGeneric("pData<-")
 
 #' A setter to put the experimental metadata into a SummarizedExperiment.
 #'
@@ -1447,6 +1663,7 @@ setMethod(
 rowData <- function(x, use.names = TRUE, ...) {
   SummarizedExperiment::rowData(x, use.names = use.names, ...)
 }
+setGeneric("rowData")
 
 #' A getter of the gene information from an ExpressionSet, synonymous with fData().
 #'
@@ -1501,6 +1718,7 @@ setMethod(
   Biobase::sampleNames(object) <- value
   return(object)
 }
+setGeneric("sampleNames<-")
 
 #' A setter to put the samples names into a SummarizedExperiment.
 #'

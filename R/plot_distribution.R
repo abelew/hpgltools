@@ -937,10 +937,12 @@ plot_topn <- function(data, plot_title = NULL, num = 100, sample_names = NULL,
   class(retlist) <- c("hpgltools::plot_topn", "list")
   return(retlist)
 }
+setGeneric("plot_topn")
 
 #' SE as input to plot_topn()
 #'
 #' @inherit plot_topn
+#' @export
 setMethod("plot_topn", signature(data = "SummarizedExperiment"),
           definition = function(data, plot_title = NULL, num = 100, sample_names = NULL,
                                 plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {
@@ -953,6 +955,7 @@ setMethod("plot_topn", signature(data = "SummarizedExperiment"),
 #' Matrix as input to plot_topn()
 #'
 #' @inherit plot_topn
+#' @export
 setMethod("plot_topn", signature(data = "matrix"),
           definition = function(data, plot_title = NULL, num = 100, sample_names = NULL,
                                 plot_labels = NULL, label_chars = 10, plot_legend = FALSE, ...) {

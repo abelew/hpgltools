@@ -288,7 +288,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
   if (!is.null(excel)) {
     retlist[["excel"]] <- write_gsva(retlist, excel)
   }
-  class(retlist) <- "gsva_sig"
+  class(retlist) <- c("hpgltools::get_sig_gsva_categories", "list")
   return(retlist)
 }
 
@@ -298,7 +298,7 @@ get_sig_gsva_categories <- function(gsva_result, cutoff = 0.95, excel = "excel/g
 #'  likelihood tables, subsets of significant categories, etc.
 #' @param ... Other args to match the generic.
 #' @export
-print.gsva_sig <- function(x, ...) {
+`print.hpgltools::get_sig_gsva_categories` <- function(x, ...) {
   summary_string <- glue("The set of GSVA categories deemed significantly higher than the
 distribution of all scores.  It comprises {nrow(x[['subset_table']])} gene sets.")
   message(summary_string)
@@ -786,6 +786,7 @@ to: {prettyNum(max(assay(x[['se']])))}.")
 #' @param label_size How large to make labels when printing the final heatmap.
 #' @param col_margin Used by par() when printing the final heatmap.
 #' @param length_column rowData column with the gene lengths.
+#' @param symbol_column Get the gene symbols from this annotation column.
 #' @param row_margin Ibid.
 #' @param sig_cutoff Only keep celltypes with a significance better than this.
 #' @param verbose Print some extra information during runtime.
@@ -797,11 +798,25 @@ to: {prettyNum(max(assay(x[['se']])))}.")
 #' @export
 simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
                          expected_types = NULL, label_size = NULL, col_margin = 6,
-                         length_column = "cds_length",
+                         length_column = "cds_length", symbol_column = NULL,
                          row_margin = 12, sig_cutoff = 0.2, verbose = TRUE, cores = 4, ...) {
   arglist <- list(...)
-  xcell_annot <- load_biomart_annotations()
-  xref <- xcell_annot[["annotation"]][, c("ensembl_gene_id", "hgnc_symbol")]
+  ## Check for a symbol column, if there is not one, acquire it from ensembl.
+  current_annot <- rowData(se)
+  current_annot[["ID"]] <- rownames(current_annot)
+  xref <- data.frame()
+  if (is.null(symbol_column)) {
+    possible_symbols <- grepl(pattern = "symbol", x = colnames(current_annot))
+    if (sum(possible_symbols) > 0) {
+      symbol_column <- colnames(current_annot)[possible_symbols][1]
+      xref <- current_annot[, c("ID", symbol_column)]
+    } else {
+      xcell_annot <- load_biomart_annotations()
+      xref <- xcell_annot[["annotation"]][, c("ensembl_gene_id", "hgnc_symbol")]
+    }
+  } else {
+    xref <- current_annot[, c("ID", symbol_column)]
+  }
   se_state <- state(se)
 
   xcell_se <- NULL
@@ -820,10 +835,10 @@ simple_xcell <- function(se, signatures = NULL, genes = NULL, spill = NULL,
   xcell_mtrx <- assay(xcell_se)
   xcell_na <- is.na(xcell_mtrx)
   xcell_mtrx[xcell_na] <- 0
-  xcell_input <- merge(xcell_mtrx, xref, by.x = "row.names", by.y = "ensembl_gene_id")
-  rownames(xcell_input) <- make.names(xcell_input[["hgnc_symbol"]], unique = TRUE)
+  xcell_input <- merge(xcell_mtrx, xref, by.x = "row.names", by.y = "ID")
+  rownames(xcell_input) <- make.names(xcell_input[[symbol_column]], unique = TRUE)
   xcell_input[["Row.names"]] <- NULL
-  xcell_input[["hgnc_symbol"]] <- NULL
+  xcell_input[[symbol_column]] <- NULL
 
   xCell.data <- NULL
   requireNamespace("xCell")
