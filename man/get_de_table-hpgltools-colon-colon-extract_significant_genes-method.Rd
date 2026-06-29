@@ -7,7 +7,7 @@
 \S4method{get_de_table}{hpgltools::extract_significant_genes}(apr, table, type = "deseq", combined = FALSE)
 }
 \arguments{
-\item{apr}{Input data, defaulting to the result from all_pairwise()}
+\item{apr}{Input data, defaulting to the result from all_pairwise.}
 
 \item{table}{Table name to extract}
 
@@ -15,6 +15,10 @@
 
 \item{combined}{Combine all the result types.}
 }
+\value{
+Single table from the pairwise result.
+}
 \description{
-Extract DE result tables from the result of extract_significant_genes.
+I am getting some strange unescaped backslashes in the roxygen-created
+documentation files for some functions, including this one.
 }

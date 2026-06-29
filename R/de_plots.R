@@ -1154,7 +1154,7 @@ plot_sankey_de <- function(de_table, lfc = 1.0, p = 0.05,
 #'
 #' I therefore took a modified copy of her implementation and added it here.
 #'
-#' @param input Table of DE values, likely from combine_de_tables().
+#' @param input Table of DE values, likely from combine_de_tables.
 #' @param table_name Name the table!
 #' @param alpha Make see-through.
 #' @param fc_col Column containing the fold-change values.
@@ -1393,7 +1393,7 @@ plot_volcano_condition_de <- function(input, table_name, alpha = 0.5,
 }
 setGeneric("plot_volcano_condition_de")
 
-#' Plot a volcano plot using the result from combine_de_tables
+#' Plot a volcano plot using the result from combine_de_tables.
 #'
 #' @inherit plot_volcano_condition_de
 #' @export

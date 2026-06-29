@@ -6,7 +6,7 @@
 \usage{
 make_pombe_se(
   annotation = TRUE,
-  host = "nov2020-fungi.ensembl.org",
+  host = "sep2025-fungi.ensembl.org",
   backup_annotation = "org.Spombe.972h.v46.eg.db"
 )
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/de_plots.R
 \name{plot_volcano_condition_de,hpgltools::combine_de_tables-method}
 \alias{plot_volcano_condition_de,hpgltools::combine_de_tables-method}
-\title{Plot a volcano plot using the result from combine_de_tables}
+\title{Plot a volcano plot using the result from combine_de_tables.}
 \usage{
 \S4method{plot_volcano_condition_de}{hpgltools::combine_de_tables}(
   input,
@@ -35,7 +35,7 @@
 )
 }
 \arguments{
-\item{input}{Table of DE values, likely from combine_de_tables().}
+\item{input}{Table of DE values, likely from combine_de_tables.}
 
 \item{table_name}{Name the table!}
 

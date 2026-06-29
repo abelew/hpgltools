@@ -6,13 +6,6 @@
 \usage{
 colData(x, ...) <- value
 }
-\arguments{
-\item{x}{The SummarizedExperiment input}
-
-\item{...}{extra args.}
-
-\item{value}{New value.}
-}
 \description{
 message("I am from SummarizedExperiment and am explicitly imported, wtf.")
 }

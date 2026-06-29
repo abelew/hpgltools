@@ -19,6 +19,8 @@ each of the pieces here.}
 \arguments{
 \item{exp}{Datastructure to modify.}
 
+\item{colors}{Vector/List/etc to explicitly define desired colors.}
+
 \item{color_column}{metadta column containing colors.}
 
 \item{change_by}{Metadata column to use to define colors.}

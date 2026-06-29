@@ -3,6 +3,19 @@
 #' @include 01_hpgltools.R
 NULL
 
+## I think this file should be collated after the other ontology files
+## so let us include them here.
+#' @include ontology_clusterprofiler.R
+NULL
+#' @include ontology_topgo.R
+NULL
+#' @include ontology_goseq.R
+NULL
+#' @include ontology_gostats.R
+NULL
+#' @include ontology_gprofiler.R
+NULL
+
 #' Invoke the various fun plots created by Guangchuang Yu.
 #'
 #' I would like to replace all of my bad ontology plotting functions
@@ -219,11 +232,6 @@ plot_ontpval <- function(df, ontology = "MF", fontsize = 14, plot_title = NULL,
 #' @param id Focus on a specific category.
 #' @param add_score Add the score to the plot.
 #' @return List of plots.
-#' @include ontology_clusterprofiler.R
-#' @include ontology_topgo.R
-#' @include ontology_goseq.R
-#' @include ontology_gostats.R
-#' @include ontology_gprofiler.R
 #' @export
 plot_topn_gsea <- function(gse, topn = 20, id = NULL, add_score = TRUE) {
   retlist <- list()

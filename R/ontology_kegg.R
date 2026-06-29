@@ -573,13 +573,21 @@ gostats_kegg <- function(organism = "Homo sapiens",
 #' }
 #' @export
 get_kegg_orgn <- function(species = "Leishmania", short = TRUE) {
-  all_organisms <- RCurl::getURL("https://rest.kegg.jp/list/organism")
+  ## all_organisms <- RCurl::getURL("https://rest.kegg.jp/list/organism")
+  all_organisms <- RCurl::getURL("https://rest.kegg.jp/list/genome")
   org_tsv <- textConnection(all_organisms)
   all <- read.table(org_tsv, sep = "\t", quote = "", fill = TRUE)
   close(org_tsv)
-  colnames(all) <- c("Tid", "orgid", "species", "phylogeny")
-  ## Look for the search string in the species column
-  candidates <- all[grepl(species, all[["species"]]), ]
+  colnames(all) <- c("Tid", "org_ids")
+  all <- all %>%
+    tidyr::separate("org_ids",
+                    c("orgid", "species"),
+                    "; ", extra = "drop", fill = "right")
+  idx <- grepl(x = all[["species"]], pattern = species)
+  message("There are ", sum(idx), " entries which match the search string: ", species, ".")
+
+    ## Look for the search string in the species column
+  candidates <- all[idx, ]
   if (isTRUE(short)) {
     candidates <- as.character(candidates[["orgid"]])
   }

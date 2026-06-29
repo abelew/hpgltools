@@ -7,7 +7,11 @@
 annotation(object, ...) <- value
 }
 \arguments{
-\item{...}{Other options}
+\item{object}{Input data structure.}
+
+\item{...}{Other options.}
+
+\item{value}{New annotation identifier.}
 }
 \description{
 I do not think I should need to define this, I have an importFrom

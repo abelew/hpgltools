@@ -35,7 +35,7 @@ plot_volcano_condition_de(
 )
 }
 \arguments{
-\item{input}{Table of DE values, likely from combine_de_tables().}
+\item{input}{Table of DE values, likely from combine_de_tables.}
 
 \item{table_name}{Name the table!}
 

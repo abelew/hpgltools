@@ -641,7 +641,7 @@ features_in_single_condition <- function(se, cutoff = 2, factor = "condition", c
 #' @param host ensembl host to query
 #' @param backup_annotation Use this annotation source if ensembl is down.
 #' @export
-make_pombe_se <- function(annotation = TRUE, host = "nov2020-fungi.ensembl.org",
+make_pombe_se <- function(annotation = TRUE, host = "sep2025-fungi.ensembl.org",
                           backup_annotation = "org.Spombe.972h.v46.eg.db") {
   fission <- new.env()
   sm(requireNamespace("fission"))

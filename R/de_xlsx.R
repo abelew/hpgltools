@@ -2161,10 +2161,14 @@ summarize_ups_downs <- function(ups, downs) {
 
 #' Extract a DE table from some data structure.
 #'
-#' @param apr Input data, defaulting to the result from all_pairwise()
+#' I am getting some strange unescaped backslashes in the roxygen-created
+#' documentation files for some functions, including this one.
+#'
+#' @param apr Input data, defaulting to the result from all_pairwise.
 #' @param table Table name to extract
 #' @param type Choose the result from this DE method.
 #' @param combined Combine all the result types.
+#' @returns Single table from the pairwise result.
 get_de_table <- function(apr, table, type = "deseq", combined = FALSE) {
   all_tables <- apr[[type]][["all_tables"]]
   wanted <- NULL

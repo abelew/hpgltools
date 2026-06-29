@@ -56,7 +56,9 @@ annotation <- function(object, ...) {
 #' I do not think I should need to define this, I have an importFrom
 #' in 01_hpgltools.R and this file includes that.
 #'
-#' @param ... Other options
+#' @param object Input data structure.
+#' @param ... Other options.
+#' @param value New annotation identifier.
 #' @importFrom BiocGenerics annotation
 `annotation<-` <- function(object, ..., value) {
   BiocGenerics::annotation(object) <- value
@@ -293,11 +295,7 @@ colData <- function(x, i, withDimnames = TRUE, ...) {
 
 #' A getter to pull the sample data from an ExpressionSet.
 #'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param i not j
-#' @param withDimnames indeed.
-#' @param ... extra args.
+#' @inherit colData<-
 #' @export
 setMethod(
   "colData", signature(x = "ExpressionSet"),
@@ -308,9 +306,7 @@ setMethod(
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'
 #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-#' @param x The SummarizedExperiment input
-#' @param ... extra args.
-#' @param value New value.
+#' @inherit colData<-
 #' @export
 `colData<-` <- function(x, ..., value) {
   SummarizedExperiment::colData(x, ...) <- value
@@ -319,10 +315,7 @@ setMethod(
 
 #' A setter to put the sample data into an ExpressionSet.
 #'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param ... args for the arglist
-#' @param value New values for the expressionset.
+#' @inherit colData<-
 #' @export
 setMethod(
   "colData<-", signature(x = "ExpressionSet"),
@@ -333,10 +326,7 @@ setMethod(
 
 #' A setter to put the sample data into an ExpressionSet.
 #'
-#' @param x One of my various expressionset analogs, expt,
-#'  expressionSet, or summarizedExperiment.
-#' @param ... args for the arglist
-#' @param value New values for the expressionset.
+#' @inherit colData<-
 #' @export
 setMethod(
   "colData<-", signature(x = "SummarizedExperiment", value = "data.frame"),
@@ -443,6 +433,7 @@ setGeneric("colors<-")
 #' @param exp Expression from which to gather colors.
 #' @param fact Use this metadata column to set the colors.
 #' @param levels When not null, colors may be set to arbitrary samples.
+#' @param ... Arguments to pass along.
 #' @return List of colors by condition.
 #' @export
 get_colors_by_condition <- function(exp, fact = "condition", levels = NULL, ...) {
@@ -513,6 +504,7 @@ setMethod(
 #' Create a simple generic for setting colors in expressionsets/SEs/etc.
 #'
 #' @param exp Datastructure to modify.
+#' @param colors Vector/List/etc to explicitly define desired colors.
 #' @param color_column metadta column containing colors.
 #' @param change_by Metadata column to use to define colors.
 #' @param chosen_palette ColorBrewer palette used when choosing colors.
@@ -695,6 +687,26 @@ setMethod(
     colData(exp) <- new_meta
     metadata(exp)[["colors"]] <- new_colors
     return(exp)
+  })
+
+#' Set the colors when colors is TRUE/FALSE
+#' @inherit set_colors
+#' @export
+setMethod(
+  "set_colors", signature(exp = "SummarizedExperiment", colors = "logical"),
+  definition = function(exp, colors = NULL, color_column = "color",
+                        change_by = "condition", chosen_palette = "Dark2", ...) {
+    meta <- as.data.frame(colData(exp))
+    if (isTRUE(colors)) {
+      new_meta <- set_colors(meta, colors = NULL, color_column = color_column,
+                             change_by = change_by, chosen_palette = chosen_palette, ...)
+      new_colors <- new_meta[[color_column]]
+      colData(exp) <- new_meta
+      metadata(exp)[["colors"]] <- new_colors
+      return(exp)
+    } else {
+      return(exp)
+    }
   })
 
 #' Infix color setter for a SE.

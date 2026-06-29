@@ -1683,7 +1683,7 @@ get_pairwise_gene_abundances <- function(datum, type = "limma", excel = NULL) {
     "another_error" = another_error,
     "stdev_values" = stdev_mtrx)
   if (!is.null(excel)) {
-    annotations <- fData(datum[["input"]])
+    annotations <- rowData(datum[["input"]])
     expressions <- retlist[["expression_values"]]
     colnames(expressions) <- glue("expr_{colnames(expressions)}")
     errors <- retlist[["error_values"]]

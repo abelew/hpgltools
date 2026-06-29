@@ -7,7 +7,7 @@
 get_de_table(apr, table, type = "deseq", combined = FALSE)
 }
 \arguments{
-\item{apr}{Input data, defaulting to the result from all_pairwise()}
+\item{apr}{Input data, defaulting to the result from all_pairwise.}
 
 \item{table}{Table name to extract}
 
@@ -15,6 +15,10 @@ get_de_table(apr, table, type = "deseq", combined = FALSE)
 
 \item{combined}{Combine all the result types.}
 }
+\value{
+Single table from the pairwise result.
+}
 \description{
-Extract a DE table from some data structure.
+I am getting some strange unescaped backslashes in the roxygen-created
+documentation files for some functions, including this one.
 }

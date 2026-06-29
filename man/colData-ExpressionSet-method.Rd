@@ -6,16 +6,6 @@
 \usage{
 \S4method{colData}{ExpressionSet}(x, i, withDimnames = TRUE, ...)
 }
-\arguments{
-\item{x}{One of my various expressionset analogs, expt,
-expressionSet, or summarizedExperiment.}
-
-\item{i}{not j}
-
-\item{withDimnames}{indeed.}
-
-\item{...}{extra args.}
-}
 \description{
-A getter to pull the sample data from an ExpressionSet.
+message("I am from SummarizedExperiment and am explicitly imported, wtf.")
 }

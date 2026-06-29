@@ -256,8 +256,6 @@ write_xlsx <- function(data = NULL, wb = NULL, sheet = "first", excel = NULL,
   return(NULL)
 }
 setGeneric("write_xlsx")
-##setGeneric("write_xlsx")
-##setOldClass("hpgltools::write_xlsx")
 
 #' Write a dataframe to an excel spreadsheet sheet.
 #'

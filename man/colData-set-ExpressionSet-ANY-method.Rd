@@ -6,14 +6,6 @@
 \usage{
 \S4method{colData}{ExpressionSet,ANY}(x, ...) <- value
 }
-\arguments{
-\item{x}{One of my various expressionset analogs, expt,
-expressionSet, or summarizedExperiment.}
-
-\item{...}{args for the arglist}
-
-\item{value}{New values for the expressionset.}
-}
 \description{
-A setter to put the sample data into an ExpressionSet.
+message("I am from SummarizedExperiment and am explicitly imported, wtf.")
 }

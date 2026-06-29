@@ -92,7 +92,7 @@ test_local:
 	@echo "Running run_tests.R with hpgltools loaded via devtools."
 	Rscript -e "devtools::load_all('.'); library(testthat); test_local(path = '.', reporter = 'summary', stop_on_failure = FALSE)"
 
-vigwnette:
+vignette:
 	@mkdir -p doc
 	@echo "Building vignettes with devtools::build_vignettes()"
 	R -e "devtools::build_vignettes(install=FALSE)"

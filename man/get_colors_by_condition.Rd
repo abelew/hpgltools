@@ -12,6 +12,8 @@ get_colors_by_condition(exp, fact = "condition", levels = NULL, ...)
 \item{fact}{Use this metadata column to set the colors.}
 
 \item{levels}{When not null, colors may be set to arbitrary samples.}
+
+\item{...}{Arguments to pass along.}
 }
 \value{
 List of colors by condition.
