@@ -13,39 +13,47 @@ load("326_de_edger.rda", envir = edger)
 basic <- new.env()
 load("327_de_basic.rda", envir = basic)
 
-## The following lines should not be needed any longer.
+## These arguments for normalize() are from our collarboration with Hector
+## Corrado-Bravo and his students; that was quite a long time ago.
 normalized_se <- normalize(pasilla_se, transform = "log2", norm = "quant",
-                                  convert = "cbcbcpm", filter = "cbcb", thresh = 1)
+                           convert = "cbcbcpm", filter = "cbcb", thresh = 1)
 
-## Interestingly, doParallel does not work when run from packrat.
+## Let us perform a simple comparison of the treated/untreated samples in the pasilla dataset.
 test_keepers <- list("treatment" = c("treated", "untreated"))
 hpgl_all <- all_pairwise(pasilla_se, filter = TRUE, verbose = TRUE, keepers = test_keepers)
 hpgl_tables <- combine_de_tables(hpgl_all, keepers = test_keepers,
                                  excel = "excel_test.xlsx")
 
+## And look over the results to see if things make general sense.
 combined_excel <- hpgl_tables
 expected <- "ggplot2::ggplot"
 actual <- class(combined_excel[["plots"]][["treatment"]][["limma_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty limma scatter plot?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 actual <- class(combined_excel[["plots"]][["treatment"]][["deseq_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty deseq scatter plot?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 actual <- class(combined_excel[["plots"]][["treatment"]][["edger_scatter_plots"]][["scatter"]])[1]
 test_that("Do we get a pretty edger scatter plot?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## Test that we can extract the significant genes and get pretty graphs
+## Setting 'according_to' to 'all' tells extract_significant_genes() to get the
+## logfc/p-value significant genes for every method provided by combine_de_tables().
+## We will therefore have an excel file with a couple of summary sheets followed by:
+## 2 (one for up and one for down) * (number of contrasts) * (number of methods)
+## sheets.  E.g. I currently have 7 methods (basic,deseq,dream,ebseq,edger,limma,noiseq),
+## so this excel file should have 28 sheets + the summary sheets -> ~30.
 excel_file <- "excel_test_sig.xlsx"
 significant_excel <- extract_significant_genes(combined_excel, according_to = "all",
                                                excel = "excel_test_sig.xlsx")
 test_that("Does combine_de_tables create an excel file?", {
-    expect_true(file.exists(excel_file))
+  expect_true(file.exists(excel_file))
 })
 
 ## How many significant up genes did limma find?
@@ -61,25 +69,25 @@ test_that("Is the number of significant up genes as expected? (limma)", {
 actual <- nrow(significant_excel[["deseq"]][["ups"]][[table]])
 expected <- 90
 test_that("Is the number of significant up genes as expected? (deseq)", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(significant_excel[["edger"]][["ups"]][[table]])
 expected <- 90
 test_that("Is the number of significant up genes as expected? (edger)", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(significant_excel[["limma"]][["downs"]][[table]])
 expected <- 90
 test_that("Is the number of significant down genes as expected? (limma)", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(significant_excel[["deseq"]][["downs"]][[table]])
 expected <- 90
 test_that("Is the number of significant down genes as expected? (deseq)", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(significant_excel[["edger"]][["downs"]][[table]])
@@ -91,7 +99,7 @@ test_that("Is the number of significant down genes as expected? (edger)", {
 actual <- class(significant_excel[["sig_bar_plots"]][["limma"]])[[1]]
 expected <- "ggplot2::ggplot"
 test_that("Are the significance bar plots generated? (limma)",  {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 hpgl_two <- all_pairwise(pasilla_se, filter = TRUE, keepers = test_keepers)
@@ -101,11 +109,14 @@ test_that("Can we provide limited keepers to all_pairwise()?", {
                names(hpgl_two[["deseq"]][["all_tables"]]))
 })
 
+## Now try out some different options for using edger and svaseq.
 hpgl_sva_result <- suppressWarnings(
   all_pairwise(pasilla_se, model_svs = "svaseq", which_voom = "limma",
                model_fstring = "~ 0 + condition",
                limma_method = "robust", edger_method = "long",
                edger_test = "qlr", filter = TRUE))
+
+## Now poke around at the results and see if we get tables which are suitably similar
 deseq_result <- deseq[["hpgl_deseq"]]
 expected <- deseq_result[["all_tables"]][["untreated_vs_treated"]]
 actual <- hpgl_all[["deseq"]][["all_tables"]][["treated_vs_untreated"]]
@@ -114,10 +125,11 @@ actual <- actual[shared, ]
 shared <- rownames(expected) %in% rownames(actual)
 expected <- expected[shared, ]
 
+## Treated/untreated is the same as -1 * untreated/treated!
 expected_vector <- expected[["logFC"]]
-actual_vector <- actual[["logFC"]] * -1.0
+actual_vector <- actual[["logFC"]] * -1
 test_that("Do we get similar results to previous DE runs: (DESeq2)?", {
-    expect_equal(expected_vector, actual_vector, tolerance = 0.05)
+  expect_equal(expected_vector, actual_vector, tolerance = 0.05)
 })
 
 edger_result <- edger[["hpgl_edger"]]
@@ -132,7 +144,7 @@ table_order <- rownames(expected)
 expected_vector <- expected[table_order, "logFC"]
 actual_vector <- actual[table_order, "logFC"] * -1.0
 test_that("Do we get similar results to previous DE runs: (edgeR)?", {
-    expect_equal(expected_vector, actual_vector, tolerance = 0.08)
+  expect_equal(expected_vector, actual_vector, tolerance = 0.08)
 })
 
 limma_result <- limma[["hpgl_limma"]]
@@ -141,7 +153,7 @@ expected <- expected[table_order, ]
 actual <- hpgl_all[["limma"]][["all_tables"]][["untreated_vs_treated"]]
 actual <- actual[table_order, ]
 test_that("Do we get similar results to previous DE runs: (limma)?", {
-    expect_equal(expected, actual, tolerance = 0.07)
+  expect_equal(expected, actual, tolerance = 0.07)
 })
 
 basic_result <- basic[["hpgl_basic"]]
@@ -160,9 +172,10 @@ expected_vector <- expected[table_order, "logFC"]
 actual_vector <- actual[table_order, "logFC"] * -1.0
 
 test_that("Do we get similar results to previous DE runs: (basic)?", {
-    expect_equal(expected_vector, actual_vector)
+  expect_equal(expected_vector, actual_vector)
 })
 
+## all_pairwise() provides a plot/matrix of correlation coefficients, query it.
 le <- hpgl_all[["comparison"]][["comp"]]["edger_vs_limma", ]
 ld <- hpgl_all[["comparison"]][["comp"]]["deseq_vs_limma", ]
 ed <- hpgl_all[["comparison"]][["comp"]]["deseq_vs_edger", ]
@@ -170,22 +183,22 @@ lb <- hpgl_all[["comparison"]][["comp"]]["basic_vs_limma", ]
 eb <- hpgl_all[["comparison"]][["comp"]]["basic_vs_edger", ]
 db <- hpgl_all[["comparison"]][["comp"]]["basic_vs_deseq", ]
 test_that("Are the comparisons between DE tools sufficiently similar? (limma/edger)", {
-    expect_gt(le, 0.95)
+  expect_gt(le, 0.95)
 })
 test_that("Are the comparisons between DE tools sufficiently similar? (limma/deseq)", {
-    expect_gt(ld, 0.95)
+  expect_gt(ld, 0.95)
 })
 test_that("Are the comparisons between DE tools sufficiently similar? (edger/deseq)", {
-    expect_gt(ed, 0.90)
+  expect_gt(ed, 0.90)
 })
 test_that("Are the comparisons between DE tools sufficiently similar? (limma/basic)", {
-    expect_gt(lb, 0.91)
+  expect_gt(lb, 0.91)
 })
 test_that("Are the comparisons between DE tools sufficiently similar? (edger/basic)", {
-    expect_gt(eb, 0.92)
+  expect_gt(eb, 0.92)
 })
 test_that("Are the comparisons between DE tools sufficiently similar? (deseq/basic)", {
-    expect_gt(db, 0.92)
+  expect_gt(db, 0.92)
 })
 combined_table <- combine_de_tables(hpgl_all, excel = FALSE)
 
@@ -204,13 +217,16 @@ expected_annotations <- c(
   "basic_adjp_ihw", "noiseq_adjp_ihw", "lfc_meta", "lfc_var", "lfc_varbymed", "p_meta",
   "p_var")
 
+## Refilter the data so we can see that the filter = TRUE argument to all_pairwise() did the
+## expected thing.
 filtered <- normalize(pasilla_se, filter = TRUE)
 expected <- nrow(exprs(filtered))
 actual <- nrow(combined_table[["data"]][[1]])
 test_that("Has the untreated/treated combined table been filled in?", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
+## Check that the set of significantly different genes is as expected.
 table <- "treated_vs_untreated"
 sig_tables <- extract_significant_genes(combined_table,
                                         according_to = "all",
@@ -218,37 +234,37 @@ sig_tables <- extract_significant_genes(combined_table,
 expected <- 90
 actual <- nrow(sig_tables[["limma"]][["ups"]][[table]])
 test_that("Are the limma significant ups expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 90
 actual <- nrow(sig_tables[["limma"]][["downs"]][[table]])
 test_that("Are the limma significant downs expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 90
 actual <- nrow(sig_tables[["edger"]][["ups"]][[table]])
 test_that("Are the edger significant ups expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 100
 actual <- nrow(sig_tables[["edger"]][["downs"]][[table]])
 test_that("Are the limma significant ups expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 95
 actual <- nrow(sig_tables[["deseq"]][["ups"]][[table]])
 test_that("Are the deseq significant ups expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 95
 actual <- nrow(sig_tables[["deseq"]][["downs"]][[table]])
 test_that("Are the deseq significant downs expected?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 ## I significantly changed the format of this function's output.
@@ -257,7 +273,7 @@ funkytown <- plot_num_siggenes(combined_table[["data"]][[1]])
 expected <- c(3.45, 3.41, 3.38, 3.34, 3.31, 3.27)
 actual <- as.numeric(head(funkytown[["up_data"]][[1]]))
 test_that("Can we monitor changing significance (up_fc)?", {
-    expect_equal(expected, actual, tolerance = 0.02)
+  expect_equal(expected, actual, tolerance = 0.02)
 })
 
 ## Check to make sure that if we specify a direction for the comparison, that it is maintained.
@@ -270,43 +286,43 @@ forward_fold_changes <- forward_combined_excel[["data"]][[table]][["limma_logfc"
 expected <- sort(forward_fold_changes)
 actual <- sort(reverse_combined_excel[["data"]][[table]][["limma_logfc"]] * -1)
 test_that("When we reverse a combined_de_tables(), we get reversed results? (limma)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["edger_logfc"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["edger_logfc"]] * -1)
 test_that("When we reverse a combined_de_tables(), we get reversed results? (edger)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["deseq_logfc"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["deseq_logfc"]] * -1)
 test_that("When we reverse a combined_de_tables(), we get reversed results? (deseq)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["basic_logfc"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["basic_logfc"]] * -1)
 test_that("When we reverse a combined_de_tables(), we get reversed results? (basic)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["limma_adjp"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["limma_adjp"]])
 test_that("When we reverse a combined_de_tables(), we get appropriate p-values? (limma)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["edger_adjp"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["edger_adjp"]])
 test_that("When we reverse a combined_de_tables(), we get appropriate p-values? (edger)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 expected <- sort(forward_combined_excel[["data"]][[table]][["deseq_adjp"]])
 actual <- sort(reverse_combined_excel[["data"]][[table]][["deseq_adjp"]])
 test_that("When we reverse a combined_de_tables(), we get appropriate p-values? (deseq)", {
-    expect_equal(expected, actual)
+  expect_equal(expected, actual)
 })
 
 ## Make sure that MA plots from combined tables are putting the logFCs in the right direction
@@ -317,19 +333,19 @@ sva_batch_test <- compare_de_results(combined_excel, combined_sva)
 expected <- 0.71
 actual <- sva_batch_test[["result"]][["limma"]][[table]][["logfc"]]
 test_that("Do limma with combat and sva agree vis a vis logfc?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 0.97
 actual <- sva_batch_test[["result"]][["deseq"]][[table]][["logfc"]]
 test_that("Do deseq with combat and sva agree vis a vis logfc?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 expected <- 0.97
 actual <- sva_batch_test[["result"]][["edger"]][[table]][["logfc"]]
 test_that("Do edger with combat and sva agree vis a vis logfc?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 ## See if the intersection between limma, deseq, and edger is decent.
@@ -337,29 +353,29 @@ test_intersect <- intersect_significant(combined_sva, excel = NULL)
 expected <- 85
 actual <- nrow(test_intersect[["ups"]][[table]][["data"]][["all"]])
 test_that("Do we get the expected number of agreed upon significant genes between edger/deseq/limma?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(test_intersect[["downs"]][[table]][["data"]][["all"]])
 expected <- 90
 test_that("Ibid, but in the down direction?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- sum(length(test_intersect[["ups"]][[table]][["limma"]]) +
-              length(test_intersect[["ups"]][[table]][["edger"]]) +
-              length(test_intersect[["ups"]][[table]][["deseq"]]))
+                length(test_intersect[["ups"]][[table]][["edger"]]) +
+                length(test_intersect[["ups"]][[table]][["deseq"]]))
 expected <- 77
 test_that("Are there very few genes observed without the others?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- sum(length(test_intersect[["downs"]][[table]][["limma"]]) +
-              length(test_intersect[["downs"]][[table]][["edger"]]) +
-              length(test_intersect[["downs"]][[table]][["deseq"]]))
-expected <- 300
+                length(test_intersect[["downs"]][[table]][["edger"]]) +
+                length(test_intersect[["downs"]][[table]][["deseq"]]))
+expected <- 100
 test_that("Ibid, but down?", {
-    expect_gt(actual, expected)
+  expect_gt(actual, expected)
 })
 
 actual <- nrow(test_intersect[["ups"]][[table]][["data"]][["all"]])

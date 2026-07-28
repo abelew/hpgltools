@@ -236,6 +236,116 @@ classify_n_times <- function(full_df, interesting_meta, outcome_column = "finalo
   return(retlist)
 }
 
+#' Given an existing model, invoke predict on a new dataset.
+#'
+#' This makes a few important assumptions: The first column of the
+#' model's learn slot must by definition be the thing we are
+#' classifying.  This function goes to some lengths to ensure that the
+#' elements of the model and elements of the dataset are identical so
+#' that predict can move forward; but one must be aware of weird
+#' things like changing gene names over time (LpaL13.01 vs LpaL13-01
+#' for example).
+#'
+#' @param exp Input dataset
+#' @param model_file existing model produced by the various caret
+#'  child-utilities.
+#' @param filter Data filter used by the training set.
+#' @param convert Data conversion used by the training set.
+#' @param norm Data normalization used by the training set.
+#' @export
+classify_from_model <- function(exp, model_file, filter = TRUE, convert = "cpm",
+                                norm = "quant") {
+  ## Start out by extracting the model from the savefile I created.
+  ## When I did this, I dumped the model into an environment, so
+  ## this will create an env of an env...
+  model_env <- new.env()
+  model <- NULL
+  loaded <- load(model_file, envir = model_env)
+  ## For now, just load the first thing in the environment
+  first_entry <- ls(model_env)[1]
+  ## Ok, I am an idiot, when I saved this I was thinking to do it as an environment.
+  model_env <- model_env[[first_entry]]
+  if (class(model_env) == "environment") {
+    first_entry <- ls(model_env)[1]
+    model <- model_env[[first_entry]]
+  }
+
+  ## Significant work must be done to ensure that the data collected
+  ## for these new samples is identical between the genes/positions
+  ## quantified in the new dataset vs the set of things used in the
+  ## model.  thus I will need to take a moment to square these
+  ## matrices; in addition I will need to ensure that the input data
+  ## is normalized using similar/identical parameters to those used to
+  ## create the model.  This is slightly complicated because, for the
+  ## parasite, some genomes call the positions 'LPAL13-something' and
+  ## others do 'LPAL13.something'; so for the moment I will just
+  ## coerce this manually; but in the future I should add some logic
+  ## to warn the user about differences.
+
+  ## Extract the rownames used in the model
+  model_elements <- colnames(model[["learn"]][["X"]])
+  ## and the matrix of model weights
+  model_learn_data <- t(model[["learn"]][["X"]])
+
+  ## Now normalize the input data similarly to the model
+  ## which is filter(cpm(quantile()))
+  exp_mtrx <- assay(normalize(exp, filter = filter, convert = convert, norm = norm))
+  exp_elements <- rownames(exp_mtrx)
+  ## and also the caret::preProcess was used to center the data.
+  centered_mtrx <- caret::preProcess(t(exp_mtrx), method = "center")
+  texprs <- stats::predict(centered_mtrx, t(exp_mtrx))
+  exprs <- t(texprs)
+
+  ## Here is where I coerced the rownames to make everyting have a dot
+  ## instead of a dash.
+  ## ok, for the test I want to do, the model elements are of the form
+  ## 'chr_LpaL13.chr#' but the expression are 'chr_LpaL13-chr#'!!
+  exp_elements <- gsub(x = exp_elements, pattern = "-", replacement = "\\.")
+  rownames(exprs) <- exp_elements
+
+  ## In addition, sometimes I collect information from the scaffolds
+  ## and sometimes I do not; the knn model was created explicitly
+  ## without the scaffolds because I was worried that ambiguities in
+  ## them would cloud the model weights; either way, any mismatches
+  ## between the rownames of the model and rownames of the input data
+  ## need to be resolved before we move forward, otherwise predict
+  ## will be very sad.
+  shared_exp_model <- exp_elements %in% model_elements
+  message("There are ", sum(shared_exp_model),
+          " shared elements between the training set and exp.")
+  kept_columns <- colnames(exp_mtrx)
+
+  ## I will do this in a somewhat painstaking and roundabout way so
+  ## that I may watch each step and make sure it is correct.
+  ## 1.  recast as dataframes
+  ## 2.  left-join merge to keep only the rows from the model df.
+  ## 3.  Rows which the new df did not have are now filled with NA
+  ##     Set them to 0 (or maybe leave NA)
+  ## 4.  Drop the training columns.
+  ## 5.  Set back to a matrix and t() it for use with predict()
+  model_learn_df <- as.data.frame(model_learn_data)
+  dim(model_learn_df)
+  exprs_df <- as.data.frame(exprs)
+  dim(exprs_df)
+  ## I need to coerce the snp data to the same 97,427 rows.
+  merged_elements <- merge(model_learn_df, exprs_df, by = "row.names",
+                           all.x = TRUE, all.y = FALSE)
+  dim(merged_elements)
+  rownames(merged_elements) <- merged_elements[["Row.names"]]
+  merged_elements[["Row.names"]] <- NULL
+  na_idx <- is.na(merged_elements)
+  merged_elements[na_idx] <- 0
+  merged_elements <- merged_elements[, kept_columns]
+  summary(merged_elements)
+  dim(merged_elements)
+  colnames(merged_elements)
+  test_mtrx <- t(as.matrix(merged_elements))
+
+  classifications <- stats::predict(model, test_mtrx, type = "class")
+  names(classifications) <- kept_columns
+  return(classifications)
+}
+
 #' Use createDataPartition to create test/train sets and massage them a little.
 #'
 #' This will also do some massaging of the data to make it easier to work with for
@@ -263,7 +373,7 @@ create_partitions <- function(full_df, interesting_meta, outcome_factor = "condi
                                               list = list, times = times)
   full_df <- as.data.frame(full_df)
   full_df[["outcome"]] <- outcome_fct
-  cbind_df <- full_df %>%
+  cbind_df <- full_df |>
     dplyr::select("outcome", tidyselect::everything())
 
   trainers <- list()
@@ -428,7 +538,7 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
     predict_type <- "data.frame"
     predict_df <- as.data.frame(predictions)
     rownames(predict_df) <- names(outcomes)
-    #predict_df <- predict_df %>%
+    #predict_df <- predict_df |>
     #  dplyr::mutate('class' = names(.)[apply(., 1, which.max)])
     ## I still do not fully understand the various implications of
     ## using . vs .data vs .env and when they are relevant for
@@ -436,7 +546,7 @@ self_evaluate_model <- function(predictions, datasets, which_partition = 1, type
     possibilities <- colnames(predict_df)
     max_call <- apply(predict_df, 1, which.max)
     predict_df[["class"]] <- possibilities[max_call]
-    ##predict_df <- predict_df %>%
+    ##predict_df <- predict_df |>
     ##  dplyr::mutate("class" = names(.data)[apply(.data, 1, which.max)])
     predict_class <- as.factor(predict_df[["class"]])
     names(predict_class) <- rownames(predict_df)

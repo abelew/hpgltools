@@ -42,21 +42,7 @@ setMethod(
     return(se)
   })
 
-#' Metadata sanitizers
-#'
-#' @param input Input datastructure
-#' @param ... Extra arguments passed along.
-#' @export
-sanitize_metadata <- function(input, ...) {
-  message("This function is intended to sanitize metadata for a data structure.")
-  message("It was passed an object of type ", class(input),
-          " and does not know what to do with it.")
-  return(NULL)
-  standardGeneric("sanitize_metadata")
-}
-setGeneric("sanitize_metadata")
-
-#' Given a dataframe, sanitize it.
+#' Given a table, sanitize it.
 #'
 #' I wrote this function after spending a couple of hours confused
 #' because one cell in my metadata said 'cure ' instead of 'cure' and
@@ -81,6 +67,22 @@ setGeneric("sanitize_metadata")
 #' @param spaces Remove any spaces in this column?
 #' @param numbers Sanitize numbers by adding a prefix character to them?
 #' @param numeric Recast the values as numeric when possible?
+#' @export
+sanitize_metadata <- function(input, columns = NULL, na_value = "notapplicable",
+                              lower = TRUE, punct = TRUE, factorize = "heuristic",
+                              max_levels = NULL, spaces = FALSE, numbers = NULL,
+                              numeric = FALSE) {
+  message("This function is intended to sanitize metadata for a data structure.")
+  message("It was passed an object of type ", class(input),
+          " and does not know what to do with it.")
+  return(NULL)
+  standardGeneric("sanitize_metadata")
+}
+setGeneric("sanitize_metadata")
+
+#' Sanitize a dataframe.
+#'
+#' @inherit sanitize_metadata
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "data.frame"),
@@ -160,27 +162,25 @@ setMethod(
     return(meta)
   })
 
-#' Sanitize a character vector (e.g. a single column/row)
+#' Sanitize a DFrame
 #'
-#' I should probably revisit this, for the moment it just takes the
-#' vector, coerces it to a single-column dataframe, and invokes
-#' sanitize on it.
+#' @inherit sanitize_metadata
+#' @export
+setMethod(
+  "sanitize_metadata", signature = signature(input = "DFrame"),
+  definition = function(input, columns = NULL, na_value = "notapplicable",
+                        lower = TRUE, punct = TRUE, factorize = "heuristic",
+                        max_levels = NULL, spaces = FALSE, numbers = NULL,
+                        numeric = FALSE) {
+    sanitize_metadata(as.data.frame(input), columns = columns, na_value = na_value,
+                      lower = lower, punct = punct, factorize = factorize,
+                      max_levels = max_levels, spaces = spaces, numbers = numbers,
+                      numeric = numeric)
+  })
+
+#' Sanitize a vector
 #'
-#' @param input Input metadata
-#' @param columns Set of columns to check, if left NULL, all columns
-#'  will be molested.
-#' @param na_value Fill NA values with a string.
-#' @param lower Set everything to lowercase?
-#' @param punct Remove punctuation?
-#' @param factorize Set some columns to factors?  If set to a vector
-#'  of length >=1, then set all of the provided columns to factors.
-#'  When set to 'heuristic', set any columns with <= max_levels
-#'  different elements to factors.
-#' @param max_levels When heuristically setting factors, use this as
-#'  the heuristic, when NULL it is the number of samples / 6
-#' @param spaces Remove any spaces in this column?
-#' @param numbers Sanitize numbers by adding a prefix character to them?
-#' @param numeric Recast the values as numeric when possible?
+#' @inherit sanitize_metadata
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "character"),
@@ -197,31 +197,9 @@ setMethod(
     return(new[["tmp"]])
   })
 
-#' Given an expressionset, sanitize pData columns of interest.
+#' Sanitize a summarizedExperiment
 #'
-#' I wrote this function after spending a couple of hours confused
-#' because one cell in my metadata said 'cure ' instead of 'cure' and
-#' I could not figure out why chaos reigned in my analyses.  There is
-#' a sister to this somewhere else which checks that the expected
-#' levels of a metadata factor are consistent; this is because in
-#' another analysis we essentially had a cell which said 'cyre' and a
-#' similar data explosion occurred.
-#'
-#' @param input Input metadata
-#' @param columns Set of columns to check, if left NULL, all columns
-#'  will be molested.
-#' @param na_value Fill NA values with a string.
-#' @param lower Set everything to lowercase?
-#' @param punct Remove punctuation?
-#' @param factorize Set some columns to factors?  If set to a vector
-#'  of length >=1, then set all of the provided columns to factors.
-#'  When set to 'heuristic', set any columns with <= max_levels
-#'  different elements to factors.
-#' @param max_levels When heuristically setting factors, use this as
-#'  the heuristic, when NULL it is the number of samples / 6
-#' @param spaces Remove any spaces in this column?
-#' @param numbers Sanitize numbers by adding a prefix character to them?
-#' @param numeric Recast the values as numeric when possible?
+#' @inherit sanitize_metadata
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "SummarizedExperiment"),
@@ -240,24 +218,9 @@ setMethod(
     return(se)
   })
 
-#' Given an expressionset, sanitize pData columns of interest.
+#' Sanitize an expressionset
 #'
-#' I wrote this function after spending a couple of hours confused
-#' because one cell in my metadata said 'cure ' instead of 'cure' and
-#' I could not figure out why chaos reigned in my analyses.  There is
-#' a sister to this somewhere else which checks that the expected
-#' levels of a metadata factor are consistent; this is because in
-#' another analysis we essentially had a cell which said 'cyre' and a
-#' similar data explosion occurred.
-#'
-#' @param input Input metadata
-#' @param columns Set of columns to check, if left NULL, all columns
-#'  will be molested.
-#' @param na_value Fill NA values with a string.
-#' @param lower Set everything to lowercase?
-#' @param punct Remove punctuation?
-#' @param spaces Remove any spaces in this column?
-#' @param numbers Sanitize numbers by adding a prefix character to them?
+#' @inherit sanitize_metadata
 #' @export
 setMethod(
   "sanitize_metadata", signature = signature(input = "ExpressionSet"),

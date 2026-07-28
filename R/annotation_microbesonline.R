@@ -56,7 +56,7 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
   prelude_url <- glue("http://microbesonline.org/cgi-bin/genomeInfo.cgi?tId={id}")
   result <- xml2::read_html(prelude_url)
   titles <- rvest::html_nodes(result, "title")
-  species <- (titles %>% rvest::html_text())[1]
+  species <- (titles |> rvest::html_text())[1]
 
   if (isTRUE(gbk)) {
     gbk_url <- glue("http://microbesonline.org/cgi-bin/genomeInfo.cgi?tId={id};export=gbk")
@@ -121,14 +121,14 @@ download_microbesonline_files <- function(id = "160490", type = "gbk") {
 get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
   id_url <- "http://microbesonline.org/cgi-bin/fetchGenome2.cgi?taxId=g1&byFavorites=1"
   result <- xml2::read_html(id_url)
-  id_nodes <- result %>%
+  id_nodes <- result |>
     rvest::html_nodes("#GenomeList")
   . <- id_nodes  ## Shush, R CMD check
-  id_links <- id_nodes %>%
-    rvest::html_nodes("td:nth-child(1) a") %>%
-    rvest::html_attr("href") %>%
+  id_links <- id_nodes |>
+    rvest::html_nodes("td:nth-child(1) a") |>
+    rvest::html_attr("href") |>
     gsub(pattern = "^.*?tId=([[:digit:]]+)$", replacement = "\\1", x = .)
-  id_table <- id_nodes %>%
+  id_table <- id_nodes |>
     rvest::html_table(header = TRUE, fill = TRUE)
   id_df <- id_table[[1]]  ## Grab the first (only) element
   id_df[["tax_id"]] <- id_links
@@ -196,7 +196,7 @@ load_microbesonline_annotations <- function(species = NULL, id = NULL) {
   prelude_url <- paste0("http://microbesonline.org/cgi-bin/genomeInfo.cgi?tId=", id)
   result <- xml2::read_html(prelude_url)
   titles <- rvest::html_nodes(result, "title")
-  species <- (titles %>% rvest::html_text())[1]
+  species <- (titles |> rvest::html_text())[1]
   message("The species being downloaded is: ", species)
   url <- glue::glue("http://www.microbesonline.org/cgi-bin/genomeInfo.cgi?tId={id};export=tab")
   message("Downloading: ", url)
@@ -252,7 +252,7 @@ load_microbesonline_go <- function(id = NULL, species = NULL, table_df = NULL, i
     stop()
   }
   ## Addressing a warning from tidyr, I am not quite certain what it was telling me TBH.
-  go_df <- table_df[, c(id_column, data_column)] %>%
+  go_df <- table_df[, c(id_column, data_column)] |>
     tidyr::separate_rows(tidyr::all_of(data_column), sep = ",")
   keep_idx <- go_df[[data_column]] != ""
   go_df <- go_df[keep_idx, ]

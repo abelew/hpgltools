@@ -1727,7 +1727,7 @@ setClass("hpgltools::extract_significant_genes",
 #'  set for writing a gmt file.
 #' @param ... Arguments passed into arglist.
 #' @return The set of up-genes, down-genes, and numbers therein.
-#' @seealso \code{\link{combine_de_tables}}
+#' @seealso [combine_de_tables]
 #' @export
 extract_significant_genes <- function(combined, according_to = "deseq", lfc = 1.0,
                                       p = 0.05, sig_bar = TRUE, z = NULL, n = NULL,
@@ -2161,11 +2161,13 @@ summarize_ups_downs <- function(ups, downs) {
 
 #' Extract a DE table from some data structure.
 #'
-#' I am getting some strange unescaped backslashes in the roxygen-created
-#' documentation files for some functions, including this one.
+#' I am getting some strange unescaped backslashes in the roxygen created
+#' documentation files for some functions, including this one.  I do
+#' not think there are any backslash escaped characters anywhere in
+#' this portion of my code.
 #'
 #' @param apr Input data, defaulting to the result from all_pairwise.
-#' @param table Table name to extract
+#' @param table Table name to extract.
 #' @param type Choose the result from this DE method.
 #' @param combined Combine all the result types.
 #' @returns Single table from the pairwise result.
@@ -2323,7 +2325,9 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
       try(Vennerable::plot(sets, doWeights = FALSE), silent = TRUE)
       rec <- grDevices::recordPlot()
       dev.off()
-      file.remove(tmp_file)
+      if (file.exists(tmp_file)) {
+        file.remove(tmp_file)
+      }
       lst[[dir]][[table]][["sets"]] <- sets
       lst[[dir]][[table]][["intersections"]] <- intersections
       lst[[dir]][[table]][["plot"]] <- rec
@@ -2465,7 +2469,7 @@ intersect_significant <- function(combined, lfc = 1.0, p = 0.05, padding_rows = 
 #' @param ma Include ma plots?
 #' @param fancy Print fancy plots with the xlsx file?x
 #' @return Return from write_xlsx.
-#' @seealso \code{\link{combine_de_tables}}
+#' @seealso [combine_de_tables]
 #' @export
 print_ups_downs <- function(upsdowns, wb, excel_basename, according = "limma",
                             summary_count = 1, ma = FALSE, fancy = FALSE) {

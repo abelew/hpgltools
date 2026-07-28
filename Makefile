@@ -21,6 +21,7 @@ clean:
 	rm -rf hpgltools.Rcheck/
 	rm -f hpgltools_${VERSION}.tar.gz
 	rm -f inst/*.fai
+	rm -f inst/examples/*.rda
 	rm -rf vignettes/circos vignettes/pasilla_* vignettes/org.Spombe.eg.db \
       vignettes/wt_mga vignettes/wt_mga_sig vignettes/*_files
 	rm -f vignettes/*.gff vignettes/*.pdf vignettes/gene2pubmed.gz vignettes/NCBI.sqlite \

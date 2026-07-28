@@ -154,8 +154,8 @@ load_annotations <- function(type = NULL, ...) {
 group_mean_cds_length <- function(annot, gene_column = "ensembl_gene_id",
                                      tx_column = "ensembl_transcript_id",
                                      length_column = "cds_length") {
-  new <- annot %>%
-    group_by(!!sym(gene_column)) %>%
+  new <- annot |>
+    group_by(!!sym(gene_column)) |>
     summarise(mean_cds_len = mean(!!sym(length_column), na.rm = TRUE))
   annot <- merge(annot, new, by = gene_column, all.x = TRUE)
   return(annot)

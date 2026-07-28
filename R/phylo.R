@@ -52,7 +52,7 @@ genomic_kmer_dist <- function(directory = "tree", root = NULL) {
   test_phy <- ape::ladderize(test_phy)
 
   test_dnd <- as.dendrogram(test_phy)
-  test_phylo <- ape::as.phylo(test_dnd) %>%
+  test_phylo <- ape::as.phylo(test_dnd) |>
     ape::compute.brlen()
 
   retlist <- list(
@@ -109,7 +109,7 @@ CDS_kmer_dist <- function(directory = "tree", root = NULL, kmer = 7, max = NULL)
   test_phy <- ape::ladderize(test_phy)
 
   test_dnd <- as.dendrogram(test_phy)
-  test_phylo <- ape::as.phylo(test_dnd) %>%
+  test_phylo <- ape::as.phylo(test_dnd) |>
     ape::compute.brlen()
 
   retlist <- list(

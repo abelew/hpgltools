@@ -295,7 +295,7 @@ colData <- function(x, i, withDimnames = TRUE, ...) {
 
 #' A getter to pull the sample data from an ExpressionSet.
 #'
-#' @inherit colData<-
+#' @inherit colData
 #' @export
 setMethod(
   "colData", signature(x = "ExpressionSet"),
@@ -601,6 +601,11 @@ setMethod(
     }
 
     old_colors <- as.character(exp[[color_column]])
+    if (length(old_colors) == 0) {
+      ## In case the colors have not yet been added to the metadata.
+      exp[[color_column]] <- "undefined"
+      old_colors <- as.character(exp[[color_column]])
+    }
     names(old_colors) <- rownames(exp)
     new_colors <- old_colors
     if (isTRUE(change_by_condition)) {
@@ -879,7 +884,7 @@ setMethod(
         colors <- NULL
       }
     }
-    new_se <- set_colors(new_se, colors = colors)
+    new_se <- set_colors(new_se, colors = colors, change_by = fact_name)
     return(new_se)
   })
 

@@ -661,8 +661,8 @@ plot_3d_pca <- function(pc_result, components = c(1, 2, 3),
     table, x = as.formula(glue::glue("~{x_axis}")), y = as.formula(glue::glue("~{y_axis}")),
     z = as.formula(glue::glue("~{z_axis}")), color = as.formula("~condition"), colors = color_levels,
     stroke = I("black"),
-    text = ~paste0("sample: ", sampleid, "condition: ", condition, " batch: ", batch)) %>%
-    plotly::add_markers() %>%
+    text = ~paste0("sample: ", sampleid, "condition: ", condition, " batch: ", batch)) |>
+    plotly::add_markers() |>
     plotly::layout(title = pc_result[["plot"]][["labels"]][["title"]])
   htmlwidgets::saveWidget(
     plotly::as_widget(silly_plot), file = file, selfcontained = TRUE)
@@ -803,7 +803,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   if (class(design[[batch_column]])[1] != "factor") {
     included_batches <- as.factor(as.character(design[[batch_column]]))
   } else {
-    included_batches <- design[[batch_column]] %>%
+    included_batches <- design[[batch_column]] |>
       droplevels()
   }
 
@@ -811,7 +811,7 @@ plot_pca <- function(data, design = NULL, state = NULL, plot_colors = NULL, plot
   ## if (class(design[[cond_column]])[1] != "factor") {
   ##   included_conditions <- as.factor(as.character(design[[cond_column]]))
   ## } else {
-  ##   included_conditions <- design[[cond_column]] %>%
+  ##   included_conditions <- design[[cond_column]] |>
   ##     droplevels()
   ## }
 
@@ -1869,9 +1869,9 @@ plot_pcs <- function(pca_data, first = "PC1", second = "PC2", variances = NULL,
 
   ## Add a little check to only deal with the confidence-interval-able data.
   count <- NULL
-  ci_keepers <- pca_data %>%
-    group_by(!!sym(ci_group)) %>%
-    summarise(count = n()) %>%
+  ci_keepers <- pca_data |>
+    group_by(!!sym(ci_group)) |>
+    summarise(count = n()) |>
     filter(count > 3)
   if (nrow(ci_keepers) < 1) {
     cis <- NULL

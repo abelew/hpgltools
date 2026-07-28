@@ -11,6 +11,7 @@
 #' @param type Feature type to extract.
 #' @param type_column Tag from the gff file to use when extracting the type.
 #' @example inst/examples/annotation_gff.R
+#' @seealso [import.gff3()] [Biostrings] [GenomeInfoDb]
 #' @return GRanges represenatation of the gff portion of interest.
 #' @export
 gff2gr <- function(gff, type = NULL, type_column = "type") {
@@ -61,8 +62,7 @@ gff2gr <- function(gff, type = NULL, type_column = "type") {
 #' @param gff Gff filename.
 #' @param type Subset to extract.
 #' @return Iranges! (useful for getSeq().)
-#' @seealso [rtracklayer] [load_gff_annotations()]
-#'  \code{\link[rtracklayer]{import.gff}}
+#' @seealso [rtracklayer] [load_gff_annotations()] [import.gff()]
 #' @example inst/examples/annotation_gff.R
 #' @export
 gff2irange <- function(gff, type = NULL) {
@@ -233,6 +233,8 @@ load_gff_annotations <- function(gff, type = NULL, id_col = "ID", ret_type = "da
 #' @param go_column Column containing the GO list
 #' @param id_column Column containing the gene IDs
 #' @param separator Character separating the GO categories.
+#' @seealso [load_gff_annotations()]
+#' @export
 load_gff_go <- function(df, go_column = "GO", id_column = "row.names", separator = ",") {
   go_df <- data.frame()
   starting_df <- data.frame()
@@ -245,8 +247,8 @@ load_gff_go <- function(df, go_column = "GO", id_column = "row.names", separator
   }
   colnames(starting_df) <- c("ID", "GO")
   starting_df <- as.data.frame(starting_df)
-  go_df <- starting_df %>%
-    dplyr::mutate("GO" = as.list(strsplit(x = .data[["GO"]], split = separator))) %>%
+  go_df <- starting_df |>
+    dplyr::mutate("GO" = as.list(strsplit(x = .data[["GO"]], split = separator))) |>
     tidyr::unnest("GO")
   go_df[["GO"]] <- gsub(x = go_df[["GO"]], pattern = "\\s", replacement = "")
   return(go_df)
@@ -265,6 +267,7 @@ load_gff_go <- function(df, go_column = "GO", id_column = "row.names", separator
 #' @param parent_tag What gff tag to use to trace the lineage of a gene.
 #' @param id_tag How to extract gene IDs given the above.
 #' @param children New annotation types to create.
+#' @seealso [import.gff3()]
 merge_gff_children <- function(gff, grandparent = "gene", parent = "mRNA",
                                parent_tag = "Parent", id_tag = "ID",
                                children = c("CDS", "exon", "three_prime_UTR", "five_prime_UTR")) {

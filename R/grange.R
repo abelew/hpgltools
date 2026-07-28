@@ -96,9 +96,9 @@ load_se_tracks <- function(se, track_column = "deeptools_coverage", region_strin
   if (is.null(region_string)) {
     mesg("No 'region' specified; extracting coverage for an example range\n(<=100,000 bases, first annotated sequence)")
     if (format == "bam") {
-      seqnames <- Rsamtools::scanBamHeader(track_files[1]) %>%
-        lapply(function(x) x$targets) %>%
-        unname() %>%
+      seqnames <- Rsamtools::scanBamHeader(track_files[1]) |>
+        lapply(function(x) x$targets) |>
+        unname() |>
         unlist()
       coverage_gr <- GenomicRanges::GRanges(seqnames = names(seqnames[1]),
                                             IRanges::IRanges(start = 1, end = min(1e+05, seqnames[1])))
@@ -290,8 +290,8 @@ ggcoverage_prepare <- function(gr, region_string = NULL, gene_name = "HNRNPC",
     }
   } else {
     type <- NULL
-    gr_info <- gr %>%
-      as.data.frame() %>%
+    gr_info <- gr |>
+      as.data.frame() |>
       dplyr::filter(type == wanted_type)
     wanted_rows <- gr_info[, name_column] == gene_name
     used_info <- gr_info[wanted_rows, ]

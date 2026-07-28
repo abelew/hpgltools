@@ -2,7 +2,7 @@
 % Please edit documentation in R/sanitize.R
 \name{sanitize_metadata,character-method}
 \alias{sanitize_metadata,character-method}
-\title{Sanitize a character vector (e.g. a single column/row)}
+\title{Sanitize a vector}
 \usage{
 \S4method{sanitize_metadata}{character}(
   input,
@@ -18,33 +18,8 @@
 )
 }
 \arguments{
-\item{input}{Input metadata}
-
-\item{columns}{Set of columns to check, if left NULL, all columns
-will be molested.}
-
-\item{na_value}{Fill NA values with a string.}
-
-\item{lower}{Set everything to lowercase?}
-
-\item{punct}{Remove punctuation?}
-
-\item{factorize}{Set some columns to factors?  If set to a vector
-of length >=1, then set all of the provided columns to factors.
-When set to 'heuristic', set any columns with <= max_levels
-different elements to factors.}
-
-\item{max_levels}{When heuristically setting factors, use this as
-the heuristic, when NULL it is the number of samples / 6}
-
-\item{spaces}{Remove any spaces in this column?}
-
-\item{numbers}{Sanitize numbers by adding a prefix character to them?}
-
-\item{numeric}{Recast the values as numeric when possible?}
+\item{input}{Input datastructure}
 }
 \description{
-I should probably revisit this, for the moment it just takes the
-vector, coerces it to a single-column dataframe, and invokes
-sanitize on it.
+Sanitize a vector
 }

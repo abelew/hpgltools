@@ -863,9 +863,9 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
         denominator_column <- "trimomatic_output"
       }
       mesg("Searching for percent reads counted by hisat.")
-      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column,
+      entries <- dispatch_metadata_ratio(meta, numerator_column = numerator_column,
+                                         denominator_column = denominator_column,
                                          species = species, as = "percent")
-
     },
     "hisat_observed_mean_exprs" = {
       mesg("Searching for the mean expression observed by hisat.")
@@ -955,6 +955,12 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, which = "first",
         verbose = verbose, basedir = basedir)
+    },
+    "htseq_count_table" = {
+      mesg("Searching for the count tables from htseq.")
+      entries <- dispatch_filename_search(
+        meta, input_file_spec, verbose = verbose, species = species, type = type,
+        subtype = subtype, tag = tag, basedir = basedir, new_spec = new_spec)
     },
     "ictv_taxonomy" = {
       ## column <- "taxon"
@@ -1226,7 +1232,6 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
     #                          basedir = basedir, species = species, type = type,
     #                          subtype = subtype, tag = tag, ...)
     #},
-
     "notes" = {
       search <- "^.*$"
       replace <- "^(.*)$"
@@ -1234,6 +1239,74 @@ dispatch_metadata_extract <- function(meta, entry_type, input_file_spec,
       entries <- dispatch_regex_search(
         meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
         which = "all")
+    },
+    "pattern_match_reads_searched" = {
+      search <- "^\\s+sequences searched: \\d+$"
+      replace <- "^\\s+sequences searched: (\\d+)$"
+      mesg("Seeking the total number of reads pattern match searched.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir, as = "numeric")
+
+    },
+    "pattern_match_sl_observed" = {
+      search <- "^\\s+SL subsequences observed: \\d+$"
+      replace <- "^\\s+SL subsequences observed: (\\d)+$"
+      mesg("Seeking spliced leader reads observed.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_sl_forward" = {
+      search <- "^\\s+SL forward observed: \\d+$"
+      replace <- "^\\s+SL forward observed: (\\d)+$"
+      mesg("Seeking spliced leader reads observed in the forward orientation.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_sl_revcomp" = {
+      search <- "^\\s+SL reverse-complement observed: \\d+$"
+      replace <- "^\\s+SL reverse-complement observed: (\\d)+$"
+      mesg("Seeking spliced leader reads observed in the reverse orientation.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_polyA_observed" = {
+      search <- "^\\s+polyA subsequences observed: \\d+$"
+      replace <- "^\\s+polyA subsequences observed: (\\d)+$"
+      mesg("Seeking the number of polyA containing reads observed.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_polyA_forward" = {
+      search <- "^\\s+polyA forward observed: \\d+$"
+      replace <- "^\\s+polyA forward observed: (\\d)+$"
+      mesg("Seeking the number of polyA containing reads observed in the forward orientation.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_polyA_revcomp" = {
+      search <- "^\\s+polyA reverse-complement observed: \\d+$"
+      replace <- "^\\s+polyA reverse-complement observed: (\\d)+$"
+      mesg("Seeking the number of polyA containing reads observed in the reverse orientation.")
+      entries <- dispatch_regex_search(
+        meta, search, replace, input_file_spec, verbose = verbose, basedir = basedir,
+        as = "numeric", which = "last")
+    },
+    "pattern_match_proportion_SL" = {
+      mesg("Searching for the proportion of SL reads counted.")
+      numerator_column <- "pattern_match_sl_observed"
+      denominator_column <- "pattern_match_reads_searched"
+      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column)
+    },
+    "pattern_match_proportion_polyA" = {
+      mesg("Searching for the proportion of polyA reads counted.")
+      numerator_column <- "pattern_match_polya_observed"
+      denominator_column <- "pattern_match_reads_searched"
+      entries <- dispatch_metadata_ratio(meta, numerator_column, denominator_column)
     },
     "pernt_mean_coverage" = {
       column <- "Coverage"
@@ -1735,7 +1808,8 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
     if (sum(drop_idx) > 0) {
       message("Dropping ", sum(drop_idx), " elements starting with _.")
       input_names <- names(input_vec)[!drop_idx]
-      input_vec <- input_vec[!drop_idx, ]
+      keepers <- !drop_idx
+      input_vec <- input_vec[!drop_idx]
     }
     nan_idx <- is.na(input_vec)
     ## I made this one because of how the outputs of featureCounts are oddly coerced.
@@ -2119,6 +2193,9 @@ dispatch_regex_search <- function(meta, search, replace, input_file_spec,
 
     ## Handle cases where one might want to pull only the last entry in a log, or all of them.
     if (which == "last") {
+      if (is.null(last_found)) {
+        last_found <- ""
+      }
       output_entries[row] <- last_found
     } else if (which == "all") {
       initial_string <- toString(all_found)
@@ -2404,7 +2481,7 @@ plot_meta_sankey <- function(design, factors = c("condition", "batch"), fill = "
     }
   }
 
-  plot_df <- sub_design %>%
+  plot_df <- sub_design |>
     ggsankey::make_long(factors)
   plot_df[["name"]] <- plot_df[["node"]]
   plot_df <- merge(plot_df, links_to_nodes, by.x = "node", by.y = "name")
@@ -3039,47 +3116,91 @@ make_rnaseq_spec <- function(umi = FALSE) {
   specification <- list(
     ## First task performed is pretty much always trimming
     "trimomatic_input" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*trimomatic/*-trimomatic.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*trimomatic/*-trimomatic.stderr",
+      "number" = 1),
     "trimomatic_output" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*trimomatic/*-trimomatic.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*trimomatic/*-trimomatic.stderr",
+      "number" = 2),
     "trimomatic_ratio" = list(
-      "column" = "trimomatic_percent"),
+      "column" = "trimomatic_percent",
+      "number" = 3),
     "fastqc_pct_gc" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt",
+      "number" = 4),
     "fastqc_most_overrepresented" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastqc/*_fastqc/fastqc_data.txt",
+      "number" = 5),
     "fastp_stats" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastp/fastp_report.json"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*fastp/fastp_report.json",
+      "number" = 6),
     "kraken_standard_classified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr",
+      "number" = 7),
     "kraken_standard_unclassified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken.stderr",
+      "number" = 8),
     "kraken_first_standard_species" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt",
+      "number" = 9),
     "kraken_first_standard_species_reads" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard*/kraken_report.txt",
+      "number" = 10),
     "kraken_bacterial_classified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr",
+      "number" = 11),
     "kraken_bacterial_unclassified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken.stderr",
+      "number" = 12),
     "kraken_first_bacterial_species" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt",
+      "number" = 13),
     "kraken_first_bacterial_species_reads" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria*/kraken_report.txt",
+      "number" = 14),
     "kraken_viral_classified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr",
+      "number" = 15),
     "kraken_viral_unclassified" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken.stderr",
+      "number" = 16),
     "kraken_first_viral_species" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt",
+      "number" = 17),
     "kraken_first_viral_species_reads" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral*/kraken_report.txt",
+      "number" = 18),
     "kraken_matrix_viral" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral/kraken_report_matrix.tsv"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_viral/kraken_report_matrix.tsv",
+      "number" = 19),
     "kraken_matrix_bacterial" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria/kraken_report_matrix.tsv"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_bacteria/kraken_report_matrix.tsv",
+      "number" = 20),
     "kraken_matrix_standard" = list(
-      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard/kraken_report_matrix.tsv"),
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*kraken_standard/kraken_report_matrix.tsv",
+      "number" = 21),
+    "pattern_match_reads_searched" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt",
+      "number" = 22),
+    "pattern_match_sl_observed" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt",
+      "number" = 23),
+    "pattern_match_sl_forward" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt",
+      "number" = 24),
+    "pattern_match_sl_revcomp" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt"),
+    "pattern_match_polyA_observed" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt"),
+    "pattern_match_polyA_forward" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt"),
+    "pattern_match_polyA_revcomp" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*SL_UTR*/slsearch_log.txt"),
+    "pattern_match_proportion_SL" = list(
+      "numerator_column" = "pattern_match_SL_observed",
+      "denominator_column" = "pattern_match_reads_searched"),
+    "pattern_match_proportion_polyA" = list(
+      "numerator_column" = "pattern_match_polyA_observed",
+      "denominator_column" = "pattern_match_reads_searched"),
     "hisat_rrna_input_reads" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/hisat*_*rRNA*.stderr"),
     "hisat_rrna_single_concordant" = list(
@@ -3150,6 +3271,9 @@ make_rnaseq_spec <- function(umi = FALSE) {
       ##"file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_{type}*.count.xz"),
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_fcounts.csv.xz",
       "file_new" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}.count.xz"),
+    "htseq_count_table" = list(
+      "file" = "{basedir}/{meta[['sampleid']]}/outputs/*hisat*_{species}/{species}_*{type}*_{subtype}_{tag}_count.xz"
+    ),
     "salmon_count_table" = list(
       "file" = "{basedir}/{meta[['sampleid']]}/outputs/*salmon_{species}*/quant.sf"),
     "bbmap_coverage_stats" = list(

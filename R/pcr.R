@@ -634,9 +634,9 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   colnames(bin_var_df) <- c("bin", "var")
 
   ## Group the bins+cds and count up the variants.
-  variants_per_bin <- as.data.frame(both_df) %>%
-    group_by(bincds) %>%
-    summarise(n = n()) %>%
+  variants_per_bin <- as.data.frame(both_df) |>
+    group_by(bincds) |>
+    summarise(n = n()) |>
     dplyr::arrange(dplyr::desc(n))
 
   ## Make a big df of all these little dfs merged together.
@@ -648,7 +648,7 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
   ## Order them by the most fun bins first, where fun is defined
   ## by bins with the most variants within them.
   all_merged <- merge(all_merged, variants_per_bin,
-                      by = "bincds", all.x = TRUE) %>%
+                      by = "bincds", all.x = TRUE) |>
     dplyr::arrange(dplyr::desc(n))
   ## and ignore the bins with too few variants
   starting_rows <- nrow(all_merged)
@@ -689,13 +689,13 @@ snp_cds_primers <- function(cds_gr, variant_gr, bsgenome, amplicon_size = 600, m
 
   ## Merge every row which shares a bin and format it so that the
   ## variant data is x,y,z,a,b,c for the references/alternates/positions
-  final_merged <- all_merged %>%
-    group_by(bincds) %>%
-    dplyr::distinct(relative, .keep_all = TRUE) %>%
+  final_merged <- all_merged |>
+    group_by(bincds) |>
+    dplyr::distinct(relative, .keep_all = TRUE) |>
     dplyr::mutate(ref_series = paste0(reference, collapse = ","),
            alt_series = paste0(alternate, collapse = ","),
            pos_series = paste0(var_start, collapse = ","),
-           amp_series = paste0(relative, collapse = ",")) %>%
+           amp_series = paste0(relative, collapse = ",")) |>
     dplyr::distinct(bincds, .keep_all = TRUE)
   final_rows <- nrow(final_merged)
   message("Collapsing variants/bin reduced the rows from: ", ending_rows, " to: ", final_rows, ".")

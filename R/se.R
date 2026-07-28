@@ -15,9 +15,10 @@ NULL
 #' @param all_y The all.y parameter for merge()
 #' @param batch Factor used as the batch for the new SE.
 #' @param merge_meta Merge the metadata?
+#' @param how Merge metadata via cbind or merge?
 #' @export
 combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = TRUE,
-                       batch = "batch", merge_meta = TRUE) {
+                       batch = "batch", merge_meta = TRUE, how = "cbind") {
   ##testthat::expect_equal(rownames(exprs(exp1)), rownames(exprs(exp2)))
   design_both <- colData(se1)
   if (isTRUE(merge_meta)) {
@@ -33,10 +34,28 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
   }
   exprs1 <- assay(se1)
   exprs2 <- assay(se2)
-  exprs_both <- cbind(exprs1, exprs2)
+  exprs_both <- matrix()
+  rowdata_both <- rowData(se1)
+  rowdata_se2 <- rowData(se2)
+  if (how == "cbind") {
+    exprs_both <- cbind(exprs1, exprs2)
+  } else if (how == "merge") {
+    exprs_both <- merge(exprs1, exprs2, all.x = TRUE, all.y = TRUE, by = "row.names")
+    rowdata_both <- merge(rowdata_both, rowdata_se2, all.x = TRUE,
+                          all.y = TRUE, by = "row.names")
+    rownames(exprs_both) <- exprs_both[["Row.names"]]
+    exprs_both[["Row.names"]] <- NULL
+    na_idx <- is.na(exprs_both)
+    exprs_both[na_idx] <- 0
+    rownames(rowdata_both) <- rowdata_both[["Row.names"]]
+    rowdata_both[["Row.names"]] <- NULL
+    exprs_both <- as.matrix(exprs_both)
+  } else {
+    stop("I am not sure how to bring together the expression data.")
+  }
   ## Not sure how I want to deal with the metadata.
   both_se <- SummarizedExperiment(assays = exprs_both,
-                                  rowData = rowData(se1),
+                                  rowData = rowdata_both,
                                   colData = design_both)
   return(both_se)
 }
@@ -244,7 +263,13 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   }
 
   if (handle_na == "drop") {
-    all_count_tables <- all_count_tables[complete.cases(all_count_tables), ]
+    keepers <- complete.cases(all_count_tables)
+    if (sum(keepers) < nrow(all_count_tables)) {
+      message("handle_na is set to drop; this will result in the loss of ",
+              sum(!keepers), " rows.")
+      message("Set handle_na to something else to set them to 0.")
+    }
+    all_count_tables <- all_count_tables[keepers, ]
   } else {
     na_idx <- is.na(all_count_tables)
     all_count_tables[na_idx] <- 0

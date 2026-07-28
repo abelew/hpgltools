@@ -579,7 +579,7 @@ get_kegg_orgn <- function(species = "Leishmania", short = TRUE) {
   all <- read.table(org_tsv, sep = "\t", quote = "", fill = TRUE)
   close(org_tsv)
   colnames(all) <- c("Tid", "org_ids")
-  all <- all %>%
+  all <- all |>
     tidyr::separate("org_ids",
                     c("orgid", "species"),
                     "; ", extra = "drop", fill = "right")

@@ -461,6 +461,9 @@ recolor_points <- function(plot, df, ids, color = "red", ...) {
 #' @param plot_title Add a title?
 #' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
 #' @param y_intercept Add a y-intercept to define 'good' coverage.
+#' @param rug Add a rug.
+#' @param loess Add a loess estimation.
+#' @param x_intercept Perhaps show the mean expression via a x-intercept.
 #' @param ... rawr!
 #' @return a ggplot2 plot of the number of non-zero genes with respect to each
 #'  library's CPM.
@@ -471,7 +474,9 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
                          plot_labels = "repel", exp_names = NULL,
                          max_overlaps = 5, label_chars = 10,
                          plot_legend = FALSE, plot_title = NULL,
-                         cutoff = 0.65, y_intercept = 0.8,
+                         cutoff = 0.65, y_intercept = NULL,
+                         rug = TRUE, loess = FALSE,
+                         x_intercept = FALSE,
                          ...) {
   if (!is.null(y_intercept)) {
     if (y_intercept > 1) {
@@ -501,12 +506,25 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     "condition" = as.factor(condition),
     "batch" = as.factor(batch),
     "color" = as.character(colors))
-
-  intercept_string <- glue("{y_intercept}% of genes.")
-  if (!is.null(y_intercept)) {
+  ## Add proportion nonzero as an additional column
+  nz_df[["prop_nonzero"]] <- nz_df[["nonzero_genes"]] / nrow(data)
+  if (is.null(y_intercept)) {
+    mean_proportion <- mean(nz_df[["prop_nonzero"]])
+    mean_string <- round(mean_proportion * 100, 1)
+    intercept_string <- glue("{mean_string}% of genes.")
+    y_intercept <- mean_proportion * nrow(data)
+  } else {
     if (y_intercept < 1.0) {
       intercept_string <- glue("{y_intercept * 100}% of genes.")
       y_intercept <- nrow(data) * y_intercept
+    }
+  }
+
+  if (!isFALSE(x_intercept)) {
+    if (is.null(x_intercept)) {
+      mean_proportion <- mean(nz_df[["cpm"]])
+      mean_string <- round(mean_proportion * 100, 1)
+      x_intercept <- mean_proportion
     }
   }
   ## Add a little logic to warn the user if samples have poor representation
@@ -535,6 +553,21 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
   non_zero_plot <- ggplot(
     data = nz_df,
     aes(x = .data[["cpm"]], y = .data[["nonzero_genes"]], label = .data[["label"]]))
+
+  ## Add a rug and loess early so they are in the back of the plot.
+  if (isTRUE(rug)) {
+    non_zero_plot <- non_zero_plot +
+      ggplot2::geom_rug(colour = "gray50", alpha = 0.7)
+  }
+  if (isTRUE(loess)) {
+    non_zero_plot <- non_zero_plot +
+      ggplot2::geom_smooth(method = "loess")
+  }
+  if (!isFALSE(x_intercept)) {
+    non_zero_plot <- non_zero_plot +
+      ggplot2::geom_vline(xintercept = x_intercept, color = "blue", size = 0.5)
+  }
+
   if (num_batches <= 5) {
     non_zero_plot <- non_zero_plot +
       ggplot2::geom_point(size = 3,
@@ -691,7 +724,8 @@ setMethod(
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
                         exp_names = NULL, max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
-                        y_intercept = 0.8, ...) {
+                        y_intercept = NULL, rug = TRUE, loess = FALSE,
+                        x_intercept = FALSE, ...) {
     mtrx <- as.matrix(assay(data))
     pd <- colData(data)
     names <- pd[["samplenames"]]
@@ -699,7 +733,8 @@ setMethod(
                  exp_names = names, max_overlaps = max_overlaps,
                  label_chars = label_chars, plot_legend = plot_legend,
                  plot_title = plot_title, cutoff = 0.65,
-                 y_intercept = y_intercept, ...)
+                 y_intercept = y_intercept, rug = rug, loess = loess,
+                 x_intercept = x_intercept, ...)
   })
 
 #' Make a nonzero plot given a SummarizedExperiment
@@ -725,7 +760,8 @@ setMethod(
   definition = function(data, design = NULL, colors = NULL, plot_labels = "repel",
                         exp_names = NULL, max_overlaps = 5, label_chars = 10,
                         plot_legend = FALSE, plot_title = NULL, cutoff = 0.65,
-                        y_intercept = 0.8, ...) {
+                        y_intercept = NULL, rug = TRUE, loess = FALSE,
+                        x_intercept = FALSE, ...) {
     mtrx <- as.matrix(assay(data))
     pd <- colData(data)
     names <- pd[["samplenames"]]
@@ -733,7 +769,7 @@ setMethod(
     plot_nonzero(mtrx, design = pd, colors = colors, plot_labels = plot_labels,
       exp_names = names, max_overlaps = max_overlaps, label_chars = label_chars,
       plot_legend = plot_legend, plot_title = plot_title, cutoff = 0.65,
-      y_intercept = y_intercept, ...)
+      y_intercept = y_intercept, rug = rug, loess = loess, x_intercept = x_intercept, ...)
   })
 
 #' Generic for plot_pairwise_ma for unknown input types.

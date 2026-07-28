@@ -45,20 +45,20 @@ ggsignif_paired_genes <- function(exp, conditions = NULL, genes = NULL, norm = "
     all_ids <- annot[[name_column]]
     row_idx <- all_ids %in% genes
   }
-  wanted_annotations <- as.data.frame(annot[row_idx, ]) %>%
+  wanted_annotations <- as.data.frame(annot[row_idx, ]) |>
     dplyr::arrange(factor(!!sym(name_column), levels = genes))
   wanted_rows <- rownames(wanted_annotations)
   wanted_expression <- as.data.frame(assay(normed)[wanted_rows, ])
   start_expression <- as.data.frame(start_subset[wanted_rows, ])
   start_df <- merge(start_expression, wanted_annotations, by = "row.names")
   norm_df <- merge(wanted_expression, wanted_annotations, by = "row.names")
-  plot_df <- norm_df %>%
-    reshape2::melt() %>%
+  plot_df <- norm_df |>
+    reshape2::melt() |>
     as.data.frame()
   plot_df <- merge(plot_df, meta, by.x = "variable", by.y = "row.names")
   plot_df[["pair"]] <- paste0(plot_df[[name_column]], "_", plot_df[[condition_column]])
-  raw_df <- start_df %>%
-    reshape2::melt() %>%
+  raw_df <- start_df |>
+    reshape2::melt() |>
     as.data.frame()
   raw_df <- merge(raw_df, meta, by.x = "variable", by.y = "row.names")
   raw_df[["pair"]] <- paste0(raw_df[[name_column]], "_", raw_df[[condition_column]])

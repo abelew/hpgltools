@@ -76,7 +76,7 @@ extract_linear_regression <- function(meta, query = "condition", multivariable =
   initial_lm <- suppressWarnings(lm(as.formula(initial_fstring), data = meta))
   ## In the container, this seems to fail with 'no applicable method
   ## for tidy applied to object of class summary.lm
-  initial_summary <- summary(initial_lm) %>%
+  initial_summary <- summary(initial_lm) |>
     generics::tidy(conf.int = TRUE)
   ## FIXME: Figure this out, presumably I am feeding lm a model which is not full rank in some way?
   stepwise_result <- try(step(initial_lm), silent = TRUE)
@@ -703,6 +703,10 @@ test_model_rank <- function(design, goal = "condition", factors = NULL, ...) {
 #' @export
 test_design_model_rank <- function(design, fstring = "~ condition + batch") {
   retlist <- list()
+  if (!grepl(pattern = "^~", x = fstring)) {
+    mesg("The fstring does not start with ~, adding it.")
+    fstring <- paste0("~ ", fstring)
+  }
   fctrs <- get_formula_factors(fstring)
   unmixed_fstring <- fctrs[["unmixed_fstring"]]
   degrees <- get_degrees(design, fctrs[["factors"]])

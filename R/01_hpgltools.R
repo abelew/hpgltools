@@ -1,15 +1,3 @@
-#' Pipe operator
-#'
-#' Shamelessly scabbed from Hadley: https://github.com/sckott/analogsea/issues/32
-#'
-#' @name %>%
-#' @rdname pipe
-#' @keywords internal
-#' @export
-#' @importFrom magrittr %>%
-#' @usage lhs \%>\% rhs
-NULL
-
 #' data.table's funky column assignment operator
 #'
 #' Shamelessly scabbed from Hadley: https://github.com/sckott/analogsea/issues/32
@@ -108,8 +96,7 @@ NULL
 #'  \item Perform some simple TnSeq analyses.
 #' }
 #'
-#' To see examples of this in action, check out the vignettes:
-#' \code{browseVignettes(package = 'hpgltools')}
+#' To see examples of this in action, check out the hpgltool2 vignettes.
 #'
 #' @name hpgltools
 #' @import Biobase

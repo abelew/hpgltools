@@ -703,7 +703,7 @@ plot_sample_cvheatmap <- function(input, fun = "mean", fact = "condition",
 #' @param linewidth the width of lines
 #' @param ... because this function did not already have enough options
 #' @return a heatmap!
-#' @seealso \code{\link[gplots]{heatmap.2}}
+#' @seealso [heatmap.2()]
 #' @export
 heatmap.3 <- function(x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
                       distfun = dist, hclustfun = fastcluster::hclust,

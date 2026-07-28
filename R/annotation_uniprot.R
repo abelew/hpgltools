@@ -39,8 +39,8 @@ load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
     ## The first two elements are headers
     accessions_text <- accessions_text[3:length(accessions_text)]
     accessions <- gsub(x = accessions_text, pattern = "^(UP[0-9]+)(.*$)", replacement = "\\1")
-    species_text <- rvest::html_nodes(result, "td") %>%
-      rvest::html_nodes("span") %>%
+    species_text <- rvest::html_nodes(result, "td") |>
+      rvest::html_nodes("span") |>
       rvest::html_text()
     ## final_species <- species_text[species_text != ""]
     ## I pretty massively simplified this function but have not yet deleted the original code.
@@ -77,8 +77,8 @@ load_uniprot_annotations <- function(accession = NULL, species = "H37Rv",
       #### The first two elements are headers
       ##accessions_text <- accessions_text[3:length(accessions_text)]
       ##accessions <- gsub(x = accessions_text, pattern = "^(UP[0-9]+)(.*$)", replacement = "\\1")
-      ##species_text <- rvest::html_nodes(result, "td") %>%
-      ##  rvest::html_nodes("span") %>%
+      ##species_text <- rvest::html_nodes(result, "td") |>
+      ##  rvest::html_nodes("span") |>
       ##  rvest::html_text()
       ##final_species <- species_text[species_text != ""]
       ##removed <- file.remove(destination)
@@ -212,14 +212,14 @@ load_uniprot_go <- function(...) {
   colnames(input) <- gsub(pattern = "[^_[:^punct:]]", replacement = "", x = colnames(input), perl = TRUE)
   go_column_idx <- grepl(pattern = "go", x = colnames(input))
   go_column <- colnames(input)[go_column_idx]
-  kept <- input[, c("entry", go_column)] %>%
+  kept <- input[, c("entry", go_column)] |>
     tidyr::separate_rows("entry")
 
-  kept[[go_column]] <- kept[[go_column]] %>%
+  kept[[go_column]] <- kept[[go_column]] |>
     stringr::str_extract_all(pattern = "GO:\\d+")
   kept[["go"]] <- I(kept[[go_column]])
   kept[["go"]] <- as.character(kept[["go"]])
-  kept <- kept %>%
+  kept <- kept |>
     tidyr::separate_rows("go", sep = ",")
   kept[["go"]] <- gsub(pattern = '"', replacement = "", x = kept[["go"]])
   kept[["go"]] <- gsub(pattern = ")", replacement = "", x = kept[["go"]])

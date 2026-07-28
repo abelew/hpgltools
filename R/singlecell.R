@@ -178,7 +178,7 @@ create_scd <- function(metadata, expression_column = "gexfile",
       full_path <- file.path(start_path, "filtered_feature_bc_matrix")
     }
     if (length(types) == 1) {
-      ## I am not sure why, but doing a pipe (%>%) here fails.
+      ## I am not sure why, but doing a pipe (|>) here fails.
       obj <- suppressWarnings(Seurat::Read10X(full_path))
       obj <- suppressWarnings(Seurat::CreateSeuratObject(obj, project = path_name))
     } else {
@@ -415,13 +415,13 @@ filter_scd <- function(scd, min_num_rna = 200, max_num_rna = NULL,
 
   verbose <- FALSE
   filt_scd <- record_seurat_samples(filt_scd, type = "num_cells",
-                                    column_name = "filt_num_cells", verbose = verbose) %>%
+                                    column_name = "filt_num_cells", verbose = verbose) |>
     record_seurat_samples(type = "nFeature_RNA", column_name = "filt_nfeature",
-                          verbose = verbose) %>%
+                          verbose = verbose) |>
     record_seurat_samples(type = "nCount_RNA", column_name = "filt_ncount",
-                          verbose = verbose) %>%
+                          verbose = verbose) |>
     record_seurat_samples(type = "pct_mito", column_name = "filt_pct_mito",
-                          pattern = mito_pattern, verbose = verbose) %>%
+                          pattern = mito_pattern, verbose = verbose) |>
     record_seurat_samples(type = "pct_ribo", column_name = "filt_pct_ribo",
                           pattern = ribo_pattern, verbose = verbose)
 
@@ -664,11 +664,11 @@ summarize_scd_clusters <- function(scd, fx = "mean", column_prefix = "descartes"
   summary_df[[1]] <- as.factor(summary_df[[1]])
   colnames(summary_df)[1] <- cluster_column
 
-  mean_df <- summary_df %>%
-    dplyr::group_by(!!sym(cluster_column)) %>%
+  mean_df <- summary_df |>
+    dplyr::group_by(!!sym(cluster_column)) |>
     dplyr::summarise_at(dplyr::vars(tidyselect::all_of(real_column_names)), list(name = !!mean))
-  sd_df <- summary_df %>%
-    dplyr::group_by(!!sym(cluster_column)) %>%
+  sd_df <- summary_df |>
+    dplyr::group_by(!!sym(cluster_column)) |>
     dplyr::summarise_at(dplyr::vars(tidyselect::all_of(real_column_names)), list(name = !!sd))
 
   mean_df <- as.data.frame(mean_df)
@@ -735,17 +735,17 @@ skim_seurat_metadata <- function(sample_meta, obj_meta, meta_query = "nCount_RNA
   }
 
   if (isTRUE(verbose)) {
-    sample_meta[[column_name]] <- obj_meta %>%
-      group_by(!!rlang::sym(group_column)) %>%
-      skimr::skim_tee(meta_query) %>%
-      skimr::skim(meta_query) %>%
-      dplyr::select(tidyselect::all_of(summary_query)) %>%
+    sample_meta[[column_name]] <- obj_meta |>
+      group_by(!!rlang::sym(group_column)) |>
+      skimr::skim_tee(meta_query) |>
+      skimr::skim(meta_query) |>
+      dplyr::select(tidyselect::all_of(summary_query)) |>
       unlist()
   } else {
-    sample_meta[[column_name]] <- obj_meta %>%
-      group_by(!!rlang::sym(group_column)) %>%
-      skimr::skim(meta_query) %>%
-      dplyr::select(tidyselect::all_of(summary_query)) %>%
+    sample_meta[[column_name]] <- obj_meta |>
+      group_by(!!rlang::sym(group_column)) |>
+      skimr::skim(meta_query) |>
+      dplyr::select(tidyselect::all_of(summary_query)) |>
       unlist()
   }
   return(sample_meta)

@@ -96,7 +96,7 @@ test_that("Did we change the batches?", {
   expect_equal(new_batches, actual)
 })
 
-testing <- set_se_colors(pombe_se, chosen_palette = "Accent")
+testing <- set_colors(pombe_se, chosen_palette = "Accent")
 new_actual <- levels(as.factor(get_colors(testing)))
 new_expected <- c("#5C86AB", "#666666", "#7FC97F", "#8B3B99", "#9E5F33", "#A7B7B5",
                   "#CC4233", "#CFB2BE", "#DAE49D", "#EB0A75", "#F7BE8D", "#FEE290")
@@ -111,7 +111,7 @@ test_that("Did we get some new conditions?", {
   expect_equal(actual, expected)
 })
 
-## set_se_samplenames()
+## set_samplenames()
 newnames <- paste0(sampleNames(pombe_se), "test")
 testing <- pombe_se
 sampleNames(testing) <- newnames

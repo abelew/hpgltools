@@ -11,7 +11,8 @@ combine_se(
   all_x = TRUE,
   all_y = TRUE,
   batch = "batch",
-  merge_meta = TRUE
+  merge_meta = TRUE,
+  how = "cbind"
 )
 }
 \arguments{

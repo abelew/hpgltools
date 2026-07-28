@@ -440,7 +440,7 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
     warning("circos_check_chromosomes() did not find any chromosomes.")
   }
 
-  ## FIXME: Redo this with %>%
+  ## FIXME: Redo this with |>
   hist_cfg_file <- cfg@cfg_file
   hist_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = hist_cfg_file)
   hist_cfg_file <- paste0(hist_cfg_file, "_", basename, colname, "_hist.conf")
@@ -774,7 +774,7 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   if (sum(happyp[["found_chromosomes"]] <= 0)) {
     warning("circos_check_chromosomes did not find any chromosomes.")
   }
-  ## FIXME: Redo this with %>%
+  ## FIXME: Redo this with |>
   line_cfg_file <- cfg@cfg_file
   line_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = line_cfg_file)
   line_cfg_file <- paste0(line_cfg_file, "_", basename, colname, "_line.conf")

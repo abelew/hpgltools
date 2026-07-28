@@ -1029,8 +1029,8 @@ cleavage_histogram <- function(pep_sequences, enzyme = "trypsin",
   prod_df <- dplyr::as.tbl(prod_df[, c("group_name", "value")])
   colnames(prod_df) <- c("group_name", "sequence")
 
-  new_df <- prod_df %>%
-    dplyr::rowwise() %>%
+  new_df <- prod_df |>
+    dplyr::rowwise() |>
     dplyr::mutate(mass = gather_masses(sequence))
 
   plot <- ggplot(data = new_df, aes(x = .data[["mass"]])) +

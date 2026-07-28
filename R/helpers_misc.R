@@ -359,13 +359,18 @@ make_quartile_factor <- function(numeric_vector) {
 #'  a consistent number of elements per bin, or anything else; which currently defaults
 #'  to monobin's pct.bin function.
 #' @param log Transform the input vector?
+#' @param as Recast the result as character/factor/etc.
 #' @return Factor with levels from q1 to q4.
 #' @export
-make_ntile_factor <- function(numeric_vector, n, by = "ntile", log = FALSE) {
+make_ntile_factor <- function(numeric_vector, n = 4, by = "ntile", log = FALSE, as = "factor") {
   ntiles <- c()
   if (by == "ntile") {
     ntiles <- dplyr::ntile(numeric_vector, n)
-    new_factor <- as.factor(paste0("n", ntiles))
+    if (as == "factor") {
+      new_factor <- as.factor(paste0("n", ntiles))
+    } else {
+      new_factor <- ntiles
+    }
   } else if (by == "range") {
     if (log == "log2") {
       numeric_vector <- log2(numeric_vector)
@@ -378,10 +383,19 @@ make_ntile_factor <- function(numeric_vector, n, by = "ntile", log = FALSE) {
       break_vector <- c(break_vector, bottom + (bin_size * br))
     }
     break_vector[n] <- top
-    new_factor <- as.factor(paste0("c", cut(numeric_vector, break_vector, labels = FALSE, include.lowest = TRUE)))
+    if (as == "factor") {
+      new_factor <- as.factor(paste0("c", cut(numeric_vector, break_vector,
+                                              labels = FALSE, include.lowest = TRUE)))
+    } else {
+      new_factor <- cut(numeric_vector, break_vector, labels = FALSE, include.lowest = TRUE)
+    }
   } else {
     ntiles <- monobin::pct.bin(numeric_vector, n)
-    new_factor <- paste0("p", ntiles)
+    if (as == "factor") {
+      new_factor <- paste0("p", ntiles)
+    } else {
+      new_factor <- as.numeric(ntiles)
+    }
   }
   return(new_factor)
 }

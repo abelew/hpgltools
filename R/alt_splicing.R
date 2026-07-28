@@ -216,8 +216,8 @@ plot_suppa <- function(file_prefix, file_list = NULL, type = "type", annot = NUL
     }
     mean_tpm_df <- data.frame(row.names = rownames(start_tpm))
     mean_tpm_df[["mean_tpm"]] <- log2(rowMeans(start_tpm + 1))
-    events_by_tx <- events_data %>%
-      tidyr::separate_rows(transcripts_1, sep = ",") %>%
+    events_by_tx <- events_data |>
+      tidyr::separate_rows(transcripts_1, sep = ",") |>
       dplyr::select(transcripts_1, event)
     mean_tpm_df <- merge(mean_tpm_df, events_by_tx, by.x = "row.names", by.y = "transcripts_1")
     colnames(mean_tpm_df) <- c("transcript", "mean_tpm", "event")
@@ -565,8 +565,8 @@ plot_rmats <- function(se = NULL, a5ss = NULL, a3ss = NULL, mxe = NULL, ri = NUL
   ## when running R CMD check
   id <- NULL
   mesg("Getting numerator/denominator mean values, this is slow.")
-  plotting_data <- all_data %>%
-    group_by(id) %>%
+  plotting_data <- all_data |>
+    group_by(id) |>
     dplyr::mutate(
       num_ijc_mean = suppressWarnings(mean(as.numeric(strsplit(ijc_numerator, ",")[[1]]), na.rm = TRUE)),
       den_ijc_mean = suppressWarnings(mean(as.numeric(strsplit(ijc_denominator, ",")[[1]]), na.rm = TRUE)),

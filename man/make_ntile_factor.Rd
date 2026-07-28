@@ -4,7 +4,13 @@
 \alias{make_ntile_factor}
 \title{Make an arbitrary factor out of a numeric vector}
 \usage{
-make_ntile_factor(numeric_vector, n, by = "ntile", log = FALSE)
+make_ntile_factor(
+  numeric_vector,
+  n = 4,
+  by = "ntile",
+  log = FALSE,
+  as = "factor"
+)
 }
 \arguments{
 \item{numeric_vector}{Vector of numbers!}

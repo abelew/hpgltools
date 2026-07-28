@@ -385,8 +385,8 @@ plot_ggbio_heatmap <- function(grange_data, tbl, tilesize = 1000,
 
   ##
 
-  count_per_bin <- as.data.frame(vars_per_bin) %>%
-    group_by(!!sym("queryHits")) %>%
+  count_per_bin <- as.data.frame(vars_per_bin) |>
+    group_by(!!sym("queryHits")) |>
     dplyr::tally()
   colnames(count_per_bin) <- c("bin", "num")
   vars_per_bin_numeric <- merge(vars_per_bin_numeric, count_per_bin, by = "bin", all.x = TRUE)

@@ -1037,8 +1037,8 @@ plot_variance_coefficients <- function(data, design = NULL, x_axis = "condition"
   .data <- NULL
   message("Naively calculating coefficient of variation/dispersion with respect to ",
           x_axis, ".")
-  cv_data <- melted %>%
-    dplyr::group_by(.data[["gene"]], .data[[x_axis]]) %>%
+  cv_data <- melted |>
+    dplyr::group_by(.data[["gene"]], .data[[x_axis]]) |>
     dplyr::summarize(
       "mean_assay" = mean(.data[["assay"]], na.rm = TRUE),
       "sd_assay" = sd(.data[["assay"]], na.rm = TRUE),

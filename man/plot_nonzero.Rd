@@ -15,7 +15,10 @@ plot_nonzero(
   plot_legend = FALSE,
   plot_title = NULL,
   cutoff = 0.65,
-  y_intercept = 0.8,
+  y_intercept = NULL,
+  rug = TRUE,
+  loess = FALSE,
+  x_intercept = FALSE,
   ...
 )
 }

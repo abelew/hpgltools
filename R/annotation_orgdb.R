@@ -274,12 +274,17 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
   go_terms <- data.frame()
   passed_columns <- 0
   observed_colnames <- c()
-  for (column in chosen_columns) {
+  for (n in seq_along(chosen_columns)) {
+    column <- chosen_columns[n]
     mesg("Getting all rows from ", column, ".")
-    column_terms <- try(AnnotationDbi::select(x = orgdb,
-                                              keys = gene_ids,
-                                              keytype = keytype,
-                                              columns = column))
+    column_terms <- try(AnnotationDbi::select(
+      x = orgdb, keys = gene_ids, keytype = keytype, columns = column))
+    complete_go <- complete.cases(column_terms)
+    column_terms <- column_terms[complete_go, ]
+    empty_go <- column_terms[[2]] == ""
+    column_terms <- column_terms[!empty_go, ]
+    go_categories <- grepl(x = column_terms[[2]], pattern = "^GO")
+    column_terms <- column_terms[go_categories, ]
     if (class(column_terms) == "try-error") {
       if (grep(pattern = "Invalid keytype", x = go_terms[[1]])) {
         message("Here are the possible keytypes:")
@@ -304,13 +309,13 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
     stop("None of the go columns provided information.")
   }
 
-  if ("GO" %in% chosen_columns) {
-    go_terms <- go_terms[!is.na(go_terms[["GO"]]), ]
-    go_term_names <- sm(AnnotationDbi::select(x = GO.db::GO.db,
-                                              keys = unique(go_terms[["GO"]]),
-                                              columns = c("TERM", "GOID", "ONTOLOGY")))
-    go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
-  }
+  colnames(go_terms) <- c("GID", "GO")
+  all_go <- go_terms[["GO"]]
+  go_term_names <- sm(AnnotationDbi::select(x = GO.db::GO.db,
+                                            keys = unique(all_go),
+                                            columns = c("TERM", "GOID", "ONTOLOGY")))
+  go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
+  go_terms <- go_terms[, c("GID", "GO", "TERM", "ONTOLOGY")]
   return(go_terms)
 }
 
@@ -464,8 +469,8 @@ extract_eupath_orthologs <- function(db, master = "GID", query_species = NULL,
     colnames(kept_orthos) <- c(master, "ORTHOLOGS_ID", "ORTHOLOGS_GROUP", "ORTHOLOGS_SPECIES",
                                "ORTHOLOGS_NAME", "ORTHOLOGS_COUNT")
     kept_orthos[["ORTHOLOGS_COUNT"]] <- as.integer(kept_orthos[["ORTHOLOGS_COUNT"]])
-    kept_orthos_dt <- data.table::as.data.table(kept_orthos) %>%
-      dplyr::group_by(!!sym("GID")) %>%
+    kept_orthos_dt <- data.table::as.data.table(kept_orthos) |>
+      dplyr::group_by(!!sym("GID")) |>
       dplyr::add_count(!!sym("GID"))
     colnames(kept_orthos_dt) <- c(master, "ORTHOLOGS_ID", "ORTHOLOGS_GROUP",
                                   "ORTHOLOGS_SPECIES", "ORTHOLOGS_NAME", "ORTHOLOGS_COUNT",

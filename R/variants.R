@@ -81,14 +81,14 @@ classify_variants <- function(metadata, coverage_column = "bedtools_coverage_fil
                                      replacement = "\\1")
     }
 
-    mutation_df <- mutation_df %>%
+    mutation_df <- mutation_df |>
       dplyr::mutate(
         sense = dplyr::case_when(aa_to == aa_from ~ 1, TRUE ~ 0),
         missense = dplyr::case_when(aa_to != aa_from ~ 1 & aa_to != "*" & aa_from != "*", TRUE ~ 0),
         nonsense = dplyr::case_when(aa_to == "*" & aa_from != "*" ~ 1, TRUE ~ 0),
         suppressor = dplyr::case_when(aa_to != "*" & aa_from == "*" ~ 1, TRUE ~ 0))
 
-    mutation_df <- mutation_df %>%
+    mutation_df <- mutation_df |>
       dplyr::mutate(
         transition = dplyr::case_when(
         (nt_to == "A" & nt_from == "G") | (nt_to == "G" & nt_from == "A") |
@@ -1530,8 +1530,8 @@ snps_vs_genes <- function(exp, snp_result, start_column = "start", end_column = 
   ## lets get a second opinion using dplyr and tally()
   second_opinion <- data.frame("gene" = merged_grange[["gene_name"]],
                                "snp" = merged_grange[["snp_name"]])
-  count_by_gene_dplyr <- second_opinion %>%
-    group_by(.data[["gene"]]) %>%
+  count_by_gene_dplyr <- second_opinion |>
+    group_by(.data[["gene"]]) |>
     dplyr::tally()
   count_by_gene_dplyr_names <- count_by_gene_dplyr[["gene"]]
   count_by_gene_dplyr <- count_by_gene_dplyr[["n"]]
@@ -1977,7 +1977,8 @@ xref_regions <- function(sequence_df, gff, bin_width = 600,
     }
 
   } ## End iterating over every row of the sequence df.
-  sequence_df <- sequence_df %>% dplyr::arrange(dplyr::desc(overlap_gene_description))
+  sequence_df <- sequence_df |>
+    dplyr::arrange(dplyr::desc(overlap_gene_description))
   return(sequence_df)
 }
 

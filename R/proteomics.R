@@ -173,12 +173,12 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
                          "msmassanalyzer", "msdetector")
   for (v in instrument_values) {
     datum <- rvest::xml_nodes(instruments, v)
-    instrument_data[[v]] <- datum %>% rvest::html_attr("value")
+    instrument_data[[v]] <- datum |> rvest::html_attr("value")
   }
   datum <- rvest::xml_nodes(instruments, "software")
-  instrument_data[["software_type"]] <- datum %>% rvest::html_attr("type")
-  instrument_data[["software_name"]] <- datum %>% rvest::html_attr("name")
-  instrument_data[["software_version"]] <- datum %>% rvest::html_attr("version")
+  instrument_data[["software_type"]] <- datum |> rvest::html_attr("type")
+  instrument_data[["software_name"]] <- datum |> rvest::html_attr("name")
+  instrument_data[["software_version"]] <- datum |> rvest::html_attr("version")
 
   message("Extracting scan information for ", file)
   scans <- rvest::xml_nodes(input, "scan")
@@ -192,7 +192,7 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
   scan_factor <- c("polarity", "mslevel", "centroided", "scantype")
   ## We will also extract the html_text() of the precursors.
   for (w in scan_wanted) {
-    scan_data[[w]] <- scans %>% rvest::html_attr(w)
+    scan_data[[w]] <- scans |> rvest::html_attr(w)
   }
   for (n in scan_numeric) {
     scan_data[[n]] <- as.numeric(scan_data[[n]])
@@ -211,9 +211,9 @@ extract_mzXML_scans <- function(file, id = NULL, write_acquisitions = TRUE,
                          "window_center", "windowwideness")
   precursor_factor <- c("activationmethod")
   for (w in precursor_wanted) {
-    precursor_data[[w]] <- precursors %>% rvest::html_attr(w)
+    precursor_data[[w]] <- precursors |> rvest::html_attr(w)
   }
-  precursor_data[["window_center"]] <- precursors %>% rvest::html_text()
+  precursor_data[["window_center"]] <- precursors |> rvest::html_text()
   for (n in precursor_numeric) {
     precursor_data[[n]] <- as.numeric(precursor_data[[n]])
   }
@@ -523,7 +523,7 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
 
   message("Extracting spectrum queries.")
   spectrum_queries <- rvest::xml_nodes(input, "spectrum_query")
-  spectra <- spectrum_queries %>% rvest::html_attr("spectrum")
+  spectra <- spectrum_queries |> rvest::html_attr("spectrum")
   query_data <- data.frame(row.names = spectra)
   ## The interesting material at the beginning of a spectrum, these are in the
   ## <spectrum query> tag.
@@ -532,13 +532,13 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
   toplevel_interesting <- c("start_scan", "end_scan", "precursor_neutral_mass",
                             "assumed_charge", "index", "retention_time_sec")
   for (t in toplevel_interesting) {
-    query_data[[t]] <- spectrum_queries %>%
+    query_data[[t]] <- spectrum_queries |>
       rvest::html_attr(t)
   }
 
   message("Extracting the search_result metadata.")
   search_results <- rvest::xml_nodes(spectrum_queries, "search_result")
-  search_hits <- search_results %>%
+  search_hits <- search_results |>
     rvest::html_node(xpath = "search_hit")
   ## The set of fields which look interesting to me in the search_hit data.
   search_fields <- c("peptide", "peptide_prev_aa", "peptide_next_aa",
@@ -547,7 +547,7 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
                      "calc_neutral_pep_mass", "massdiff", "num_tol_term",
                      "num_missed_cleavages", "num_matched_peptides")
   for (s in search_fields) {
-    query_data[[s]] <- search_hits %>%
+    query_data[[s]] <- search_hits |>
       rvest::html_attr(s)
   }
   query_data[["decoy"]] <- FALSE
@@ -559,15 +559,15 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
 
   ## Get modification info
   message("Extracting modification metadata.")
-  query_data[["modified_peptides"]] <- search_hits %>%
-    rvest::html_node(xpath = "modification_info") %>%
+  query_data[["modified_peptides"]] <- search_hits |>
+    rvest::html_node(xpath = "modification_info") |>
     rvest::html_attr("modified_peptide")
 
   na_idx <- is.na(query_data[["modified_peptides"]])
   query_data[na_idx, "modified_peptides"] <- ""
   query_data[["variable_mods"]] <- ""
   query_data[["static_mods"]] <- ""
-  modification_test <- search_hits %>%
+  modification_test <- search_hits |>
     rvest::html_node(xpath = "modification_info")
 
   message("Filling in modification information, this is slow.")
@@ -582,17 +582,17 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
     }
     test <- modification_test[[i]]
     if (!is.na(test)) {
-      variables <- test %>%
-        rvest::html_nodes(xpath = "mod_aminoacid_mass") %>%
+      variables <- test |>
+        rvest::html_nodes(xpath = "mod_aminoacid_mass") |>
         rvest::html_attr("variable")
-      statics <- test %>%
-        rvest::html_nodes(xpath = "mod_aminoacid_mass") %>%
+      statics <- test |>
+        rvest::html_nodes(xpath = "mod_aminoacid_mass") |>
         rvest::html_attr("static")
-      positions <- test %>%
-        rvest::html_nodes(xpath = "mod_aminoacid_mass") %>%
+      positions <- test |>
+        rvest::html_nodes(xpath = "mod_aminoacid_mass") |>
         rvest::html_attr("position")
-      masses <- test %>%
-        rvest::html_nodes(xpath = "mod_aminoacid_mass") %>%
+      masses <- test |>
+        rvest::html_nodes(xpath = "mod_aminoacid_mass") |>
         rvest::html_attr("mass")
       variable_idx <- !is.na(variables)
       if (sum(variable_idx) > 0) {
@@ -617,9 +617,9 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
   ## Extracting the search_score tags
   message("Extracting the search_score metadata.")
   score_results <- rvest::xml_nodes(search_hits, "search_score")
-  score_names <- score_results %>%
+  score_names <- score_results |>
     rvest::html_attr("name")
-  score_values <- score_results %>%
+  score_values <- score_results |>
     rvest::html_attr("value")
   names(score_values) <- score_names
   for (v in unique(score_names)) {
@@ -629,15 +629,15 @@ extract_peprophet_data <- function(pepxml, decoy_string = "DECOY_", ...) {
   ## Get the peptideprophet_result
   message("Extracting the peptideprophet_result probabilities.")
   peptide_prophets <- rvest::xml_nodes(spectrum_queries, "peptideprophet_result")
-  query_data[["prophet_probability"]] <- peptide_prophets %>%
+  query_data[["prophet_probability"]] <- peptide_prophets |>
     rvest::html_attr("probability")
 
   ## Get the peptideprophet parameters
   message("Extracting the search parameters.")
   parameter_results <- rvest::xml_nodes(spectrum_queries, "parameter")
-  parameter_names <- parameter_results %>%
+  parameter_names <- parameter_results |>
     rvest::html_attr("name")
-  parameter_values <- parameter_results %>%
+  parameter_values <- parameter_results |>
     rvest::html_attr("value")
   names(parameter_values) <- parameter_names
   for (p in unique(parameter_names)) {
@@ -776,9 +776,9 @@ extract_pyprophet_data <- function(metadata, pyprophet_column = "diascored",
     file_result <- sm(try(readr::read_tsv(file), silent = TRUE))
     if (class(file_result)[1] != "try-error") {
       colnames(file_result) <- tolower(colnames(file_result))
-      file_result <- file_result %>%
-        dplyr::rowwise() %>%
-        dplyr::mutate(mass = gather_masses(sequence)) %>%
+      file_result <- file_result |>
+        dplyr::rowwise() |>
+        dplyr::mutate(mass = gather_masses(sequence)) |>
         dplyr::mutate(seqlength = nchar(sequence))
       res[[id]] <- file_result
     } else {

@@ -61,7 +61,7 @@ simple_dorothea <- function(exp, gene_column = "ensembl_gene_id",
 
   ## Their confidence scores are 'A', 'B', 'C', 'D' and maybe more.
   confidence <- NULL
-  regulons <- dorothea_df %>%
+  regulons <- dorothea_df |>
     filter(confidence %in% conf)
 
   ## viper is what does the real work as far as I can tell.
