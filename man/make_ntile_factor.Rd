@@ -23,6 +23,8 @@ a consistent number of elements per bin, or anything else; which currently defau
 to monobin's pct.bin function.}
 
 \item{log}{Transform the input vector?}
+
+\item{as}{Recast the result as character/factor/etc.}
 }
 \value{
 Factor with levels from q1 to q4.

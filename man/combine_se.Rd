@@ -29,6 +29,8 @@ combine_se(
 \item{batch}{Factor used as the batch for the new SE.}
 
 \item{merge_meta}{Merge the metadata?}
+
+\item{how}{Merge metadata via cbind or merge?}
 }
 \description{
 Bring together two Summarized Experiments into a larger one.

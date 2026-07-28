@@ -18,3 +18,6 @@ load_gff_go(df, go_column = "GO", id_column = "row.names", separator = ",")
 \description{
 Take the df from load_gff_annotations and pull the GO information from it.
 }
+\seealso{
+[load_gff_annotations()]
+}

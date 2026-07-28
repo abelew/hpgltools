@@ -33,3 +33,6 @@ head(as.data.frame(gas_gr))
 gas_df <- load_gff_annotations(example_gff, id_col = "locus_tag")
 dim(gas_df)
 }
+\seealso{
+[import.gff3()] [Biostrings] [GenomeInfoDb]
+}

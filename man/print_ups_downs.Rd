@@ -37,5 +37,5 @@ I found myself needing to reprint these excel sheets because I
 added some new information. This shortcuts that process for me.
 }
 \seealso{
-\code{\link{combine_de_tables}}
+[combine_de_tables]
 }

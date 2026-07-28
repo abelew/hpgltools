@@ -2,7 +2,7 @@
 % Please edit documentation in R/sanitize.R
 \name{sanitize_metadata,data.frame-method}
 \alias{sanitize_metadata,data.frame-method}
-\title{Given a dataframe, sanitize it.}
+\title{Sanitize a dataframe.}
 \usage{
 \S4method{sanitize_metadata}{data.frame}(
   input,

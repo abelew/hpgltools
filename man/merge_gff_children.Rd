@@ -32,3 +32,6 @@ Most notably, when working with our parasites, we sometimes create
 new 5' and 3' UTR entries using spliced leader/polyA junction
 reads.  This function attempts to merge together these annotations.
 }
+\seealso{
+[import.gff3()]
+}

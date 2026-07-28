@@ -73,7 +73,6 @@ ByteCompile: true
 RemoteType: github
 biocViews: DifferentialExpression
 Encoding: UTF-8
-RoxygenNote: 7.3.3
 Collate: 
     '01_hpgltools.R'
     'alt_splicing.R'
@@ -154,3 +153,5 @@ Collate:
     'tnseq.R'
     'variants.R'
     'xlsx.R'
+Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3

@@ -9,7 +9,7 @@ get_de_table(apr, table, type = "deseq", combined = FALSE)
 \arguments{
 \item{apr}{Input data, defaulting to the result from all_pairwise.}
 
-\item{table}{Table name to extract}
+\item{table}{Table name to extract.}
 
 \item{type}{Choose the result from this DE method.}
 
@@ -19,6 +19,8 @@ get_de_table(apr, table, type = "deseq", combined = FALSE)
 Single table from the pairwise result.
 }
 \description{
-I am getting some strange unescaped backslashes in the roxygen-created
-documentation files for some functions, including this one.
+I am getting some strange unescaped backslashes in the roxygen created
+documentation files for some functions, including this one.  I do
+not think there are any backslash escaped characters anywhere in
+this portion of my code.
 }

@@ -103,5 +103,5 @@ have the largest fold changes, lowest p-values, fall outside a
 z-score, or are at the top/bottom of the ranked list.
 }
 \seealso{
-\code{\link{combine_de_tables}}
+[combine_de_tables]
 }

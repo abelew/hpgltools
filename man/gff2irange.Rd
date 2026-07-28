@@ -45,6 +45,5 @@ gas_df <- load_gff_annotations(example_gff, id_col = "locus_tag")
 dim(gas_df)
 }
 \seealso{
-[rtracklayer] [load_gff_annotations()]
- \code{\link[rtracklayer]{import.gff}}
+[rtracklayer] [load_gff_annotations()] [import.gff()]
 }

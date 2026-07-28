@@ -48,6 +48,12 @@ graphed point.}
 
 \item{y_intercept}{Add a y-intercept to define 'good' coverage.}
 
+\item{rug}{Add a rug.}
+
+\item{loess}{Add a loess estimation.}
+
+\item{x_intercept}{Perhaps show the mean expression via a x-intercept.}
+
 \item{...}{rawr!}
 }
 \value{

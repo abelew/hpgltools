@@ -15,14 +15,14 @@ classify_from_model(
 \arguments{
 \item{exp}{Input dataset}
 
+\item{model_file}{existing model produced by the various caret
+child-utilities.}
+
 \item{filter}{Data filter used by the training set.}
 
 \item{convert}{Data conversion used by the training set.}
 
 \item{norm}{Data normalization used by the training set.}
-
-\item{model}{existing model produced by the various caret
-child-utilities.}
 }
 \description{
 This makes a few important assumptions: The first column of the

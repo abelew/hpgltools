@@ -6,6 +6,15 @@
 \usage{
 \S4method{colData}{ExpressionSet}(x, i, withDimnames = TRUE, ...)
 }
+\arguments{
+\item{x}{The SummarizedExperiment input}
+
+\item{i}{undef}
+
+\item{withDimnames}{undef}
+
+\item{...}{extra args.}
+}
 \description{
 message("I am from SummarizedExperiment and am explicitly imported, wtf.")
 }

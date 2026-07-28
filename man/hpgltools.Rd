@@ -21,8 +21,7 @@ It falls under a few main topics
  \item Perform some simple TnSeq analyses.
 }
 
-To see examples of this in action, check out the vignettes:
-\code{browseVignettes(package = 'hpgltools')}
+To see examples of this in action, check out the hpgltool2 vignettes.
 }
 \seealso{
 Useful links:

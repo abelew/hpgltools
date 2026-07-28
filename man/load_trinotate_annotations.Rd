@@ -37,5 +37,5 @@ trinotate_go <- load_trinotate_go(example_txt,
 head(trinotate_go[["go_table"]])
 }
 \seealso{
-[tidyr] [readr]
+[tidyr] [readr()]
 }

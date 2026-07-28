@@ -201,5 +201,5 @@ a heatmap!
 heatmap.2 is the devil.
 }
 \seealso{
-\code{\link[gplots]{heatmap.2}}
+[heatmap.2()]
 }
