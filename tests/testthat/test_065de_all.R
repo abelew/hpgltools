@@ -7,7 +7,7 @@ context("065de_all.R")
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
-  subset = "minute == 0 | minute == 15 | minute == 30") %>%
+  subset = "minute == 0 | minute == 15 | minute == 30") |>
   set_batches(fact = "replicate")
 
 ## Use limma to compare the three conditions remaining in the data.

@@ -309,14 +309,25 @@ The available keytypes are: ", toString(avail_types), "choosing ", keytype, ".")
     stop("None of the go columns provided information.")
   }
 
-  colnames(go_terms) <- c("GID", "GO")
+  colnames(go_terms)[1] <- "GID"
+  colnames(go_terms)[2] <- "GO"
   all_go <- go_terms[["GO"]]
   go_term_names <- sm(AnnotationDbi::select(x = GO.db::GO.db,
                                             keys = unique(all_go),
                                             columns = c("TERM", "GOID", "ONTOLOGY")))
-  go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
-  go_terms <- go_terms[, c("GID", "GO", "TERM", "ONTOLOGY")]
-  return(go_terms)
+  final_go_terms <- merge(go_terms, go_term_names, by.x = "GO", by.y = "GOID")
+  if (!is.null(final_go_terms[["TERM.x"]])) {
+    final_go_terms[["TERM"]] <- final_go_terms[["TERM.x"]]
+    final_go_terms[["TERM.x"]] <- NULL
+    final_go_terms[["TERM.y"]] <- NULL
+  }
+  if (!is.null(final_go_terms[["ONTOLOGY.x"]])) {
+    final_go_terms[["ONTOLOGY"]] <- final_go_terms[["ONTOLOGY.x"]]
+    final_go_terms[["ONTOLOGY.x"]] <- NULL
+    final_go_terms[["ONTOLOGY.y"]] <- NULL
+  }
+  final_go_terms <- final_go_terms[, c("GID", "GO", "TERM", "ONTOLOGY")]
+  return(final_go_terms)
 }
 
 load_txdb_annotations <- function(txdb = NULL, gene_ids = NULL, types = c("tx", "exon", "cds")) {

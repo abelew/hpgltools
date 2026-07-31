@@ -19,6 +19,7 @@ NULL
 #' @param minc Minimum number of elements for a group
 #' @param interaction Use an interaction model?
 #' @seealso DOI:10.1186/s13059-014-0550-8
+#' @example inst/examples/de_deseq.R
 #' @export
 deseq_lrt <- function(exp, interactor_column = "visitnumber",
                       interest_column = "clinicaloutcome", transform = "rlog",
@@ -364,8 +365,10 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   ## rather than make all the contrasts myself, then use that ordering
   ## to handle DESeq's contrast method.
   apc <- make_pairwise_contrasts(model_mtrx, conditions,
+                                 contrast_factor = fctrs[["contrast"]],
+                                 do_identities = FALSE, do_extras = TRUE,
+                                 do_pairwise = TRUE, keepers = keepers,
                                  extra_contrasts = extra_contrasts,
-                                 do_identities = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,
                                  ...)
   contrast_order <- apc[["names"]]
@@ -392,13 +395,41 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     contrasts <- append(contrast_name, contrasts)
     ## I am pretty sure this is not needed, but I will hold on to it for the moment.
     contrasts_full <- append(contrast_string, contrasts_full)
-    if (! glue("condition{num_name}") %in% DESeq2::resultsNames(deseq_run)) {
-      message("The contrast ", num_name, " is not in the results.")
+    numerator_model_name <- glue("{fctrs[['contrast']]}{num_name}")
+    denominator_model_name <- glue("{fctrs[['contrast']]}{den_name}")
+    comparison_model_name <- glue("{fctrs[['contrast']]}_{den_name}_vs_{num_name}")
+    comparison_model_name_flipped <- glue("{fctrs[['contrast']]}_{num_name}_vs_{den_name}")
+    possible_results <- DESeq2::resultsNames(deseq_run)
+    foundp <- 0
+    result <- data.frame()
+    if (denominator_model_name %in% possible_results) {
+      result <- as.data.frame(DESeq2::results(object = deseq_run,
+                                              contrast = c(fctrs[["contrast"]],
+                                                           den_name, num_name),
+                                              format = "DataFrame"))
+      message("This contrast put the denominator first and was flipped.")
+    } else if (numerator_model_name %in% possible_results) {
+      result <- as.data.frame(DESeq2::results(object = deseq_run,
+                                              contrast = c(fctrs[["contrast"]],
+                                                           num_name, den_name),
+                                              format = "DataFrame"))
+    } else if (comparison_model_name %in% possible_results) {
+      result <- as.data.frame(DESeq2::results(object = deseq_run,
+                                              contrast = c(fctrs[["contrast"]],
+                                                           num_name, den_name),
+                                              format = "DataFrame"))
+    } else if (comparison_model_name_flipped %in% possible_results) {
+      result <- as.data.frame(DESeq2::results(object = deseq_run,
+                                              contrast = c(fctrs[["contrast"]],
+                                                           den_name, num_name),
+                                              format = "DataFrame"))
+    } else {
+      message("The contrast ", comparison_model_name, " is not in the results.")
       message("If this is not an extra contrast, then this is an error.")
       next
     }
     result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                            contrast = c("condition", num_name, den_name),
+                                            contrast = c(fctrs[["contrast"]], num_name, den_name),
                                             format = "DataFrame"))
     ##result <- DESeq2::results(object = deseq_run,
     ##                          contrast = c("condition", num_name, den_name))
@@ -420,6 +451,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     }
     result_list[[contrast_name]] <- result
   }
+
   ## The logic here is a little tortuous.
   ## Here are some sample column names from an arbitrary coef() call:
   ## "Intercept" "SV1" "SV2" "SV3" "condition_mtc_wtu_vs_mtc_mtu"
@@ -430,8 +462,9 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   ## appropriately rename the columns.
   coefficient_df <- as.data.frame(coef(deseq_run))
   ## Here I will just simplify the column names.
+  match_string <- paste0("^", fctrs[["contrast"]])
   colnames(coefficient_df) <- gsub(
-      pattern = "^condition", replacement = "", x = colnames(coefficient_df))
+      pattern = match_string, replacement = "", x = colnames(coefficient_df))
   colnames(coefficient_df) <- gsub(
       pattern = "^batch", replacement = "", x = colnames(coefficient_df))
   colnames(coefficient_df) <- gsub(

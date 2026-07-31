@@ -6,6 +6,13 @@
 \usage{
 \S4method{colData}{ExpressionSet,ANY}(x, ...) <- value
 }
+\arguments{
+\item{x}{Data structure from which to acquire column information (sample metadata).}
+
+\item{...}{Other options.}
+
+\item{value}{New column data to replace the existing values.}
+}
 \description{
 message("I am from SummarizedExperiment and am explicitly imported, wtf.")
 }

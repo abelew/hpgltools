@@ -5,7 +5,7 @@ context("076de_all.R")
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
-  subset = "minute == 0 | minute == 15 | minute == 30") %>%
+  subset = "minute == 0 | minute == 15 | minute == 30") |>
   set_batches(fact = "replicate")
 
 condbatch_keepers <- list("nosig" = c("wt0", "mut0"),

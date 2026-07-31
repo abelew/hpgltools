@@ -306,7 +306,9 @@ setMethod(
 #' If you mess up the NAMESPACE file, the following becomes necessary
 #'
 #' message("I am from SummarizedExperiment and am explicitly imported, wtf.")
-#' @inherit colData<-
+#' @param x Data structure from which to acquire column information (sample metadata).
+#' @param ... Other options.
+#' @param value New column data to replace the existing values.
 #' @export
 `colData<-` <- function(x, ..., value) {
   SummarizedExperiment::colData(x, ...) <- value

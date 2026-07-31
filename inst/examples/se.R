@@ -3,20 +3,6 @@ library(hpgltools)
 ## data structures containing metadata, annotations, and expression values.
 ## I have a couple of functions which generate these using extant, publicly available data.
 
-## My se data structure is bad.
-## I created it when I was first learning R because I wanted an
-## expressionset with extra flexibility.  At the time I either did not
-## know about the SummarizedExperiment or it did not exist.
-## In either case, much of my codebase grew around this data
-## structure.  In my most recent changes I have almost completely
-## removed any dependencies on it and think that very soon I will be
-## able to completely remove it and have just a couple of functions
-## which translate my old ses to SEs.
-
-## Until I complete that, here are a few examples of how I used them;
-## if my recent work was successful, all of these tasks may be
-## similarly (better) performed using SE.
-
 pombe_se <- make_pombe_se()
 
 ## The following includes a few ways to create an se given various
@@ -73,7 +59,7 @@ solo_features <- features_in_single_condition(
   pombe_se, factor = "condition")
 ## Print the number of genes unique to each condition (> 2/sample)
 solo_list <- solo_features[["solo_this"]]
-solo_numbers <- lapply(solo_list, FUN=length)
+solo_numbers <- lapply(solo_list, FUN = length)
 barplot(as.numeric(solo_numbers))
 
 ## Extract the mean/median value/gene with respect to a metadata
@@ -91,7 +77,7 @@ plot_boxplot(means_by_cond[["cvs"]])
 ## super annoying in our parasites.
 ## In the following example, let us just get rid of the genes with
 ## 'non-coding' in their descriptions.
-pombe_filtered <- semantic_se_filter(pombe_se, semantic = "non-coding")
+pombe_filtered <- semantic_filter(pombe_se, semantic = "non-coding")
 pombe_filtered
 
 ## Subset an se based on arbitrary expressions.
@@ -100,8 +86,8 @@ pombe_filtered
 ## In the following example I am pulling the 0,30 minute samples and
 ## then dropping any samples which have less than 6,300 genes. (which
 ## is 1 of them)
-pombe_smaller <- pombe_se %>%
-  subset_se(subset = "minute == 30| minute == 0") %>%
+pombe_smaller <- pombe_se |>
+  subset_se(subset = "minute == 30| minute == 0") |>
   subset_se(nonzero = 6300)
 pombe_smaller
 

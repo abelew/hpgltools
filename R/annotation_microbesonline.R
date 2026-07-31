@@ -127,7 +127,7 @@ get_microbesonline_taxid <- function(species = "Acyrthosiphon pisum virus") {
   id_links <- id_nodes |>
     rvest::html_nodes("td:nth-child(1) a") |>
     rvest::html_attr("href") |>
-    gsub(pattern = "^.*?tId=([[:digit:]]+)$", replacement = "\\1", x = .)
+    gsub(pattern = "^.*?tId=([[:digit:]]+)$", replacement = "\\1", x = _)
   id_table <- id_nodes |>
     rvest::html_table(header = TRUE, fill = TRUE)
   id_df <- id_table[[1]]  ## Grab the first (only) element

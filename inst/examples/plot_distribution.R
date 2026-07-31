@@ -1,5 +1,7 @@
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
-  source(system.file("examples", "create_se.R", package = "hpgltools"))
+  source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }
 
 ## Most distribution plots are particularly informative with the raw data.

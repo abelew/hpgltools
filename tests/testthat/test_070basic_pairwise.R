@@ -5,7 +5,7 @@ context("070de_basic.R")
 pombe_se <- make_pombe_se(annotation = FALSE)
 pombe_subset <- subset_se(
   pombe_se,
-  subset = "minute == 0 | minute == 15 | minute == 30") %>%
+  subset = "minute == 0 | minute == 15 | minute == 30") |>
   set_batches(fact = "replicate")
 
 ## Well, in the previous test, we created pombe_se, so let us use it.

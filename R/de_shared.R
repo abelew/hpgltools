@@ -1994,8 +1994,18 @@ make_pairwise_contrasts <- function(model, conditions, contrast_factor = "condit
                                     keep_underscore = TRUE, ...) {
   possible_names <- colnames(model)
   match <- paste0("^", contrast_factor)
+  ## relevant_idx pulls out the set of factors which are in the contrast factor.
   relevant_idx <- grepl(x = possible_names, pattern = match)
-  full_names <- possible_names[relevant_idx]
+  contrast_levels <- levels(as.factor(conditions))
+  full_names <- paste0(contrast_factor, contrast_levels)
+  if (sum(relevant_idx) < length(contrast_levels)) {
+    message("This is a non-intercept model:  ~ factor, some additional work will be needed.")
+    replace_with_intercept <- ! full_names %in% colnames(model)
+    replace_name <- full_names[replace_with_intercept]
+    colnames(model)[1] <- replace_name
+    ## full_names[replace_with_intercept] <- "Intercept"
+  }
+  ## full_names <- possible_names[relevant_idx]
   short_names <- gsub(x = full_names, pattern = match, replacement = "")
 
   tmpnames <- colnames(model)

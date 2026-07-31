@@ -118,16 +118,16 @@ plot_dist_scatter <- function(df, size = 2, xlab = NULL, ylab = NULL) {
     ggplot2::xlab(xlab) +
     ggplot2::ylab(ylab) +
     ggplot2::geom_vline(
-      color = "grey", xintercept = (first_median - first_mad), size = line_size) +
+      color = "grey", xintercept = (first_median - first_mad), linewidth = line_size) +
     ggplot2::geom_vline(
-      color = "grey", xintercept = (first_median + first_mad), size = line_size) +
+      color = "grey", xintercept = (first_median + first_mad), linewidth = line_size) +
     ggplot2::geom_vline(
-      color = "darkgrey", xintercept = first_median, size = line_size) +
+      color = "darkgrey", xintercept = first_median, linewidth = line_size) +
     ggplot2::geom_hline(
-      color = "grey", yintercept = (second_median - second_mad), size = line_size) +
+      color = "grey", yintercept = (second_median - second_mad), linewidth = line_size) +
     ggplot2::geom_hline(
-      color = "grey", yintercept = (second_median + second_mad), size = line_size) +
-    ggplot2::geom_hline(color = "darkgrey", yintercept = second_median, size = line_size) +
+      color = "grey", yintercept = (second_median + second_mad), linewidth = line_size) +
+    ggplot2::geom_hline(color = "darkgrey", yintercept = second_median, linewidth = line_size) +
     ggplot2::geom_point(
       colour = grDevices::hsv(mydist[["dist"]], 1, mydist[["dist"]]),
       alpha = 0.6, size = size) +
@@ -683,41 +683,9 @@ These samples have an average {prettyNum(mean(x[['table']][['cpm']]))} CPM cover
   return(invisible(x))
 }
 
-#' Make a nonzero plot given an exp.
-#'
-#' @param data Exp, expressionset, or dataframe.
-#' @param design Eesign matrix.
-#' @param colors Color scheme.
-#' @param plot_labels How do you want to label the graph? 'fancy' will use
-#'  directlabels() to try to match the labels with the positions without
-#'  overlapping anything else will just stick them on a 45' offset next to the
-#'  graphed point.
-#' @param exp_names Column or character list of preferred sample names.
-#' @param max_overlaps Permit this many labels to overlap before dropping some.
-#' @param label_chars How many characters for sample names before abbreviation.
-#' @param plot_legend Print a legend for this plot?
-#' @param plot_title Add a title?
-#' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
-#' @param y_intercept Add a y-intercept to define 'good' coverage.
-#' @param ... rawr!
-
 #' Make a nonzero plot given an ExpressionSet
 #'
-#' @param data Exp, expressionset, or dataframe.
-#' @param design Eesign matrix.
-#' @param colors Color scheme.
-#' @param plot_labels How do you want to label the graph? 'fancy' will use
-#'  directlabels() to try to match the labels with the positions without
-#'  overlapping anything else will just stick them on a 45' offset next to the
-#'  graphed point.
-#' @param exp_names Column or character list of preferred sample names.
-#' @param max_overlaps Permit this many labels to overlap before dropping some.
-#' @param label_chars How many characters for sample names before abbreviation.
-#' @param plot_legend Print a legend for this plot?
-#' @param plot_title Add a title?
-#' @param cutoff Minimum proportion (or number) of genes below which samples might be in trouble.
-#' @param y_intercept Add a y-intercept to define 'good' coverage.
-#' @param ... rawr!
+#' @inherit plot_nonzero
 #' @export
 setMethod(
   "plot_nonzero", signature = signature(data = "ExpressionSet"),
@@ -916,11 +884,12 @@ setMethod(
 #' @export
 plot_scatter <- function(df, color = "black", xlab = NULL, xcol = NULL, ycol = NULL,
                          ylab = NULL, alpha = 0.6, size = 2) {
+  data_columns <- colnames(df)
   if (is.null(xcol)) {
-    xcol <- 1
+    xcol <- data_columns[1]
   }
   if (is.null(ycol)) {
-    ycol <- 2
+    ycol <- data_columns[2]
   }
   df_columns <- colnames(df)
   df_x_axis <- df_columns[xcol]
@@ -931,6 +900,7 @@ plot_scatter <- function(df, color = "black", xlab = NULL, xcol = NULL, ycol = N
   if (is.null(ylab)) {
     ylab <- glue("Expression of {df_y_axis}")
   }
+
   df[["label"]] <- rownames(df)
   first_vs_second <- ggplot(df, aes(x = .data[[xcol]], y = .data[[ycol]],
                                     label = .data[["label"]])) +
