@@ -236,14 +236,12 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)
-
   model_intercept <- FALSE
   if (!is.null(fctrs[["cellmeans_intercept"]])) {
     if (fctrs[["cellmeans_intercept"]] > 0) {
       model_intercept <- TRUE
-      }
+    }
   }
-
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- as.factor(design[["batch"]])
   condition_table <- table(conditions)
@@ -403,36 +401,22 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     foundp <- 0
     result <- data.frame()
     if (denominator_model_name %in% possible_results) {
-      result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                              contrast = c(fctrs[["contrast"]],
-                                                           den_name, num_name),
-                                              format = "DataFrame"))
-      message("This contrast put the denominator first and was flipped.")
+      message("This contrast put the denominator first.")
     } else if (numerator_model_name %in% possible_results) {
-      result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                              contrast = c(fctrs[["contrast"]],
-                                                           num_name, den_name),
-                                              format = "DataFrame"))
+      message("This contrast put the numerator first.")
     } else if (comparison_model_name %in% possible_results) {
-      result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                              contrast = c(fctrs[["contrast"]],
-                                                           num_name, den_name),
-                                              format = "DataFrame"))
+      message("This contrast used ", den_name, "_vs_", num_name, ".")
     } else if (comparison_model_name_flipped %in% possible_results) {
-      result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                              contrast = c(fctrs[["contrast"]],
-                                                           den_name, num_name),
-                                              format = "DataFrame"))
+      message("This contrast used ", num_name, "_vs_", den_name, ".")
     } else {
       message("The contrast ", comparison_model_name, " is not in the results.")
       message("If this is not an extra contrast, then this is an error.")
       next
     }
     result <- as.data.frame(DESeq2::results(object = deseq_run,
-                                            contrast = c(fctrs[["contrast"]], num_name, den_name),
+                                            contrast = c(fctrs[["contrast"]],
+                                                         num_name, den_name),
                                             format = "DataFrame"))
-    ##result <- DESeq2::results(object = deseq_run,
-    ##                          contrast = c("condition", num_name, den_name))
     result <- result[order(result[["log2FoldChange"]]), ]
     colnames(result) <- c("baseMean", "logFC", "lfcSE", "stat", "P.Value", "adj.P.Val")
     ## From here on everything is the same.

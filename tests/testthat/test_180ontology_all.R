@@ -36,7 +36,13 @@ pombe_se <- make_pombe_se()
 pombe_lengths <- rowData(pombe_se)[, c("ensembl_gene_id", "cds_length")]
 colnames(pombe_lengths) <- c("ID", "length")
 
-pombe_go <- load_biomart_go(species = "spombe", host = "fungi.ensembl.org",
+## I would really like to know what is going on at ensembl.
+## I think I will try and get a local mirror working using the (currently not working)
+## instructions at webcode/mirror/install/ensembl-data.html
+##pombe_go <- load_biomart_go(species = "spombe", host = "fungi.ensembl.org",
+##                            overwrite = TRUE)[["go"]]
+pombe_go <- load_biomart_go(species = "spombe",
+                            host = "jun2026-fungi.ensembl.org",
                             overwrite = TRUE)[["go"]]
 
 ## Note that I default to using entrez IDs, but the eupathdb does not,

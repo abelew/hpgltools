@@ -50,11 +50,7 @@ NULL
 #'  all_tables = a list of tables for the contrasts performed.
 #' @seealso [edgeR] [deseq_pairwise()] [ebseq_pairwise()] [limma_pairwise()] [basic_pairwise()]
 #'  DOI:10.12688/f1000research.8987.2
-#' @examples
-#' \dontrun{
-#'  exp <- create_exp(metadata = "metadata.xlsx", gene_info = annotations)
-#'  pretend <- edger_pairwise(exp, model_batch = "sva")
-#' }
+#' @examples inst/examples/de_edger.R
 #' @export
 edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch",
                            null_fstring = "~", model_svs = NULL,
@@ -77,10 +73,17 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   fctrs <- get_formula_factors(model_fstring)
   condition_column <- fctrs[["factors"]][1]
   design <- colData(input)
+  model_intercept <- FALSE
+  if (!is.null(fctrs[["cellmeans_intercept"]])) {
+    if (fctrs[["cellmeans_intercept"]] > 0) {
+      model_intercept <- TRUE
+    }
+  }
   conditions <- droplevels(as.factor(design[[condition_column]]))
   batches <- droplevels(as.factor(design[["batch"]]))
   condition_table <- table(conditions)
   batch_table <- table(batches)
+
   mesg("This edger pairwise comparison should compare across:")
   print(condition_table)
   appended_fstring <- model_fstring
@@ -95,7 +98,13 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     appended_fstring <- model_params[["appended_fstring"]]
     design <- colData(model_params[["modified_input"]])
   }
-  model_mtrx <- model.matrix(as.formula(appended_fstring), data = design)
+  model_mtrx <- stats::model.matrix.default(as.formula(appended_fstring), data = design)
+  full_model_columns <- ncol(model_mtrx)
+  full_model_rank <- qr(model_mtrx)[["rank"]]
+  if (full_model_rank < full_model_columns) {
+    message("Creating the data set will fail because the resulting model is too low rank.")
+    message("Consider trying without the interaction.")
+  }
 
   ## I have a strong sense that the most recent version of edgeR changed its
   ## dispersion estimate code. Here is a note from the user's guide, which may
@@ -172,8 +181,10 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
 
   mesg("EdgeR step 8/9: Making pairwise contrasts.")
   apc <- make_pairwise_contrasts(model_mtrx, conditions,
+                                 contrast_factor = fctrs[["contrast"]],
+                                 do_identities = FALSE, do_extras = TRUE,
+                                 do_pairwise = TRUE, keepers = keepers,
                                  extra_contrasts = extra_contrasts,
-                                 do_identities = FALSE, keepers = keepers,
                                  keep_underscore = keep_underscore,
                                  ...)
   contrast_string <- apc[["contrast_string"]]
@@ -181,6 +192,7 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   ## This section is convoluted because glmLRT only seems to take up to 7
   ## contrasts at a time. As a result, I iterate through the set of possible
   ## contrasts one at a time and ask for each separately.
+  model_names <- colnames(model_mtrx)
   contrast_list <- list()
   result_list <- list()
   lrt_list <- list()
@@ -189,18 +201,49 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     name <- apc[["names"]][[con]]
     sc[[name]] <- gsub(pattern = ",", replacement = "", apc[["all_pairwise"]][[con]])
     tt <- parse(text = sc[[name]])
+    ## Make sure that the contrast supports an intercept column.
+    ## Perhaps make this a function and also make absolutely certain that this
+    ## is a logically valid thing to do for all models.
+    expected_factors <- paste0(fctrs[["contrast"]], apc[["identity_names"]])
     ## FIXME FIXME: Replace this foolishness with do.call()
     ## ctr_string <- paste0("tt = mymakeContrasts(", tt, ", levels = model_data)")
-    ctr_string <- glue("tt = mymakeContrasts({tt}, levels = model_mtrx)")
-    eval(parse(text = ctr_string))
-    contrast_list[[name]] <- tt
+    found_names <- expected_factors %in% model_names
+    contrast_method <- "contrast"
+    chosen_coef <- NULL
+    if (model_names[1] == "(Intercept)" && sum(found_names) == 1) {
+      found_factor <- expected_factors[found_names]
+      missing_factor <- expected_factors[!found_names]
+      message("This contrast must use the coef of the found factor: ", found_factor, ".")
+      contrast_method <- "coef"
+      chosen_coef <- found_factor
+      contrast_list[[name]] <- glue("{missing_factor}_vs_{found_factor}")
+    } else {
+      ctr_string <- glue("tt = mymakeContrasts({tt}, levels = model_mtrx)")
+      eval(parse(text = ctr_string))
+      contrast_list[[name]] <- tt
+    }
     lrt_list[[name]] <- NULL
     tt <- sm(requireNamespace("edgeR"))
     tt <- sm(try(attachNamespace("edgeR"), silent = TRUE))
     if (edger_test == "lrt") {
-      lrt_list[[name]] <- edgeR::glmLRT(cond_fit, contrast = contrast_list[[name]])
-    } else {
-      lrt_list[[name]] <- edgeR::glmQLFTest(cond_fit, contrast = contrast_list[[name]])
+      ## If the model was created via ~ 0 + xxx + yyy, then we can just use the contrast name for
+      ## any number of elements, if it was via ~ xxx + yyy, then we need to use coef
+      ## Here is the relevant text from the edgeR manual (Section 3.2.5):
+      ## Now the Ąrst coefficient will measure the baseline logCPM expression level in the Ąrst treat-
+      ## ment condition (here group A), and the second and third columns are relative to the baseline.
+      ## Here the second and third coefficients represent B vs A and C vs A respectively. In other
+      ## words, coef=2 now means B-A and coef=3 means C-A, s
+      if (contrast_method == "coef") {
+        lrt_list[[name]] <- edgeR::glmLRT(cond_fit, coef = chosen_coef)
+      } else {
+        lrt_list[[name]] <- edgeR::glmLRT(cond_fit, contrast = contrast_list[[name]])
+      }
+    } else {  ## Use the glmQLFTest
+      if (contrast_method == "coef") {
+        lrt_list[[name]] <- edgeR::glmQLFTest(cond_fit, coef = chosen_coef)
+      } else {
+        lrt_list[[name]] <- edgeR::glmQLFTest(cond_fit, contrast = contrast_list[[name]])
+      }
     }
     res <- edgeR::topTags(lrt_list[[name]], n = nrow(data), sort.by = "logFC")
     res <- as.data.frame(res)

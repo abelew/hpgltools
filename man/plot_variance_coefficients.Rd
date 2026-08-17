@@ -39,8 +39,10 @@ as calculated by DESeq2/EdgeR; but the metrics I am currently taking are the
 simpler and less appropriate CV(sd/mean) and QCD(q3-q1/q3+q1).
 }
 \examples{
+library(hpgltools)
+pombe_se <- get0("pombe_se")
 if (is.null(pombe_se)) {
-  source(system.file("examples", "create_se.R", package = "hpgltools"))
+  source(system.file("examples", "create_pombe.R", package = "hpgltools"))
 }
 
 ## Most distribution plots are particularly informative with the raw data.

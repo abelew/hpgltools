@@ -83,10 +83,7 @@ paths as outlined in the manual.  If you want to play with non-standard data,
 the force argument will round the data and shoe-horn it into EdgeR.
 }
 \examples{
-\dontrun{
- exp <- create_exp(metadata = "metadata.xlsx", gene_info = annotations)
- pretend <- edger_pairwise(exp, model_batch = "sva")
-}
+inst/examples/de_edger.R
 }
 \seealso{
 [edgeR] [deseq_pairwise()] [ebseq_pairwise()] [limma_pairwise()] [basic_pairwise()]

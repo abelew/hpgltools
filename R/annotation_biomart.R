@@ -12,6 +12,7 @@ NULL
 #' @param species Species at the mart for which to search.
 #' @return A mart instance.
 find_working_dataset <- function(mart, trydataset, species) {
+  original <- options(timeout = 30000)
   dataset <- NULL
   if (is.null(species) && is.null(trydataset)) {
     stop("This requires either trydataset or species.")
@@ -36,6 +37,7 @@ find_working_dataset <- function(mart, trydataset, species) {
   } else {
     message("Successfully connected to the ", dataset, " database.")
   }
+  options(original)
   return(ensembl)
 }
 
@@ -61,6 +63,7 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org",  ## uswest
                                                 "www.ensembl.org", "asia.ensembl.org"),
                               trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                               year = NULL, month = NULL) {
+  original <- options(timeout = 30000)
   if (isTRUE(archive)) {
     month_strings <- c("jan", "feb", "mar", "apr", "may", "jun", "jul",
                        "aug", "sep", "oct", "nov", "dec")
@@ -145,6 +148,7 @@ find_working_mart <- function(default_hosts = c("useast.ensembl.org",  ## uswest
       stop("I do not know what this is: ", class(mart))
     }
   } ## End iterating over the hosts.
+  options(original)
   retlist <- list(
     "host" = used_host,
     "used_mart" = used_mart,
@@ -236,7 +240,7 @@ get_biomart_example_gene <- function(species = "mmusculus", attributes = "featur
 #' @example inst/examples/annotation_biomart.R
 #' @export
 load_biomart_annotations <- function(species = "hsapiens", overwrite = FALSE, do_save = TRUE,
-                                     host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = TRUE,
+                                     host = NULL, trymart = "ENSEMBL_MART_ENSEMBL", archive = FALSE,
                                      default_hosts = c("useast.ensembl.org", "uswest.ensembl.org",
                                                        "www.ensembl.org", "asia.ensembl.org"),
                                      year = NULL, month = NULL, drop_haplotypes = FALSE, trydataset = NULL,

@@ -67,8 +67,10 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
     name_column <- new_name_column
   }
   if (! type_column %in% all_fields) {
-    message("Unable to find ", type_column, " in the db, removing it.")
-    type_column <- NULL
+    a_name <- grepl(pattern = "TYPE", x = all_fields)
+    new_type_column <- all_fields[a_name][1]
+    message("Unable to find ", type_column, ", setting it to ", new_type_column, ".")
+    type_column <- new_type_column
   }
   if (! chromosome_column %in% all_fields) {
     message("Unable to find ", chromosome_column, " in the db, removing it.")
@@ -132,10 +134,7 @@ load_orgdb_annotations <- function(orgdb = NULL, gene_ids = NULL, include_go = F
   ## Note querying by "GENEID" will exclude noncoding RNAs
   message("Attempting to select: ", toString(chosen_fields))
   gene_info <- try(AnnotationDbi::select(
-                                      x = orgdb,
-                                      keys = gene_ids,
-                                      keytype = keytype,
-                                      columns = chosen_fields))
+    x = orgdb, keys = gene_ids, keytype = keytype, columns = chosen_fields))
   if (class(gene_info) == "try-error") {
     message("Select statement failed, this is commonly because there is no join",
             " between the transcript table and others.")

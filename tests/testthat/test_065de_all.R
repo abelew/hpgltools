@@ -10,6 +10,86 @@ pombe_subset <- subset_se(
   subset = "minute == 0 | minute == 15 | minute == 30") |>
   set_batches(fact = "replicate")
 
+## Use basic to compare the three conditions remaining in the data.
+testing <- basic_pairwise(pombe_subset)
+actual <- length(testing[["contrasts_performed"]])
+expected <- 15
+test_that("basic performed the expected number of contrasts?", {
+  expect_equal(expected, actual)
+})
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+basic_table <- test
+actual <- sum(test[["logFC"]] > 2)
+expected <- 1
+test_that("basic got some expected results (logFC)?", {
+  expect_equal(expected, actual)
+})
+
+## Use deseq to compare the three conditions remaining in the data.
+testing <- deseq_pairwise(pombe_subset)
+actual <- length(testing[["contrasts_performed"]])
+expected <- 15
+test_that("deseq performed the expected number of contrasts?", {
+  expect_equal(expected, actual)
+})
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+deseq_table <- test
+actual <- sum(test[["logFC"]] > 2)
+expected <- 50
+test_that("deseq got some expected results (logFC)?", {
+  expect_equal(expected, actual)
+})
+
+## Use ebseq to compare the three conditions remaining in the data.
+testing <- ebseq_pairwise(pombe_subset)
+actual <- length(testing[["contrasts_performed"]])
+expected <- 15
+test_that("ebseq performed the expected number of contrasts?", {
+  expect_equal(expected, actual)
+})
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+ebseq_table <- test
+actual <- sum(test[["logFC"]] > 2)
+expected <- 119
+test_that("ebseq got some expected results (logFC)?", {
+  expect_equal(expected, actual)
+})
+
+## Use edger to compare the three conditions remaining in the data.
+testing <- edger_pairwise(pombe_subset)
+actual <- length(testing[["contrasts_performed"]])
+expected <- 15
+test_that("edger performed the expected number of contrasts?", {
+  expect_equal(expected, actual)
+})
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+edger_table <- test
+actual <- sum(test[["logFC"]] > 2)
+expected <- 66
+test_that("edger got some expected results (logFC)?", {
+  expect_equal(expected, actual)
+})
+
+## Use dream to compare the three conditions remaining in the data.
+testing <- dream_pairwise(pombe_subset)
+actual <- length(testing[["contrasts_performed"]])
+expected <- 15
+test_that("dream performed the expected number of contrasts?", {
+  expect_equal(expected, actual)
+})
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+dream_table <- test
+actual <- sum(test[["logFC"]] > 2)
+expected <- 2
+test_that("dream got some expected results (logFC)?", {
+  expect_equal(expected, actual)
+})
+
 ## Use limma to compare the three conditions remaining in the data.
 testing <- limma_pairwise(pombe_subset)
 actual <- length(testing[["contrasts_performed"]])
@@ -17,9 +97,10 @@ expected <- 15
 test_that("limma performed the expected number of contrasts?", {
   expect_equal(expected, actual)
 })
-
 ## We expect a few genes deemed higher in the wt samples than the mutation at time 0.
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
+test_table <- "wt0_vs_mut0"
+test <- testing[["all_tables"]][[test_table]]
+limma_table <- test
 actual <- sum(test[["logFC"]] > 2)
 expected <- 8
 test_that("limma got some expected results (logFC)?", {
@@ -34,8 +115,8 @@ expected <- 15
 test_that("noiseq performed the expected number of contrasts?", {
   expect_equal(expected, actual)
 })
-
-test <- testing[["all_tables"]][["wt0_vs_mut0"]]
+test <- testing[["all_tables"]][[test_table]]
+noiseq_table <- test
 actual <- sum(test[["logFC"]] > 2)
 expected <- 1
 test_that("noiseq got some expected results (logFC)?", {
@@ -46,6 +127,42 @@ actual <- sum(as.numeric(test[["p"]]) < 0.1)
 expected <- 204
 test_that("noiseq got some expected results (p)?", {
   expect_equal(expected, actual)
+})
+
+## Check that the DESeq2 results and noiseq are reasonably similar.
+merged <- merge(limma_table, noiseq_table, by = "row.names")
+query <- cor.test(merged[["logFC.x"]], merged[["logFC.y"]])
+expected <- 0.9
+test_that("Limma and noiseq have similar aresults?", {
+  expect_gt(query[["estimate"]], expected)
+})
+
+merged <- merge(limma_table, basic_table, by = "row.names")
+query <- cor.test(merged[["logFC.x"]], merged[["logFC.y"]])
+expected <- 0.85
+test_that("Limma and basic have similar aresults?", {
+  expect_gt(query[["estimate"]], expected)
+})
+
+merged <- merge(limma_table, deseq_table, by = "row.names")
+query <- cor.test(merged[["logFC.x"]], merged[["logFC.y"]])
+expected <- 0.70
+test_that("Limma and deseq have similar aresults?", {
+  expect_gt(query[["estimate"]], expected)
+})
+
+merged <- merge(limma_table, edger_table, by = "row.names")
+query <- cor.test(merged[["logFC.x"]], merged[["logFC.y"]])
+expected <- 0.80
+test_that("Limma and edger have similar aresults?", {
+  expect_gt(query[["estimate"]], expected)
+})
+
+merged <- merge(limma_table, dream_table, by = "row.names")
+query <- cor.test(merged[["logFC.x"]], merged[["logFC.y"]])
+expected <- 0.95
+test_that("Limma and dream/varpart have similar aresults?", {
+  expect_gt(query[["estimate"]], expected)
 })
 
 ## Make sure we can write out the noiseq results.

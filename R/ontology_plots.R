@@ -275,10 +275,12 @@ setMethod(
     retlist <- list()
     for (sig in names(gse)) {
       message("Starting: ", sig, ".")
-      input_go <- gse[[sig]][["enrich_objects"]][["gse"]]
+      input_go <- gse[[sig]][["go_data"]][["GO_gse"]]
       ret_name_go <- paste0("GO_", sig)
-      input_kegg <- gse[[sig]][["enrich_objects"]][["gse_all_kegg"]]
+      input_kegg <- gse[[sig]][["kegg_data"]][["gse_all_kegg"]]
       ret_name_kegg <- paste0("KEGG_", sig)
+      input_reactome <- gse[[sig]][["reactome_data"]][["gse_all_reactome"]]
+      ret_name_reactome <- paste0("reactome_", sig)
       retlist[[ret_name_go]] <- NULL
       if (!is.null(input_go)) {
         retlist[[ret_name_go]] <- plot_topn_gsea(input_go, topn = topn, id = id, add_score = add_score)
@@ -286,6 +288,10 @@ setMethod(
       retlist[[ret_name_kegg]] <- NULL
       if (!is.null(input_kegg)) {
         retlist[[ret_name_kegg]] <- plot_topn_gsea(input_kegg, topn = topn, id = id, add_score = add_score)
+      }
+      retlist[[ret_name_reactome]] <- NULL
+      if (!is.null(input_reactome)) {
+        retlist[[ret_name_reactome]] <- plot_topn_gsea(input_reactome, topn = topn, id = id, add_score = add_score)
       }
     }
     return(retlist)

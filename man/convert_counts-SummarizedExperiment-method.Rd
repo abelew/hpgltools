@@ -10,6 +10,7 @@
   annotations = NULL,
   length_column = "width",
   na_to_zero = TRUE,
+  length_na = 1000,
   ...
 )
 }
@@ -23,6 +24,9 @@
 \item{length_column}{Column of the annotations describing the gene lengths.}
 
 \item{na_to_zero}{Set NA values to 0?}
+
+\item{length_na}{Set the length of a gene missing the length to this value.  1000 will leave it
+not-normalized, Inf will send it crashing to 0.}
 
 \item{...}{Options I might pass from other functions are dropped into
 arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to

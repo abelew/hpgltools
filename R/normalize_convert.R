@@ -18,6 +18,8 @@ NULL
 #' @param annotations Dataframe of gene annotations.
 #' @param length_column Column of the annotations describing the gene lengths.
 #' @param na_to_zero Set NA values to 0?
+#' @param length_na Set the length of a gene missing the length to this value.  1000 will leave it
+#'  not-normalized, Inf will send it crashing to 0.
 #' @param ... Options I might pass from other functions are dropped into
 #'  arglist, used by rpkm (gene lengths) and divide_seq (genome, pattern to
 #'  match, and annotation type).
@@ -29,7 +31,7 @@ NULL
 #' }
 #' @export
 convert_counts <- function(count_table, method = "raw", annotations = NULL,
-                           length_column = "width", na_to_zero = TRUE, ...) {
+                           length_column = "width", na_to_zero = TRUE, length_na = 1000, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["convert"]])) {
     method <- arglist[["convert"]]
@@ -70,8 +72,9 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
       count_table <- cpm_counts
     },
     "rpkm" = {
+      message("About to perform a RPKM conversion where NA lengths are set to: ", length_na, ".")
       count_table <- hpgl_rpkm(count_table, annotations = annotations,
-                               length_column = length_column,
+                               length_column = length_column, length_na = length_na,
                                ...)
     },
     "cp_seq_m" = {
@@ -318,6 +321,8 @@ hpgl_log2cpm <- function(counts, lib.size = NULL) {
 #' @param count_table Data frame of counts, alternately an edgeR DGEList.
 #' @param annotations dataframe of annotation information
 #' @param length_column Column in the annotations with gene lengths.
+#' @param length_na Set the length of NA to a specific value, 1000 to leave it un-normalized
+#'  or Inf to force its value to 0
 #' @param ... extra options including annotations for defining gene lengths.
 #' @return Data frame of counts expressed as rpkm.
 #' @seealso [edgeR::rpkm()]
@@ -326,7 +331,7 @@ hpgl_log2cpm <- function(counts, lib.size = NULL) {
 #'  rpkm_df = hpgl_rpkm(df, annotations = gene_annotations)
 #' }
 #' @export
-hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
+hpgl_rpkm <- function(count_table, annotations, length_column = "length", length_na = 1000, ...) {
   arglist <- list(...)
   start_column <- "start"
   if (!is.null(arglist[["start_column"]])) {
@@ -335,10 +340,6 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
   end_column <- "end"
   if (!is.null(arglist[["end_column"]])) {
     end_column <- arglist[["end_column"]]
-  }
-  length_na <- 1000
-  if (!is.null(arglist[["length_na"]])) {
-    length_na <- arglist[["length_na"]]
   }
   ## holy crapola I wrote this when I had no clue what I was doing.
   if (class(count_table)[1] == "edgeR") {
@@ -408,21 +409,16 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
       end_na <- is.na(suppressWarnings(as.numeric(merged_annot[[end_column]])))
       num_nas <- sum(start_na) + sum(end_na)
       if (num_nas > 0) {
-        if (is.numeric(length_na)) {
-          mesg("There are ", num_nas, " among the start/end points, setting their lengths to ",
-               length_na, ".")
-          merged_annot[start_na, start_column] <- length_na
-          merged_annot[end_na, start_column] <- length_na
-          merged_annot[start_na, end_column] <- 0
-          merged_annot[end_na, end_column] <- 0
-        } else {
-          mesg("There are ", num_nas, " among the start/end points, removing them.")
-          merged_annot <- merged_annot[!start_na, ]
-        }
+          mesg("There are ", num_nas, " among the start/end points.")
       }
       merged_annot[["width"]] <- abs(as.numeric(merged_annot[[start_column]]) -
                                        as.numeric(merged_annot[[end_column]]))
       length_column <- "width"
+      if (is.numeric(length_na)) {
+        mesg("Setting the NA length elements to: ", length(na))
+        na_idx <- is.na(merged_annot[[length_column]])
+        merged_annot[[length_column]] <- length_na
+      }
     } else {
       stop("There is no column, ", length_column, ", unable to make a width column.")
     }
@@ -437,6 +433,10 @@ hpgl_rpkm <- function(count_table, annotations, length_column = "length", ...) {
     message("There appear to be ", sum(undef_idx), " genes without a length.")
   }
   merged_annot[undef_idx, length_column] <- NA
+  if (is.numeric(length_na)) {
+    message("Setting the elements with NA length to ", length_na, ".")
+    merged_annot[undef_idx, length_column] <- length_na
+  }
   lenvec <- as.vector(as.numeric(merged_annot[[length_column]]))
 
   names(lenvec) <- rownames(merged_annot)

@@ -83,6 +83,7 @@ Collate:
     'annotation_microbesonline.R'
     'annotation_orgdb.R'
     'annotation_shared.R'
+    'annotation_sql.R'
     'annotation_txt.R'
     'annotation_uniprot.R'
     'se.R'

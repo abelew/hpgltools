@@ -511,11 +511,11 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
   if (is.null(y_intercept)) {
     mean_proportion <- mean(nz_df[["prop_nonzero"]])
     mean_string <- round(mean_proportion * 100, 1)
-    intercept_string <- glue("{mean_string}% of genes.")
+    intercept_string <- glue("{mean_string}% of features.")
     y_intercept <- mean_proportion * nrow(data)
   } else {
     if (y_intercept < 1.0) {
-      intercept_string <- glue("{y_intercept * 100}% of genes.")
+      intercept_string <- glue("{y_intercept * 100}% of features.")
       y_intercept <- nrow(data) * y_intercept
     }
   }
@@ -538,7 +538,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     sad_idx <- nz_df[["nonzero_genes"]] <= cutoff
     sad_samples <- nz_df[sad_idx, "id"]
     if (length(sad_samples) > 0) {
-      message("The following samples have less than ", cutoff, " genes.")
+      message("The following samples have less than ", cutoff, " features.")
       print(sad_samples)
     }
   }
@@ -601,7 +601,7 @@ plot_nonzero <- function(data, design = NULL, colors = NULL,
     ggplot2::scale_fill_manual(name = "Condition",
                                guide = "legend",
                                values = color_list) +
-    ggplot2::ylab("Number of non-zero genes observed") +
+    ggplot2::ylab("Number of non-zero features observed") +
     ggplot2::xlab("Number of reads mapped (millions)") +
     ggplot2::theme_bw(base_size = base_size)
 

@@ -121,6 +121,8 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         down_elements <- 0
       }
     }
+    simple_cl <- list()
+    got_args <- FALSE
     if (up_elements > 0) {
       chosen_up_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_up}.xlsx"))
       up <- as.data.frame(up)
@@ -141,6 +143,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         "sig_genes_namedf" = sig_genes_namedf)
       simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
       if (! "try-error" %in% class(simple_cl)) {
+        got_args <- TRUE
         kegg_universe  <- simple_cl[["kegg_universe"]]
         reactome_organism <- simple_cl[["reactome_organism"]]
         mesh_db <- simple_cl[["mesh_db"]]
@@ -177,7 +180,8 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         "signature_df" = signature_df, "de_table_namedf" = de_table_namedf,
         "sig_genes_namedf" = sig_genes_namedf)
       simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
-      if (! "try-error" %in% simple_cl) {
+      if (! "try-error" %in% class(simple_cl) && !isTRUE(got_args)) {
+        got_args <- TRUE
         kegg_universe  <- simple_cl[["kegg_universe"]]
         reactome_organism <- simple_cl[["reactome_organism"]]
         mesh_db <- simple_cl[["mesh_db"]]
@@ -991,6 +995,10 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   all_gene_list <- de_table_namedf[[orgdb_to]]
   all_gene_drop <- !is.na(all_gene_list)
   all_gene_list <- all_gene_list[all_gene_drop]
+  if (! orgdb_to %in% colnames(sig_genes_namedf)) {
+    warning("The column ", orgdb_to, " is not in sig_genes_namedf: ", toString(colnames(sig_genes_namedf)), ".")
+    return(NULL)
+  }
   sig_gene_list <- sig_genes_namedf[[orgdb_to]]
   sig_gene_drop <- !is.na(sig_gene_list)
   sig_gene_list <- sig_gene_list[sig_gene_drop]

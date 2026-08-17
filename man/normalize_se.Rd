@@ -34,6 +34,7 @@ normalize_se(
   noscale = TRUE,
   length_column = NULL,
   model_fstring = "~ 0 + condition + batch",
+  length_na = 1000,
   ...
 )
 }
