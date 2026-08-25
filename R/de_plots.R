@@ -637,7 +637,7 @@ get_plot_columns <- function(data, type, p_type = "adj", adjp = TRUE) {
     stop("Unable to discern the table requested.")
   }
 
-  ## Note: If the table is of the form (a/b)/(c/d), then not all
+  ## Note: the table is of the form (a/b)/(c/d), then not all
   ## methods will be available; indeed in many instances
   ## only edger and limma will be available
   ## Therefore, let us drop out now if the requisite columns are missing.
@@ -1480,87 +1480,40 @@ setMethod(
 #' @param no_color If neither column is 'significant', then this color.
 #' @return a list with a plot and a couple summary statistics.
 #' @export
-rank_order_scatter <- function(first, second = NULL, first_type = "limma",
-                               second_type = "limma", first_table = NULL, alpha = 0.5,
-                               second_table = NULL, first_column = "logFC",
-                               second_column = "logFC", first_p_col = "adj.P.Val",
-                               second_p_col = "adj.P.Val", p_limit = 0.05,
+rank_order_scatter <- function(first, second = NULL, px = "deseq_adjp", py = "deseq_adjp",
+                               lx = "deseq_logfc", ly = "deseq_logfc", alpha = 0.5,
+                               p_limit = 0.05,
                                both_color = "red", first_color = "green",
                                second_color = "blue", no_color = "black") {
-  if (is.null(second)) {
-    second <- first
-  }
 
-  ## If the two elements are equal, then default to two different tables
-  ## If the two elements are not equal, default to the same table.
-  test <- try(testthat::expect_equal(first, second), silent = TRUE)
-  if (class(test)[1] == "try-error") {
-    ## They are not equal.
-    if (is.null(first_table)) {
-      message("No first table was provided, setting it to the first table.")
-      first_table <- 1
-    }
-    if (is.null(second_table)) {
-      message("No second table was provided, setting it to the first table.")
-      second_table <- 1
-    }
-  } else {
-    ## Two different de results.
-    if (is.null(first_table)) {
-      first_table <- 1
-    }
-    if (is.null(second_table)) {
-      second_table <- 2
-    }
-  }
-
-  if (!is.null(first[[first_type]])) {
-    first <- first[[first_type]][["all_tables"]]
-  }
-  if (!is.null(second[[second_type]])) {
-    second <- second[[second_type]][["all_tables"]]
-  }
-  table1 <- first[[first_table]]
-  table2 <- second[[second_table]]
-  merged <- merge(table1, table2, by = "row.names")
+  merged <- merge(first, second, by = "row.names")
   rownames(merged) <- merged[["Row.names"]]
-  merged <- merged[, -1]
-
-  if (first_column == second_column) {
-    c1 <- glue("{first_column}.x")
-    c2 <- glue("{first_column}.y")
-  } else {
-    c1 <- first_column
-    c2 <- second_column
+  merged[["Row.names"]] <- NULL
+  if (lx == ly) {
+    lx <- glue("{lx}.x")
+    ly <- glue("{ly}.y")
   }
-  c1_idx <- order(merged[[c1]])
+  c1_idx <- order(merged[[lx]])
   merged <- merged[c1_idx, ]
   merged[["label"]] <- rownames(merged)
-  c1_idx <- order(merged[[c1]])
-  c2_idx <- order(merged[[c2]])
+  c1_idx <- order(merged[[lx]])
+  c2_idx <- order(merged[[ly]])
   merged[["x"]] <- as.numeric(c1_idx)
   merged[["y"]] <- as.numeric(c2_idx)
 
   merged[["state"]] <- "neither"
-  if (first_p_col == second_p_col) {
-    p1 <- glue("{first_p_col}.x")
-    p2 <- glue("{first_p_col}.y")
-  } else {
-    p1 <- first_p_col
-    p2 <- second_p_col
+  if (px == py) {
+    px <- glue("{px}.x")
+    py <- glue("{py}.y")
   }
-  both_idx <- merged[[p1]] < p_limit & merged[[p2]] < p_limit
-  merged[both_idx, "state"] <- "both"
-  p1_idx <- merged[[p1]] < p_limit & merged[[p2]] >= p_limit
-  merged[p1_idx, "state"] <- "first"
-  p2_idx <- merged[[p2]] < p_limit & merged[[p1]] >= p_limit
-  merged[p2_idx, "state"] <- "second"
-  merged[["state"]] <- as.factor(merged[["state"]])
 
-  first_table_colname <- glue(
-    "Table: {first_table}, Type: {first_type}, column: {first_column}")
-  second_table_colname <- glue(
-    "Table: {second_table}, Type: {second_type}, column: {second_column}")
+  both_idx <- merged[[px]] <= p_limit & merged[[py]] <= p_limit
+  merged[both_idx, "state"] <- "both"
+  px_idx <- merged[[px]] <= p_limit & merged[[py]] > p_limit
+  merged[px_idx, "state"] <- "first"
+  py_idx <- merged[[py]] <= p_limit & merged[[px]] > p_limit
+  merged[py_idx, "state"] <- "second"
+  merged[["state"]] <- as.factor(merged[["state"]])
 
   plt <- ggplot(data = merged,
                 aes(color = .data[["state"]], fill = .data[["state"]],
@@ -1571,22 +1524,21 @@ rank_order_scatter <- function(first, second = NULL, first_type = "limma",
                                            "first" = first_color,
                                            "second" = second_color,
                                            "neither" = no_color)) +
-    ggplot2::geom_smooth(method = "loess", color = "lightblue") +
-    ggplot2::ylab(glue("Rank order of {second_table_colname}")) +
-    ggplot2::xlab(glue("Rank order of {first_table_colname}")) +
+    ## ggplot2::geom_smooth(method = "loess", color = "lightblue") +
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(legend.position = "none",
                    axis.text = ggplot2::element_text(size = base_size, colour = "black"))
+  lfc_scatter <- plot_linear_scatter(merged, xcol = lx, ycol = ly)
 
   model_test <- try(lm(formula = y ~ x, data = merged), silent = TRUE)
   model_summary <- summary(model_test)
-  cor <- cor.test(merged[[c1]], merged[[c2]], method = "pearson")
+  cor <- cor.test(merged[[lx]], merged[[ly]], method = "pearson")
   retlist <- list(
     "plot" = plt,
     "model" = model_test,
     "summary" = model_summary,
-    "correlation" = cor)
-
+    "correlation" = cor,
+    "lfc_scatter" = lfc_scatter)
   return(retlist)
 }
 

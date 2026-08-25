@@ -67,7 +67,7 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
                           kegg_universe = NULL, reactome_organism = NULL,
                           mesh_db = NULL, ah_data = NULL, signature_data = NULL,
                           signature_df = NULL, de_table_namedf = NULL,
-                          sig_genes_namedf = NULL,
+                          sig_genes_namedf = NULL, verbose = FALSE,
                           excel = "excel/all_cp.xlsx", ...) {
   ret <- list()
   input_up <- list()
@@ -141,7 +141,12 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         "mesh_db" = mesh_db, "ah_data" = ah_data, "signature_data" = signature_data,
         "signature_df" = signature_df, "de_table_namedf" = de_table_namedf,
         "sig_genes_namedf" = sig_genes_namedf)
-      simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
+      simple_cl <- NULL
+      if (isTRUE(verbose)) {
+        simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
+      } else {
+        simple_cl <- sm(try(do.call(what = "simple_clusterprofiler", args = args), silent = TRUE))
+      }
       if (! "try-error" %in% class(simple_cl)) {
         got_args <- TRUE
         kegg_universe  <- simple_cl[["kegg_universe"]]
@@ -179,7 +184,12 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
         "mesh_db" = mesh_db, "ah_data" = ah_data, "signature_data" = signature_data,
         "signature_df" = signature_df, "de_table_namedf" = de_table_namedf,
         "sig_genes_namedf" = sig_genes_namedf)
-      simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
+      simple_cl <- NULL
+      if (isTRUE(verbose)) {
+        simple_cl <- try(do.call(what = "simple_clusterprofiler", args = args))
+      } else {
+        simple_cl <- sm(try(do.call(what = "simple_clusterprofiler", args = args), silent = TRUE))
+      }
       if (! "try-error" %in% class(simple_cl) && !isTRUE(got_args)) {
         got_args <- TRUE
         kegg_universe  <- simple_cl[["kegg_universe"]]
@@ -794,6 +804,10 @@ guess_bitr_keytype <- function(org, from, sig_genes = NULL, to = "ENTREZ",
       chosen_sig_df <- test_sig_df
     }
   }
+  if (from == "" || is.null(from)) {
+    warning("There appears to be no good match.")
+    return(NULL)
+  }
   mesg("Chose keytype: ", from, " for all genes because it had ", num_hits,
        " out of ", length(universe), " genes.")
   if (!is.null(sig_genes)) {
@@ -956,6 +970,9 @@ simple_clusterprofiler <- function(sig_genes, de_table = NULL, orgdb = "org.Hs.e
   if (is.null(orgdb_from)) {
     mesg("Guessing appropriate keytype for the orgdb.")
     key_info <- guess_bitr_keytype(org, orgdb_from, sig_genes = sig_genes, to = orgdb_to)
+    if (is.null(key_info)) {
+      return(NULL)
+    }
     ## orgdb_sig_from <- key_info[["orgdb_sig_from"]]
     de_table_namedf <- key_info[["gene_df"]]
     sig_genes_namedf <- key_info[["sig_df"]]

@@ -384,8 +384,12 @@ setMethod(
     new_row <- written_row + 2
     ## Set the column lengths, hard set the first to 20,
     ## then try to set it to auto if the length is not too long.
+
     for (data_col in seq_len(ncol(final_data))) {
       ## Make an explicit check that the data is not null, which comes out here as character(0)
+      if (is.null(final_data[[data_col]])) {
+        next
+      }
       style_set <- NULL
       this_column <- final_data[[data_col]]
       test_column <- as.character(this_column)
