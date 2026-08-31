@@ -151,6 +151,8 @@ mesg <- function(..., verbosity = NULL, warn = FALSE) {
 
 #' Set the xlsx table style
 table_style <- "TableStyleMedium9"
+#' The default number of digits to print in a xlsx file.
+xlsx_digits <- 4
 
 #' R CMD check is super annoying about :::.
 #'

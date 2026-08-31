@@ -57,7 +57,7 @@ setClass("hpgltools::all_cprofiler",
 #' @export
 all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE, todo = NULL,
                           orgdb = "org.Hs.eg.db", orgdb_from = NULL, orgdb_to = "ENTREZID",
-                          go_level = 3, pcutoff = 0.05, qcutoff = 0.1, fc_column = "logFC",
+                          go_level = 3, pcutoff = 0.05, qcutoff = 0.1, fc_column = NULL,
                           second_fc_column = "deseq_logfc", updown = "up",
                           min_groupsize = 5, max_groupsize = 500,
                           kegg_prefix = NULL, kegg_organism = NULL, organism = "human",
@@ -86,6 +86,10 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     input_down <- sig[["abundances"]][[according_to]][["low"]]
   } else {
     stop("I do not understand this input.")
+  }
+
+  if (is.null(fc_column)) {
+    fc_column <- paste0(according_to, "_logfc")
   }
 
   sig_names <- names(input_up)
@@ -167,8 +171,9 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     } else {
       ret[[retname_up]] <- NULL
     }
+
+
     if (down_elements > 0) {
-      Sys.sleep(10)
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
       args <- list(
         "sig_genes" = down, "de_table" = table, "orgdb" = orgdb, "todo" = todo,
@@ -190,25 +195,28 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
       } else {
         simple_cl <- sm(try(do.call(what = "simple_clusterprofiler", args = args), silent = TRUE))
       }
-      if (! "try-error" %in% class(simple_cl) && !isTRUE(got_args)) {
-        got_args <- TRUE
-        kegg_universe  <- simple_cl[["kegg_universe"]]
-        reactome_organism <- simple_cl[["reactome_organism"]]
-        mesh_db <- simple_cl[["mesh_db"]]
-        ah_data <- simple_cl[["ah_data"]]
-        signature_data <- simple_cl[["signature_data"]]
-        signature_df <- simple_cl[["signature_df"]]
-        de_table_namedf <- simple_cl[["de_table_namedf"]]
-        sig_genes_namedf <- simple_cl[["sig_genes_namedf"]]
-        orgdb_from <- simple_cl[["orgdb_from"]]
-        orgdb_to <- simple_cl[["orgdb_to"]]
-        todo <- simple_cl[["todo"]]
-        ret[[retname_down]] <- simple_cl
-      } else {
+      if ("try-error" %in% class(simple_cl)) {
         ret[[retname_down]] <- NULL
+      } else {
+        if (!isTRUE(got_args)) {
+          got_args <- TRUE
+          kegg_universe  <- simple_cl[["kegg_universe"]]
+          reactome_organism <- simple_cl[["reactome_organism"]]
+          mesh_db <- simple_cl[["mesh_db"]]
+          ah_data <- simple_cl[["ah_data"]]
+          signature_data <- simple_cl[["signature_data"]]
+          signature_df <- simple_cl[["signature_df"]]
+          de_table_namedf <- simple_cl[["de_table_namedf"]]
+          sig_genes_namedf <- simple_cl[["sig_genes_namedf"]]
+          orgdb_from <- simple_cl[["orgdb_from"]]
+          orgdb_to <- simple_cl[["orgdb_to"]]
+          todo <- simple_cl[["todo"]]
+        }
+        ret[[retname_down]] <- simple_cl
       }
-      #ret[[retname_down]] <- sm(simple_clusterprofiler(down, first_col = fc_col))
     } else {
+      ## There are insufficient elements to query the various
+      ## databases via clusterprofiler
       ret[[retname_down]] <- NULL
     }
   }

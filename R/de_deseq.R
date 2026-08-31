@@ -221,12 +221,16 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
                             deseq_method = "long", fittype = "parametric",
                             num_surrogates = "be", keep_underscore = TRUE, ...) {
   arglist <- list(...)
+  xlsx_digits <- 4
+  if (!is.null(arglist[["xlsx_digits"]])) {
+    xlsx_digits <- arglist[["xlsx_digits"]]
+  }
 
   mesg("Starting DESeq2 pairwise comparisons.")
   current <- state(input)
   filteredp <- current[["filter"]]
   if ((is.null(filteredp) || filteredp == "raw") &&
-        isTRUE(filter)) {
+        !isFALSE(filter)) {
     input <- sm(normalize(input, filter = filter))
   }
   input <- sanitize_se(input, keep_underscore = keep_underscore)
@@ -306,14 +310,13 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     mesg("DESeq2 step 2/5: Estimate size factors.")
     deseq_sf <- DESeq2::estimateSizeFactors(dataset)
     mesg("DESeq2 step 3/5: Estimate dispersions.")
-    deseq_disp <- try(DESeq2::estimateDispersions(deseq_sf, fitType = fittype), silent = TRUE)
+    deseq_disp <- try(DESeq2::estimateDispersions(deseq_sf, fitType = fittype))
     if (class(deseq_disp)[1] == "try-error") {
       mesg("Trying a mean fitting.")
       deseq_disp <- try(DESeq2::estimateDispersions(deseq_sf, fitType = "mean"), silent = TRUE)
       if (class(deseq_disp)[1] == "try-error") {
         warning("Both 'parametric' and 'mean' failed.  Trying 'local'.")
-        deseq_disp <- try(DESeq2::estimateDispersions(deseq_sf,
-                                                      fitType = "local"), silent = TRUE)
+        deseq_disp <- try(DESeq2::estimateDispersions(deseq_sf, fitType = "local"), silent = TRUE)
         if (class(deseq_disp)[1] == "try-error") {
           warning("All fitting types failed.  This will end badly.")
         } else {
@@ -326,8 +329,8 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       mesg("Using a parametric fitting seems to have worked.")
     }
     mesg("DESeq2 step 4/5: nbinomWaldTest.")
-    deseq_run <- DESeq2::nbinomWaldTest(deseq_disp, betaPrior = chosen_beta, quiet = TRUE)
-  }
+    deseq_run <- DESeq2::nbinomWaldTest(deseq_disp, betaPrior = chosen_beta, quiet = FALSE)
+  } ## End the decision to use the long or short method of invoking DESeq2
   normalized_counts <- DESeq2::counts(deseq_disp)
   tmp_file <- tmpmd5file(pattern = "deseq_disp", fileext = ".png")
   this_plot <- try(png(filename = tmp_file))
@@ -422,12 +425,12 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     ## From here on everything is the same.
     result[is.na(result[["P.Value"]]), "P.Value"] <- 1 ## Some p-values come out as NA
     result[is.na(result[["adj.P.Val"]]), "adj.P.Val"] <- 1 ## Some p-values come out as NA
-    result[["baseMean"]] <- signif(x = as.numeric(result[["baseMean"]]), digits = 4)
-    result[["logFC"]] <- signif(x = as.numeric(result[["logFC"]]), digits = 4)
-    result[["lfcSE"]] <- signif(x = as.numeric(result[["lfcSE"]]), digits = 4)
-    result[["stat"]] <- signif(x = as.numeric(result[["stat"]]), digits = 4)
-    result[["P.Value"]] <- signif(x = as.numeric(result[["P.Value"]]), digits = 4)
-    result[["adj.P.Val"]] <- signif(x = as.numeric(result[["adj.P.Val"]]), digits = 4)
+    result[["baseMean"]] <- signif(x = as.numeric(result[["baseMean"]]), digits = xlsx_digits)
+    result[["logFC"]] <- signif(x = as.numeric(result[["logFC"]]), digits = xlsx_digits)
+    result[["lfcSE"]] <- signif(x = as.numeric(result[["lfcSE"]]), digits = xlsx_digits)
+    result[["stat"]] <- signif(x = as.numeric(result[["stat"]]), digits = xlsx_digits)
+    result[["P.Value"]] <- signif(x = as.numeric(result[["P.Value"]]), digits = xlsx_digits)
+    result[["adj.P.Val"]] <- signif(x = as.numeric(result[["adj.P.Val"]]), digits = xlsx_digits)
     result_nas <- is.na(result)
     result[result_nas] <- 0
     if (!is.null(annot_df)) {

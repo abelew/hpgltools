@@ -316,6 +316,11 @@ limma_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
   arglist <- list(...)
   ## This is used in the invocation of a voom() implementation for normalization.
   ## This is for the eBayes() call.
+  xlsx_digits <- 4
+  if (!is.null(arglist[["xlsx_digits"]])) {
+    xlsx_digits <- arglist[["xlsx_digits"]]
+  }
+
 
   current <- state(input)
   filteredp <- current[["filter"]]
@@ -647,7 +652,7 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
                                      n = n, coef = d, sort.by = "logFC")
 
       for (column in seq_len(ncol(data_table))) {
-        data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = 4)
+        data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = xlsx_digits)
       }
       if (!is.null(annot_df)) {
         data_table <- merge(data_table, annot_df, by.x = "row.names", by.y = "row.names")
@@ -679,7 +684,7 @@ make_limma_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
       table <- data_tables[[e]]
       for (column in seq_len(ncol(table))) {
-        table[[column]] <- signif(x = as.numeric(table[[column]]), digits = 4)
+        table[[column]] <- signif(x = as.numeric(table[[column]]), digits = xlsx_digits)
       }
       if (!is.null(annot_df)) {
         table <- merge(table, annot_df, by.x = "row.names", by.y = "row.names")

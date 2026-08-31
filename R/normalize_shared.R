@@ -152,6 +152,12 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
                          ...) {
   arglist <- list(...)
 
+  num_digits <- options("digits")
+  if (num_digits != 7) {
+    warning("Something changed the number of significant digits from the defaults.")
+    Sys.sleep(10)
+  }
+
   ## I need to go through and rewrite how these get set:
   adjust_performed <- "none"
   batch_performed <- "none"

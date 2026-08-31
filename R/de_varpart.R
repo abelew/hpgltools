@@ -306,7 +306,7 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
                                                 n = n, coef = c, sort.by = "logFC")
 
       for (column in seq_len(ncol(data_table))) {
-        data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = 4)
+        data_table[[column]] <- signif(x = as.numeric(data_table[[column]]), digits = xlsx_digits)
       }
       if (!is.null(annot_df)) {
         data_table <- merge(data_table, annot_df, by.x = "row.names", by.y = "row.names")
@@ -338,7 +338,7 @@ make_varpart_tables <- function(fit = NULL, adjust = "BH", n = 0, coef = NULL,
       comp_name <- strsplit(x = comparison, split = " = ")[[1]][1]
       table <- data_tables[[d]]
       for (column in seq_len(ncol(table))) {
-        table[[column]] <- signif(x = as.numeric(table[[column]]), digits = 4)
+        table[[column]] <- signif(x = as.numeric(table[[column]]), digits = xlsx_digits)
       }
       if (!is.null(annot_df)) {
         table <- merge(table, annot_df, by.x = "row.names", by.y = "row.names")

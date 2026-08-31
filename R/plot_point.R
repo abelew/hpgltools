@@ -381,7 +381,6 @@ plot_linear_scatter <- function(df, cormethod = "pearson", size = 2, loess = FAL
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(legend.position = "none",
                    axis.text = ggplot2::element_text(size = base_size, colour = "black"))
-
   x_histogram <- plot_histogram(data.frame(df[[xcol]]), fillcolor = "lightblue", color = "blue")
   y_histogram <- plot_histogram(data.frame(df[[ycol]]), fillcolor = "pink", color = "red")
   both_histogram <- plot_multihistogram(df[, c(xcol, ycol)])

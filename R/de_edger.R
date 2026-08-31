@@ -60,6 +60,10 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
                            keep_underscore = TRUE, num_surrogates = "be",
                            ...) {
   arglist <- list(...)
+  xlsx_digits <- 4
+  if (!is.null(arglist[["xlsx_digits"]])) {
+    xlsx_digits <- arglist[["xlsx_digits"]]
+  }
 
   mesg("Starting edgeR pairwise comparisons.")
   input <- sanitize_se(input, keep_underscore = keep_underscore)
@@ -247,15 +251,15 @@ edger_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     }
     res <- edgeR::topTags(lrt_list[[name]], n = nrow(data), sort.by = "logFC")
     res <- as.data.frame(res)
-    res[["logFC"]] <- signif(x = as.numeric(res[["logFC"]]), digits = 4)
-    res[["logCPM"]] <- signif(x = as.numeric(res[["logCPM"]]), digits = 4)
+    res[["logFC"]] <- signif(x = as.numeric(res[["logFC"]]), digits = xlsx_digits)
+    res[["logCPM"]] <- signif(x = as.numeric(res[["logCPM"]]), digits = xlsx_digits)
     if (!is.null(res[["LR"]])) {
-      res[["LR"]] <- signif(x = as.numeric(res[["LR"]]), digits = 4)
+      res[["LR"]] <- signif(x = as.numeric(res[["LR"]]), digits = xlsx_digits)
     } else if (!is.null(res[["F"]])) {
-      res[["F"]] <- signif(x = as.numeric(res[["F"]]), digits = 4)
+      res[["F"]] <- signif(x = as.numeric(res[["F"]]), digits = xlsx_digits)
     }
-    res[["PValue"]] <- signif(x = as.numeric(res[["PValue"]]), digits = 4)
-    res[["FDR"]] <- signif(x = as.numeric(res[["FDR"]]), digits = 4)
+    res[["PValue"]] <- signif(x = as.numeric(res[["PValue"]]), digits = xlsx_digits)
+    res[["FDR"]] <- signif(x = as.numeric(res[["FDR"]]), digits = xlsx_digits)
     result_list[[name]] <- res
   } ## End for loop
 

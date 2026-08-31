@@ -320,7 +320,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     colnames(cp_cc) <- new_columns
   }
 
-  cp_kegg <- cp_result[["kegg_data"]][["kegg_sig"]]
+  cp_kegg <- cp_result[["kegg_data"]][["sig_kegg_df"]]
   skip_kegg <- FALSE
   if (is.null(cp_kegg)) {
     skip_kegg <- TRUE
@@ -335,7 +335,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_kegg <- cp_kegg[kegg_idx, ]
   }
 
-  cp_reactome <- cp_result[["reactome_data"]][["reactome_sig"]]
+  cp_reactome <- cp_result[["reactome_data"]][["reactome_sig_df"]]
   skip_reactome <- FALSE
   if (is.null(cp_reactome)) {
     skip_reactome <- TRUE

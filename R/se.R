@@ -112,6 +112,13 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       condition_column = NULL, batch_column = NULL,
                       ...) {
   arglist <- list(...)  ## pass stuff like sep=, header=, etc here
+
+  num_digits <- options("digits")
+  if (num_digits != 7) {
+    warning("Something changed the number of significant digits from the defaults.")
+    Sys.sleep(10)
+  }
+
   if (!is.null(species)) {
     include_gff <- file.path(Sys.getenv("HOME"), "libraries", "genome", "gff", paste0(species, ".gff"))
     gene_info <- include_gff

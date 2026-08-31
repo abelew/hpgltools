@@ -107,6 +107,12 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   ## FIXME: I would like to revisit the function makeContrasts and
   ## make_pairwise_contrasts.  They are too brittle by far and should
   ## be rewritten to make use of do.call() instead of eval(parse())
+  num_digits <- options("digits")
+  if (num_digits != 7) {
+    warning("Something changed the number of significant digits from the defaults.")
+    Sys.sleep(10)
+  }
+
   if (!is.null(keepers) && !is.null(extra_contrasts)) {
     warning("This will likely fail because of how the keepers and extra contrasts are evaluated.")
   }
