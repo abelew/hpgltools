@@ -3,6 +3,24 @@
 #' @include 01_hpgltools.R
 TRUE
 
+add_cp_plots <- function(plots, wanted_plots, wb, sheet, width, height, plot_column, start_row,
+                         savedir, plot_basename = "undefined") {
+  new_row <- start_row + 1
+  plotted <- list()
+  for (wanted in wanted_plots) {
+    a_plot <- plots[[wanted]]
+    if (!is.null(a_plot)) {
+      plotname <- glue("{plot_basename}_{wanted}")
+      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
+                                  start_col = plot_column, start_row = new_row, savedir = savedir,
+                                  plotname = plotname, doWeights = FALSE)
+      new_row <- new_row + 75
+      plotted[[wanted]] <- plot_try[["filename"]]
+    }
+  }
+  return(plotted)
+}
+
 #' Collect gene IDs from a table and make them readable.
 #'
 #' @param table Gene table from (initially) clusterProfiler.
@@ -208,12 +226,16 @@ gather_ontology_genes <- function(result, ontology = NULL,
 #' @return The result from openxlsx in a prettyified xlsx file.
 #' @seealso [openxlsx]
 #' @export
+## TODO/FIXME: Replace add_plots with a vector of the wanted plots
 write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
                           add_trees = TRUE, order_by = "qvalue", pval = 0.1, add_plots = TRUE,
                           height = 15, width = 10, decreasing = FALSE, primary_key = 1, new = "ORF",
-                          add_gsea = TRUE, pval_column = "deseq_adjp",
+                          add_gsea = TRUE, pval_column = "deseq_adjp", wanted_plots = NULL,
                           ...) {
   arglist <- list(...)
+  if (is.null(wanted_plots)) {
+    wanted_plots <- c("cnet", "dot", "go", "heat", "map", "ss", "tree", "up")
+  }
   image_list <- c()
   excel_basename <- NULL
   wb <- NULL
@@ -226,8 +248,8 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     wb <- excel
   }
 
-  openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
-                        textDecoration = "bold", border = "Bottom", fontSize = "30")
+  def_style <- openxlsx::createStyle(fontColour = "#000000", halign = "LEFT",
+                                     textDecoration = "bold", border = "Bottom", fontSize = "30")
 
   if (!is.null(wb)) {
     mesg("Writing a sheet containing the legend.")
@@ -260,6 +282,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
 
   ## Pull out the relevant portions of the cp data
   ## For this I am using the same (arbitrary) rules as in gather_ontology_genes()
+
   skip_mf <- FALSE
   cp_mf <- cp_result[["go_data"]][["MF_sig"]]
   if (nrow(cp_mf) > 0) {
@@ -396,28 +419,18 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     new_row <- 1
     mesg("Writing the BP data.")
     sheet <- "BP"
-    write_xlsx(data = cp_bp, wb = wb, sheet = sheet,
-               title = "BP REsults from cp.", start_row = new_row)
+    dfwrite <- write_xlsx(data = cp_bp, wb = wb, sheet = sheet,
+                          title = "BP REsults from cp.", start_row = new_row)
     bp_plots <- list()
     if (!is.null(cp_result[["go_data"]][["BP_enrich"]])) {
-      bp_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["BP_enrich"]]))
+      bp_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["go_data"]][["BP_enrich"]])))
     }
-    a_plot <- bp_plots[["dot"]]
-    plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                start_col = ncol(cp_bp) + 2, start_row = new_row,
-                                plotname = "bp_plot", savedir = excel_basename, doWeights = FALSE)
-    if (! "try-error" %in% class(plot_try)) {
-      image_list <- c(image_list, plot_try[["filename"]])
+    plot_column <- ncol(cp_bp) + 3
+    added_plots <- add_cp_plots(bp_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "bp")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
     }
-    upset <- bp_plots[["up"]]
-    plot_try <- xlsx_insert_png(
-      upset, wb = wb, sheet = sheet, width = 12, height = 12,
-      start_col = ncol(cp_bp) + 12, start_row = 80,
-      plotname = "BP_upset", savedir = excel_basename)
-    if (! "try-error" %in% class(plot_try)) {
-      image_list <- c(image_list, plot_try[["filename"]])
-    }
-    new_row <- new_row + nrow(cp_bp) + 2
     try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
         silent = TRUE)
     try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
@@ -430,33 +443,21 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     sheet <- "MF"
     dfwrite <- write_xlsx(data = cp_mf, wb = wb, sheet = sheet, title = "MF Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
     mf_plots <- list()
     if (!is.null(cp_result[["go_data"]][["MF_enrich"]])) {
-      mf_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["MF_enrich"]]))
+      mf_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["go_data"]][["MF_enrich"]])))
     }
-    a_plot <- mf_plots[["dot"]]
-    plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                start_col = ncol(cp_mf) + 2, start_row = new_row,
-                                plotname = "mf_plot", savedir = excel_basename, doWeights = FALSE)
-    if (! "try-error" %in% class(plot_try)) {
-      image_list <- c(image_list, plot_try[["filename"]])
+    plot_column <- ncol(cp_bp) + 3
+    added_plots <- add_cp_plots(mf_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "mf")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
     }
-    upset <- mf_plots[["up"]]
-    plot_try <- xlsx_insert_png(
-      upset, wb = wb, sheet = sheet, width = 12, height = 12,
-      start_col = ncol(cp_mf) + 12, start_row = 80,
-      plotname = "MF_upset", savedir = excel_basename)
-    if (! "try-error" %in% class(plot_try)) {
-      image_list <- c(image_list, plot_try[["filename"]])
-    }
-    new_row <- new_row + nrow(cp_mf) + 2
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
                      silent = TRUE)
-    }
-  }
+  } ## Check for skip_mf
 
   if (isFALSE(skip_cc)) {
     new_row <- 1
@@ -465,33 +466,21 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_cc, wb = wb, sheet = sheet,
                           title = "CC Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      cc_plots <- list()
-      if (!is.null(cp_result[["go_data"]][["CC_enrich"]])) {
-        cc_plots <- suppressWarnings(plot_enrichresult(cp_result[["go_data"]][["CC_enrich"]]))
-      }
-      a_plot <- cc_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- cc_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    cc_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["CC_enrich"]])) {
+      cc_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["go_data"]][["CC_enrich"]])))
     }
-    new_row <- new_row + nrow(cp_cc) + 2
+    added_plots <- add_cp_plots(cc_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "cc")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
+
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
                      silent = TRUE)
-  }
+  } ## Checking if we should skip cellular components
 
   if (isFALSE(skip_kegg)) {
     new_row <- 1
@@ -500,33 +489,20 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_kegg, wb = wb, sheet = sheet,
                           title = "KEGG Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      kegg_plots <- list()
-      if (!is.null(cp_result[["kegg_data"]])) {
-        kegg_plots <- suppressWarnings(plot_enrichresult(cp_result[["kegg_data"]][["kegg_enrich"]]))
-      }
-      a_plot <- kegg_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- kegg_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    kegg_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["kegg_data"]])) {
+      kegg_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["kegg_data"]][["all_kegg"]])))
     }
-    new_row <- new_row + nrow(cp_cc) + 2
+    added_plots <- add_cp_plots(kegg_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "kegg")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
                      silent = TRUE)
-  }
+  } ## Skip the kegg results
 
   if (isFALSE(skip_reactome)) {
     new_row <- 1
@@ -535,27 +511,16 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_reactome, wb = wb, sheet = sheet,
                           title = "Reactome Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      reactome_plots <- list()
-      if (!is.null(cp_result[["reactome_data"]])) {
-        reactome_plots <- suppressWarnings(plot_enrichresult(cp_result[["reactome_data"]][["reactome_enrich"]]))
-      }
-      a_plot <- reactome_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- reactome_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    reactome_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["reactome_data"]])) {
+      reactome_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["reactome_data"]][["all_reactome"]])))
     }
+    added_plots <- add_cp_plots(reactome_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "reactome")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
+
     new_row <- new_row + nrow(cp_cc) + 2
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
@@ -570,28 +535,16 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_dose, wb = wb, sheet = sheet,
                           title = "Dose Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      dose_plots <- list()
-      if (!is.null(cp_result[["dose_data"]])) {
-        dose_plots <- suppressWarnings(plot_enrichresult(cp_result[["dose_data"]][["dose_enrich"]]))
-      }
-      a_plot <- dose_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- dose_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    dose_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["dose_data"]])) {
+      dose_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["dose_data"]][["all_dose"]])))
     }
-    new_row <- new_row + nrow(cp_cc) + 2
+    added_plots <- add_cp_plots(dose_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "dose")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
+
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
@@ -605,28 +558,16 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_mesh, wb = wb, sheet = sheet,
                           title = "MESH Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      mesh_plots <- list()
-      if (!is.null(cp_result[["mesh_data"]])) {
-        mesh_plots <- suppressWarnings(plot_enrichresult(cp_result[["mesh_data"]][["mesh_enrich"]]))
-      }
-      a_plot <- mesh_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- mesh_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    dose_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["dose_data"]])) {
+      dose_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["dose_data"]][["all_dose"]])))
     }
-    new_row <- new_row + nrow(cp_cc) + 2
+    added_plots <- add_cp_plots(dose_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "dose")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
+
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
@@ -640,32 +581,43 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_msigdb, wb = wb, sheet = sheet,
                           title = "MSIGDB Results from cp.",
                           start_row = new_row)
-    if (isTRUE(add_plots)) {
-      msigdb_plots <- list()
-      if (!is.null(cp_result[["msigdb_data"]])) {
-        msigdb_plots <- suppressWarnings(plot_enrichresult(cp_result[["msigdb_data"]][["msigdb_enrich"]]))
-      }
-      a_plot <- msigdb_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(cp_cc) + 2, start_row = new_row,
-                                  plotname = "cc_plot", savedir = excel_basename, doWeights = FALSE)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
-      upset <- msigdb_plots[["up"]]
-      plot_try <- xlsx_insert_png(
-        upset, wb = wb, sheet = sheet, width = 12, height = 12,
-        start_col = ncol(cp_cc) + 12, start_row = 80,
-        plotname = "CC_upset", savedir = excel_basename)
-      if (! "try-error" %in% class(plot_try)) {
-        image_list <- c(image_list, plot_try[["filename"]])
-      }
+    msigdb_plots <- list()
+    if (!is.null(cp_result[["go_data"]][["msigdb_data"]])) {
+      msigdb_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["msigdb_data"]][["all_msigdb"]])))
     }
-    new_row <- new_row + nrow(cp_cc) + 2
+    added_plots <- add_cp_plots(msigdb_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "msigdb")
+    for (plotted in names(added_plots)) {
+      image_list <- c(image_list, added_plots[[plotted]])
+    }
+
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 2:9, widths = "auto"),
                      silent = TRUE)
     width_set <- try(openxlsx::setColWidths(wb, sheet = sheet, cols = 6:7, widths = 30),
                      silent = TRUE)
+  }
+
+  ## Print out the GSEA results if available, I think I will only do this for GO for now at least
+  if (is.null(cp_result[["go_data"]][["GO_gse"]])) {
+    message("There is no GSEA data to plot.")
+  } else {
+    new_row <- 1
+    mesg("Writing the GSEA data.")
+    sheet <- "GO_GSEA"
+    gsea_df <- cp_result[["go_data"]][["GO_gse_sig"]]
+    dfwrite <- write_xlsx(data = gsea_df, wb = wb, sheet = sheet,
+                          title = "GO GSEA Results.", start_row = new_row)
+    gsea_plots <- sm(plot_topn_gsea(cp_result[["go_data"]][["GO_gse"]]))
+    plot_column <- ncol(gsea_df) + 2
+    for (g in seq_along(gsea_plots)) {
+      gsea_plot <- gsea_plots[[g]]
+      gsea_name <- names(gsea_plots)[g]
+      plot_try <- xlsx_insert_png(gsea_plot, wb = wb, sheet = sheet, width = 10,
+                                  height = 6, start_col = plot_column, start_row = new_row,
+                                  savedir = savedir, plotname = gsea_name)
+      new_row <- new_row + 33
+      image_list <- c(image_list, plot_try[["filename"]])
+    }
   }
 
   res <- openxlsx::saveWorkbook(wb, excel, overwrite = TRUE)

@@ -1765,7 +1765,7 @@ dispatch_count_lines <- function(meta, search, input_file_spec, verbose = verbos
 #' @param sum_column Put the new column at this location in the output dataframe.
 dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
                                 species = "*", basedir = "preprocessing",
-                                type = "genome", subtype = "gene",
+                                type = "genome", subtype = "gene", sep = "\t",
                                 new_spec = NULL, tag = "ID", sum_column = "last") {
   output_entries <- rep(0, nrow(meta))
   if (length(species) > 1) {
@@ -1786,7 +1786,7 @@ dispatch_sum_column <- function(meta, input_file_spec, verbose = verbose,
     if (is.null(input_file)) {
       next
     }
-    input_start <- try(read.table(input_file))
+    input_start <- try(read.table(input_file, sep = sep))
     if (class(input_start)[1] == "try-error") {
       warning("There was a problem reading: <", input_file, ">.")
       next
@@ -2726,7 +2726,6 @@ read_metadata <- function(file, sep = ",", header = TRUE, sheet = 1, comment = "
     ## tmp_definitions = readWorksheet(xls, 1)
     definitions <- try(openxlsx::read.xlsx(xlsxFile = file, sheet = sheet,
                                            detectDates = TRUE))
-
     if (class(definitions)[1] == "try-error") {
       definitions <- try(openxlsx::read.xlsx(xlsxFile = file, sheet = sheet,
                                              detectDates = FALSE))

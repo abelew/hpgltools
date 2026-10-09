@@ -56,6 +56,73 @@ check_xlsx_worksheet <- function(wb, sheet, taken_sheets = c()) {
   return(retlist)
 }
 
+#' Extract colors from the background of xlsx cells.
+#'
+#' I got the idea in my head that people with whom we work might like
+#' to define the colors of plots etc. by selecting the colors of
+#' interest in the xlsx columns.  Ergo this function.
+#'
+#' @param xlsx File used to extract colors.
+#' @param sheet Sheet number or name used to acquire the colors.
+#' @param column Sheet column containing the colors.
+#' @returns List named by factor level containing the colors.
+#' @export
+get_xlsx_colors_by_column <- function(file, sheet = 1, column = "condition") {
+  wb <- openxlsx::loadWorkbook(file = file)
+  meta <- sm(extract_metadata(file, sheet))
+  column_number <- which(column == colnames(meta))
+  sheet_list <- openxlsx::getSheetNames(file)
+  sheet_name <- sheet
+  if (is.numeric(sheet)) {
+    sheet_name <- sheet_list[sheet]
+  }
+  style_list <- wb[["styleObjects"]]
+  wanted_styles <- c()
+  color_list <- list()
+  color_levels <- levels(as.factor(meta[[column]]))
+  color_elements <- list()
+  ## Iterate over the names of the levels of the factor of interest, defined by the `column`
+  for (elem in color_levels) {
+    mesg("Extracting color for ", elem)
+    ## Pull the rows which have this identity
+    idx <- which(meta[[column]] == elem)
+    ## Make an identical set++ because column headers add 1
+    idxplus <- idx + 1
+    color_elements[[elem]] <- idx
+    ## Now iterate over every available style
+    for (style in style_list) {
+      ## If that style is in this sheet, check it
+      if (style[["sheet"]] == sheet_name) {
+        ## If this style is used in the column of interest, check it
+        if (sum(style[["cols"]] == column_number) > 0) {
+          ## If the set of rows used by this style are identical to the index,
+          ## then it is the winner!
+          if (sum(idx %in% style[["rows"]]) == length(idx) ||
+                sum(idxplus %in% style[["rows"]]) == length(idxplus)) {
+            kept <- style[["style"]]
+            ## Weirdly the Fg element, not the Bg element is the background to the cell!
+            test_color <- kept@.xData[["fill"]][["fillFg"]]
+            chosen_color <- "000000"
+            if (is.null(color_list[[elem]])) {
+              color_list[[elem]] <- chosen_color
+            } else {
+              chosen_color <- color_list[[elem]]
+            }
+            if (color_list[[elem]] == chosen_color && !is.null(test_color)) {
+              chosen_color <- test_color
+              chosen_color <- gsub(x = chosen_color, pattern = "^..", replacement = "#")
+            }
+            ## The style comprising this set of cells may not have a color associated with it
+            ## if the person set these cells as italics or whatever
+            color_list[[elem]] <- chosen_color
+          }
+        }
+      }
+    }
+  }
+  return(color_list)
+}
+
 #' Initialize an xlsx file with a little bit of logic to make sure there are no
 #' annoying downstream errors.
 #'
@@ -479,6 +546,8 @@ setMethod(
       "workbook" = wb,
       "sheet" = sheet,
       "frozen" = frozen,
+      "start_row" = start_row,
+      "start_col" = start_col,
       "end_row" = new_row,
       "end_col" = end_col,
       "file" = excel)

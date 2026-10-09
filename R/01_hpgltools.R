@@ -50,7 +50,7 @@ NULL
 #'
 #' @name enrichResult-class
 #' @rdname enrichResult
-#' @importClassesFrom DOSE enrichResult
+#' @importClassesFrom enrichit enrichResult
 NULL
 
 #' Make sure BiocGenerics' version of rowMeans is available.

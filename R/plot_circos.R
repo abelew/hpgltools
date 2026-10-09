@@ -1,3 +1,31 @@
+circos_check_track_file <- function(cfg, track_name) {
+  suffix <- 1
+  track_files <- cfg@track_names
+  while (track_name %in% track_files) {
+    track_dir <- dirname(track_name)
+    track_base <- basename(track_name)
+    track_base <- paste0(suffix, "_", track_base)
+    suffix <- suffix + 1
+    track_name <- file.path(track_dir, track_base)
+  }
+  track_files <- c(track_files, track_name)
+  return(track_files)
+}
+
+circos_check_data_file <- function(cfg, data_file) {
+  suffix <- 1
+  data_files <- cfg@data_files
+  while (data_file %in% data_files) {
+    data_dir <- dirname(data_file)
+    data_base <- basename(data_file)
+    data_base <- paste0(suffix, "_", data_base)
+    suffix <- suffix + 1
+    data_file <- file.path(data_dir, data_base)
+  }
+  data_files <- c(data_files, data_file)
+  return(data_files)
+}
+
 #' Write arcs between chromosomes in circos.
 #'
 #' Ok, so when I said I only do 1 chromosome images, I lied.
@@ -28,14 +56,22 @@
 #' @return The file to which the arc configuration information was written.
 #' @export
 circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2",
-                       color = "blue", color_alpha = 0, radius = 0.75, thickness = 3,
-                       ribbon = "yes", show = "yes", z = "0") {
+                       color = "blue", color_alpha = 0, radius = NULL, thickness = 3,
+                       ribbon = "yes", show = "yes", z = "0", basename = "") {
+  if (is.null(radius)) {
+    radius <- cfg@radii[length(cfg@radii)]
+  }
   color <- circos_format_color(color, alpha = color_alpha)
   arc_cfg_file <- cfg@cfg_file
   arc_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = arc_cfg_file)
   arc_cfg_file <- paste0(arc_cfg_file, first_col, "_arc.conf")
   arc_data_file <- file.path(cfg@data_dir, basename(arc_cfg_file))
   arc_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = arc_data_file)
+
+  cfg@track_names <- circos_check_track_file(cfg, arc_cfg_file)
+  arc_cfg_file <- cfg@track_names[length(cfg@track_names)]
+  cfg@data_files <- circos_check_data_file(cfg, arc_data_file)
+  arc_data_file <- cfg@data_files[length(cfg@data_files)]
 
   first_name <- glue("{first_col}_name")
   second_name <- glue("{second_col}_name")
@@ -68,13 +104,14 @@ circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2
  <link>
   ribbon = {ribbon}
   show = {show}
-  file = {data_cfg_string}
+  file = {arc_data_file}
   color = {color}
   thickness = {thickness}
   </link>
  </links>
 
 ")
+
   data_cfg_out <- file(arc_cfg_file, open = "w+")
   cat(data_cfg_string, file = data_cfg_out, sep = "")
   close(data_cfg_out)
@@ -89,7 +126,8 @@ circos_arc <- function(cfg, df, first_col = "seqnames", second_col = "seqnames.2
   master_cfg_out <- file(cfg@cfg_file, open = "a+")
   cat(master_cfg_string, file = master_cfg_out, sep = "")
   close(master_cfg_out)
-  return(radius)
+  cfg@radii <- c(cfg@radii, radius)
+  return(cfg)
 }
 
 #' Make sure I haven't mixed and matched genomes.
@@ -205,8 +243,11 @@ circos_format_color <- function(start, alpha = 0) {
 circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
                            color_mapping = 0, min_value = NULL, max_value = NULL,
                            basename = "", colors = NULL,
-                           color_choice = "spectral-9-div", scale_log_base = 1, outer = 0.9, rules = NULL,
+                           color_choice = "spectral-9-div", scale_log_base = 1, outer = NULL, rules = NULL,
                            width = 0.08, spacing = 0.02, df_merge_column = "row.names") {
+  if (is.null(outer)) {
+    outer <- cfg@outers[length(cfg@outers)]
+  }
   annot <- cfg@annot
   df <- data.frame()
   if ("combined_de" %in% class(input)) {
@@ -250,8 +291,12 @@ circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
   heat_cfg_file <- cfg@cfg_file
   heat_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = heat_cfg_file)
   heat_cfg_file <- paste0(heat_cfg_file, "_", basename, colname, "_heatmap.conf")
+  cfg@track_names <- circos_check_track_file(cfg, heat_cfg_file)
+  heat_cfg_file <- cfg@track_names[length(cfg@track_names)]
   heat_data_file <- file.path(cfg@data_dir, basename(heat_cfg_file))
   heat_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = heat_data_file)
+  cfg@data_files <- circos_check_data_file(cfg, heat_data_file)
+  heat_data_file <- cfg@data_files[length(cfg@data_files)]
   message("Writing data file: ", heat_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = heat_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 
@@ -336,7 +381,8 @@ circos_heatmap <- function(cfg, input, tablename = NULL, colname = "logFC",
   new_outer <- inner - spacing
   message("Returning the inner width: ", new_outer,
           ".  Use it as the outer for the next ring.")
-  return(new_outer)
+  cfg@outers <- c(cfg@outers, new_outer)
+  return(cfg)
 }
 
 #' Write histograms of arbitrary floating point data in circos.
@@ -376,12 +422,15 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
                         colname = "logFC", basename = "",
                         color = "blue", fill_color = "blue", fill_under = "yes",
                         extend_bin = "no", thickness = "0", orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
+                        outer = NULL, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
                         color_alpha = 0, fill_alpha = 0) {
   ## I am going to have this take as input a data frame with genes as rownames
   ## starts, ends, and functional calls
   ## I will tell R to print out a suitable stanza for circos while I am at it
   ## because I am tired of mistyping something stupid.
+  if (is.null(outer)) {
+    outer <- cfg@outers[length(cfg@outers)]
+  }
   df <- data.frame()
   if ("combined_de" %in% class(input)) {
     if (is.null(tablename)) {
@@ -444,8 +493,12 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   hist_cfg_file <- cfg@cfg_file
   hist_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = hist_cfg_file)
   hist_cfg_file <- paste0(hist_cfg_file, "_", basename, colname, "_hist.conf")
+  cfg@track_names <- circos_check_track_file(cfg, hist_cfg_file)
+  hist_cfg_file <- cfg@track_names[length(cfg@track_names)]
   hist_data_file <- file.path(cfg@data_dir, basename(hist_cfg_file))
   hist_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = hist_data_file)
+  cfg@data_files <- circos_check_data_file(cfg, hist_data_file)
+  hist_data_file <- cfg@data_files[length(cfg@data_files)]
   mesg("Writing data file: ", hist_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = hist_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 
@@ -494,7 +547,8 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   new_outer <- inner - spacing
   mesg("Returning the inner width: ", new_outer,
        ".  Use it as the outer for the next ring.")
-  return(new_outer)
+  cfg@outers <- c(cfg@outers, new_outer)
+  return(cfg)
 }
 
 #' Create the description of chromosome markings.
@@ -523,20 +577,26 @@ circos_hist <- function(cfg, input, tablename = NULL, annot_source = "cfg",
 #' @param band_stroke_thickness How big to make the strokes!
 #' @return The file to which the ideogram configuration was written.
 #' @export
-circos_ideogram <- function(name = "default", conf_dir = "circos/conf", band_url = NULL,
+circos_ideogram <- function(cfg, name = "default", conf_dir = "circos/conf", band_url = NULL,
                             fill = "yes", stroke_color = "black", stroke_alpha = 0,
                             show_bands = "yes", fill_bands = "yes",
                             thickness = "20", stroke_thickness = "2",
                             label_font = "condensedbold",
                             spacing_default = "0", spacing_break = "0",
                             fill_color = "black", fill_alpha = 0,
-                            radius = "0.85", radius_padding = "0.05", show_label = FALSE,
+                            radius = 0.85, radius_padding = "0.05", show_label = FALSE,
                             label_size = "36", band_stroke_thickness = "2") {
+  ## The ideogram uses radii from 0->1, which I am keeping in the outers vector.
+  if (is.null(radius)) {
+    radius <- cfg@outers[length(cfg@outers)]
+  }
   stroke_color <- circos_format_color(stroke_color, alpha = stroke_alpha)
   fill_color <- circos_format_color(fill_color, alpha = stroke_alpha)
   ideogram_outfile <- glue("{conf_dir}/ideograms/{name}.conf")
   suppressWarnings(dir.create(dirname(ideogram_outfile), recursive = TRUE))
   out <- file(ideogram_outfile, open = "w+")
+  cfg@data_files <- circos_check_data_file(cfg, ideogram_outfile)
+  ideogram_outfile <- cfg@data_files[length(cfg@data_files)]
   if (isTRUE(show_label)) {
     show_label <- "yes"
   } else {
@@ -581,7 +641,8 @@ circos_ideogram <- function(name = "default", conf_dir = "circos/conf", band_url
   close(out)
   message("Wrote karyotype to ", ideogram_outfile)
   message("This should match the ideogram= line in ", name, ".conf")
-  return(ideogram_outfile)
+  cfg@ideogram_cfg_file <- ideogram_outfile
+  return(cfg)
 }
 
 #' Create the description of (a)chromosome(s) for circos.
@@ -637,6 +698,8 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
 
   chr_num <- nrow(chr_df)
   outfile <- glue("{conf_dir}/karyotypes/{name}.conf")
+  cfg@data_files <- circos_check_data_file(cfg, outfile)
+  outfile <- cfg@data_files[length(cfg@data_files)]
   out <- file(outfile, open = "w+")
   ## First write the summary line
   for (ch in seq_len(chr_num)) {
@@ -668,10 +731,10 @@ circos_karyotype <- function(cfg, segments = 6, color = "white", fasta = NULL,
     "outfile" = outfile,
     "size_df" = chr_df
   )
-  return(retlist)
+  return(cfg)
 }
 
-#' Write histograms of arbitrary floating point data in circos.
+#' Write Lines of arbitrary floating point data in circos.
 #'
 #' This function tries to make the writing of histogram data in circos
 #' easier.  Like circos_plus_minus() it works in 3 stages,
@@ -711,8 +774,11 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
                         colname = "logFC", basename = "", axis_color = "black",
                         axis_thickness = 1, color = "blue", fill_color = "blue", fill_under = "yes",
                         extend_bin = "no", thickness = "1", orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
+                        outer = NULL, width = 0.08, spacing = 0.0, df_merge_column = "row.names",
                         color_alpha = 0, fill_alpha = 0, gap = 1) {
+  if (is.null(outer)) {
+    outer <- cfg@outers[length(cfg@outers)]
+  }
   ## I am going to have this take as input a data frame with genes as rownames
   ## starts, ends, and functional calls
   ## I will tell R to print out a suitable stanza for circos while I am at it
@@ -778,8 +844,12 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   line_cfg_file <- cfg@cfg_file
   line_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = line_cfg_file)
   line_cfg_file <- paste0(line_cfg_file, "_", basename, colname, "_line.conf")
+  cfg@track_names <- circos_check_track_file(cfg, line_cfg_file)
+  line_cfg_file <- cfg@track_names[length(cfg@track_names)]
   line_data_file <- file.path(cfg@data_dir, basename(line_cfg_file))
   line_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = line_data_file)
+  cfg@data_files <- circos_check_data_file(cfg, line_data_file)
+  line_data_file <- cfg@data_files[length(cfg@data_files)]
   mesg("Writing data file: ", line_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = line_data_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 
@@ -799,7 +869,6 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   if (is.null(axis_color) || is.null(axis_thickness)) {
     axis <- FALSE
   }
-
 
   ## Now write the config stanza
   inner <- outer - width
@@ -851,7 +920,8 @@ circos_line <- function(cfg, input, tablename = NULL, annot_source = "cfg",
   new_outer <- inner - spacing
   mesg("Returning the inner width: ", new_outer,
        ".  Use it as the outer for the next ring.")
-  return(new_outer)
+  cfg@outers <- c(cfg@outers, new_outer)
+  return(cfg)
 }
 
 #' Write a simple makefile for circos.
@@ -914,7 +984,8 @@ realclean:
     "output_png" = make_target_png,
     "output_svg" = make_target_svg,
     "make_result" = result)
-  return(retlist)
+  cfg@make_result <- retlist
+  return(cfg)
 }
 
 #' Write tiles of bacterial ontology groups using the categories from
@@ -972,7 +1043,7 @@ realclean:
 #' @param url_string printf formatting string for interactive svg outputs.
 #' @return Radius after adding the plus/minus information and the spacing between them.
 #' @export
-circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
+circos_plus_minus <- function(cfg, outer = NULL, width = 0.08, thickness = 95,
                               spacing = 0.0, padding = 1, margin = 0.00,
                               plus_orientation = "out", minus_orientation = "in",
                               layers = 1, layers_overflow = "hide",
@@ -985,8 +1056,10 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
                               scol = "grey", tcol = "vlpurple", ucol = "greens-3-seq",
                               vcol = "vlred", wcol = "vvdppurple", xcol = "black",
                               ycol = "lred", zcol = "vlpblue", max = NULL,
-                              label_column = NULL, url_string = "") {
-
+                              label_column = NULL, cog_column = "COG", url_string = "") {
+  if (is.null(outer)) {
+    outer <- cfg@outers[length(cfg@outers)]
+  }
   ## Add a filter to make sure there are no features which span the entire chromosome
   ## These happen when using genbank genomes.
   orig <- options(scipen = 999)
@@ -1011,37 +1084,71 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
     minus_df <- minus_df[!minus_drop_idx, ]
   }
   if (!is.null(label_column)) {
-    tmpdf <- as.data.frame(annotation[[label_column]])
-    rownames(tmpdf) <- rownames(annotation)
-    colnames(tmpdf) <- "id"
+    message("Rewriting the COG elements.")
+    plus_df[["cog"]] <- NULL
+    minus_df[["cog"]] <- NULL
+    plus_df[["value"]] <- NULL
+    minus_df[["value"]] <- NULL
+    tmpdf <- as.data.frame(annotation[, c(cog_column, label_column)])
+    colnames(tmpdf) <- c("COG", "id")
+    na_elements <- is.na(tmpdf[["COG"]])
+    if (sum(na_elements) > 0) {
+      message("There are ", sum(na_elements), " NA elements replaced by 'X'.")
+      tmpdf[na_elements, "COG"] <- "X"
+    }
+    empty_elements <- tmpdf[["COG"]] == ""
+    if (sum(empty_elements) > 0) {
+      message("There are ", sum(empty_elements), " empty elements replaced by 'X'.")
+      tmpdf[empty_elements, "COG"] <- "X"
+    }
+    null_elements <- is.null(tmpdf[["COG"]])
+    if (sum(null_elements) > 0) {
+      message("There are ", sum(null_elements), " null elements replaced by 'X'.")
+      tmpdf[null_elements, "COG"] <- "X"
+    }
+    ## Keep only the first hit for a COG group
+    tmpdf[["COG"]] <- gsub(x = tmpdf[["COG"]], pattern = "^(\\w).*", replacement = "\\1")
+
     plus_df <- merge(plus_df, tmpdf, by = "row.names", all.x = TRUE)
     rownames(plus_df) <- plus_df[["Row.names"]]
     plus_df[["Row.names"]] <- NULL
-    plus_df[["value"]] <- paste0(plus_df[["value"]], ",id=", plus_df[["id"]])
-    plus_df[["value"]] <- gsub(pattern = "[[:space:]]", replacement = "",
-                               x = plus_df[["value"]])
-    plus_df[["id"]] <- NULL
+    plus_df[["id"]] <- paste0("value=", plus_df[["COG"]], ",title=", plus_df[["id"]])
+    plus_df[["id"]] <- gsub(pattern = "[[:space:]]", replacement = "",
+                            x = plus_df[["id"]])
+
     minus_df <- merge(minus_df, tmpdf, by = "row.names", all.x = TRUE)
-    minus_df[["value"]] <- paste0(minus_df[["value"]], ",id=", minus_df[["id"]])
-    minus_df[["value"]] <- gsub(pattern = "[[:space:]]", replacement = "", x = minus_df[["value"]])
-    minus_df[["id"]] <- NULL
     rownames(minus_df) <- minus_df[["Row.names"]]
     minus_df[["Row.names"]] <- NULL
+    minus_df[["id"]] <- paste0("value=", minus_df[["COG"]], ",title=", minus_df[["id"]])
+    minus_df[["id"]] <- gsub(pattern = "[[:space:]]", replacement = "",
+                            x = minus_df[["id"]])
   }
 
   ## I recently had a weird situation where exactly 1 gene was
   ## in scientific notation!
-  message("Writing data file: ", cfg@plus_data_file, " with the + strand GO data.")
-  write.table(plus_df, file = cfg@plus_data_file, quote = FALSE,
+  cfg@track_names <- circos_check_track_file(cfg, cfg@plus_cfg_file)
+  plus_cfg_file <- cfg@track_names[length(cfg@track_names)]
+  cfg@plus_cfg_file <- c(cfg@plus_cfg_file, plus_cfg_file)
+  cfg@track_names <- circos_check_track_file(cfg, cfg@minus_cfg_file)
+  minus_cfg_file <- cfg@track_names[length(cfg@track_names)]
+  cfg@minus_cfg_file <- c(cfg@minus_cfg_file, minus_cfg_file)
+  cfg@data_files <- circos_check_data_file(cfg, cfg@plus_data_file)
+  plus_data_file <- cfg@data_files[length(cfg@data_files)]
+  cfg@plus_data_file <- c(cfg@plus_data_file, plus_data_file)
+  cfg@data_files <- circos_check_data_file(cfg, cfg@minus_data_file)
+  minus_data_file <- cfg@data_files[length(cfg@data_files)]
+  cfg@minus_data_file <- c(cfg@minus_data_file, minus_data_file)
+  message("Writing data file: ", plus_data_file, " with the + strand GO data.")
+  write.table(plus_df, file = plus_data_file, quote = FALSE,
               row.names = FALSE, col.names = FALSE, na = "no_go")
-  message("Writing data file: ", cfg@minus_data_file, " with the - strand GO data.")
-  write.table(minus_df, file = cfg@minus_data_file, quote = FALSE,
+  message("Writing data file: ", minus_data_file, " with the - strand GO data.")
+  write.table(minus_df, file = minus_data_file, quote = FALSE,
               row.names = FALSE, col.names = FALSE, na = "no_go")
-
   first_outer <- outer
   first_inner <- first_outer - width
-  plus_cfg_out <- file(cfg@plus_cfg_file, open = "w+")
-  rel_plus_file <- file.path("data", basename(cfg@plus_data_file))
+
+  plus_cfg_out <- file(plus_cfg_file, open = "w+")
+  rel_plus_file <- file.path("data", basename(plus_data_file))
   rules_string <- glue("
   <rules>
    <rule>
@@ -1206,8 +1313,8 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
   ## Now move the ring in one width and print the minus strand.
   second_outer <- first_inner - spacing
   second_inner <- second_outer - width
-  minus_cfg_out <- file(cfg@minus_cfg_file, open = "w+")
-  rel_minus_file <- file.path("data", basename(cfg@minus_data_file))
+  minus_cfg_out <- file(minus_cfg_file, open = "w+")
+  rel_minus_file <- file.path("data", basename(minus_data_file))
   minus_cfg_string <- glue("
 
 ## The following plot stanza describes the broad ontological categories
@@ -1241,22 +1348,21 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
 
   master_cfg_out <- file(cfg@cfg_file, open = "a+")
   master_cfg_string <- glue("
+ ## The +/- ontology rings.
+ ## The plus strand ring extends from {first_outer}r to {first_inner}r
+ <<include {rel_plus_cfg}>>
+ ## The minus strand ring extends from {second_outer}r to {second_inner}r
+ <<include {rel_minus_cfg}>>", .trim = FALSE)
 
-  ## The +/- ontology rings.
-  ## The plus strand ring extends from {first_outer}r to {first_inner}r
-  <<include {rel_plus_cfg}>>
-  ## The minus strand ring extends from {second_outer}r to {second_inner}r
-  <<include {rel_minus_cfg}>>
-
-")
-  cat(master_cfg_string, file = master_cfg_out, sep = "")
+  ## For reasons I have not yet figured out, master_cfg_string
+  ## is getting a length of 2.
+  cat(master_cfg_string[1], file = master_cfg_out, sep = "")
   close(master_cfg_out)
 
-  message("Returning the inner width: ", second_inner,
-          ".  Use it as the outer for the next ring.")
   new_outer <- second_inner - spacing
   new <- options(orig)
-  return(new_outer)
+  cfg@outers <- c(cfg@outers, new_outer)
+  return(cfg)
 }
 
 #' Write the beginning of a circos configuration file.
@@ -1285,12 +1391,15 @@ circos_plus_minus <- function(cfg, outer = 1.0, width = 0.08, thickness = 95,
 #' @param ... Extra arguments passed to the tick/karyotype makers.
 #' @return The master configuration file name.
 #' @export
-circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
-                          chr_column = "seqnames", cog_column = "COGFun",
-                          start_column = "start", stop_column = "end",
-                          strand_column = "strand", id_column = NULL,
-                          cog_map = NULL,
-                          radius = 1800, chr_units = 1000, band_url = NULL, ...) {
+new_circos <- function(annotation, name = "mgas", base_dir = "circos",
+                       chr_column = "seqnames", cog_column = "COGFun",
+                       start_column = "start", stop_column = "end",
+                       strand_column = "strand", id_column = NULL,
+                       cog_map = NULL,
+                       radius = 1800, chr_units = 1000, band_url = NULL, ...) {
+  if (is.null(radius)) {
+    radius <- 1800
+  }
   orig <- options(scipen = 999)
   mesg("This assumes you have a colors.conf in circos/colors/ ",
        "and fonts.conf in circos/fonts/")
@@ -1309,7 +1418,6 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
     mesg("The circos directory does not exist, creating: ", conf_dir)
     suppressWarnings(dir.create(conf_dir, recursive = TRUE))
   }
-
   ## Set up some data which will be shared by all the other functions.
   number_pluses <- sum(annotation[[strand_column]] == "+")
   number_ones <- sum(annotation[[strand_column]] == 1)
@@ -1333,6 +1441,7 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
     message("Here are the available columns: ", colnames(annotation))
     stop("There is no information in the stop column: ", strand_column, ".")
   }
+
   plus_cfg_file <- cfgout
   minus_cfg_file <- cfgout
   plus_cfg_file <- gsub(pattern = ".conf$", replacement = "_plus_go.conf", x = plus_cfg_file)
@@ -1428,17 +1537,44 @@ circos_prefix <- function(annotation, name = "mgas", base_dir = "circos",
 
   karyotype_cfg_file <- paste0(file.path(base_dir, "conf", "karyotypes", name), ".conf")
   rel_karyotype_file <- paste0(file.path("conf", "karyotypes", name), ".conf")
+
+  circos_data <- new("circos",
+                     "name" = name,
+                     "data_dir" = data_dir,
+                     "cfg_file" = cfgout,
+                     "karyotype_cfg_file" = karyotype_cfg_file,
+                     "ideogram_cfg_file" = "",
+                     "tick_cfg_file" = "",
+                     "plus_cfg_file" = plus_cfg_file,
+                     "plus_data_file" = plus_data_file,
+                     "minus_cfg_file" = minus_cfg_file,
+                     "minus_data_file" = minus_data_file,
+                     "annotation" = annotation,
+                     ## keep track of the set of used track names
+                     "track_names" = c(""),
+                     ## And their associated data files.
+                     "data_files" = c(""),  ## May these two elements should be a list?
+                     ## The proportion from 0->1+ marking the outer edge of each new element
+                     "outers" = c(1.0),
+                     ## And the radii
+                     "radii" = c(radius),
+                     "make_result" = list(),
+                     "annot" = annot,
+                     "plus_df" = plus_df,
+                     "minus_df" = minus_df)
+
   ## If you want clickable ideograms, add
-  ## band_url='script?start=[start]&end=[end]&label=[label]
-  ideogram_cfg_file <- circos_ideogram(name = name, conf_dir = conf_dir, band_url = band_url)
+  band_url <- "script?start=[start]&end=[end]&label=[label]"
+  circos_data <- circos_ideogram(circos_data, name = name, conf_dir = conf_dir,
+                                 band_url = band_url)
   rel_ideogram_file <- paste0(file.path("conf", "ideograms", name), ".conf")
-  tick_cfg_file <- circos_ticks(name = name, conf_dir = conf_dir,
-                                ...)
+  circos_data <- circos_ticks(circos_data, name = name, conf_dir = conf_dir,
+                              ...)
+  tick_cfg_file <- circos_data@tick_cfg_file
   rel_tick_file <- file.path("conf", basename(tick_cfg_file))
 
   out <- file(cfgout, open = "w+")
-  prefix_string <- glue("
-## This is the prefix of a circos configuration file written by hpgltools.
+  prefix_string <- glue("## This is the prefix of a circos configuration file written by hpgltools.
 <colors>
  <<include colors.conf>>
 </colors>
@@ -1467,7 +1603,6 @@ chromosomes_display_default = yes
 </highlights>
 
 <plots>
-
 ")
   cat(prefix_string, file = out, sep = "")
   close(out)
@@ -1481,21 +1616,6 @@ chromosomes_display_default = yes
     setwd(wd)
   }
 
-  circos_data <- new("circos",
-                     "name" = name,
-                     "data_dir" = data_dir,
-                     "cfg_file" = cfgout,
-                     "karyotype_cfg_file" = karyotype_cfg_file,
-                     "ideogram_cfg_file" = ideogram_cfg_file,
-                     "tick_cfg_file" = tick_cfg_file,
-                     "plus_cfg_file" = plus_cfg_file,
-                     "plus_data_file" = plus_data_file,
-                     "minus_cfg_file" = minus_cfg_file,
-                     "minus_data_file" = minus_data_file,
-                     "annotation" = annotation,
-                     "annot" = annot,
-                     "plus_df" = plus_df,
-                     "minus_df" = minus_df)
   new <- options(orig)
   return(circos_data)
 }
@@ -1514,6 +1634,7 @@ circos_suffix <- function(cfg) {
 </plots>"
   cat(suffix_string, file = out, sep = "\n")
   close(out)
+  return(cfg)
 }
 
 #' Create the ticks for a circos plot.
@@ -1565,7 +1686,7 @@ circos_suffix <- function(cfg) {
 #' @param ... Extra arguments from circos_prefix().
 #' @return The file to which the ideogram configuration was written.
 #' @export
-circos_ticks <- function(name = "default", conf_dir = "circos/conf",
+circos_ticks <- function(cfg, name = "default", conf_dir = "circos/conf",
                          show_ticks = "yes", show_tick_labels = "yes",
                          show_grid = "no", skip_first_label = "yes",
                          skip_last_label = "no",
@@ -1586,6 +1707,7 @@ circos_ticks <- function(name = "default", conf_dir = "circos/conf",
                          ...) {
 
   tick_outfile <- file.path(conf_dir, paste0("ticks_", name, ".conf"))
+  cfg@tick_cfg_file <- tick_outfile
   out <- file(tick_outfile, open = "w")
   tick_string <- glue("
 ## The following plot stanza describes the ticks
@@ -1685,7 +1807,7 @@ grid_end = dims(ideogram,radius_inner)
   cat(tick_string, file = out, sep = "")
   close(out)
   message("Wrote ticks to ", tick_outfile)
-  return(tick_outfile)
+  return(cfg)
 }
 
 #' Write tiles of arbitrary categorical point data in circos.
@@ -1721,7 +1843,10 @@ grid_end = dims(ideogram,radius_inner)
 circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL,
                         thickness = 80, padding = 1, margin = 0.00, stroke_thickness = 0.00,
                         orientation = "out",
-                        outer = 0.9, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
+                        outer = NULL, width = 0.08, spacing = 0.0, df_merge_column = "row.names") {
+  if (is.null(outer)) {
+    outer <- cfg@outers[length(cfg@outers)]
+  }
   orig <- options(scipen = 999)
   annot <- cfg@annot
   full_table <- merge(df, annot, by.x = df_merge_column, by.y = "row.names")
@@ -1762,8 +1887,12 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   tile_cfg_file <- cfg@cfg_file
   tile_cfg_file <- gsub(pattern = ".conf$", replacement = "", x = tile_cfg_file)
   tile_cfg_file <- paste0(tile_cfg_file, "_", basename,  colname, "_tile.conf")
+  cfg@track_names <- circos_check_track_file(cfg, tile_cfg_file)
+  tile_cfg_file <- cfg@track_names[length(cfg@track_names)]
   tile_data_file <- file.path(cfg@data_dir, basename(tile_cfg_file))
   tile_data_file <- gsub(pattern = ".conf$", replacement = ".txt", x = tile_data_file)
+  cfg@data_files <- circos_check_data_file(cfg, tile_data_file)
+  tile_data_file <- cfg@data_files[length(cfg@data_files)]
   message("Writing data file: ", tile_data_file, " with the ", basename, colname, " column.")
   write.table(full_table, file = tile_data_file, quote = FALSE,
               row.names = FALSE, col.names = FALSE)
@@ -1853,7 +1982,8 @@ circos_tile <- function(cfg, df, colname = "logFC", basename = "", colors = NULL
   message("Returning the inner width: ", new_outer,
           ".  Use it as the outer for the next ring.")
   new <- options(orig)
-  return(new_outer)
+  cfg@outers <- c(cfg@outers, new_outer)
+  return(cfg)
 }
 
 ## S4 dispatchers.
@@ -1896,20 +2026,26 @@ check_circos <- function(object) {
 #' Create a class for circos data
 setClass("circos",
          representation(
-             name = "character",
-             data_dir = "character",
-             cfg_file = "character",
-             karyotype_cfg_file = "character",
-             ideogram_cfg_file = "character",
-             tick_cfg_file = "character",
-             plus_cfg_file = "character",
-             plus_data_file = "character",
-             minus_cfg_file = "character",
-             minus_data_file = "character",
-             annotation = "data.frame",
-             annot = "data.frame",
-             plus_df = "data.frame",
-             minus_df = "data.frame"),
+           annot = "data.frame",
+           annotation = "data.frame",
+           cfg_file = "character",
+           data_dir = "character",
+           data_files = "character",
+           ideogram_cfg_file = "character",
+           karyotype_cfg_file = "character",
+           make_result = "list",
+           minus_cfg_file = "character",
+           minus_data_file = "character",
+           minus_df = "data.frame",
+           name = "character",
+           outers = "numeric",
+           plus_cfg_file = "character",
+           plus_data_file = "character",
+           plus_df = "data.frame",
+           radii = "numeric",
+           tick_cfg_file = "character",
+           track_names = "character"
+           ),
          validity = check_circos)
 
 ## EOF

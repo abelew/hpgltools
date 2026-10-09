@@ -157,6 +157,7 @@ setMethod(
 #' @export
 read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
                         all.x = TRUE, all.y = FALSE, merge_type = "merge",
+                        sep = "\t",
                         suffix = NULL, countdir = NULL, tx_gene_map = NULL,
                         file_type = NULL, ignore_tx_version = TRUE, ...) {
   ## load first sample
@@ -339,7 +340,10 @@ it may be the case that tximport failed and we need to set the colnames as per s
   } else if (file_type == "featureCounts") {
     mesg("Reading featureCounts with read.table().")
     ## Use this codepath when we are working with htseq
-    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE, skip = 2)
+    count_table <- try(read.table(files[1], header = header, stringsAsFactors = FALSE, skip = 2, sep = sep))
+    if ("try-error" %in% class(count_table)) {
+      warning("There was a problem reading: ", files[1], ".")
+    }
     count_table <- count_table[, c(1, 7)]
     colnames(count_table) <- c("rownames", ids[1])
     ## We are going to immediately check for NA, so I think we can suppress warnings.
@@ -362,9 +366,6 @@ it may be the case that tximport failed and we need to set the colnames as per s
     count_table <- as.data.table(count_table)
     count_table <- setkey(count_table, rownames)
     first_rownames <- sort(count_table[["rownames"]])
-    if (class(count_table)[1] == "try-error") {
-      stop("There was an error reading: ", files[1])
-    }
     mesg(files[1], " contains ", length(rownames(count_table)), " rows.")
     ## iterate over and append remaining samples
     for (num in seq(from = 2, to = length(files))) {
@@ -372,7 +373,7 @@ it may be the case that tximport failed and we need to set the colnames as per s
       if (file.exists(tolower(table))) {
         table <- tolower(table)
       }
-      tmp_count <- try(read.table(table, header = header, skip = 2))
+      tmp_count <- try(read.table(table, header = header, skip = 2, sep = sep))
       tmp_count <- tmp_count[, c(1, 7)]
       ## Drop the rows with NAs before coercing to numeric.
       keepers_idx <- tmp_count[[1]] != na_rownames
@@ -406,7 +407,7 @@ it may be the case that tximport failed and we need to set the colnames as per s
     retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
   } else if (file_type == "table") {
     ## Use this codepath when we are working with htseq
-    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE)
+    count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE, sep = sep)
     colnames(count_table) <- c("rownames", ids[1])
     ## We are going to immediately check for NA, so I think we can suppress warnings.
     count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))

@@ -35,6 +35,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Ashton Belew \email{abelew@umd.edu}
   \item April Hussey \email{ahussey@umd.edu}
   \item Keith Hughitt \email{khughitt@umd.edu}
   \item Jerry Zhao \email{zhaojerry123@gmail.com}

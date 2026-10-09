@@ -576,93 +576,111 @@ import(grDevices)
 import(graphics)
 import(methods)
 import(shiny)
-importClassesFrom(DOSE,enrichResult)
-importFrom(BiocGenerics,"annotation<-")
-importFrom(BiocGenerics,"conditions<-")
-importFrom(BiocGenerics,annotation)
-importFrom(BiocGenerics,as.data.frame)
-importFrom(BiocGenerics,conditions)
-importFrom(BiocGenerics,normalize)
+importClassesFrom(enrichit,enrichResult)
+importFrom(BiocGenerics,
+  "annotation<-",
+  "conditions<-",
+  annotation,
+  as.data.frame,
+  conditions,
+  normalize
+)
 importFrom(IRanges,"%over%")
-importFrom(S4Vectors,"mcols<-")
-importFrom(S4Vectors,"metadata<-")
-importFrom(S4Vectors,DataFrame)
-importFrom(S4Vectors,complete.cases)
-importFrom(S4Vectors,mcols)
-importFrom(S4Vectors,metadata)
-importFrom(S4Vectors,na.omit)
-importFrom(SummarizedExperiment,"assay<-")
-importFrom(SummarizedExperiment,"colData<-")
-importFrom(SummarizedExperiment,"rowData<-")
-importFrom(SummarizedExperiment,SummarizedExperiment)
-importFrom(SummarizedExperiment,assay)
-importFrom(SummarizedExperiment,colData)
-importFrom(SummarizedExperiment,ncol)
-importFrom(SummarizedExperiment,nrow)
-importFrom(SummarizedExperiment,rowData)
+importFrom(S4Vectors,
+  "mcols<-",
+  "metadata<-",
+  DataFrame,
+  complete.cases,
+  mcols,
+  metadata,
+  na.omit
+)
+importFrom(SummarizedExperiment,
+  "assay<-",
+  "colData<-",
+  "rowData<-",
+  SummarizedExperiment,
+  assay,
+  colData,
+  ncol,
+  nrow,
+  rowData
+)
 importFrom(broom,bootstrap)
-importFrom(data.table,":=")
-importFrom(data.table,as.data.table)
-importFrom(data.table,data.table)
-importFrom(data.table,rbindlist)
-importFrom(data.table,setkey)
-importFrom(dplyr,filter)
-importFrom(dplyr,group_by)
-importFrom(dplyr,n)
-importFrom(dplyr,summarise)
-importFrom(foreach,"%dopar%")
-importFrom(foreach,foreach)
+importFrom(data.table,
+  ":=",
+  as.data.table,
+  data.table,
+  rbindlist,
+  setkey
+)
+importFrom(dplyr,
+  filter,
+  group_by,
+  n,
+  summarise
+)
+importFrom(foreach,
+  "%dopar%",
+  foreach
+)
 importFrom(glue,glue)
 importFrom(grDevices,recordPlot)
 importFrom(plotly,plot_ly)
-importFrom(rlang,.data)
-importFrom(rlang,abort)
-importFrom(rlang,sym)
-importFrom(stats,IQR)
-importFrom(stats,aggregate)
-importFrom(stats,as.dendrogram)
-importFrom(stats,as.formula)
-importFrom(stats,biplot)
-importFrom(stats,coef)
-importFrom(stats,cor)
-importFrom(stats,cor.test)
-importFrom(stats,cov)
-importFrom(stats,density)
-importFrom(stats,dist)
-importFrom(stats,end)
-importFrom(stats,glm)
-importFrom(stats,lm)
-importFrom(stats,lm.fit)
-importFrom(stats,lowess)
-importFrom(stats,mad)
-importFrom(stats,median)
-importFrom(stats,model.matrix)
-importFrom(stats,nlm)
-importFrom(stats,order.dendrogram)
-importFrom(stats,p.adjust)
-importFrom(stats,p.adjust.methods)
-importFrom(stats,pf)
-importFrom(stats,pnorm)
-importFrom(stats,princomp)
-importFrom(stats,quantile)
-importFrom(stats,relevel)
-importFrom(stats,reorder)
-importFrom(stats,resid)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,start)
-importFrom(stats,step)
-importFrom(stats,var)
-importFrom(utils,capture.output)
-importFrom(utils,data)
-importFrom(utils,download.file)
-importFrom(utils,head)
-importFrom(utils,installed.packages)
-importFrom(utils,read.csv)
-importFrom(utils,read.delim)
-importFrom(utils,read.table)
-importFrom(utils,setTxtProgressBar)
-importFrom(utils,tail)
-importFrom(utils,write.csv)
-importFrom(utils,write.table)
+importFrom(rlang,
+  .data,
+  abort,
+  sym
+)
+importFrom(stats,
+  IQR,
+  aggregate,
+  as.dendrogram,
+  as.formula,
+  biplot,
+  coef,
+  cor,
+  cor.test,
+  cov,
+  density,
+  dist,
+  end,
+  glm,
+  lm,
+  lm.fit,
+  lowess,
+  mad,
+  median,
+  model.matrix,
+  nlm,
+  order.dendrogram,
+  p.adjust,
+  p.adjust.methods,
+  pf,
+  pnorm,
+  princomp,
+  quantile,
+  relevel,
+  reorder,
+  resid,
+  sd,
+  setNames,
+  start,
+  step,
+  var
+)
+importFrom(utils,
+  capture.output,
+  data,
+  download.file,
+  head,
+  installed.packages,
+  read.csv,
+  read.delim,
+  read.table,
+  setTxtProgressBar,
+  tail,
+  write.csv,
+  write.table
+)
 importMethodsFrom(Matrix,rowMeans)

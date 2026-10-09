@@ -12,6 +12,7 @@ dispatch_sum_column(
   basedir = "preprocessing",
   type = "genome",
   subtype = "gene",
+  sep = "\\t",
   new_spec = NULL,
   tag = "ID",
   sum_column = "last"

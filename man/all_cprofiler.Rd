@@ -16,7 +16,7 @@ all_cprofiler(
   go_level = 3,
   pcutoff = 0.05,
   qcutoff = 0.1,
-  fc_column = "logFC",
+  fc_column = NULL,
   second_fc_column = "deseq_logfc",
   updown = "up",
   min_groupsize = 5,
@@ -38,6 +38,7 @@ all_cprofiler(
   signature_df = NULL,
   de_table_namedf = NULL,
   sig_genes_namedf = NULL,
+  verbose = FALSE,
   excel = "excel/all_cp.xlsx",
   ...
 )

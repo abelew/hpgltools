@@ -7,15 +7,11 @@
 rank_order_scatter(
   first,
   second = NULL,
-  first_type = "limma",
-  second_type = "limma",
-  first_table = NULL,
+  px = "deseq_adjp",
+  py = "deseq_adjp",
+  lx = "deseq_logfc",
+  ly = "deseq_logfc",
   alpha = 0.5,
-  second_table = NULL,
-  first_column = "logFC",
-  second_column = "logFC",
-  first_p_col = "adj.P.Val",
-  second_p_col = "adj.P.Val",
   p_limit = 0.05,
   both_color = "red",
   first_color = "green",
@@ -28,24 +24,7 @@ rank_order_scatter(
 
 \item{second}{Second table of values, if null it will use the first.}
 
-\item{first_type}{Assuming this is from all_pairwise(), use this method.}
-
-\item{second_type}{Ibid.}
-
-\item{first_table}{Again, assuming all_pairwise(), use this to choose the
-table to extract.}
-
 \item{alpha}{How see-through to make the dots?}
-
-\item{second_table}{Ibid.}
-
-\item{first_column}{What column to use to rank-order from the first table?}
-
-\item{second_column}{What column to use to rank-order from the second table?}
-
-\item{first_p_col}{Use this column for pretty colors from the first table.}
-
-\item{second_p_col}{Use this column for pretty colors from the second table.}
 
 \item{p_limit}{A p-value limit for coloring dots.}
 
@@ -56,6 +35,23 @@ table to extract.}
 \item{second_color}{If the second column is 'significant', this color.}
 
 \item{no_color}{If neither column is 'significant', then this color.}
+
+\item{first_type}{Assuming this is from all_pairwise(), use this method.}
+
+\item{second_type}{Ibid.}
+
+\item{first_table}{Again, assuming all_pairwise(), use this to choose the
+table to extract.}
+
+\item{second_table}{Ibid.}
+
+\item{first_column}{What column to use to rank-order from the first table?}
+
+\item{second_column}{What column to use to rank-order from the second table?}
+
+\item{first_p_col}{Use this column for pretty colors from the first table.}
+
+\item{second_p_col}{Use this column for pretty colors from the second table.}
 }
 \value{
 a list with a plot and a couple summary statistics.

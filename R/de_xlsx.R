@@ -195,7 +195,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
                               rda = NULL, rda_input = FALSE, label = 10, label_column = "hgnc_symbol",
                               format_sig = 4, excel = NULL, plot_columns = 10,
                               alpha = 0.4, z = 1.5, z_lines = TRUE, wanted_genes = NULL,
-                              scale_p = FALSE, ...) {
+                              scale_p = FALSE, bold_prefix = "deseq", bg_colors = NULL, ...) {
   xlsx <- init_xlsx(excel)
   wb <- xlsx[["wb"]]
   excel_basename <- xlsx[["basename"]]
@@ -207,6 +207,27 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   ## badness almost certainly will ensue when you perform weird, non-standard
   ## contrasts like mixed models via lmer or interaction models.
   includes <- check_includes(apr, includes = includes)
+  if (is.null(bg_colors)) {
+    color_list <- list(
+      annot = "#D2F0F2",
+      basic = "#F7F6ED",
+      deseq = "#DBEBC0",
+      dream = "#F2D9C4",
+      ebseq = "#D8F2E3",
+      edger = "#F2E7C9",
+      limma = "#D0D5EF",
+      noiseq = "#F2E6E6",
+      meta = "#E8DCF2")
+    annot_fmt <- openxlsx::createStyle(fgFill = color_list[["annot"]])
+    basic_fmt <- openxlsx::createStyle(fgFill = color_list[["basic"]])
+    deseq_fmt <- openxlsx::createStyle(fgFill = color_list[["deseq"]])
+    dream_fmt <- openxlsx::createStyle(fgFill = color_list[["dream"]])
+    ebseq_fmt <- openxlsx::createStyle(fgFill = color_list[["ebseq"]])
+    edger_fmt <- openxlsx::createStyle(fgFill = color_list[["edger"]])
+    limma_fmt <- openxlsx::createStyle(fgFill = color_list[["limma"]])
+    noiseq_fmt <- openxlsx::createStyle(fgFill = color_list[["noiseq"]])
+    meta_fmt <- openxlsx::createStyle(fgFill = color_list[["meta"]])
+  }
 
   plot_colors <- get_colors_by_condition(apr[["input"]])
   ## Create a list of image files so that they may be properly cleaned up
@@ -323,6 +344,63 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
       ## Dump each table to the appropriate excel sheet
       xls_result <- write_xlsx(data = written_table, wb = wb, sheet = tab,
                                title = final_excel_title, rownames = TRUE)
+      if (!isFALSE(bg_colors)) {
+        annot_columns <- ncol(annot_df) + 1
+        annot_idx <- seq(from = 1, to = annot_columns)
+        table_range <- seq(from = xls_result[["start_row"]], to = xls_result[["end_row"]] + 1)
+        annot_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = annot_fmt,
+                                       rows = table_range, cols = annot_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        basic_idx <- which(grepl(x = colnames(written_table), pattern = "^basic")) + 1
+        basic_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = basic_fmt,
+                                       rows = table_range, cols = basic_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        deseq_idx <- which(grepl(x = colnames(written_table), pattern = "^deseq")) + 1
+        deseq_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = deseq_fmt,
+                                       rows = table_range, cols = deseq_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        dream_idx <- which(grepl(x = colnames(written_table), pattern = "^dream")) + 1
+        dream_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = dream_fmt,
+                                       rows = table_range, cols = dream_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        ebseq_idx <- which(grepl(x = colnames(written_table), pattern = "^ebseq")) + 1
+        ebseq_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = ebseq_fmt,
+                                       rows = table_range, cols = ebseq_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        edger_idx <- which(grepl(x = colnames(written_table), pattern = "^edger")) + 1
+        edger_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = edger_fmt,
+                                       rows = table_range, cols = edger_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        limma_idx <- which(grepl(x = colnames(written_table), pattern = "^limma")) + 1
+        limma_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = limma_fmt,
+                                       rows = table_range, cols = limma_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        noiseq_idx <- which(grepl(x = colnames(written_table), pattern = "^noiseq")) + 1
+        noiseq_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = noiseq_fmt,
+                                       rows = table_range, cols = noiseq_idx,
+                                       gridExpand = TRUE, stack = TRUE)
+        ## Figure out meta post-facto
+        ## meta_idx <- which(grepl(x = colnames(written_table), pattern = "^meta")) + 1
+        ## meta_bg <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = meta_fmt,
+        ##                              rows = table_range, cols = meta_idx,
+        ##                               gridExpand = TRUE, stack = TRUE)
+      }
+
+      if (!is.null(bold_prefix)) {
+        bold_style <- openxlsx::createStyle(textDecoration = "bold")
+        for (prefix in bold_prefix) {
+          ## Note, I am adding +1 because the rownames get added as column 'A'
+          col_idx <- which(grepl(x = colnames(written_table), pattern = paste0("^", prefix))) + 1
+          if (length(col_idx) > 0) {
+            ## Similarly, I add 2 to the rows because of the name of the table and the rownames
+            table_range <- seq(from = xls_result[["start_row"]], to = xls_result[["end_row"]] + 1)
+            bolded <- openxlsx::addStyle(wb, sheet = xls_result[["sheet"]], style = bold_style,
+                                         rows = table_range, cols = col_idx,
+                                         gridExpand = TRUE, stack = TRUE)
+          }
+        }
+      }
+
       ## The function write_xlsx has some logic in it to get around excel name
       ## limitations (30 characters), therefore set the sheetname to what was
       ## returned in case it had to change the sheet's name.

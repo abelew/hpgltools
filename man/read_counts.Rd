@@ -12,6 +12,7 @@ read_counts(
   all.x = TRUE,
   all.y = FALSE,
   merge_type = "merge",
+  sep = "\\t",
   suffix = NULL,
   countdir = NULL,
   tx_gene_map = NULL,
