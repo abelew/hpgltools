@@ -34,6 +34,8 @@ combine_de_tables(
   z_lines = TRUE,
   wanted_genes = NULL,
   scale_p = FALSE,
+  bold_prefix = "deseq",
+  bg_colors = NULL,
   ...
 )
 }

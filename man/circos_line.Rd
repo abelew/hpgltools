@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_circos.R
 \name{circos_line}
 \alias{circos_line}
-\title{Write histograms of arbitrary floating point data in circos.}
+\title{Write Lines of arbitrary floating point data in circos.}
 \usage{
 circos_line(
   cfg,
@@ -19,7 +19,7 @@ circos_line(
   extend_bin = "no",
   thickness = "1",
   orientation = "out",
-  outer = 0.9,
+  outer = NULL,
   width = 0.08,
   spacing = 0,
   df_merge_column = "row.names",

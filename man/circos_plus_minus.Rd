@@ -7,7 +7,7 @@ microbesonline.org.}
 \usage{
 circos_plus_minus(
   cfg,
-  outer = 1,
+  outer = NULL,
   width = 0.08,
   thickness = 95,
   spacing = 0,
@@ -45,6 +45,7 @@ circos_plus_minus(
   zcol = "vlpblue",
   max = NULL,
   label_column = NULL,
+  cog_column = "COG",
   url_string = ""
 )
 }

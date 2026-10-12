@@ -16,7 +16,7 @@ circos_heatmap(
   colors = NULL,
   color_choice = "spectral-9-div",
   scale_log_base = 1,
-  outer = 0.9,
+  outer = NULL,
   rules = NULL,
   width = 0.08,
   spacing = 0.02,

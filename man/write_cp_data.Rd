@@ -18,6 +18,7 @@ write_cp_data(
   new = "ORF",
   add_gsea = TRUE,
   pval_column = "deseq_adjp",
+  wanted_plots = NULL,
   ...
 )
 }

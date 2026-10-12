@@ -17,7 +17,7 @@ circos_hist(
   extend_bin = "no",
   thickness = "0",
   orientation = "out",
-  outer = 0.9,
+  outer = NULL,
   width = 0.08,
   spacing = 0,
   df_merge_column = "row.names",

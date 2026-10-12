@@ -11,6 +11,7 @@ convert_counts(
   length_column = "width",
   na_to_zero = TRUE,
   length_na = 1000,
+  libsize = NULL,
   ...
 )
 }

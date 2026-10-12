@@ -11,11 +11,12 @@ circos_arc(
   second_col = "seqnames.2",
   color = "blue",
   color_alpha = 0,
-  radius = 0.75,
+  radius = NULL,
   thickness = 3,
   ribbon = "yes",
   show = "yes",
-  z = "0"
+  z = "0",
+  basename = ""
 )
 }
 \arguments{

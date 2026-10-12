@@ -5,6 +5,7 @@
 \title{Create the ticks for a circos plot.}
 \usage{
 circos_ticks(
+  cfg,
   name = "default",
   conf_dir = "circos/conf",
   show_ticks = "yes",

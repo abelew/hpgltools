@@ -5,6 +5,7 @@
 \title{Create the description of chromosome markings.}
 \usage{
 circos_ideogram(
+  cfg,
   name = "default",
   conf_dir = "circos/conf",
   band_url = NULL,
@@ -20,7 +21,7 @@ circos_ideogram(
   spacing_break = "0",
   fill_color = "black",
   fill_alpha = 0,
-  radius = "0.85",
+  radius = 0.85,
   radius_padding = "0.05",
   show_label = FALSE,
   label_size = "36",
