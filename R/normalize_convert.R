@@ -31,7 +31,8 @@ NULL
 #' }
 #' @export
 convert_counts <- function(count_table, method = "raw", annotations = NULL,
-                           length_column = "width", na_to_zero = TRUE, length_na = 1000, ...) {
+                           length_column = "width", na_to_zero = TRUE, length_na = 1000,
+                           libsize = NULL, ...) {
   arglist <- list(...)
   if (!is.null(arglist[["convert"]])) {
     method <- arglist[["convert"]]
@@ -48,7 +49,6 @@ convert_counts <- function(count_table, method = "raw", annotations = NULL,
       count_table <- edgeR::cpm(count_table, lib.size = na_colsums)
     },
     "cpm" = {
-      libsize <- NULL
       na_idx <- is.na(count_table)
       if (sum(na_idx) > 0) {
         warning("There are ", sum(na_idx), " NAs in the expressionset.")

@@ -470,6 +470,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (!is.null(cp_result[["go_data"]][["CC_enrich"]])) {
       cc_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["go_data"]][["CC_enrich"]])))
     }
+    plot_column <- ncol(cp_cc) + 3
     added_plots <- add_cp_plots(cc_plots, wanted_plots, wb, sheet, width, height,
                                 plot_column, new_row, savedir, plot_basename = "cc")
     for (plotted in names(added_plots)) {
@@ -493,6 +494,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (!is.null(cp_result[["go_data"]][["kegg_data"]])) {
       kegg_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["kegg_data"]][["all_kegg"]])))
     }
+    plot_column <- ncol(cp_kegg) + 3
     added_plots <- add_cp_plots(kegg_plots, wanted_plots, wb, sheet, width, height,
                                 plot_column, new_row, savedir, plot_basename = "kegg")
     for (plotted in names(added_plots)) {
@@ -515,6 +517,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (!is.null(cp_result[["go_data"]][["reactome_data"]])) {
       reactome_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["reactome_data"]][["all_reactome"]])))
     }
+    plot_column <- ncol(cp_reactome) + 3
     added_plots <- add_cp_plots(reactome_plots, wanted_plots, wb, sheet, width, height,
                                 plot_column, new_row, savedir, plot_basename = "reactome")
     for (plotted in names(added_plots)) {
@@ -539,6 +542,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (!is.null(cp_result[["go_data"]][["dose_data"]])) {
       dose_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["dose_data"]][["all_dose"]])))
     }
+    plot_column <- ncol(cp_dose) + 3
     added_plots <- add_cp_plots(dose_plots, wanted_plots, wb, sheet, width, height,
                                 plot_column, new_row, savedir, plot_basename = "dose")
     for (plotted in names(added_plots)) {
@@ -558,12 +562,13 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     dfwrite <- write_xlsx(data = cp_mesh, wb = wb, sheet = sheet,
                           title = "MESH Results from cp.",
                           start_row = new_row)
-    dose_plots <- list()
+    mesh_plots <- list()
     if (!is.null(cp_result[["go_data"]][["dose_data"]])) {
-      dose_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["dose_data"]][["all_dose"]])))
+      mesh_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["mesh_data"]][["all_mesh"]])))
     }
-    added_plots <- add_cp_plots(dose_plots, wanted_plots, wb, sheet, width, height,
-                                plot_column, new_row, savedir, plot_basename = "dose")
+    plot_column <- ncol(cp_mesh) + 3
+    added_plots <- add_cp_plots(mesh_plots, wanted_plots, wb, sheet, width, height,
+                                plot_column, new_row, savedir, plot_basename = "mesh")
     for (plotted in names(added_plots)) {
       image_list <- c(image_list, added_plots[[plotted]])
     }
@@ -585,6 +590,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     if (!is.null(cp_result[["go_data"]][["msigdb_data"]])) {
       msigdb_plots <- suppressWarnings(sm(plot_enrichresult(cp_result[["msigdb_data"]][["all_msigdb"]])))
     }
+    plot_column <- ncol(cp_msigdb) + 3
     added_plots <- add_cp_plots(msigdb_plots, wanted_plots, wb, sheet, width, height,
                                 plot_column, new_row, savedir, plot_basename = "msigdb")
     for (plotted in names(added_plots)) {

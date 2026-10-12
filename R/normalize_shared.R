@@ -340,7 +340,7 @@ normalize_se <- function(se, ## The exp class passed to the normalizer
     mesg("Step 3: converting the data with ", convert, ".")
     converted_counts <- convert_counts(count_table, method = convert, annotations = annotations,
                                        length_column = length_column, na_to_zero = na_to_zero,
-                                       length_na = length_na,
+                                       length_na = length_na, libsize = current_libsize,
                                        ...)
     ## converted_counts <- convert_counts(count_table, method = convert, annotations = annotations)
     current_libsize <- converted_counts[["libsize"]]
