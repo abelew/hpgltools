@@ -77,13 +77,24 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
   xlsx_dir <- dirname(excel)
   xlsx_base <- gsub(x = basename(excel), pattern = "\\.[[:alpha:]]{3,}$", replacement = "")
   ## Check if this came from extract_significant_genes or extract_abundant_genes.
-  if (!is.null(sig[[according_to]][["ups"]])) {
-    input_up <- sig[[according_to]][["ups"]]
-    input_down <- sig[[according_to]][["downs"]]
-  } else if (!is.null(sig[["abundances"]])) {
+  if (!is.null(sig[["abundances"]])) {
     source <- "abundance"
-    input_up <- sig[["abundances"]][[according_to]][["high"]]
-    input_down <- sig[["abundances"]][[according_to]][["low"]]
+  }
+
+  if (source == "significant") {
+    if (!is.null(sig[[according_to]][["ups"]])) {
+      input_up <- sig[[according_to]][["ups"]]
+    }
+    if (!is.null(sig[[according_to]][["downs"]])) {
+      input_down <- sig[[according_to]][["downs"]]
+    }
+  } else if (source == "abundance") {
+    if (!is.null(sig[["abundances"]][[according_to]][["high"]])) {
+      input_up <- sig[["abundances"]][[according_to]][["high"]]
+    }
+    if (!is.null(sig[["abundances"]][[according_to]][["low"]])) {
+      input_down <- sig[["abundances"]][[according_to]][["low"]]
+    }
   } else {
     stop("I do not understand this input.")
   }
@@ -171,7 +182,6 @@ all_cprofiler <- function(sig, tables, according_to = "deseq", together = FALSE,
     } else {
       ret[[retname_up]] <- NULL
     }
-
 
     if (down_elements > 0) {
       chosen_down_xlsx <- file.path(xlsx_dir, glue("{xlsx_base}_{retname_down}.xlsx"))
@@ -277,20 +287,27 @@ cp_go_enrich <- function(sig_gene_list, org, orgdb_to, level, universe_to, min_g
   return(retlist)
 }
 
-cp_go_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5, pcutoff = 0.05) {
+## This should probably have the other parameters used by gseGO:
+## exponent (default 1, 'weight of each step'), maxGSSize, eps (used to set p-value boundaries),
+## by: either fgsea or DOSE
+
+cp_go_gsea <- function(genelist, org, orgdb_to, min_groupsize = 5, pcutoff = 0.05,
+                       exponent = 1, by = "fgsea", maxGSSize = 500) {
   mesg("Performing GO GSEA of gene lists.")
   gse_go <- list()
   gse_go_all_df <- gse_go_sig_df <- data.frame()
   gse_go <- try(clusterProfiler::gseGO(
-    geneList = genelist, OrgDb = org, keyType = orgdb_to, ont = "ALL", minGSSize = min_groupsize))
-    if ("try-error" %in% class(gse_go)) {
-      gse_go <- NULL
-    } else {
-      gse_go_all_df <- as.data.frame(gse_go)
-      sig_idx <- gse_go_all_df[["p.adjust"]] <= pcutoff
-      gse_go_sig_df <- gse_go_all_df[sig_idx, ]
-      mesg("Found ", nrow(gse_go_sig_df), " GO GSE hits.")
-    }
+    geneList = genelist, OrgDb = org, keyType = orgdb_to, ont = "ALL", minGSSize = min_groupsize,
+    exponent = exponent, maxGSSize = maxGSSize, by = by))
+
+  if ("try-error" %in% class(gse_go)) {
+    gse_go <- NULL
+  } else {
+    gse_go_all_df <- as.data.frame(gse_go)
+    sig_idx <- gse_go_all_df[["p.adjust"]] <= pcutoff
+    gse_go_sig_df <- gse_go_all_df[sig_idx, ]
+    mesg("Found ", nrow(gse_go_sig_df), " GO GSE hits.")
+  }
   retlist <- list(
     "gse_go" = gse_go,
     "gse_go_all_df" = gse_go_all_df,

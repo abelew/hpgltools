@@ -74,7 +74,6 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
 #' @param notes Provide arbitrary notes.
 #' @param include_type Used to specify types of genes/annotations to use.
 #' @param count_source Explicitly specify the method used to create the text table.
-#' @param countdir (deprecated) Directory containing count tables.
 #' @param include_fasta Include a fasta file.
 #' @param include_gff Keep a copy of the gff with the data?
 #' @param file_column Metadata column containing the counts for each sample.
@@ -103,13 +102,13 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
                       notes = NULL, include_type = "all", count_source = "featureCounts",
-                      countdir = NULL, include_fasta = NULL,  include_gff = NULL,
+                      include_fasta = NULL,  include_gff = NULL,
                       file_column = "file", file_type = NULL, id_column = NULL,
                       handle_na = "drop", researcher = "elsayed", study_name = NULL,
                       feature_type = "gene", ignore_tx_version = TRUE, savefile = NULL,
                       low_files = FALSE, annotation = NULL, palette = "Dark2",
                       round = FALSE, tx_gene_map = NULL, species = NULL,
-                      condition_column = NULL, batch_column = NULL,
+                      condition_column = NULL, batch_column = NULL, assay_rownames = NULL,
                       ...) {
   arglist <- list(...)  ## pass stuff like sep=, header=, etc here
 
@@ -225,9 +224,9 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     ## in the sample definitions to get them.
     files <- as.character(sample_definitions[[file_column]])
     ids <- rownames(sample_definitions)
-    count_data <- read_counts(ids, files, countdir = countdir,
-                              file_type = file_type, tx_gene_map = tx_gene_map,
+    count_data <- read_counts(ids, files, file_type = file_type, tx_gene_map = tx_gene_map,
                               ignore_tx_version = ignore_tx_version,
+                              assay_rownames = assay_rownames,
                               ...)
     if (count_data[["source"]] == "tximport") {
       tximport_data <- list("raw" = count_data[["tximport"]],
@@ -256,8 +255,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
 
   test_df <- as.data.frame(all_count_tables)
-  rownames(test_df) <- test_df[["rownames"]]
-  test_df[["rownames"]] <- NULL
+  ##rownames(test_df) <- test_df[["rownames"]]
+  ##test_df[["rownames"]] <- NULL
   count_nas <- is.na(test_df)
   if (sum(count_nas) > 0) {
     warning("There are some NAs in this data, the 'handle_nas' parameter may be required.")
@@ -302,6 +301,10 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                                                  unique = TRUE)
   }
 
+  if (sum(grepl(x = all_count_tables[["rownames"]], pattern = ":")) > 0) {
+    warning("Punctuation in keys for data.tables may get changed to '.'")
+  }
+  
   ## There is an important caveat here!!
   ## data.table::as.data.table(stuff, keep.rownames='column') will change the
   ## rownames to remove punctuation including ':'!  Which means that if I have a
@@ -348,20 +351,23 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   if (is.null(gene_info)) {
     ## Including, if all else fails, just grabbing the gene names from the count tables.
     if (is.null(include_gff)) {
-      gene_info <- data.table::as.data.table(all_count_tables[["rownames"]],
-                                             keep.rownames = "rownames")
-      names(gene_info) <- "rownames"
+      ##gene_info <- data.table::as.data.table(all_count_tables[["rownames"]],
+      ##                                       keep.rownames = "rownames")
+      gene_info <- as.data.frame(rownames(all_count_tables))
+      colnames(gene_info) <- "rownames"
+      ## names(gene_info) <- "rownames"
     } else {
       ## Or reading a gff file.
-      message("create_expt(): Reading annotation gff, this is slow.")
+      message("create_se(): Reading annotation gff, this is slow.")
       annotation <- load_gff_annotations(gff = include_gff, type = gff_type)
-      gene_info <- data.table::as.data.table(annotation, keep.rownames = "rownames")
+      ## gene_info <- data.table::as.data.table(annotation, keep.rownames = "rownames")
     }
   } else if (class(gene_info)[[1]] == "character") { ## Assume the input is a gff
     gene_info <- gff2gr(gene_info)
   } else if (class(gene_info)[[1]] == "list" && !is.null(gene_info[["genes"]])) {
     ## In this case, it is using the output of reading a OrgDB instance
-    gene_info <- data.table::as.data.table(gene_info[["genes"]], keep.rownames = "rownames")
+    ## gene_info <- data.table::as.data.table(gene_info[["genes"]], keep.rownames = "rownames")
+    gene_info <- gene_info[["genes"]]
   } else if (class(gene_info)[[1]] == "data.table" || class(gene_info)[[1]] == "tbl_df") {
     ## Try to make the data table usage consistent by rownames.
     ## Sometimes we take these from data which did "keep.rownames='some_column'"
@@ -369,17 +375,24 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     ## And sometimes the rownames were never set.
     ## Therefore I will use rownames(dt) as the master, dt$rownames as secondary, and
     ## as a fallback take the first column in the data.
+    gene_info <- as.data.frame(gene_info)
+    rownames(gene_info) <- gene_info[["rownames"]]
+    gene_info[["rownames"]] <- NULL
     if (is.null(rownames(gene_info)) && is.null(gene_info[["rownames"]])) {
       gene_info[["rownames"]] <- make.names(rownames[[1]], unique = TRUE)
       message("Both rownames() and $rownames were null.")
     }
   } else {
-    gene_info <- as.data.table(gene_info, keep.rownames = "rownames")
+    ## gene_info <- as.data.table(gene_info, keep.rownames = "rownames")
+    gene_info <- as.data.frame(gene_info)
   }
-  geneid_check <- grepl(x = all_count_tables[["rownames"]], pattern = "^gene:")
+  ## geneid_check <- grepl(x = all_count_tables[["rownames"]], pattern = "^gene:")
+  geneid_check <- grepl(x = rownames(all_count_tables), pattern = "^gene:")  
   if (sum(geneid_check) > 0) {
-    all_count_tables[["rownames"]] <- gsub(x = all_count_tables[["rownames"]],
-                                           pattern = "^gene:", replacement = "")
+    ##all_count_tables[["rownames"]] <- gsub(x = all_count_tables[["rownames"]],
+    ##                                       pattern = "^gene:", replacement = "")
+    rownames(all_count_tables) <- gsub(x = rownames(all_count_tables), pattern = "^gene:",
+                                       replacement = "")
   }
 
   counts_and_annotations <- merge_counts_annotations(gene_info, all_count_tables, tx_gene_map)
@@ -1011,40 +1024,58 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
   ## It turns out that loading the annotation information from orgdb/etc may not set the
   ## row names. Perhaps I should do that there, but I will add a check here, too.
   all_count_tables[["temporary_id_number"]] <- seq_len(nrow(all_count_tables))
-  found_sum <- sum(gene_info[["rownames"]] %in% all_count_tables[["rownames"]])
+  ##found_sum <- sum(gene_info[["rownames"]] %in% all_count_tables[["rownames"]])
+  found_sum <- sum(rownames(gene_info) %in% rownames(all_count_tables))
   if (found_sum == 0) {
     if (!is.null(gene_info[["geneid"]])) {
-      gene_info[["rownames"]] <- gene_info[["geneid"]]
-      found_sum <- sum(gene_info[["rownames"]] %in% all_count_tables[["rownames"]])
+      rownames(gene_info) <- gene_info[["geneid"]]
+      found_sum <- sum(rownames(gene_info) %in% rownames(all_count_tables))
     }
   }
   if (found_sum == 0) {
     warning("Even after changing the rownames in gene info, they do not match the count table.")
     message("Even after changing the rownames in gene info, they do not match the count table.")
     message("Here are the first few rownames from the count tables:")
-    message(toString(head(all_count_tables[["rownames"]])))
+    message(toString(head(rownames(all_count_tables))))
     message("Here are the first few rownames from the gene information table:")
-    message(toString(head(gene_info[["rownames"]])))
+    message(toString(head(rownames(gene_info))))
   } else {
-    message("Matched ", found_sum, " annotations and counts.")
+    message("Matched ", found_sum, " annotations and counts out of ", nrow(all_count_tables),
+            " count rows and ", nrow(gene_info), " annotations.")
   }
 
   ## This should automagically check and fix rownames when they would otherwise
   ## not match after using tximport.
   if (!is.null(tx_gene_map)) {
-    matched_rows <- sum(gene_info[["rownames"]] %in% tx_gene_map[[2]])
+    matched_rows <- sum(rownames(gene_info) %in% tx_gene_map[[2]])
     if (matched_rows < 1) {
       message("The mapped IDs are not the rownames of your gene information, changing them now.")
       if (names(tx_gene_map)[2] %in% colnames(gene_info)) {
         new_name <- names(tx_gene_map)[2]
-        gene_info[["rownames"]] <- make.names(tx_gene_map[[new_name]], unique = TRUE)
+        rownames(gene_info) <- make.names(tx_gene_map[[new_name]], unique = TRUE)
       } else {
         warning("Cannot find an appropriate column in gene_info, refusing to use the tx_map.")
       }
     }
   }
 
-  counts_and_annotations <- merge(all_count_tables, gene_info, by = "rownames", all.x = TRUE)
+  ## 202610: This is failing for a bacterial dataset with CDS ids which are 'PCEPDG_xxxxx'
+  ## I am using the obvious 'PCEPDG_00001' as an obvious test,
+  ## sum(all_count_tables[["rownames"]] == "PCEPDG_00001")
+  ## [1] 1
+  ## sum(gene_info[["rownames"]] == "PCEPDG_00001")
+  ## [1] 1
+  ## Thus I think the following should give me a row with that ID, but it does not and I do not know why.
+  ## TODO/FIXME: Figure out what is going on with data.table which results in this incorrect result.
+  ## Until I figure it out, recast as a df and continue?
+  ## This is a shame because data.table is faster for larger datasets.  But something is clearly wrong.
+  counts_and_annotations_df <- merge(all_count_tables, gene_info, by = "row.names", all.x = TRUE)
+  rownames(counts_and_annotations_df) <- counts_and_annotations_df[["Row.names"]]
+  counts_and_annotations_df[["Row.names"]] <- NULL
+  ## counts_and_annotations_df["PCEPDG_00001", ]
+  ## This works correctly!!!
+  ## counts_and_annotations <- merge(all_count_tables, gene_info, by = "rownames", all.x = TRUE, no.dups = FALSE)
+  counts_and_annotations <- counts_and_annotations_df
   ## In some cases, the above merge will result in columns being set to NA
   ## We should set all the NA fields to something I think.
   na_entries <- is.na(counts_and_annotations)
@@ -1058,19 +1089,23 @@ merge_counts_annotations <- function(gene_info, all_count_tables, tx_gene_map = 
     order(counts_and_annotations[["temporary_id_number"]]), ]
   ## Pull out the annotation data and convert to data frame.
   kept_columns <- colnames(counts_and_annotations) %in% colnames(gene_info)
-  final_annotations <- counts_and_annotations[, kept_columns, with = FALSE]
+  ## final_annotations <- counts_and_annotations[, kept_columns, with = FALSE]
+  ## Another place where having a df vs. dataframe is problematic
+  final_annotations <- counts_and_annotations[, kept_columns]
   final_annotations <- as.data.frame(final_annotations, stringsAsFactors = FALSE)
-  rownames(final_annotations) <- final_annotations[["rownames"]]
+  ## rownames(final_annotations) <- final_annotations[["rownames"]]
   final_kept <- colnames(final_annotations) != "rownames"
   final_annotations <- final_annotations[, final_kept]
 
   final_counts <- counts_and_annotations
   kept_columns <- colnames(counts_and_annotations) %in% colnames(all_count_tables) &
     colnames(counts_and_annotations) != "temporary_id_number"
-  final_counts <- final_counts[, kept_columns, with = FALSE]
+  ## final_counts <- final_counts[, kept_columns, with = FALSE]
+  ## The final place (I think) where data.table vs df is a thing
+  final_counts <- final_counts[, kept_columns]
   final_counts <- as.data.frame(final_counts)
-  rownames(final_counts) <- final_counts[["rownames"]]
-  final_counts[["rownames"]] <- NULL
+  ## rownames(final_counts) <- final_counts[["rownames"]]
+  ## final_counts[["rownames"]] <- NULL
   final_counts <- as.matrix(final_counts)
   retlist <- list(
     "final_annotations" = final_annotations,

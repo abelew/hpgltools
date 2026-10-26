@@ -140,7 +140,6 @@ setMethod(
 #' @param all.y When merging (as opposed to join), choose the y data column.
 #' @param merge_type Choose one, merge or join.
 #' @param suffix Optional suffix to add to the filenames when reading them.
-#' @param countdir Optional count directory to read from.
 #' @param tx_gene_map Dataframe which provides a mapping between
 #'  transcript IDs and gene IDs.
 #' @param file_type Short circuit the file format autodetection.
@@ -157,15 +156,13 @@ setMethod(
 #' @export
 read_counts <- function(ids, files, header = FALSE, include_summary_rows = FALSE,
                         all.x = TRUE, all.y = FALSE, merge_type = "merge",
-                        sep = "\t",
-                        suffix = NULL, countdir = NULL, tx_gene_map = NULL,
+                        sep = "\t", assay_rownames = NULL,
+                        suffix = NULL, tx_gene_map = NULL,
+                        remove_trailing_number = TRUE,
                         file_type = NULL, ignore_tx_version = TRUE, ...) {
   ## load first sample
   retlist <- list()
   ## Add an optional directory if I don't feel like specifying in the sample sheet.
-  if (!is.null(countdir)) {
-    files <- file.path(countdir, files)
-  }
   skippers <- (files == "" | files == "undef" | is.null(files) | is.na(files))
   files <- files[!skippers]
   ids <- ids[!skippers]
@@ -257,9 +254,10 @@ it may be the case that tximport failed and we need to set the colnames as per s
         files = files, type = "kallisto", tx2gene = tx_gene_map,
         txOut = txout, countsFromAbundance = "lengthScaledTPM"))
     }
-    retlist[["count_table"]] <- as.data.table(
-      import[["counts"]], keep.rownames = "rownames")
-    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
+    ##retlist[["count_table"]] <- as.data.table(
+    ##  import[["counts"]], keep.rownames = "rownames")
+    retlist[["count_table"]] <- as.data.frame(import[["counts"]])
+    ## retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
@@ -280,8 +278,9 @@ it may be the case that tximport failed and we need to set the colnames as per s
       import_scaled <- tximport::tximport(files = files, type = "rsem", tx2gene = tx_gene_map,
                                           txOut = txout, countsFromAbundance = "lengthScaledTPM")
     }
-    retlist[["count_table"]] <- as.data.table(import[["counts"]],
-                                                          keep.rownames = "rownames")
+    ##retlist[["count_table"]] <- as.data.table(import[["counts"]],
+    ##                                          keep.rownames = "rownames")
+    retlist[["count_table"]] <- as.data.frame(import[["counts"]])
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
@@ -331,9 +330,28 @@ it may be the case that tximport failed and we need to set the colnames as per s
       colnames(import_scaled[["counts"]]) <- ids
       colnames(import_scaled[["length"]]) <- ids
     }
-    retlist[["count_table"]] <- as.data.table(
-      import[["counts"]], keep.rownames = "rownames")
-    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
+    ## Once again I think data.table is doing something problematic, I presume it is coming from the fact that
+    ## this particular assembly has '|' characters in the protein IDs, which are what salmon keyed from.
+    ##retlist[["count_table"]] <- as.data.table(
+    ##  import[["counts"]], keep.rownames = "rownames")
+    if (isTRUE(remove_trailing_number)) {
+      ## There appears to be a problem when I do not need txout leading it to get confused and add a
+      ## autoincrementing number to each ID.
+      num_trailing_numbers <- grepl(x = rownames(import[["counts"]]), pattern = "\\.[[:digit:]]+$")
+      if (sum(num_trailing_numbers) > 10) {
+        message("There are ", sum(num_trailing_numbers), " rows with trailing numbers, removing them.")
+        rownames(import[["counts"]]) <- gsub(x = rownames(import[["counts"]]), pattern = "\\.[[:digit:]]+$",
+                                                          replacement = "")
+        rownames(import[["abundance"]]) <- gsub(x = rownames(import[["abundance"]]), pattern = "\\.[[:digit:]]+$",
+                                                             replacement = "")
+        rownames(import[["length"]]) <- gsub(x = rownames(import[["length"]]), pattern = "\\.[[:digit:]]+$",
+                                                          replacement = "")
+      }
+    }
+      
+    retlist[["count_table"]] <- as.data.frame(
+      import[["counts"]])
+    ##retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
     retlist[["tximport"]] <- import
     retlist[["tximport_scaled"]] <- import_scaled
     retlist[["source"]] <- "tximport"
@@ -363,10 +381,13 @@ it may be the case that tximport failed and we need to set the colnames as per s
     }
     keepers_idx <- count_table[["rownames"]] != na_rownames
     count_table <- count_table[keepers_idx, ]
-    count_table <- as.data.table(count_table)
-    count_table <- setkey(count_table, rownames)
+    ##count_table <- as.data.table(count_table)
+    ##count_table <- setkey(count_table, rownames)
+    count_table <- as.data.frame(count_table)
     first_rownames <- sort(count_table[["rownames"]])
-    mesg(files[1], " contains ", length(rownames(count_table)), " rows.")
+    column_sum <- formatC(sum(count_table[[2]]), format = "e", digits = 2)
+    column_sums <- c(column_sum)
+    mesg(files[1], " contains ", length(rownames(count_table)), " rows, sum: ", column_sum, ".")
     ## iterate over and append remaining samples
     for (num in seq(from = 2, to = length(files))) {
       table <- files[num]
@@ -387,8 +408,12 @@ it may be the case that tximport failed and we need to set the colnames as per s
       if (class(tmp_count)[1] == "try-error") {
         stop("There was an error reading: ", table)
       }
-      colnames(tmp_count) <- c("rownames", ids[num])
-      tmp_count <- as.data.table(tmp_count)
+      sample_name <- ids[num]
+      colnames(tmp_count) <- c("rownames", sample_name)
+      ##tmp_count <- as.data.table(tmp_count)
+      tmp_count <- as.data.frame(tmp_count)
+      column_sum <- formatC(sum(tmp_count[[sample_name]]), format = "e", digits = 2)
+      column_sums <- c(column_sums, column_sum)
       pre_merge <- nrow(tmp_count)
       if (merge_type == "merge") {
         count_table <- merge(count_table, tmp_count, by = "rownames",
@@ -400,11 +425,12 @@ it may be the case that tximport failed and we need to set the colnames as per s
       ## count_table <- count_table[, -1, drop = FALSE]
       ## post_merge <- length(rownames(count_table))
       post_merge <- nrow(count_table)
-      mesg(table, " contains ", pre_merge, " rows and merges to ", post_merge, " rows.")
+      mesg(table, " contains ", pre_merge, " rows, merges ", post_merge,
+           " rows, sum: ", column_sum, ".")
     } ## End for loop
     retlist[["count_table"]] <- count_table
     retlist[["source"]] <- "featureCounts"
-    retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
+    ##retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)
   } else if (file_type == "table") {
     ## Use this codepath when we are working with htseq
     count_table <- read.table(files[1], header = header, stringsAsFactors = FALSE, sep = sep)
@@ -422,8 +448,9 @@ it may be the case that tximport failed and we need to set the colnames as per s
     }
     keepers_idx <- count_table[["rownames"]] != na_rownames
     count_table <- count_table[keepers_idx, ]
-    count_table <- as.data.table(count_table)
-    count_table <- setkey(count_table, rownames)
+    ##count_table <- as.data.table(count_table)
+    ##count_table <- setkey(count_table, rownames)
+    count_table <- as.data.frame(count_table)
     first_rownames <- sort(count_table[["rownames"]])
     if (class(count_table)[1] == "try-error") {
       stop("There was an error reading: ", files[1])
@@ -449,7 +476,8 @@ it may be the case that tximport failed and we need to set the colnames as per s
         stop("There was an error reading: ", table)
       }
       colnames(tmp_count) <- c("rownames", ids[num])
-      tmp_count <- as.data.table(tmp_count)
+      ##tmp_count <- as.data.table(tmp_count)
+      tmp_count <- as.data.frame(tmp_count)
       pre_merge <- nrow(tmp_count)
       if (merge_type == "merge") {
         count_table <- merge(count_table, tmp_count, by = "rownames",
@@ -482,7 +510,7 @@ it may be the case that tximport failed and we need to set the colnames as per s
                                      count_df[["end"]])
     count_table <- count_df[, c("rownames", "score")]
     colnames(count_table) <- c("rownames", ids[1])
-    tmp_count <- as.data.table(count_table)
+    ##tmp_count <- as.data.table(count_table)
     pre_merge <- nrow(count_table)
     ## We are going to immediately check for NA, so I think we can suppress warnings.
     count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))
@@ -497,8 +525,8 @@ it may be the case that tximport failed and we need to set the colnames as per s
     }
     keepers_idx <- count_table[["rownames"]] != na_rownames
     count_table <- count_table[keepers_idx, ]
-    count_table <- as.data.table(count_table)
-    count_table <- setkey(count_table, rownames)
+    ##count_table <- as.data.table(count_table)
+    ##count_table <- setkey(count_table, rownames)
     first_rownames <- sort(count_table[["rownames"]])
     if (class(count_table)[1] == "try-error") {
       stop("There was an error reading: ", files[1])
@@ -537,6 +565,21 @@ it may be the case that tximport failed and we need to set the colnames as per s
   } else {
     stop("I do not understand this count data type.")
   }
+
+  if (!is.null(assay_rownames)) {
+    message("Assay rownames is set and length: ", length(assay_rownames), ".")
+    if (length(assay_rownames) == 2) {
+      ## Then this is a from:to pair for a regex
+      retlist[["count_table"]][["rownames"]] <- gsub(x = retlist[["count_table"]],
+                                                     from = assay_rownames[1], to = assay_rownames[2])
+    } else if (length(assay_rownames) == nrow(retlist[["count_table"]])) {
+      message("Setting rownames to the vector of assay_rownames.")
+      retlist[["count_table"]][["rownames"]] <- make.names(assay_rownames, unique = TRUE)
+    } else {
+      stop("assay_rownames was set, but I do not know how to use it.")
+    }
+  }
+  
   mesg("Finished reading count data, final matrix has ", nrow(count_table),
        " rows and ", ncol(count_table), " columns.")
   return(retlist)

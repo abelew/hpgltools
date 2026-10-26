@@ -814,7 +814,7 @@ xlsx_insert_png <- function(a_plot, wb = NULL, sheet = 1, width = 6, height = 6,
   if (class(a_plot)[1] == "Venn") {
     print_ret <- try(Vennerable::plot(a_plot, doWeights = FALSE))
   } else {
-    print_ret <- try(suppressWarnings(print(a_plot)))
+    print_ret <- try(suppressWarnings(print(a_plot)), silent = TRUE)
   }
   if (class(print_ret)[1] == "try-error") {
     print_ret <- try(suppressWarnings(plot(a_plot, ...)))

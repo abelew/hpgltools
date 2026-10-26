@@ -7,8 +7,10 @@ add_cp_plots <- function(plots, wanted_plots, wb, sheet, width, height, plot_col
                          savedir, plot_basename = "undefined") {
   new_row <- start_row + 1
   plotted <- list()
-  for (wanted in wanted_plots) {
+  for (w in seq_along(wanted_plots)) {
+    wanted <- wanted_plots[w]
     a_plot <- plots[[wanted]]
+    message("Trying ", wanted, ".")
     if (!is.null(a_plot)) {
       plotname <- glue("{plot_basename}_{wanted}")
       plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
@@ -295,6 +297,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_mf <- cp_mf[mf_idx, ]
     cp_mf[["Ontology"]] <- "MF"
   } else {
+    mesg("Skipping MF, no rows to print.")
     skip_mf <- TRUE
   }
 
@@ -309,6 +312,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_bp <- cp_bp[bp_idx, ]
     cp_bp[["Ontology"]] <- "BP"
   } else {
+    mesg("Skipping BP, no rows to print.")
     skip_bp <- TRUE
   }
 
@@ -323,6 +327,7 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     cp_cc <- cp_cc[cc_idx, ]
     cp_cc[["Ontology"]] <- "CC"
   } else {
+    mesg("Skipping CC, no rows to print.")
     skip_cc <- TRUE
   }
 
@@ -346,8 +351,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   cp_kegg <- cp_result[["kegg_data"]][["sig_kegg_df"]]
   skip_kegg <- FALSE
   if (is.null(cp_kegg)) {
+    mesg("Skipping KEGG, no rows to print.")
     skip_kegg <- TRUE
   } else if (nrow(cp_kegg) == 0) {
+    mesg("Skipping KEGG, no rows to print.")
     skip_kegg <- TRUE
   }
   if (isFALSE(skip_kegg)) {
@@ -361,8 +368,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   cp_reactome <- cp_result[["reactome_data"]][["reactome_sig_df"]]
   skip_reactome <- FALSE
   if (is.null(cp_reactome)) {
+    mesg("Skipping reactome, no rows to print.")
     skip_reactome <- TRUE
   } else if (nrow(cp_reactome) == 0) {
+    mesg("Skipping reactome, no rows to print.")
     skip_reactome <- TRUE
   }
   if (isFALSE(skip_reactome)) {
@@ -377,7 +386,9 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   skip_dose <- FALSE
   if (is.null(cp_dose)) {
     skip_dose <- TRUE
+    mesg("Skipping dose, no rows to print.")
   } else if (nrow(cp_dose) == 0) {
+    mesg("Skipping dose, no rows to print.")
     skip_dose <- TRUE
   }
   if (isFALSE(skip_dose)) {
@@ -388,8 +399,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   cp_mesh <- cp_result[["mesh_data"]][["mesh_sig"]]
   skip_mesh <- FALSE
   if (is.null(cp_mesh)) {
+    mesg("Skipping mesh, no rows to print.")
     skip_mesh <- TRUE
   } else if (nrow(cp_mesh) == 0) {
+    mesg("Skipping mesh, no rows to print.")
     skip_mesh <- TRUE
   }
   if (isFALSE(skip_mesh)) {
@@ -403,8 +416,10 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
   cp_msigdb <- cp_result[["msigdb_data"]][["msigdb_sig"]]
   skip_msigdb <- FALSE
   if (is.null(cp_msigdb)) {
+    mesg("Skipping msigdb, no rows to print.")
     skip_msigdb <- TRUE
   } else if (nrow(cp_msigdb) == 0) {
+    mesg("Skipping msigdb, no rows to print.")
     skip_msigdb <- TRUE
   }
   if (isFALSE(skip_msigdb)) {
@@ -611,18 +626,24 @@ write_cp_data <- function(cp_result, excel = "excel/clusterprofiler.xlsx",
     mesg("Writing the GSEA data.")
     sheet <- "GO_GSEA"
     gsea_df <- cp_result[["go_data"]][["GO_gse_sig"]]
-    dfwrite <- write_xlsx(data = gsea_df, wb = wb, sheet = sheet,
-                          title = "GO GSEA Results.", start_row = new_row)
-    gsea_plots <- sm(plot_topn_gsea(cp_result[["go_data"]][["GO_gse"]]))
-    plot_column <- ncol(gsea_df) + 2
-    for (g in seq_along(gsea_plots)) {
-      gsea_plot <- gsea_plots[[g]]
-      gsea_name <- names(gsea_plots)[g]
-      plot_try <- xlsx_insert_png(gsea_plot, wb = wb, sheet = sheet, width = 10,
-                                  height = 6, start_col = plot_column, start_row = new_row,
-                                  savedir = savedir, plotname = gsea_name)
-      new_row <- new_row + 33
-      image_list <- c(image_list, plot_try[["filename"]])
+    if (nrow(gsea_df) > 0) {
+      dfwrite <- write_xlsx(data = gsea_df, wb = wb, sheet = sheet,
+                            title = "GO GSEA Results.", start_row = new_row)
+      gsea_plots <- sm(plot_topn_gsea(cp_result[["go_data"]][["GO_gse"]]))
+      plot_column <- ncol(gsea_df) + 2
+      if (length(gsea_plots) > 0) {
+        for (g in seq_along(gsea_plots)) {
+          gsea_plot <- gsea_plots[[g]]
+          gsea_name <- names(gsea_plots)[g]
+          plot_try <- sm(xlsx_insert_png(gsea_plot, wb = wb, sheet = sheet, width = 10,
+                                         height = 6, start_col = plot_column, start_row = new_row,
+                                         savedir = savedir, plotname = gsea_name))
+          if (! "try-error" %in% class(plot_try)) {
+            new_row <- new_row + 33
+            image_list <- c(image_list, plot_try[["filename"]])
+          }
+        }
+      }
     }
   }
 
@@ -705,17 +726,17 @@ write_enricher_data <- function(enricher_result, excel = "excel/enricher.xlsx",
     ## I want to add the pvalue plots, which are fairly deeply embedded in kept_ontology
     if (isTRUE(add_plots)) {
       a_plot <- enrich_plots[["dot"]]
-      plot_try <- xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
-                                  start_col = ncol(enrich_df) + 2, start_row = new_row,
-                                  plotname = "en_dot_plot", savedir = excel_basename)
+      plot_try <- sm(xlsx_insert_png(a_plot, wb = wb, sheet = sheet, width = width, height = height,
+                                     start_col = ncol(enrich_df) + 2, start_row = new_row,
+                                     plotname = "en_dot_plot", savedir = excel_basename))
       if (! "try-error" %in% class(plot_try)) {
         image_list <- c(image_list, plot_try[["filename"]])
       }
       upset <- enrich_plots[["up"]]
-      plot_try <- xlsx_insert_png(
+      plot_try <- sm(xlsx_insert_png(
         upset, wb = wb, sheet = sheet, width = 12, height = 12,
         start_col = ncol(enrich_df) + 12, start_row = 80,
-        plotname = "enrich_upset", savedir = excel_basename)
+        plotname = "enrich_upset", savedir = excel_basename))
       if (! "try-error" %in% class(plot_try)) {
         image_list <- c(image_list, plot_try[["filename"]])
       }

@@ -348,4 +348,50 @@ sum_exon_widths <- function(data = NULL, gff = NULL, annotdf = NULL,
   return(ret)
 }
 
+#' Split compound gff elements into separate columns
+#'
+#' @param annot df from load_gff_annotations, or anything else really.
+xref_splitter <- function(annot) {
+  cds_idx <- annot[["type"]] == "CDS"
+  split_annot <- annot[cds_idx, ]
+
+  all_keys <- c("COG_long", "COG")
+  split_annot[["COG_long"]] <- ""
+  split_annot[["COG"]] <- ""
+  for (row in rownames(split_annot)) {
+    elements <- split_annot[row, "db_xref"]
+    kv <- strsplit(x = elements, split = ",")[[1]]
+    for (k in seq_along(kv)) {
+      key_value <- strsplit(x = kv, split = ":")[[k]]
+      key <- gsub(x = key_value[1], pattern = "^ ", replacement = "")
+      value <- key_value[2]
+      if (key == "SO") {
+        value <- paste0("SO:", value)
+      } else if (key == "EC") {
+        value <- paste0("EC:", value)
+      } else if (key == "GO") {
+        value <- paste0("GO:", value)
+      }
+      if (key == "COG") {
+        if (grepl(x = value, pattern = "^COG")) {
+          split_annot[row, "COG_long"] <- value
+        } else {
+          split_annot[row, "COG"] <- value
+        }
+      } else if (key %in% all_keys) {
+        current_element <- split_annot[row, key]
+        if (current_element == "") {
+          split_annot[row, key] <- value
+        } else {
+          split_annot[row, key] <- paste0(current_element, ", ", value)
+        }
+      } else {
+        all_keys <- c(all_keys, key)
+        split_annot[[key]] <- ""
+      }
+    }
+  }
+  return(split_annot)
+}
+
 ## EOF
