@@ -254,6 +254,8 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   }
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
 
+  rownames(all_count_tables) <- all_count_tables[["rownames"]]
+  all_count_tables[["rownames"]] <- NULL
   test_df <- as.data.frame(all_count_tables)
   ##rownames(test_df) <- test_df[["rownames"]]
   ##test_df[["rownames"]] <- NULL
