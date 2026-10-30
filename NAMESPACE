@@ -573,6 +573,7 @@ exportMethods(tar_meta_column)
 exportMethods(write_xlsx)
 import(Biobase)
 import(ggplot2)
+import(glue)
 import(grDevices)
 import(graphics)
 import(methods)
@@ -625,7 +626,6 @@ importFrom(foreach,
   "%dopar%",
   foreach
 )
-importFrom(glue,glue)
 importFrom(grDevices,recordPlot)
 importFrom(plotly,plot_ly)
 importFrom(rlang,

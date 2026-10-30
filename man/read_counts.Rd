@@ -13,9 +13,10 @@ read_counts(
   all.y = FALSE,
   merge_type = "merge",
   sep = "\\t",
+  assay_rownames = NULL,
   suffix = NULL,
-  countdir = NULL,
   tx_gene_map = NULL,
+  remove_trailing_number = TRUE,
   file_type = NULL,
   ignore_tx_version = TRUE,
   ...
@@ -37,8 +38,6 @@ read_counts(
 \item{merge_type}{Choose one, merge or join.}
 
 \item{suffix}{Optional suffix to add to the filenames when reading them.}
-
-\item{countdir}{Optional count directory to read from.}
 
 \item{tx_gene_map}{Dataframe which provides a mapping between
 transcript IDs and gene IDs.}

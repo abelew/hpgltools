@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 library(testthat)
+library(hpgltools)
+library(glue)
 
 ## test_package() is (I think) required for covr to work.
 ## However, when I am working on it, I want to use test_local()

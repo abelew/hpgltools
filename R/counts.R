@@ -353,7 +353,7 @@ read_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", me
     warning("There was a problem reading: ", files[1], ".")
   }
   ## Ok, here is the thing, data.table failed me.  However, data.frame is too slow,
-  ## perhaps it is time to revisit tbl_df
+  ## perhaps it is time to revisit tbl_df/tibble
   count_table <- count_table[, c(1, 7)]
   colnames(count_table) <- c("rownames", ids[1])
   rownames(count_table) <- make.names(count_table[["rownames"]], unique = TRUE)

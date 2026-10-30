@@ -96,11 +96,12 @@ NULL
 #'  \item Perform some simple TnSeq analyses.
 #' }
 #'
-#' To see examples of this in action, check out the hpgltool2 vignettes.
+#' To see examples of this in action, check out the hpgltools vignettes.
 #'
 #' @name hpgltools
 #' @import Biobase
 #' @import ggplot2
+#' @import glue
 #' @import graphics
 #' @import grDevices
 #' @import methods
@@ -109,7 +110,6 @@ NULL
 #' @importFrom data.table as.data.table data.table rbindlist setkey
 #' @importFrom dplyr filter group_by n summarise
 #' @importFrom foreach foreach
-#' @importFrom glue glue
 #' @importFrom grDevices recordPlot
 #' @importFrom IRanges %over%
 #' @importFrom rlang abort sym
@@ -176,3 +176,16 @@ bprior <- "sva" %:::% "bprior"
 it.sol <- "sva" %:::% "it.sol"
 int.eprior <- "sva" %:::% "int.eprior"
 getGOLevel <- "clusterProfiler" %:::% "getGOLevel"
+
+#' ensure glue gets imported
+#'
+#' I think something must have changed in roxygen because out of nowhere every invocation of
+#' glue() is failing because R cannot find it.  This is complete BS because there is an
+#' at import glue clearly in this file and also the NAMESPACE obviously shows it and also glue
+#' is in the imports section of the DESCRIPTION.  However, when I do search(), package:glue
+#' is not attached and when I do utils::sessionInfo() I can see that
+#' glue is loaded but not attached.  Taken together, this leaves me
+#' infuriated.
+.onAttach <- function(libname, pkgname) {
+  try(attachNamespace("glue"), silent = TRUE)
+}

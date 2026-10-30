@@ -14,7 +14,6 @@ create_se(
   notes = NULL,
   include_type = "all",
   count_source = "featureCounts",
-  countdir = NULL,
   include_fasta = NULL,
   include_gff = NULL,
   file_column = "file",
@@ -34,6 +33,7 @@ create_se(
   species = NULL,
   condition_column = NULL,
   batch_column = NULL,
+  assay_rownames = NULL,
   ...
 )
 }
@@ -55,8 +55,6 @@ create_se(
 \item{include_type}{Used to specify types of genes/annotations to use.}
 
 \item{count_source}{Explicitly specify the method used to create the text table.}
-
-\item{countdir}{(deprecated) Directory containing count tables.}
 
 \item{include_fasta}{Include a fasta file.}
 
