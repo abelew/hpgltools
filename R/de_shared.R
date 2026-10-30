@@ -312,6 +312,12 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
     "post_batch" = post_pca)
   class(ret) <- c("hpgltools::all_pairwise", "list")
 
+  ## I will add keepers (when defined) to the return list so that it may be used automatically
+  ## by combine_de_tables().
+  if (!is.null(keepers)) {
+    ret[["keepers"]] <- keepers
+  }
+
   if (!is.null(arglist[["combined_excel"]])) {
     mesg("Invoking combine_de_tables().")
     combined <- combine_de_tables(ret, excel = arglist[["combined_excel"]], ...)
@@ -336,6 +342,9 @@ all_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batch"
   }
   message("A pairwise differential expression with results from: ",
           toString(included), ".")
+  chosen_factor <- x[["model_factors"]][["contrast"]]
+  factors <- levels(as.factor(colData(x[["input"]])[[chosen_factor]]))
+  message("The factors used are: ", toString(factors), ".")
   message("This used a surrogate/batch estimate from: ", x[["batch_type"]], ".")
   message("The primary analysis performed ", ncol(x[["comparison"]][["comp"]]), " comparisons.")
   if (is.null(x[["comparison"]][["heat"]])) {

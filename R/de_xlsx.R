@@ -203,6 +203,13 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
   if (is.null(wb)) {
     do_excel <- FALSE
   }
+  ## There are occasions when I limit the search space via the keepers variable in all_pairwise()
+  ## When that happens, I may forget to reuse that in combine_de_tables()
+  ## Thus the following should catch this.
+  if (is.null(keepers) && !is.null(input[["keepers"]])) {
+    message("The input pairwise comparison included a keepers set, using that.  Set keepers to FALSE if you do not want this.")
+    keepers <- input[["keepers"]]
+  }
   ## hey, id10t, keep this function right at the top, if you move it later
   ## badness almost certainly will ensue when you perform weird, non-standard
   ## contrasts like mixed models via lmer or interaction models.
@@ -409,6 +416,7 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
       current_column <- xls_result[["end_col"]] + 2
       if (isTRUE(add_plots)) {
         ## Text on row 1, plots from 2-17 (15 rows)
+        current_row <- current_row + 1
         mesg("Adding venn plots for ", tnames[x], ".")
         venn_info <- write_venns_de_xlsx(
           written_table, tab, wb, sheetname, current_row, current_column, excel_basename,
@@ -423,7 +431,8 @@ combine_de_tables <- function(apr, extra_annot = NULL, keepers = "all", excludes
         de_plots_written <- write_plots_de_xlsx(includes, extracted, sheetname,
                                                 current_row, current_column, tab,
                                                 xls_result, wb, plot_dim,
-                                                excel_basename, image_files)
+                                                excel_basename, image_files,
+                                                plot_rows = 31, plot_columns = plot_columns)
         image_files <- de_plots_written[["image_files"]]
         wb <- de_plots_written[["wb"]]
         current_row <- de_plots_written[["current_row"]]
@@ -3217,6 +3226,7 @@ write_plots_de_xlsx <- function(includes, extracted, sheetname, current_row,
 
     ## Note that these are lists now.
     if (class(plt)[1] != "try-error" && length(plt) > 0) {
+      message("Adding the coefficient plot to ", sheetname, ".")
       ## The summary is now included with the plot.
       printme <- as.character(glue("{cap} expression coefficients for {tab}"))
       openxlsx::writeData(

@@ -310,7 +310,6 @@ choose_basic_dataset <- function(input, force = FALSE, ...) {
     }
   }
   ## No matter what we do, it must be logged.
-  message("I think this is failing? ", class(ready))
   if (tran_state == "raw") {
     message("Basic step 0/3: Transforming data.")
     ready <- normalize(ready, transform = "log2")

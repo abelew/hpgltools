@@ -246,7 +246,7 @@ If this is not correctly performed, very few genes will be observed")
     retlist[["source"]] <- salmon_counts[["source"]]        
   } else if (file_type == "featureCounts") {
     fc_counts <- read_counts_featurecounts(files, ids, header = header, sep = sep, merge_type = merge_type,
-                                           all.x = all.x, all.y = all.y)
+                                           all.x = all.x, all.y = all.y, na_to_zero = na_to_zero)
     retlist[["count_table"]] <- fc_counts[["count_table"]]
     retlist[["source"]] <- fc_counts[["source"]]    
   } else if (file_type == "table") {
@@ -343,8 +343,8 @@ read_counts_bigwig <- function(files, ids, merge_type = "merge", all.x = TRUE, a
   return(retlist)
 }
 
-reads_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", merge_type = "merge",
-                                       all.x = TRUE, all.y = FALSE) {
+read_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", merge_type = "merge",
+                                       all.x = TRUE, all.y = FALSE, na_to_zero = TRUE) {
   mesg("Reading featureCounts with read.table().")
   retlist <- list()  
   ## Use this codepath when we are working with htseq
@@ -352,8 +352,11 @@ reads_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", m
   if ("try-error" %in% class(count_table)) {
     warning("There was a problem reading: ", files[1], ".")
   }
+  ## Ok, here is the thing, data.table failed me.  However, data.frame is too slow,
+  ## perhaps it is time to revisit tbl_df
   count_table <- count_table[, c(1, 7)]
   colnames(count_table) <- c("rownames", ids[1])
+  rownames(count_table) <- make.names(count_table[["rownames"]], unique = TRUE)
   ## We are going to immediately check for NA, so I think we can suppress warnings.
   count_table[, 2] <- suppressWarnings(as.numeric(count_table[, 2]))
   na_idx <- is.na(count_table[[2]])
@@ -408,8 +411,6 @@ reads_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", m
     if (merge_type == "merge") {
       count_table <- merge(count_table, tmp_count, by = "rownames",
                            all.x = all.x, all.y = all.y)
-      rownames(count_table) <- count_table[, "Row.names"]
-      count_table[["Row.names"]] <- NULL
     } else {
       count_table <- plyr::join(count_table, tmp_count)
     }

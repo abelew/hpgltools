@@ -404,9 +404,9 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
     foundp <- 0
     result <- data.frame()
     if (denominator_model_name %in% possible_results) {
-      message("This contrast put the denominator first.")
+      message("This contrast put the (arbitrarily chosen) denominator first.")
     } else if (numerator_model_name %in% possible_results) {
-      message("This contrast put the numerator first.")
+      message("This contrast put the (arbitrarily chosen) numerator first.")
     } else if (comparison_model_name %in% possible_results) {
       message("This contrast used ", den_name, "_vs_", num_name, ".")
     } else if (comparison_model_name_flipped %in% possible_results) {
