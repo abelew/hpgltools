@@ -588,7 +588,11 @@ setMethod(
     if (sum(sample_comparison) == list_len) {
       mesg("Changing colors to match specific samples in the color list.")
       change_by_sample <- TRUE
-    } else if (sum(cond_comparison) == list_len) {
+    } else if (sum(cond_comparison) == length(cond_names)) {
+      ## Change this logic slightly, rather than enforce sum(cond_comparison) == list_len,
+      ## We should ensure that every element of cond_comparison is in the set of condition names.
+      ## Thus rather than checking the list_len, we should check the cond_names.
+      ## This change makes it possible to have more colors than observed factors in case we decide to add them.
       mesg("Changing colors to match specific conditions in the color list.")
       change_by_condition <- TRUE
     } else {

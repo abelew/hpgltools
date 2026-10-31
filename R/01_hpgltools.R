@@ -187,5 +187,13 @@ getGOLevel <- "clusterProfiler" %:::% "getGOLevel"
 #' glue is loaded but not attached.  Taken together, this leaves me
 #' infuriated.
 .onAttach <- function(libname, pkgname) {
+  ## Why in the flying hell is the fact that the DESCRIPTION has imports glue and SummarizedExperiment
+  ## insufficient all of the suddent, what in the heck happened?!?
+  ## Ok, I checked my .Rprofile, it is fine.  I do load R via the environment-modules, so I thought
+  ## maybe something went wrong there, but it seems fine.  I absolutely will figure out what is going on,
+  ## but apparently not today.
+
+  ## Once I do figure out wtf is wrong, I will comment out this stupid hack but leave the solution here.
   try(attachNamespace("glue"), silent = TRUE)
+  try(attachNamespace("SummarizedExperiment"), silent = TRUE)
 }

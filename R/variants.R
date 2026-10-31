@@ -262,6 +262,7 @@ count_snps <- function(exp, annot_column = "bcftable",
   if (is.null(file_lst)) {
     stop("This requires a set of bcf filenames, the column: ", annot_column, " does not have any.")
   }
+  starting_colors <- colors(exp)
 
   snp_dt <- NULL
   if (!is.null(snp_column)) {
@@ -330,6 +331,7 @@ they probably came from an older version of this method.")
   snp_se <- SummarizedExperiment(assays = snp_assay,
                                  rowData = snp_features,
                                  colData = meta)
+  snp_se <- set_colors(snp_se, starting_colors)
  return(snp_se)
 }
 
