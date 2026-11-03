@@ -131,7 +131,7 @@ basic_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + batc
     contrasts_performed <- append(name, contrasts_performed)
     if (! c_name %in% colnames(median_table)) {
       message("The contrast ", name, " is not in the results.")
-      message("If this is not an extra contrast, then this is an error.")
+      message("If this is not an extra contrast, then there is a problem.")
       next
     }
     division <- data.frame(

@@ -2258,6 +2258,7 @@ summarize_ups_downs <- function(ups, downs) {
 #' @param type Choose the result from this DE method.
 #' @param combined Combine all the result types.
 #' @returns Single table from the pairwise result.
+#' @export
 get_de_table <- function(apr, table, type = "deseq", combined = FALSE) {
   all_tables <- apr[[type]][["all_tables"]]
   wanted <- NULL

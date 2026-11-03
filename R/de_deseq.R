@@ -413,7 +413,7 @@ deseq2_pairwise <- function(input = NULL, model_fstring = "~ 0 + condition + bat
       message("This contrast used ", num_name, "_vs_", den_name, ".")
     } else {
       message("The contrast ", comparison_model_name, " is not in the results.")
-      message("If this is not an extra contrast, then this is an error.")
+      message("If this is not an extra contrast, then there is a problem.")
       next
     }
     result <- as.data.frame(DESeq2::results(object = deseq_run,
