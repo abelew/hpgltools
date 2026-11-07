@@ -241,7 +241,7 @@ If this is not correctly performed, very few genes will be observed")
     retlist[["source"]] <- rsem_counts[["source"]]    
   } else if (file_type == "salmon") {
     salmon_counts <- read_counts_salmon(files, ids, tx_gene_map = tx_gene_map,
-                                        ignore_tx_version = ignore_tx_version, txout = txout)
+                                        ignore_tx_version = ignore_tx_version, txout = txout, remove_trailing_number = remove_trailing_number)
     retlist[["count_table"]] <- salmon_counts[["count_table"]]
     retlist[["source"]] <- salmon_counts[["source"]]        
   } else if (file_type == "featureCounts") {
@@ -426,7 +426,7 @@ read_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", me
   return(retlist)
 }
 
-read_counts_kallisto <- function(files, ids, tx_gene_map = NULL, ignore_tx_version = TRUE, txout = TRUE) {
+read_counts_kallisto <- function(files, ids, tx_gene_map = NULL, ignore_tx_version = TRUE, txout = TRUE, remove_trailing_number = TRUE) {
   retlist <- list()
   mesg("Reading kallisto data with tximport.")
   ## This hits if we are using the kallisto outputs.
@@ -489,7 +489,7 @@ it may be the case that tximport failed and we need to set the colnames as per s
   return(retlist)
 }
 
-read_counts_salmon <- function(files, ids, tx_gene_map = NULL, ignore_tx_version = TRUE, txout = TRUE) {
+read_counts_salmon <- function(files, ids, tx_gene_map = NULL, ignore_tx_version = TRUE, txout = TRUE, remove_trailing_number = TRUE) {
   mesg("Reading salmon data with tximport.")
   retlist <- list()  
   ## This hits if we are using the salmon outputs.

@@ -101,7 +101,7 @@ combine_se <- function(se1, se2, condition = "condition", all_x = TRUE, all_y = 
 #' @export
 create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                       sanitize_rownames = FALSE, sample_colors = NULL, title = NULL,
-                      notes = NULL, include_type = "all", count_source = "featureCounts",
+                      notes = NULL, include_type = "all", count_source = NULL,
                       include_fasta = NULL,  include_gff = NULL,
                       file_column = "file", file_type = NULL, id_column = NULL,
                       handle_na = "drop", researcher = "elsayed", study_name = NULL,
@@ -254,8 +254,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   }
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
 
-  rownames(all_count_tables) <- all_count_tables[["rownames"]]
-  all_count_tables[["rownames"]] <- NULL
   test_df <- as.data.frame(all_count_tables)
   ##rownames(test_df) <- test_df[["rownames"]]
   ##test_df[["rownames"]] <- NULL
