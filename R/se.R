@@ -232,7 +232,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
       tximport_data <- list("raw" = count_data[["tximport"]],
                             "scaled" = count_data[["tximport_scaled"]])
     }
-    all_count_tables <- count_data[["count_table"]]
+    all_count_tables <- count_data[["count_table"]]    
   } else {
     ## if all_count_tables _did_ exist, then we already had the count tables and so
     ## count_data should have them and all ids as 'kept'.
@@ -255,13 +255,12 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
 
   test_df <- as.data.frame(all_count_tables)
-  ##rownames(test_df) <- test_df[["rownames"]]
-  ##test_df[["rownames"]] <- NULL
   count_nas <- is.na(test_df)
   if (sum(count_nas) > 0) {
     warning("There are some NAs in this data, the 'handle_nas' parameter may be required.")
   }
   check_counts <- colSums(test_df, na.rm = TRUE)
+  
   zero_count_samples <- check_counts == 0
   if (sum(zero_count_samples) > 0) {
     warning("The following samples have no counts: ", toString(names(check_counts)[zero_count_samples]))

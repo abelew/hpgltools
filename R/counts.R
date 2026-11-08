@@ -634,6 +634,8 @@ read_counts_table <- function(files, ids, header = FALSE, sep = "\t", merge_type
       count_table <- count_table[!drop_rows, ]
     }
   } ## End the difference between tximport and reading tables.
+  rownames(count_table) <- count_table[["rownames"]]
+  count_table[["rownames"]] <- NULL
   ## retlist[["count_table"]] <- setkey(count_table, rownames)
   retlist[["count_table"]] <- count_table      
   retlist[["source"]] <- "htseq"
