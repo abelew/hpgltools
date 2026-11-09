@@ -186,14 +186,14 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Create a matrix of counts with columns as samples and rows as genes
   ## This may come from either a data frame/matrix, a list of files from the metadata
   ## or it can attempt to figure out the location of the files from the sample names.
-  all_count_tables <- NULL
+  all_count_tables <- data.frame()
   ## This set of if() statements is too complex and requires some reworking.
   if (!is.null(count_dataframe)) {
     ## Lets set the order of the count data to that of the sample definitions.
     test_col_rownames <- all.equal(sort(colnames(count_dataframe)),
                                    sort(rownames(sample_definitions)))
     if (isTRUE(test_col_rownames)) {
-      count_dataframe <- count_dataframe[, rownames(sample_definitions)]
+      all_count_tables <- as.data.frame(count_dataframe[, rownames(sample_definitions)])
     } else {
       message("The count table column names are: ",
               toString(sort(colnames(count_dataframe))))
@@ -201,7 +201,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
               toString(sort(rownames(sample_definitions))))
       stop("The count table column names are not the same as the sample definition row names.")
     }
-    all_count_tables <- data.table::as.data.table(count_dataframe, keep.rownames = "rownames")
     ## If neither of these cases is true, start looking for the files in the
     ## processed_data/ directory
   } else if (is.null(sample_definitions[[file_column]])) {
@@ -218,7 +217,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Notably, it has slots for: 'kept_ids' which should match 1:1 with the slot 'kept_files',
   ## 'source' which should remind us if the data came from htseq/tximport/etc.
   ## and count_table which should have one column for every kept_id/kept_file.
-  count_data <- NULL
   if (is.null(all_count_tables)) {
     ## If all_count_tables does not exist, then we want to read the various files
     ## in the sample definitions to get them.

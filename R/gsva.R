@@ -646,7 +646,7 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
       old_ids <- rownames(assay(se))
       new_ids <- sm(AnnotationDbi::select(
         x = get0(orgdb), keys = old_ids, keytype = current_id, columns = c(required_id)))
-    } else if (id_source == "rowdata") {
+    } else if (id_source == "rowdata" || id_source == "fdata" || id_source == "gene_info") {
       ids <- rowData(se)[[required_id]]
       new_ids <- data.frame(
         current_id = rownames(assay(se)),
@@ -751,8 +751,8 @@ simple_gsva <- function(se, signatures = "c2BroadSets", data_pkg = "GSVAdata",
     "signature_category" = signature_category,
     "signature_data" = signature_data,
     "signatures" = signatures)
-  return(retlist)
   class(retlist) <- "hpgltools::simple_gsva"
+  return(retlist)
 }
 setGeneric("simple_gsva")
 
