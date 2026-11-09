@@ -217,7 +217,7 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
   ## Notably, it has slots for: 'kept_ids' which should match 1:1 with the slot 'kept_files',
   ## 'source' which should remind us if the data came from htseq/tximport/etc.
   ## and count_table which should have one column for every kept_id/kept_file.
-  if (is.null(all_count_tables)) {
+  if (nrow(all_count_tables) == 0) {
     ## If all_count_tables does not exist, then we want to read the various files
     ## in the sample definitions to get them.
     files <- as.character(sample_definitions[[file_column]])
