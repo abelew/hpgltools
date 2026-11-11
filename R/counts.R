@@ -241,7 +241,8 @@ If this is not correctly performed, very few genes will be observed")
     retlist[["source"]] <- rsem_counts[["source"]]    
   } else if (file_type == "salmon") {
     salmon_counts <- read_counts_salmon(files, ids, tx_gene_map = tx_gene_map,
-                                        ignore_tx_version = ignore_tx_version, txout = txout, remove_trailing_number = remove_trailing_number)
+                                        ignore_tx_version = ignore_tx_version, txout = txout,
+                                        remove_trailing_number = remove_trailing_number)
     retlist[["count_table"]] <- salmon_counts[["count_table"]]
     retlist[["source"]] <- salmon_counts[["source"]]        
   } else if (file_type == "featureCounts") {
@@ -420,6 +421,8 @@ read_counts_featurecounts <- function(files, ids, header = FALSE, sep = "\t", me
     mesg(table, " contains ", pre_merge, " rows, merges ", post_merge,
          " rows, sum: ", column_sum, ".")
   } ## End for loop
+  rownames(count_table) <- count_table[["rownames"]]
+  count_table[["rownames"]] <- NULL
   retlist[["count_table"]] <- count_table
   retlist[["source"]] <- "featureCounts"
   ##retlist[["count_table"]] <- setkey(retlist[["count_table"]], rownames)

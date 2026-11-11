@@ -3,6 +3,163 @@
 #' @include 01_hpgltools.R
 NULL
 
+#' I was thinking that once I start using this binned GR, I will start wanting to add
+#' stuff to it, so let us start with GC content.
+#'
+#' Ok, this works but is annoyingly slow.  Perhaps making it an apply() will help?
+add_gc_content <- function(bsg, gr, pattern = "GC") {
+  elements <- length(gr)
+  gc_vector <- rep(0, elements)
+  for (b in seq_along(gr)) {
+    bin <- gr[b]
+    seq <- Biostrings::getSeq(bsg, seqnames(bin), start = BiocGenerics::start(bin), end = BiocGenerics::end(bin))
+    gc_vector[b] <- Biostrings::letterFrequency(seq, pattern, as.prob = TRUE)
+    mesg(b, " of ", elements, ".")
+  }
+  mcols(gr)[["gc"]] <- as.numeric(gc_vector)
+  return(gr)
+}
+
+#' Next I want every bin to include the following mcols:
+#'   1. CDS which may be NA when the bin does not overlap with any gene
+#'   2. fivep which may be NA when the bin is entirely in a CDS, but otherwise points to the
+#' downstream gene.
+#'   3. threep which may be NA when the bin is entirely in a CDS, but otherwise points to the
+#' upstream gene.
+crossref_bins_genes <- function(bins, annotation_gff, annotation_type = "mRNA",
+                                exclude_pattern = "SCAF", window = 1000, output = NULL) {
+  bins = binned_gr
+  annotation_gff = "~/libraries/genome/gff/lpanamensis_v68.gff"
+  annotation_gr <- gff2gr(annotation_gff)
+  if (!is.null(annotation_type)) {
+    annotation_idx <- mcols(annotation_gr)[["type"]] == annotation_type
+    annotation_gr <- annotation_gr[annotation_idx]
+  }
+
+  if (!is.null(exclude_pattern)) {
+    uninteresting <- grepl(x = seqnames(annotation_gr), pattern = exclude_pattern)
+    annotation_gr <- annotation_gr[!uninteresting]
+  }
+
+  annotation_df <- mcols(annotation_gr)
+  ## We cannot use the various join functions if the mcols have start/end in them; so take that out
+  ## after we are done using it.
+  original_annotation <- annotation_df
+  annotation_df[["gene_start"]] <- IRanges::start(annotation_gr)
+  annotation_df[["gene_end"]] <- IRanges::end(annotation_gr)
+  annotation_df[["gene_strand"]] <- GenomicRanges::strand(annotation_gr)
+  mcols(annotation_gr) <- annotation_df
+  
+  mcols(bins)[["fivep"]] <- NA
+  mcols(bins)[["CDS"]] <- NA
+  mcols(bins)[["threep"]] <- NA
+  final_mcols <- mcols(bins)
+    
+  joined <- plyranges::join_overlap_intersect(bins, annotation_gr)
+  mcols(joined) <- mcols(joined)[, c("ID", "gene_start", "gene_end", "gene_strand", "description")]
+  bin_df <- mcols(bins)
+  gene_df <- mcols(joined)
+  merged_df <- merge(bin_df, gene_df, all.x = TRUE, by = "row.names")
+  rownames(merged_df) <- merged_df[["Row.names"]]
+  merged_df[["Row.names"]] <- NULL
+  final_mcols <- merged_df[rownames(bin_df), ]
+  final_mcols[["CDS"]] <- final_mcols[["ID"]]
+  final_mcols[["ID"]] <- NULL
+
+  ## Now get rid of the extra start/end before we get yelled at.
+  mcols(annotation_gr) <- original_annotation
+
+  upstream <- plyranges::flank_upstream(annotation_gr, width = window)
+  joined_upstream <- plyranges::join_overlap_intersect(bins, upstream)
+  mcols(joined_upstream) <- mcols(joined_upstream)[, c("ID")]
+  colnames(mcols(joined_upstream)) <- "ID"
+  bin_df <- mcols(bins)
+  gene_df <- mcols(joined_upstream)
+  merged_df <- merge(bin_df, gene_df, all.x = TRUE, by = "row.names")
+  rownames(merged_df) <- merged_df[["Row.names"]]
+  merged_df[["Row.names"]] <- NULL
+  merged_df <- merged_df[rownames(bin_df), ]
+  final_mcols[["fivep"]] <- merged_df[["ID"]]
+
+  downstream <- flank_downstream(annotation_gr, width = window)
+  joined_downstream <- plyranges::join_overlap_intersect(bins, downstream)
+  mcols(joined_downstream) <- mcols(joined_downstream)[, c("ID")]
+  colnames(mcols(joined_downstream)) <- "ID"
+  bin_df <- mcols(bins)
+  gene_df <- mcols(joined_downstream)
+  merged_df <- merge(bin_df, gene_df, all.x = TRUE, by = "row.names")
+  rownames(merged_df) <- merged_df[["Row.names"]]
+  merged_df[["Row.names"]] <- NULL
+  merged_df <- merged_df[rownames(bin_df), ]
+  final_mcols[["threep"]] <- merged_df[["ID"]]
+
+  mcols(bins) <- final_mcols
+  if (!is.null(output)) {
+    plyranges::write_gff3(x = bins, file = output)
+  }
+  return(bins)
+}
+
+#' Create a windowed GRange from a genome.  Assume a BSGenome, but have methods
+#' to handle fasta etc.
+#'
+#' We would like to have a binned summarized experiment of expression and variants, so I figured a
+#' quick and dirty way to handle it was to generate a fasta and recount our reads/variants using it.
+#'
+#' I want to have a little fun with this and add a mcol with GC content per bin.  I want this as
+#' practice for adding more difficult things later.
+#'
+#' @param genome Input genome, by default bsgenome.
+#' @param window_size what it says on the tin.
+#' @param add_tails Add an extra bin at the end of each chromosome with the remaining portion.
+#' @param output Output gff or other file(s) (right now just gff).
+#' @param exclude_pattern Regex used to exclude regions which are not interesting. (scaffolds)
+#' @return List with a new GRange and perhaps some useful information, maybe # bins/chromsoome?
+#' @export
+genome_windows <- function(input_genome, window_size = 1000, add_tails = TRUE, output = NULL,
+                           exclude_pattern = "SCAF") {
+  chr_info <- seqinfo(input_genome)
+  all_chromosomes <- as.data.frame(chr_info)
+  all_gr <- GRanges(chr_info)
+  if (!is.null(exclude_pattern)) {
+    uninteresting <- grepl(x = rownames(all_chromosomes), pattern = exclude_pattern)
+    wanted_names <- rownames(all_chromosomes)[!uninteresting]
+    all_chromosomes <- all_chromosomes[wanted_names, ]
+    chr_info <- chr_info[wanted_names]
+    all_gr <- GRanges(chr_info)
+  }
+  binned_gr <- GRanges()
+  for (g in seq_along(all_gr)) {
+    this_gr <- all_gr[g]
+    tile_n <- lengths(this_gr) / window_size
+    fragments <- GenomicRanges::tile(this_gr, n = tile_n)
+    ## I am going to do a round-trip through data.table in order to ensure that I can get the tails.
+    fragment_dt <- as.data.table(fragments[[1]])
+    fragment_df <- as.data.frame(fragment_dt)
+    if (isTRUE(add_tails)) {
+      ## I need to add one more for the end of the chromosome, tile returns a list, so grab the first element.
+      this_region <- fragments[[1]]
+      final_fragment <- length(this_region)
+      start_of_final_endpoint <- BiocGenerics::end(this_region[final_fragment]) + 1
+      end_of_final_endpoint <- BiocGenerics::end(this_gr)
+      final_length <- end_of_final_endpoint - start_of_final_endpoint
+      name <- as.character(seqnames(this_region))[1]
+      last_row <- c(name, start_of_final_endpoint, end_of_final_endpoint, final_length, "*")
+      fragment_df <- rbind(as.data.frame(fragment_dt), last_row)
+      fragment_dt <- as.data.table(fragment_df)
+    }
+    new_names <- paste0(fragment_dt[["seqnames"]], "_", fragment_dt[["start"]], "_", fragment_dt[["end"]])
+    rownames(fragment_df) <- new_names
+    final_gr <- GRanges(fragment_df)
+    binned_gr <- c(binned_gr, final_gr)
+  } ## End iterating over every chromosome.
+  
+  if (!is.null(output)) {
+    written <- plyranges::write_gff3(x = binned_gr, file = output)
+  }
+  return(binned_gr)
+}
+
 #' Extract a grange from gene x to gene y
 #'
 #' @param gr Input grange.
