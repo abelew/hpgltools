@@ -231,7 +231,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
                             "scaled" = count_data[["tximport_scaled"]])
     }
     all_count_tables <- count_data[["count_table"]]
-    print(head(all_count_tables))
   } else {
     ## if all_count_tables _did_ exist, then we already had the count tables and so
     ## count_data should have them and all ids as 'kept'.
@@ -252,7 +251,6 @@ create_se <- function(metadata = NULL, gene_info = NULL, count_dataframe = NULL,
     warning("Some samples were removed when cross referencing the samples against the count data.")
   }
   sample_definitions <- sample_definitions[kept_definitions_idx, ]
-  print(head(all_count_tables))
   test_df <- as.data.frame(all_count_tables)
   count_nas <- is.na(test_df)
   if (sum(count_nas) > 0) {

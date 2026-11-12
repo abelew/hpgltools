@@ -512,7 +512,7 @@ plot_sample_heatmap <- function(data, colors = NULL, design = NULL, heatmap_colo
   dev.control("enable")
   heatmap.3(data, keysize = 0.8, labRow = row_label, col = heatmap_colors,
             dendrogram = dendrogram, labCol = input_names, margins = c(12, 8),
-            trace = "none", ColSideColors = colors, linewidth = 0.5,
+            trace = "none", ColSideColors = as.character(colors), linewidth = 0.5,
             main = plot_title, Rowv = Rowv, Colv = Colv)
   sample_heatmap_plot <- grDevices::recordPlot()
   dev.off()

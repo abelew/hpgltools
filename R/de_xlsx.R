@@ -1228,7 +1228,7 @@ exclude_genes_from_combined_list <- function(comb, excludes) {
       exclude <- excludes[[col]][exclude_num]
       remove_column <- comb[[col]]
       remove_idx <- grep(pattern = exclude, x = remove_column, perl = TRUE, invert = TRUE)
-      removed_num <- sum(as.numeric(remove_idx))
+      removed_num <- sum(remove_idx)
       mesg("Removed ", removed_num, " genes using ",
            exclude, " as a string against column ", col, ".")
       comb <- comb[remove_idx, ]
@@ -1571,7 +1571,6 @@ extract_keepers <- function(extracted, keepers, table_names,
   } ## Ending the for loop of elements in the keepers list.
   extracted[["numerators"]] <- numerators
   extracted[["denominators"]] <- denominators
-  message("Looking for subscript invalid names, end of extract_keepers.")
   return(extracted)
 }
 setGeneric("extract_keepers")
@@ -3227,7 +3226,6 @@ write_plots_de_xlsx <- function(includes, extracted, sheetname, current_row,
 
     ## Note that these are lists now.
     if (class(plt)[1] != "try-error" && length(plt) > 0) {
-      message("Adding the coefficient plot to ", sheetname, ".")
       ## The summary is now included with the plot.
       printme <- as.character(glue("{cap} expression coefficients for {tab}"))
       openxlsx::writeData(
