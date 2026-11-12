@@ -196,4 +196,5 @@ getGOLevel <- "clusterProfiler" %:::% "getGOLevel"
   ## Once I do figure out wtf is wrong, I will comment out this stupid hack but leave the solution here.
   try(attachNamespace("glue"), silent = TRUE)
   try(attachNamespace("SummarizedExperiment"), silent = TRUE)
+  try(attachNamespace("S4Vectors"), silent = TRUE)  
 }
